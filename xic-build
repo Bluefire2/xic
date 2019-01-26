@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Xi compiler build script
+#
+
+echo "** Please update this xic-build script with commands that build your software. **"
