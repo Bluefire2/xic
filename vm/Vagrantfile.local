@@ -1,0 +1,2 @@
+### Default shared folder
+config.vm.synced_folder "./shared", "/home/vagrant/shared"

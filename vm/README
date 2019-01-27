@@ -1,0 +1,59 @@
+== CS 4120 VM ==================================================================
+
+We provide this virtual machine to avoid cross-platform issues. It comes
+with Java 11, Scala, (Ant, Maven, Gradle, sbt), JFlex, OCaml (Opam, Oasis), Haskell (ghcup,
+cabal-install, stack), and Python 2/3 preinstalled.
+
+It also comes with the test harness (xth) preinstalled. To execute it, simple
+execute `xth` inside the VM.
+
+Note that the folder 'shared' is mounted at the path '~/shared' in the VM to
+facilitate easy sharing of project files. You can do all editing etc. on your
+physical machine and use the virtual machine only to build and run your
+application.
+
+To get started, refer to the INSTALL file.
+
+Note: do NOT use the files inside the "base" folder, unless you would like to customize the VM
+and/or troubleshoot environment issues with the course staff.
+
+Note that the Scala, OCaml, and Haskell installs have not been extensively verified.
+If you run into issues, please let us know.
+
+
+-- FAQ -------------------------------------------------------------------------
+
+How can I mount my xic folder on the physical machine to the virtual machine?
+
+  Modify the file "Vagrantfile.local" in the vagrant directory and add the
+  following command to it:
+    config.vm.synced_folder "<path on physical machine>", "/home/vagrant/xic"
+  Then run `vagrant reload`.
+
+
+The course VM has been updated. How do I update my machine?
+
+  First, make sure that any files on the VM are backed up. Then, just
+  run `vagrant box update`, `vagrant destroy`, then `vagrant up` to bring
+  it back up.
+
+
+How can I make my compiler executable by typing just `xic` instead of
+`<path>/xic`?
+
+  Your xic executable must be on the PATH. The easiest way to achieve this is to
+  execute
+    ln -s <absolute path to xic> ~/bin
+  which creates a symbolic link to xic in the folder ~/bin; ~/bin is on the PATH
+  by default.
+
+
+I want to use a custom Vagrant file!
+
+  Sure. Add any commands you want to "Vagrantfile.local" in the vagrant folder.
+  add any vagrant commands you want. Execute `vagrant reload` to restart the VM
+  and reload the Vagrantfiles.
+
+
+--------------------------------------------------------------------------------
+ - Jan 2019

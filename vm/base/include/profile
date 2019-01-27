@@ -1,0 +1,12 @@
+
+# Prompt
+PROMPT_COMMAND="RET=$?; printf '\n'"
+PS1="\[\e[0;32m\]\u\[\e[m\] \[\e[1;34m\]\w\[\e[m\]\[\e[0;32m\]$ \[\e[m\]"
+
+# Aliases for convenience
+alias grep='grep --color=always'
+alias less='less -R'
+alias ls="ls -G"
+
+# update xth on login
+~/xth/update

@@ -1,0 +1,39 @@
+== INSTALL  ====================================================================
+
+(1) Install VirtualBox _and_ VirtualBox Extension Pack:
+    https://www.virtualbox.org/wiki/Downloads
+
+(2) Install Vagrant:
+    * Windows, Mac OS X: https://www.vagrantup.com/downloads.html
+    * Ubuntu: apt-get install vagrant
+
+(2.5) Under Windows, you may have to reboot...
+
+(3) Make sure you are connected to the Internet, preferably via a fast
+    connection. Run 'vagrant up && vagrant ssh' from inside this directory (NOT the "base" directory).
+
+(4) You are now accessing the VM via ssh.
+    To look around, run 'ls -l'. (Note the shared folder.)
+    To exit, run 'exit'.
+
+(5) To halt the VM, run 'vagrant halt'.
+    To spin it back up, run 'vagrant up && vagrant ssh' again.
+    To remove the VM, run 'vagrant destroy'.
+
+(6) The folder ./shared on your host machine is accessible from the virtual
+    machine at ~/shared. You can do all editing etc on your physical machine and
+    use the virtual machine only for building & running your application.
+
+(7) Refer to the README for more options and frequently asked questions.
+
+(*) Tip: You may want to run `vagrant plugin install vagrant-vbguest` in the
+    vagrant folder on your physical machine. This will ensure your
+    "VirtualBox Guest Additons" are always up to date (outdated Guest Additions
+    can sometimes cause problems).
+
+(*) Tip: You can restart the virtual machine by running `vagrant reload`. This
+    can sometimes fix problems (and will update your Guest Additions, provided
+    you followed the tip above).
+
+--------------------------------------------------------------------------------
+ - Jan 2019
