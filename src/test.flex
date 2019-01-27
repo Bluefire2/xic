@@ -175,7 +175,7 @@ INTEGER = 0 | [1-9][0-9]*
     /* other */
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
-    "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, yytext(), new Long(Long.MIN_VALUE))); }
+    "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, Long.MIN_VALUE); }
 
 }
 
@@ -184,9 +184,9 @@ INTEGER = 0 | [1-9][0-9]*
                       return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
                         stringLiteral.toString()); }
     [^{HEX}\n\"\\]+ { stringLiteral.append( yytext() ); }
-    {HEX}           { stringLiteral.append( (char) Integer.parseInt(
+    {HEX}           { stringLiteral.append( Character.valueOf(Integer.parseInt(
                         yytext().substring(2, yylength()-1), 16
-                    )); }
+                    ))); }
     \\t             { stringLiteral.append( '\t' ); }
     \\n             { stringLiteral.append( '\n' ); }
     \\\"            { stringLiteral.append( '\"' ); }
@@ -194,12 +194,20 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 <CHAR> {
-     [^\n\'\\]\'        { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, yytext().charAt(0)); }
-     {HEX} {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, (char) (Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
-     \\t\'              { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\t'); }
-     \\n\'              { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\n'); }
-     \\\'               { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\\'); }
-     \\\'\'             { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\''); }
+     [^{HEX}\n\'\\]\'    { yybegin(INITIAL);
+                    return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn,
+                        yytext().charAt(0)); }
+     {HEX}\' {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
+     yycolumn,
+       Character.valueOf(Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
+     \\t\'          { yybegin(INITIAL); return new XiToken(TokenType
+     .CHAR_LIT, yyline, yycolumn, '\t'); }
+     \\n\'          { yybegin(INITIAL); return new XiToken(TokenType
+     .CHAR_LIT, yyline, yycolumn, '\n'); }
+     \\\'           { yybegin(INITIAL); return new XiToken(TokenType
+     .CHAR_LIT, yyline, yycolumn, '\\'); }
+     \\\'\'         { yybegin(INITIAL); return new XiToken(TokenType
+     .CHAR_LIT, yyline, yycolumn, '\''); }
 }
 
 /* error fallback */
