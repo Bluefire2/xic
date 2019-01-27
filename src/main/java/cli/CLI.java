@@ -18,11 +18,12 @@ public class CLI implements Runnable {
     private File[] inputFiles;
 
     @Option(names = "-D", defaultValue = ".", description = "Add description here...")
-    Path outputPath;
+    private Path outputPath;
 
     @Override
     public void run() {
         System.out.println("Hello World!");
+        System.out.println(outputPath);
     }
 
     public static void main(String[] args) {
