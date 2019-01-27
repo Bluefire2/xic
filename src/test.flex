@@ -109,7 +109,7 @@
 EOL = \n
 NON_EOL = [^\n]
 WHITESPACE = {EOL} | [ \t\f]
-HEX_SEQUENCE = [0-9A-Fa-f] {1-4}
+HEX_SEQUENCE = [0-9A-Fa-f] {1,4}
 ID = [A-Za-z][A-Za-z0-9\'_]* //variables
 COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
@@ -192,11 +192,11 @@ INTEGER = 0 | [1-9][0-9]*
 
 <CHAR> {
      [^\n\'\\]\'        { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, yytext().charAt(0)); }
-     \\t                { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\t'); }
-     \\n                { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\n'); }
-     \\                 { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\\'); }
-     \\\'               { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\''); }
-     \\0x{HEX_SEQUENCE} {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, (char) (Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
+     \\t\'              { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\t'); }
+     \\n\'              { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\n'); }
+     \\\'               { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\\'); }
+     \\\'\'             { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\''); }
+     \\0x{HEX_SEQUENCE}\' {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, (char) (Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
 }
 
 /* error fallback */
