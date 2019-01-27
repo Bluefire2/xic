@@ -10,6 +10,9 @@
 
 /* declare variables */
 %{
+    // A buffer to start and store strings when lexing
+    StringBuffer stringLiteral = new StringBuffer();
+
     enum TokenType {//types of tokens
         ID, //identifiers/variables
         UNDERSCORE,
@@ -103,8 +106,8 @@
 %column
 
 /* macro */
-EOL = \r|\n|\r\n
-NON_EOL = [^\r\n]
+EOL = \n
+NON_EOL = [^\n]
 WHITESPACE = {EOL} | [ \t\f]
 HEX_SEQUENCE = [0-9A-Fa-f] {1-4}
 ID = [A-Za-z][A-Za-z0-9\'_]* //variables
@@ -137,6 +140,7 @@ INTEGER = 0 | [1-9][0-9]*
     /* literals */
     {INTEGER} { return new XiToken(TokenType.INT_LIT, yyline, yycolumn,
       new Long(yytext()));}
+    \" { stringLiteral.setLength(0); yybegin(STRING); }
 
     /* operators */
     "="  { return new XiToken(TokenType.EQ, yyline, yycolumn, yytext());}
@@ -172,6 +176,17 @@ INTEGER = 0 | [1-9][0-9]*
     {COMMENT} {}//ignore
     "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, yytext(), new Long(Long.MIN_VALUE))); }
 
+}
+
+<STRING> {
+    \"              { yybegin(INITIAL);
+                      return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
+                        stringLiteral.toString()); }
+    [^\n\"\\]+      { stringLiteral.append( yytext() ); }
+    \\t             { stringLiteral.append( '\t' ); }
+    \\n             { stringLiteral.append( '\n' ); }
+    \\\"            { stringLiteral.append( '\"' ); }
+    \\              { stringLiteral.append( '\\' ); }
 }
 
 /* error fallback */
