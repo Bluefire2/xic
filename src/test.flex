@@ -106,10 +106,12 @@
 EOL = \r|\n|\r\n
 NON_EOL = [^\r\n]
 WHITESPACE = {EOL} | [ \t\f]
-HEX_DIGIT = [0-9A-Fa-f]
+HEX_SEQUENCE = [0-9A-Fa-f] {1-4}
 ID = [A-Za-z][A-Za-z0-9\'_]* //variables
 COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
+
+
 
 %%
 
@@ -168,6 +170,7 @@ INTEGER = 0 | [1-9][0-9]*
     /* other */
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
+    "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, yytext(), new Long(Long.MIN_VALUE))); }
 
 }
 
