@@ -141,6 +141,7 @@ INTEGER = 0 | [1-9][0-9]*
     {INTEGER} { return new XiToken(TokenType.INT_LIT, yyline, yycolumn,
       new Long(yytext()));}
     \" { stringLiteral.setLength(0); yybegin(STRING); }
+    \' { yybegin(CHAR); }
 
     /* operators */
     "="  { return new XiToken(TokenType.EQ, yyline, yycolumn, yytext());}
@@ -187,6 +188,15 @@ INTEGER = 0 | [1-9][0-9]*
     \\n             { stringLiteral.append( '\n' ); }
     \\\"            { stringLiteral.append( '\"' ); }
     \\              { stringLiteral.append( '\\' ); }
+}
+
+<CHAR> {
+     [^\n\'\\]\'        { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, yytext().charAt(0)); }
+     \\t                { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\t'); }
+     \\n                { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\n'); }
+     \\                 { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\\'); }
+     \\\'               { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, '\''); }
+     \\0x{HEX_SEQUENCE} {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn, (char) (Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
 }
 
 /* error fallback */
