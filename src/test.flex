@@ -1,8 +1,6 @@
-/* Example JFlex grammar file
- * The generated lexer class will have an API as specified here:
- * http://jflex.de/manual.html#ScannerMethods
-**/
-
+/**
+ * Xi Lexer
+ */
 %%
 
 /* the name of your lexer class */
@@ -59,9 +57,6 @@
         RCURL
     }
 
-    //list of reserved words (may be useful)
-    private String[] reserved = {"use","if","while","else","return","length","bool","int","true","false"};
-
     class XiToken {
 
       private TokenType type;
@@ -101,14 +96,11 @@
       }
     }
 
- %}
+%}
 
 /* switch line counting on */
 %line
 %column
-
-/* declare a new lexical state */
-//TODO: INTEGER AND STRING AND CHARACTER LITERALS
 
 /* macro */
 EOL = \r|\n|\r\n
@@ -122,36 +114,28 @@ INTEGER = 0 | [1-9][0-9]*
 %%
 
 /* lexical rules */
-
-// commented out the example code
-//{ALPHA}  {
-//  /* returns the matched text */
-//  System.out.println(yytext());
-//
-//  /* returns the current line of input */
-//  System.out.println(yyline);
-//
-//  /* returns the current column of the current line */
-//  System.out.println(yycolumn);
-//
-//  return new XiToken()
-//}
-//
-//{NUM} {
-//  /* enter the FOO lexical state */
-//  yybegin(FOO);
-//
-//  return SYM_NUM;
-//}
-//
-///* declare rules only for the FOO state */
-//<FOO> {
-//  /* when matching a colon, increment `bar` and then return a token with index 0 */
-//  ":" { bar++; return SYM_COLON; }
-//}
-
 <YYINITIAL> {
-    {INTEGER} {return new XiToken(TokenType.INT_LIT, yyline, yycolumn, new Long(yytext()));}
+    "_"  { return new XiToken(TokenType.UNDERSCORE, yyline, yycolumn, yytext());}
+
+    /* keywords */
+    "use"  { return new XiToken(TokenType.USE, yyline, yycolumn, yytext());}
+    "if"  { return new XiToken(TokenType.IF, yyline, yycolumn, yytext());}
+    "while"  { return new XiToken(TokenType.WHILE, yyline, yycolumn, yytext());}
+    "else"  { return new XiToken(TokenType.ELSE, yyline, yycolumn, yytext());}
+    "return"  { return new XiToken(TokenType.RETURN, yyline, yycolumn, yytext());}
+    "length"  { return new XiToken(TokenType.LENGTH, yyline, yycolumn, yytext());}
+    "int"  { return new XiToken(TokenType.INT_TYPE, yyline, yycolumn, yytext());}
+    "bool"  { return new XiToken(TokenType.BOOL_TYPE, yyline, yycolumn, yytext());}
+    "true"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, true);}
+    "false"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, false);}
+
+    /* identifiers */
+    {ID} { return new XiToken(TokenType.ID, yyline, yycolumn, yytext());}
+
+    /* literals */
+    {INTEGER} { return new XiToken(TokenType.INT_LIT, yyline, yycolumn,
+      new Long(yytext()));}
+
     /* operators */
     "="  { return new XiToken(TokenType.EQ, yyline, yycolumn, yytext());}
     "-"  { return new XiToken(TokenType.MINUS, yyline, yycolumn, yytext());}
@@ -169,6 +153,7 @@ INTEGER = 0 | [1-9][0-9]*
     "<="  { return new XiToken(TokenType.LTEQ, yyline, yycolumn, yytext());}
     "&"  { return new XiToken(TokenType.AND, yyline, yycolumn, yytext());}
     "|"  { return new XiToken(TokenType.OR, yyline, yycolumn, yytext());}
+
     /* separators */
     ":"  { return new XiToken(TokenType.COLON, yyline, yycolumn, yytext());}
     ";"  { return new XiToken(TokenType.SEMICOLON, yyline, yycolumn, yytext());}
@@ -179,27 +164,12 @@ INTEGER = 0 | [1-9][0-9]*
     "]"  { return new XiToken(TokenType.RBRAC, yyline, yycolumn, yytext());}
     "{"  { return new XiToken(TokenType.LCURL, yyline, yycolumn, yytext());}
     "}"  { return new XiToken(TokenType.RCURL, yyline, yycolumn, yytext());}
-    /* keywords */
-    "use"  { return new XiToken(TokenType.USE, yyline, yycolumn, yytext());}
-    "if"  { return new XiToken(TokenType.IF, yyline, yycolumn, yytext());}
-    "while"  { return new XiToken(TokenType.WHILE, yyline, yycolumn, yytext());}
-    "else"  { return new XiToken(TokenType.ELSE, yyline, yycolumn, yytext());}
-    "return"  { return new XiToken(TokenType.RETURN, yyline, yycolumn, yytext());}
-    "length"  { return new XiToken(TokenType.LENGTH, yyline, yycolumn, yytext());}
-    "int"  { return new XiToken(TokenType.INT_TYPE, yyline, yycolumn, yytext());}
-    "bool"  { return new XiToken(TokenType.BOOL_TYPE, yyline, yycolumn, yytext());}
-    "true"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, true);}
-    "false"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, false);}
+
     /* other */
-    "_"  { return new XiToken(TokenType.UNDERSCORE, yyline, yycolumn, yytext());}
-    {ID} { return new XiToken(TokenType.ID, yyline, yycolumn, yytext());}
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
 
-    /* error fallback */
-    [^] { throw new Error("Illegal character <"+yytext()+">");}
 }
 
-
-
-
+/* error fallback */
+[^] { throw new Error("Illegal character <"+yytext()+">");}
