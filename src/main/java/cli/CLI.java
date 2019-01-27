@@ -6,7 +6,7 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.nio.file.Path;
 
-@CommandLine.Command (name = "xic", version = "Picocli example 3.0")
+@CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
     @Option(names = "--help", usageHelp = true, description = "Add description here...")
     private boolean help = false;
