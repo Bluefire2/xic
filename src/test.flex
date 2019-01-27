@@ -114,7 +114,7 @@ ID = [A-Za-z][A-Za-z0-9\'_]* //variables
 COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
 
-
+%state STRING, CHAR
 
 %%
 
@@ -183,7 +183,7 @@ INTEGER = 0 | [1-9][0-9]*
     \"              { yybegin(INITIAL);
                       return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
                         stringLiteral.toString()); }
-    [^{HEX}\n\"\\]+ { stringLiteral.append( yytext() ); }
+    [^\n\"\\]+ { stringLiteral.append( yytext() ); }//TODO exclude HEX?
     {HEX}           { stringLiteral.append( Character.valueOf(Integer.parseInt(
                         yytext().substring(2, yylength()-1), 16
                     ))); }
@@ -194,7 +194,7 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 <CHAR> {
-     [^{HEX}\n\'\\]\'    { yybegin(INITIAL);
+     [^\n\'\\]\'    { yybegin(INITIAL); //TODO exclude HEX?
                     return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn,
                         yytext().charAt(0)); }
      {HEX}\' {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
