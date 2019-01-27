@@ -1,0 +1,29 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+include_root_bootstrap = File.expand_path("../include/root-bootstrap.sh", __FILE__)
+include_user_bootstrap = File.expand_path("../include/user-bootstrap.sh", __FILE__)
+
+Vagrant.configure(2) do |config|
+
+  config.vm.box = "ubuntu/bionic64"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1024"
+    vb.cpus = 1
+  end
+
+  config.vm.hostname = "cs4120"
+
+  # Add local definitions.
+  eval File.read("Vagrantfile.local") if File.exist?("Vagrantfile.local")
+
+  config.ssh.forward_x11 = true
+  # Don't replace insecure SSH key in the base image. This will automatically be overwritten by
+  # Vagrant when running the derived image.
+  config.ssh.insert_key = false
+
+  config.vm.provision "shell", path: include_root_bootstrap
+  config.vm.provision "shell", privileged: false, path: include_user_bootstrap
+
+end

@@ -1,0 +1,17 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "cs4120-cornell/cs4120-sp19"
+  # config.vm.box_version = " = 4.0.0" # to declare a specific version
+
+  # Add local definitions.
+  eval File.read("Vagrantfile.local") if File.exist?("Vagrantfile.local")
+
+  config.ssh.forward_x11 = true
+  
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ] 
+  end
+
+end
