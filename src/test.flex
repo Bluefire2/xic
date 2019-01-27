@@ -19,6 +19,7 @@
         INT_LIT,
         BOOL_LIT,
         STRING_LIT,
+        CHAR_LIT,
         //type variables
         INT_TYPE,
         BOOL_TYPE,
@@ -66,24 +67,48 @@
       private TokenType type;
       private int line;
       private int col;
-      private String value;
+      private Object value;
 
-      public XiToken(TokenType type, int line, int col, String value){
+      public XiToken(TokenType type, int line, int col, Object value){
         this.type = type;
         this.line = line;
         this.col = col;
         this.value = value;
       }
+
+      public String toString(){
+          String type_rep = "";
+          switch (type) {
+              case INT_LIT:
+                  type_rep = "int ";
+                  break;
+              case BOOL_LIT:
+                  type_rep = "bool ";
+                  break;
+              case STRING_LIT:
+                  type_rep = "string ";
+                  break;
+              case CHAR_LIT:
+                  type_rep = "character ";
+                  break;
+              case ID:
+                  type_rep = "id ";
+                  break;
+              default:
+                  break;
+          }
+          return line+":"+column+" "+type_rep+value.toString();
+      }
     }
 
-  %}
+ %}
 
 /* switch line counting on */
 %line
 %column
 
 /* declare a new lexical state */
-//TODO: INTEGER AND STRING LITERALS
+//TODO: INTEGER AND STRING AND CHARACTER LITERALS
 
 /* macro */
 EOL = \r|\n|\r\n
@@ -92,6 +117,8 @@ WHITESPACE = {EOL} | [ \t\f]
 HEX_DIGIT = [0-9A-Fa-f]
 ID = [A-Za-z][A-Za-z0-9\'_]* //variables
 COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
+INTEGER = 0 | [1-9][0-9]*
+
 %%
 
 /* lexical rules */
@@ -124,6 +151,7 @@ COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
 //}
 
 <YYINITIAL> {
+    {INTEGER} {return new XiToken(TokenType.INT_LIT, yyline, yycolumn, new Long(yytext()));}
     /* operators */
     "="  { return new XiToken(TokenType.EQ, yyline, yycolumn, yytext());}
     "-"  { return new XiToken(TokenType.MINUS, yyline, yycolumn, yytext());}
@@ -160,13 +188,16 @@ COMMENT = "//"{NON_EOL}*{EOL}? //{EOL}? because comment may be last line in file
     "length"  { return new XiToken(TokenType.LENGTH, yyline, yycolumn, yytext());}
     "int"  { return new XiToken(TokenType.INT_TYPE, yyline, yycolumn, yytext());}
     "bool"  { return new XiToken(TokenType.BOOL_TYPE, yyline, yycolumn, yytext());}
-    "true"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, yytext());}
-    "false"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, yytext());}
+    "true"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, true);}
+    "false"  { return new XiToken(TokenType.BOOL_LIT, yyline, yycolumn, false);}
     /* other */
     "_"  { return new XiToken(TokenType.UNDERSCORE, yyline, yycolumn, yytext());}
     {ID} { return new XiToken(TokenType.ID, yyline, yycolumn, yytext());}
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
+
+    /* error fallback */
+    [^] { throw new Error("Illegal character <"+yytext()+">");}
 }
 
 
