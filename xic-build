@@ -3,4 +3,7 @@
 # Xi compiler build script
 #
 
-echo "** Please update this xic-build script with commands that build your software. **"
+# echo "** Please update this xic-build script with commands that build your software. **"
+#./gradlew build
+./gradlew customFatJar
+cat stub.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
