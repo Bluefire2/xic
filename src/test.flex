@@ -94,7 +94,7 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 <STRING> {
-    \"              { yybegin(INITIAL);
+    \"              { yybegin(YYINITIAL);
                       return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
                         stringLiteral.toString()); }
     [^\n\"\\]+ { stringLiteral.append( yytext() ); }//TODO exclude HEX?
@@ -108,19 +108,19 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 <CHAR> {
-     [^\n\'\\]\'    { yybegin(INITIAL); //TODO exclude HEX?
+     [^\n\'\\]\'    { yybegin(YYINITIAL); //TODO exclude HEX?
                     return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn,
                         yytext().charAt(0)); }
-     {HEX}\' {yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
+     {HEX}\' {yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
      yycolumn,
        Character.valueOf(Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
-     \\t\'          { yybegin(INITIAL); return new XiToken(TokenType
+     \\t\'          { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\t'); }
-     \\n\'          { yybegin(INITIAL); return new XiToken(TokenType
+     \\n\'          { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\n'); }
-     \\\'           { yybegin(INITIAL); return new XiToken(TokenType
+     \\\'           { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\\'); }
-     \\\'\'         { yybegin(INITIAL); return new XiToken(TokenType
+     \\\'\'         { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\''); }
 }
 

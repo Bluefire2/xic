@@ -832,7 +832,7 @@ class XiLexer {
             // fall through
           case 83: break;
           case 29: 
-            { yybegin(INITIAL);
+            { yybegin(YYINITIAL);
                       return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
                         stringLiteral.toString());
             } 
@@ -884,14 +884,14 @@ class XiLexer {
             // fall through
           case 93: break;
           case 39: 
-            { yybegin(INITIAL); //TODO exclude HEX?
+            { yybegin(YYINITIAL); //TODO exclude HEX?
                     return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn,
                         yytext().charAt(0));
             } 
             // fall through
           case 94: break;
           case 40: 
-            { yybegin(INITIAL); return new XiToken(TokenType
+            { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\\');
             } 
             // fall through
@@ -912,26 +912,26 @@ class XiLexer {
             // fall through
           case 98: break;
           case 44: 
-            { yybegin(INITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
+            { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
      yycolumn,
        Character.valueOf(Integer.parseInt(yytext().substring(2,yylength()-1),16)));
             } 
             // fall through
           case 99: break;
           case 45: 
-            { yybegin(INITIAL); return new XiToken(TokenType
+            { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\'');
             } 
             // fall through
           case 100: break;
           case 46: 
-            { yybegin(INITIAL); return new XiToken(TokenType
+            { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\t');
             } 
             // fall through
           case 101: break;
           case 47: 
-            { yybegin(INITIAL); return new XiToken(TokenType
+            { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\n');
             } 
             // fall through
