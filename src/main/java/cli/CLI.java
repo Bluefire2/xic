@@ -3,6 +3,7 @@ package cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+
 import java.io.File;
 import java.nio.file.Path;
 import lexer.XiLexer;
