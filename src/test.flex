@@ -1,7 +1,8 @@
 /**
  * Xi Lexer
  */
-import XiToken;
+package lexer;
+
 %%
 
 /* the name of your lexer class */
@@ -113,7 +114,9 @@ INTEGER = 0 | [1-9][0-9]*
                         yytext().charAt(0)); }
      {HEX}\' {yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
      yycolumn,
-       Character.valueOf(Integer.parseInt(yytext().substring(2,yylength()-1),16)));}
+       Character.forDigit(
+               Integer.parseInt(yytext().substring(2,yylength()-1) ,16), 10
+               ));}
      \\t\'          { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\t'); }
      \\n\'          { yybegin(YYINITIAL); return new XiToken(TokenType

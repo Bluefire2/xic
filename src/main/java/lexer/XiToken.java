@@ -1,3 +1,5 @@
+package lexer;
+
 enum TokenType {
     // identifiers/variables
     ID,
