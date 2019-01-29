@@ -6,6 +6,7 @@ package lexer;
 %%
 
 /* the name of your lexer class */
+%public
 %class XiLexer
 
 %type XiToken

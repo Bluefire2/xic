@@ -4,6 +4,6 @@
 #
 
 # echo "** Please update this xic-build script with commands that build your software. **"
-#./gradlew build
+java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/
 ./gradlew customFatJar
 cat stub.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
