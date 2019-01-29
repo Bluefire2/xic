@@ -1,7 +1,7 @@
 /**
  * Xi Lexer
  */
-import java.XiToken;
+import XiToken;
 %%
 
 /* the name of your lexer class */
