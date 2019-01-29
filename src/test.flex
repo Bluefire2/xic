@@ -13,34 +13,40 @@
     // A buffer to start and store strings when lexing
     StringBuffer stringLiteral = new StringBuffer();
 
-    enum TokenType {//types of tokens
-        ID, //identifiers/variables
+    // types of tokens
+    enum TokenType {
+        // identifiers/variables
+        ID,
         UNDERSCORE,
-        //literals
+
+        // literals
         INT_LIT,
         BOOL_LIT,
         STRING_LIT,
         CHAR_LIT,
-        //type variables
+
+        // type variables
         INT_TYPE,
         BOOL_TYPE,
-        //keywords
+
+        // keywords
         USE,
         IF,
         WHILE,
         ELSE,
         RETURN,
         LENGTH,
-        //operators
+
+        // operators
         EQ, //=
         MINUS,
         PLUS,
         NOT,
         MULT,
-        HI_MULT,//*>>
+        HI_MULT,// *>>
         DIV,
         MOD,
-        EQEQ, //==
+        EQEQ,// ==
         NEQ,
         GT,
         LT,
@@ -48,7 +54,8 @@
         LTEQ,
         AND,
         OR,
-        //separators
+
+        // separators
         COLON,
         SEMICOLON,
         COMMA,
@@ -67,45 +74,33 @@
         private int col;
         private Object value;
 
-        public XiToken(TokenType type, int line, int col, Object value){
+        public XiToken(TokenType type, int line, int col, Object value) {
             this.type = type;
             this.line = line;
             this.col = col;
             this.value = value;
         }
 
-        public String toString(){
+        public String toString() {
             String type_rep = "";
             switch (type) {
-                case INT_LIT:
-                    type_rep = "int ";
-                    break;
-                case BOOL_LIT:
-                    type_rep = "bool ";
-                    break;
-                case STRING_LIT:
-                    type_rep = "string ";
-                    break;
-                case CHAR_LIT:
-                    type_rep = "character ";
-                    break;
-                case ID:
-                    type_rep = "id ";
-                    break;
-                default:
-                    break;
+                case INT_LIT:       type_rep = "int "; break;
+                case BOOL_LIT:      type_rep = "bool "; break;
+                case STRING_LIT:    type_rep = "string "; break;
+                case CHAR_LIT:      type_rep = "character "; break;
+                case ID:            type_rep = "id "; break;
+                default:            break;
             }
-            return line+":"+column+" "+type_rep+value.toString();
+            return line + ":" + column + " " + type_rep + value.toString();
         }
     }
-
 %}
 
 /* switch line counting on */
 %line
 %column
 
-/* macro */
+/* macros */
 EOL = \n
 NON_EOL = [^\n]
 WHITESPACE = {EOL} | [ \t\f]
