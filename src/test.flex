@@ -100,9 +100,9 @@ INTEGER = 0 | [1-9][0-9]*
                       return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
                         stringLiteral.toString()); }
     [^\n\"\\]+ { stringLiteral.append( yytext() ); }//TODO exclude HEX?
-    {HEX}           { stringLiteral.append( Character.valueOf(Integer.parseInt(
+    {HEX}           { stringLiteral.append(Integer.parseInt(
                         yytext().substring(2, yylength()-1), 16
-                    ))); }
+                    ).toString()); }
     \\t             { stringLiteral.append( '\t' ); }
     \\n             { stringLiteral.append( '\n' ); }
     \\\"            { stringLiteral.append( '\"' ); }
