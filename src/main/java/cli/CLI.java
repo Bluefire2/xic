@@ -33,21 +33,24 @@ public class CLI implements Runnable {
 
     @Override
     public void run() {
-        XiLexer lexer;
+        if (optLex) {
+            XiLexer lexer;
 
-        for (File f : optInputFiles) {
-            String outputFilePath = path + "/" + FilenameUtils.removeExtension(f.getName()) + ".lexed";
-            try (FileReader fileReader = new FileReader(f);
-                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
-                lexer = new XiLexer(fileReader);
-                for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
-                    fileWriter.write(next.toString() + '\n');
+            for (File f : optInputFiles) {
+                String outputFilePath = path + "/" + FilenameUtils.removeExtension(f.getName()) + ".lexed";
+                try (FileReader fileReader = new FileReader(f);
+                     FileWriter fileWriter = new FileWriter(outputFilePath)) {
+                    lexer = new XiLexer(fileReader);
+                    for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
+                        fileWriter.write(next.toString() + '\n');
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    continue;
                 }
             }
-            catch (Exception e) {
-                e.printStackTrace();
-                continue;
-            }
+        } else {
+
         }
     }
 
