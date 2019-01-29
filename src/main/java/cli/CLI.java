@@ -3,9 +3,10 @@ package cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+
 import java.io.File;
 import java.nio.file.Path;
-import XiLexer;
+
 
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
