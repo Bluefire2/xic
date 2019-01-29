@@ -1,14 +1,15 @@
 package cli;
 
-import picocli.CommandLine;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
 
+import org.apache.commons.io.FilenameUtils;
+import picocli.CommandLine;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import lexer.XiToken;
 import lexer.XiLexer;
 
 
@@ -32,20 +33,19 @@ public class CLI implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Hello World!");
-        System.out.println(path);
-
         XiLexer lexer;
 
         for (File f : optInputFiles) {
+            String outputFilePath = path + "/" + FilenameUtils.removeExtension(f.getName()) + ".lexed";
             try (FileReader fileReader = new FileReader(f);
-                 FileWriter fileWriter = new FileWriter(path + "/" + f.getName() + ".lexed")) {
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 lexer = new XiLexer(fileReader);
-                while (true) {
-                    fileWriter.write(lexer.yyline + ":" + lexer.yycolumn + " " + lexer.yylex().toString());
+                for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
+                    fileWriter.write(next.toString() + '\n');
                 }
             }
-            catch(Exception e) {
+            catch (Exception e) {
+                e.printStackTrace();
                 continue;
             }
         }

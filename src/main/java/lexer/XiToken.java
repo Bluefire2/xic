@@ -53,7 +53,7 @@ enum TokenType {
     RCURL
 }
 
-class XiToken {
+public class XiToken {
 
     private TokenType type;
     private int line;
