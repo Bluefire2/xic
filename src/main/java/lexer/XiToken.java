@@ -67,6 +67,21 @@ public class XiToken {
         this.value = value;
     }
 
+    private String format(Object o) {
+        if (o instanceof String) {
+            String s = ((String) o);
+            s = s.replace("\n", "\\n");
+            s = s.replace("\t", "\\t");
+            return s;
+        }
+        if (o instanceof Character) {
+            if (o.equals('\n')) return "\\n";
+            if (o.equals('\t')) return "\\t";
+            return o.toString();
+        }
+        return o.toString();
+    }
+
     public String toString() {
         String type_rep = "";
         switch (type) {
@@ -78,6 +93,6 @@ public class XiToken {
             default:            break;
         }
         // make line and col 1-indexed
-        return (line+1) + ":" + (col+1) + " " + type_rep + value.toString();
+        return (line+1) + ":" + (col+1) + " " + type_rep + format(value);
     }
 }
