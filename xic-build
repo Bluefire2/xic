@@ -3,7 +3,14 @@
 # Xi compiler build script
 #
 
-# echo "** Please update this xic-build script with commands that build your software. **"
+# Run JFlex on the lexer spec
 java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/
+
+# Create the compiler using gradle, create xic binary
 ./gradlew customFatJar
 cat stub.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
+
+# Link the xic binary in ~/bin
+xic_path=$(readlink -f xic)
+mkdir -p ~/bin && cd ~/bin
+ln -s -f $xic_path xic && cd - > /dev/null
