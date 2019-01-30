@@ -3,11 +3,15 @@
 # Xi compiler build script
 #
 
+# Clean old files
+rm -r .gradle build
+rm src/main/java/lexer/XiLexer.java*
+
 # Run JFlex on the lexer spec
 java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/
 
 # Create the compiler using gradle, create xic binary
-if which gradle; then
+if which gradle > /dev/null; then
     # gradle installed by package manager
     gradle customFatJar
 else
