@@ -3,6 +3,7 @@ package cli;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -37,19 +38,23 @@ public class CLI implements Runnable {
         if (optLex) {
             XiLexer lexer;
 
-            for (File f : optInputFiles) {
-                Path outputFilePath = Paths.get(path.toString(),
-                        FilenameUtils.removeExtension(f.getName()) + ".lexed");
-                try (FileReader fileReader = new FileReader(f);
-                     FileWriter fileWriter = new FileWriter(outputFilePath.toString())) {
-                    lexer = new XiLexer(fileReader);
-                    for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
-                        fileWriter.write(next.toString() + '\n');
+            if (Files.exists(path)) {
+                for (File f : optInputFiles) {
+                    Path outputFilePath = Paths.get(path.toString(),
+                            FilenameUtils.removeExtension(f.getName()) + ".lexed");
+                    try (FileReader fileReader = new FileReader(f);
+                         FileWriter fileWriter = new FileWriter(outputFilePath.toString())) {
+                        lexer = new XiLexer(fileReader);
+                        for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
+                            fileWriter.write(next.toString() + '\n');
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
                 }
+            } else {
+                System.out.println(String.format("Error: directory %s not found", path));
             }
         } else {
 
