@@ -22,8 +22,8 @@ package lexer;
 %column
 
 /* macros */
-EOL = \n
-NON_EOL = [^\n]
+EOL = \r|\n|\r\n
+NON_EOL = [^\r\n]
 WHITESPACE = {EOL} | [ \t\f]
 HEX = \\x([0-9A-Fa-f]{1,4})
 ID = [A-Za-z][A-Za-z0-9\'_]* //variables
