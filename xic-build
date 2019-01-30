@@ -3,7 +3,24 @@
 # Xi compiler build script
 #
 
-# echo "** Please update this xic-build script with commands that build your software. **"
+# Clean old files
+rm -r .gradle build
+rm src/main/java/lexer/XiLexer.java*
+
+# Run JFlex on the lexer spec
 java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/
-./gradlew customFatJar
+
+# Create the compiler using gradle, create xic binary
+if which gradle > /dev/null; then
+    # gradle installed by package manager
+    gradle customFatJar
+else
+    # gradle not installed by package manager, try the gradle wrapper supplied
+    ./gradlew customFatJar
+fi
 cat stub.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
+
+# Link the xic binary in ~/bin
+xic_path=$(readlink -f xic)
+mkdir -p ~/bin && cd ~/bin
+ln -s -f $xic_path xic && cd - > /dev/null
