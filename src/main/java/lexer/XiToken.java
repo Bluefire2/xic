@@ -70,13 +70,14 @@ public class XiToken {
     public String toString() {
         String type_rep = "";
         switch (type) {
-            case INT_LIT:       type_rep = "int "; break;
+            case INT_LIT:       type_rep = "integer "; break;
             case BOOL_LIT:      type_rep = "bool "; break;
             case STRING_LIT:    type_rep = "string "; break;
             case CHAR_LIT:      type_rep = "character "; break;
             case ID:            type_rep = "id "; break;
             default:            break;
         }
-        return line + ":" + col + " " + type_rep + value.toString();
+        // make line and col 1-indexed
+        return (line+1) + ":" + (col+1) + " " + type_rep + value.toString();
     }
 }

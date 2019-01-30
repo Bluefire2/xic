@@ -89,6 +89,7 @@ INTEGER = 0 | [1-9][0-9]*
     "}"  { return new XiToken(TokenType.RCURL, yyline, yycolumn, yytext());}
 
     /* other */
+    // TODO: increment yyline when empty line or line with comment only
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
     "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, Long.MIN_VALUE); }
