@@ -124,6 +124,7 @@ INTEGER = 0 | [1-9][0-9]*
      .CHAR_LIT, yyline, yycolumn, '\\'); }
      \\\'\'         { yybegin(YYINITIAL); return new XiToken(TokenType
      .CHAR_LIT, yyline, yycolumn, '\''); }
+     \'         { yybegin(YYINITIAL);}
 }
 
 /* error fallback */
