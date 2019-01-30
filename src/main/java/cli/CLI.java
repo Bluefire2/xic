@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
@@ -37,9 +38,10 @@ public class CLI implements Runnable {
             XiLexer lexer;
 
             for (File f : optInputFiles) {
-                String outputFilePath = path + "/" + FilenameUtils.removeExtension(f.getName()) + ".lexed";
+                Path outputFilePath = Paths.get(path.toString(),
+                        FilenameUtils.removeExtension(f.getName()) + ".lexed");
                 try (FileReader fileReader = new FileReader(f);
-                     FileWriter fileWriter = new FileWriter(outputFilePath)) {
+                     FileWriter fileWriter = new FileWriter(outputFilePath.toString())) {
                     lexer = new XiLexer(fileReader);
                     for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
                         fileWriter.write(next.toString() + '\n');
