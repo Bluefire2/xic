@@ -12,6 +12,9 @@ package lexer;
 %{
     // A buffer to start and store strings when lexing
     StringBuffer stringLiteral = new StringBuffer();
+    // Store the col where the string or char literal starts
+    int stringLiteralStartCol = 0;
+    int charLiteralStartCol = 0;
 %}
 
 /* switch line counting on */
@@ -53,8 +56,10 @@ INTEGER = 0 | [1-9][0-9]*
     /* literals */
     {INTEGER} { return new XiToken(TokenType.INT_LIT, yyline, yycolumn,
       new Long(yytext()));}
-    \" { stringLiteral.setLength(0); yybegin(STRING); }
-    \' { yybegin(CHAR); }
+    \" { stringLiteral.setLength(0);
+      stringLiteralStartCol = yycolumn;
+      yybegin(STRING); }
+    \' { charLiteralStartCol = yycolumn; yybegin(CHAR); }
 
     /* operators */
     "="  { return new XiToken(TokenType.EQ, yyline, yycolumn, yytext());}
@@ -86,7 +91,6 @@ INTEGER = 0 | [1-9][0-9]*
     "}"  { return new XiToken(TokenType.RCURL, yyline, yycolumn, yytext());}
 
     /* other */
-    // TODO: increment yyline when empty line or line with comment only
     {WHITESPACE} {}//ignore
     {COMMENT} {}//ignore
     "-9223372036854775808"  { return new XiToken(TokenType.INT_LIT, yyline, yycolumn, Long.MIN_VALUE); }
@@ -95,8 +99,8 @@ INTEGER = 0 | [1-9][0-9]*
 
 <STRING> {
     \"              { yybegin(YYINITIAL);
-                      return new XiToken(TokenType.STRING_LIT, yyline, yycolumn,
-                        stringLiteral.toString()); }
+                      return new XiToken(TokenType.STRING_LIT, yyline,
+                      stringLiteralStartCol, stringLiteral.toString()); }
     [^\n\"\\]+ { stringLiteral.append( yytext() ); }//TODO exclude HEX?
     {HEX}           { stringLiteral.append( (char) Integer.parseInt(
                         yytext().substring(2, yylength()), 16
@@ -109,8 +113,8 @@ INTEGER = 0 | [1-9][0-9]*
 
 <CHAR> {
      [^\n\'\\]\'    { yybegin(YYINITIAL); //TODO exclude HEX?
-                    return new XiToken(TokenType.CHAR_LIT, yyline, yycolumn,
-                        yytext().charAt(0)); }
+                    return new XiToken(TokenType.CHAR_LIT, yyline,
+                    charLiteralStartCol, yytext().charAt(0)); }
      {HEX}\' {yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
      yycolumn,
        Character.forDigit(
