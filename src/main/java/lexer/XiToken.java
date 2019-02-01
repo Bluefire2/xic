@@ -50,12 +50,13 @@ enum TokenType {
     LBRAC,
     RBRAC,
     LCURL,
-    RCURL
+    RCURL,
+    ERROR
 }
 
 public class XiToken {
 
-    private TokenType type;
+    public TokenType type;
     private int line;
     private int col;
     private Object value;
@@ -94,5 +95,9 @@ public class XiToken {
         }
         // make line and col 1-indexed
         return (line+1) + ":" + (col+1) + " " + type_rep + format(value);
+    }
+
+    public boolean isError() {
+        return type == TokenType.ERROR;
     }
 }

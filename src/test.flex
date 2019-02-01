@@ -131,4 +131,4 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 /* error fallback */
-[^] {throw new Error(yyline + ":" + yycolumn + " error: Illegal character <"+yytext()+">");}
+[^] { return new XiToken(TokenType.ERROR, yyline, yycolumn, "error: Illegal character <"+yytext()+">");}
