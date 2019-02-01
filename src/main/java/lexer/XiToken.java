@@ -50,10 +50,7 @@ enum TokenType {
     LBRAC,
     RBRAC,
     LCURL,
-    RCURL,
-
-    //Error
-    ERROR
+    RCURL
 }
 
 public class XiToken {
