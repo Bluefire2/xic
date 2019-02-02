@@ -56,12 +56,12 @@ enum TokenType {
 
 public class XiToken {
 
-    public TokenType type;
+    private TokenType type;
     private int line;
     private int col;
     private Object value;
 
-    public XiToken(TokenType type, int line, int col, Object value) {
+    XiToken(TokenType type, int line, int col, Object value) {
         this.type = type;
         this.line = line;
         this.col = col;
@@ -70,17 +70,17 @@ public class XiToken {
 
     private String format(Object o) {
         if (o instanceof String) {
-            String s = ((String) o);
+            String s = (String) o;
             s = s.replace("\n", "\\n");
             s = s.replace("\t", "\\t");
             return s;
-        }
-        if (o instanceof Character) {
+        } else if (o instanceof Character) {
             if (o.equals('\n')) return "\\n";
             if (o.equals('\t')) return "\\t";
             return o.toString();
+        } else {
+            return o.toString();
         }
-        return o.toString();
     }
 
     public String toString() {
@@ -91,6 +91,7 @@ public class XiToken {
             case STRING_LIT:    type_rep = "string "; break;
             case CHAR_LIT:      type_rep = "character "; break;
             case ID:            type_rep = "id "; break;
+            case ERROR:         type_rep = "error:"; break;
             default:            break;
         }
         // make line and col 1-indexed

@@ -112,6 +112,9 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 <CHAR> {
+    \'        { yybegin(YYINITIAL);
+                return new XiToken(TokenType.ERROR, yyline,
+                charLiteralStartCol, "empty character literal"); }
      [^\n\'\\]\'    { yybegin(YYINITIAL); //TODO exclude HEX?
                     return new XiToken(TokenType.CHAR_LIT, yyline,
                     charLiteralStartCol, yytext().charAt(0)); }
@@ -131,4 +134,5 @@ INTEGER = 0 | [1-9][0-9]*
 }
 
 /* error fallback */
-[^] { return new XiToken(TokenType.ERROR, yyline, yycolumn, "error: Illegal character <"+yytext()+">");}
+[^] { return new XiToken(TokenType.ERROR, yyline, yycolumn,
+        "illegal symbol <"+yytext()+">");}
