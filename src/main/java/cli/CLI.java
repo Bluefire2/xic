@@ -16,11 +16,11 @@ import lexer.XiLexer;
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
     @Option(names = {"-h", "--help"}, usageHelp = true,
-            description = "Print a synopsis of options")
+            description = "Print a synopsis of options.")
     private boolean optHelp = false;
 
     @Option(names = {"-l", "--lex"},
-            description = "Generate output from lexical analysis")
+            description = "Generate output from lexical analysis.")
     private boolean optLex = false;
 
     @Parameters(arity = "1..*", paramLabel = "FILE",
@@ -28,32 +28,38 @@ public class CLI implements Runnable {
     private File[] optInputFiles;
 
     @Option(names = "-D", defaultValue = ".",
-            description = "Specify where to place generated diagnostic files")
+            description = "Specify where to place generated diagnostic files.")
     private Path path;
 
     @Override
     public void run() {
         if (optLex) {
-            XiLexer lexer;
+            lex();
+        }
+    }
 
-            for (File f : optInputFiles) {
-                String outputFilePath = path + "/" + FilenameUtils.removeExtension(f.getName()) + ".lexed";
-                try (FileReader fileReader = new FileReader(f);
-                     FileWriter fileWriter = new FileWriter(outputFilePath)) {
-                    lexer = new XiLexer(fileReader);
-                    for (XiToken next = lexer.yylex(); next != null; next = lexer.yylex()) {
-                        fileWriter.write(next.toString() + '\n');
-                        if (next.isError()) {
-                            break;
-                        }
+    private void lex() {
+        for (File f : optInputFiles) {
+            String outputFilePath =
+                    path + "/" + FilenameUtils.removeExtension(f.getName())
+                            + ".lexed";
+            try (FileReader fileReader = new FileReader(f);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+                XiLexer lexer = new XiLexer(fileReader);
+
+                for (XiToken next = lexer.yylex();
+                     next != null;
+                     next = lexer.yylex()) {
+                    // Tokenize the next string and write the token
+                    fileWriter.write(next.toString() + "\n");
+                    if (next.isError()) {
+                        // TODO: should we stop the compiler on a lexer error?
+                        break;
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } else {
-
         }
     }
 
