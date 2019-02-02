@@ -4,8 +4,7 @@
 #
 
 # Clean old files
-rm -r .gradle build
-rm src/main/java/lexer/XiLexer.java*
+make clean
 
 # Run JFlex on the lexer spec
 java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/

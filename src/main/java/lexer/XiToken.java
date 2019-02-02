@@ -50,7 +50,8 @@ enum TokenType {
     LBRAC,
     RBRAC,
     LCURL,
-    RCURL
+    RCURL,
+    ERROR
 }
 
 public class XiToken {
@@ -60,11 +61,26 @@ public class XiToken {
     private int col;
     private Object value;
 
-    public XiToken(TokenType type, int line, int col, Object value) {
+    XiToken(TokenType type, int line, int col, Object value) {
         this.type = type;
         this.line = line;
         this.col = col;
         this.value = value;
+    }
+
+    private String format(Object o) {
+        if (o instanceof String) {
+            String s = (String) o;
+            s = s.replace("\n", "\\n");
+            s = s.replace("\t", "\\t");
+            return s;
+        } else if (o instanceof Character) {
+            if (o.equals('\n')) return "\\n";
+            if (o.equals('\t')) return "\\t";
+            return o.toString();
+        } else {
+            return o.toString();
+        }
     }
 
     public String toString() {
@@ -75,9 +91,14 @@ public class XiToken {
             case STRING_LIT:    type_rep = "string "; break;
             case CHAR_LIT:      type_rep = "character "; break;
             case ID:            type_rep = "id "; break;
+            case ERROR:         type_rep = "error:"; break;
             default:            break;
         }
         // make line and col 1-indexed
-        return (line+1) + ":" + (col+1) + " " + type_rep + value.toString();
+        return (line+1) + ":" + (col+1) + " " + type_rep + format(value);
+    }
+
+    public boolean isError() {
+        return type == TokenType.ERROR;
     }
 }
