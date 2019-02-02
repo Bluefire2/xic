@@ -9,14 +9,14 @@ GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew stub.sh gradle
 default: build
 
 build:
-    $(XIC_BUILD)
+	$(XIC_BUILD)
 
 test:
-    $(XTH_BIN) -compilerpath . -testpath $(XTH_TEST_DIR) $(XTH_SCRIPT)
+	$(XTH_BIN) -compilerpath . -testpath $(XTH_TEST_DIR) $(XTH_SCRIPT)
 
 zip:
-    zip -r xic.zip $(GRADLE_SETUP_FILES) lib Makefile src xic-build
+	zip -r xic.zip $(GRADLE_SETUP_FILES) lib Makefile src xic-build
 
 clean:
-    rm -rf xic.zip build .gradle xic ~/bin/xic
-    rm -f src/main/java/lexer/XiLexer.java*
+	rm -rf xic.zip build .gradle xic ~/bin/xic
+	rm -f src/main/java/lexer/XiLexer.java*
