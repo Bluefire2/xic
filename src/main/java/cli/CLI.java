@@ -1,19 +1,17 @@
 package cli;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.nio.file.Files;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
+import lexer.XiLexer;
+import lexer.XiToken;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import lexer.XiToken;
-import lexer.XiLexer;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
