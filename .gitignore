@@ -3,6 +3,7 @@
 vm/.vagrant
 src/main/java/lexer/XiLexer.java
 *.java~
+xth
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Gradle template
