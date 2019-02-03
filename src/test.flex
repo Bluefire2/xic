@@ -101,12 +101,13 @@ INTEGER = 0 | [1-9][0-9]*
     \"              { yybegin(YYINITIAL);
                       return new XiToken(TokenType.STRING_LIT, yyline,
                       stringLiteralStartCol, stringLiteral.toString()); }
-    [^\n\"\\]+ { stringLiteral.append( yytext() ); }//TODO exclude HEX?
+    [^\n\r\"\\]+ { stringLiteral.append( yytext() ); }
     {HEX}           { stringLiteral.append( (char) Integer.parseInt(
                         yytext().substring(2, yylength()), 16
                     )); }
     \\t             { stringLiteral.append( '\t' ); }
     \\n             { stringLiteral.append( '\n' ); }
+    \\r             { stringLiteral.append( '\r' ); }
     \\\"            { stringLiteral.append( '\"' ); }
     \\              { stringLiteral.append( '\\' ); }
 }
@@ -115,22 +116,24 @@ INTEGER = 0 | [1-9][0-9]*
     \'        { yybegin(YYINITIAL);
                 return new XiToken(TokenType.ERROR, yyline,
                 charLiteralStartCol, "empty character literal"); }
-     [^\n\'\\]\'    { yybegin(YYINITIAL); //TODO exclude HEX?
+     [^\n\r\'\\]\'    { yybegin(YYINITIAL);
                     return new XiToken(TokenType.CHAR_LIT, yyline,
                     charLiteralStartCol, yytext().charAt(0)); }
      {HEX}\' {yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT, yyline,
-     yycolumn,
+     charLiteralStartCol,
        Character.forDigit(
                Integer.parseInt(yytext().substring(2,yylength()) ,16), 10
                ));}
      \\t\'          { yybegin(YYINITIAL); return new XiToken(TokenType
-     .CHAR_LIT, yyline, yycolumn, '\t'); }
+     .CHAR_LIT, yyline, charLiteralStartCol, '\t'); }
      \\n\'          { yybegin(YYINITIAL); return new XiToken(TokenType
-     .CHAR_LIT, yyline, yycolumn, '\n'); }
+     .CHAR_LIT, yyline, charLiteralStartCol, '\n'); }
+     \\r\'          { yybegin(YYINITIAL); return new XiToken(TokenType
+     .CHAR_LIT, yyline, charLiteralStartCol, '\r'); }
      \\\'           { yybegin(YYINITIAL); return new XiToken(TokenType
-     .CHAR_LIT, yyline, yycolumn, '\\'); }
+     .CHAR_LIT, yyline, charLiteralStartCol, '\\'); }
      \\\'\'         { yybegin(YYINITIAL); return new XiToken(TokenType
-     .CHAR_LIT, yyline, yycolumn, '\''); }
+     .CHAR_LIT, yyline, charLiteralStartCol, '\''); }
 }
 
 /* error fallback */
