@@ -7,7 +7,7 @@
 make clean
 
 # Run JFlex on the lexer spec
-java -jar lib/jflex-full-1.7.0.jar src/test.flex -d src/main/java/lexer/
+java -jar lib/jflex-full-1.7.0.jar src/xilexer.flex -d src/main/java/lexer/
 
 # Create the compiler using gradle, create xic binary
 if which gradle > /dev/null; then
@@ -17,7 +17,7 @@ else
     # gradle not installed by package manager, try the gradle wrapper supplied
     ./gradlew customFatJar
 fi
-cat stub.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
+cat make_jar_executable.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
 
 # Link the xic binary in ~/bin
 xic_path=$(readlink -f xic)
