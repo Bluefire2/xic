@@ -2,7 +2,7 @@ XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_TEST_DIR=./xth/tests/pa1
 XTH_SCRIPT=./xth/tests/pa1/xthScript
-GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew stub.sh gradle
+GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
 .PHONY: build
 

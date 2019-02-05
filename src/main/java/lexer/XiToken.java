@@ -72,10 +72,12 @@ public class XiToken {
         if (o instanceof String) {
             String s = (String) o;
             s = s.replace("\n", "\\n");
+            s = s.replace("\r", "\\r");
             s = s.replace("\t", "\\t");
             return s;
         } else if (o instanceof Character) {
             if (o.equals('\n')) return "\\n";
+            if (o.equals('\r')) return "\\r";
             if (o.equals('\t')) return "\\t";
             return o.toString();
         } else {
