@@ -12,6 +12,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
@@ -45,9 +46,9 @@ public class CLI implements Runnable {
 
     private void lex() {
         for (File f : optInputFiles) {
-            String outputFilePath =
-                    path + "/" + FilenameUtils.removeExtension(f.getName())
-                            + ".lexed";
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".lexed")
+                    .toString();
             try (FileReader fileReader = new FileReader(f);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 XiLexer lexer = new XiLexer(fileReader);
