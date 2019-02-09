@@ -69,13 +69,12 @@ public class XiToken {
     }
 
     private String format(String s) {
-        s = s.replace("\\", "\\\\");
-        s = s.replace("\n", "\\n");
-        s = s.replace("\r", "\\r");
-        s = s.replace("\t", "\\t");
-        s = s.replace("\"", "\\\"");
-        s = s.replace("\'", "\\'");
-        return s;
+        return s.replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
+                .replace("\"", "\\\"")
+                .replace("\'", "\\'");
     }
 
     public String toString() {
