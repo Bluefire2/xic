@@ -152,6 +152,8 @@ INTEGER = 0 | [1-9][0-9]*
                 yyline, charLiteralStartCol, '\"'); }
     \\.\'           { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
                     yyline, charLiteralStartCol, "invalid escape character"); }
+   [^]              { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
+                                    yyline, charLiteralStartCol, "invalid character"); }
 }
 
 /* error fallback */
