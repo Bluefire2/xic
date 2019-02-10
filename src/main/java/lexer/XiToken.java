@@ -68,20 +68,18 @@ public class XiToken {
         this.value = value;
     }
 
-    private String format(Object o) {
-        if (o instanceof String) {
-            String s = (String) o;
-            s = s.replace("\n", "\\n");
-            s = s.replace("\r", "\\r");
-            s = s.replace("\t", "\\t");
-            return s;
-        } else if (o instanceof Character) {
-            if (o.equals('\n')) return "\\n";
-            if (o.equals('\r')) return "\\r";
-            if (o.equals('\t')) return "\\t";
-            return o.toString();
-        } else {
-            return o.toString();
+    private String format() {
+        String s = value.toString();
+        switch (type) {
+            case STRING_LIT:
+            case CHAR_LIT:
+                return s.replace("\\", "\\\\")
+                        .replace("\n", "\\n")
+                        .replace("\r", "\\r")
+                        .replace("\t", "\\t")
+                        .replace("\"", "\\\"")
+                        .replace("\'", "\\'");
+            default: return s;
         }
     }
 
@@ -89,7 +87,6 @@ public class XiToken {
         String type_rep = "";
         switch (type) {
             case INT_LIT:       type_rep = "integer "; break;
-            case BOOL_LIT:      type_rep = "bool "; break;
             case STRING_LIT:    type_rep = "string "; break;
             case CHAR_LIT:      type_rep = "character "; break;
             case ID:            type_rep = "id "; break;
@@ -97,7 +94,7 @@ public class XiToken {
             default:            break;
         }
         // make line and col 1-indexed
-        return (line+1) + ":" + (col+1) + " " + type_rep + format(value);
+        return (line+1) + ":" + (col+1) + " " + type_rep + format();
     }
 
     public boolean isError() {
