@@ -5,12 +5,14 @@ import java.util.*;
 enum ExprType{
     BinopExpr,
     BoolLiteralExpr,
+    CharLiteralExpr,
     FunctionCallExpr,
     IdExpr,
     IndexExpr,
     IntLiteralExpr,
     LengthExpr,
     ListLiteralExpr,
+    StringLiteralExpr,
     UnopExpr,
     UnderscoreExpr
 }
@@ -218,6 +220,28 @@ class IdExpr extends Expr {
     public String getName() {
         return name;
     }
+}
+
+class CharLiteralExpr extends Expr {
+    private Character value;
+
+    CharLiteralExpr(char val) {
+        this.value = val;
+        this.e_type = ExprType.CharLiteralExpr;
+    }
+
+    public Character getValue() { return value; }
+}
+
+class StringLiteralExpr extends Expr {
+    private String value;
+
+    StringLiteralExpr(String val) {
+        this.value = val;
+        this.e_type = ExprType.StringLiteralExpr;
+    }
+
+    public String getValue() { return value; }
 }
 
 class IntLiteralExpr extends Expr {

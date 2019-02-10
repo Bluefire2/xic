@@ -52,6 +52,7 @@ nonterminal ProgramFile program;
 
 nonterminal Pair annotated_var;
 nonterminal Type basictype;
+nonterminal Type type;
 nonterminal Decl decl;
 nonterminal Defn defn;
 nonterminal UseInterface use_interface;
@@ -70,41 +71,18 @@ nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Expr> assignablelist;
+nonterminal ArrayList<Defn> defnlist;
 
 precedence nonassoc UMINUS, NOT;
 precedence left MULT, DIV, MOD, HI_MULT;
 precedence left PLUS, MINUS;
-precedence left LT, GT, LEQ, GEQ;
-precedence left EQ, NEQ;
+precedence left LT, GT, LTEQ, GTEQ;
+precedence left EQ, NEQ, EQEQ;
 precedence left AND;
 precedence left OR;
 precedence left COMMA;
 
-
-
-//HIGHEST LEVEL
-source ::=
-  interface:i {: RESULT = (SourceFile) i; :}
-| program:p {: RESULT = (SourceFile) p; :}
-;
-
-interface ::=
-  decl:d {: RESULT = new InterfaceFile(Arrays.asList({d})); :}
-| interface:i decl:d {: i.addDecl(d); RESULT = i; :}
-;
-
-program ::= importlist defnlist {: RESULT = new ProgramFile(importlist, defnlist); :}
-;
-
 //TYPES
-annotated_varlist ::=
-  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList({a})); :}
-| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
-;
-
-annotated_var ::=
-  ID:i COLON type:t {: RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
-;
 
 type ::=
   BOOL_TYPE:t {: RESULT = new Tvar("bool"); :}
@@ -112,6 +90,15 @@ type ::=
 | type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
 | type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
 | type:t1 COMMA type:t2 {: RESULT = new TupleType(Arrays.asList({t1, t2})); :} // TODO: need new nonterminal for this
+;
+
+annotated_varlist ::=
+  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList({a})); :}
+| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {: RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
 ;
 
 //DECLARATIONS AND DEFINITIONS
@@ -156,6 +143,8 @@ expr ::=
 | unop:u {: RESULT = u; :}
 | BOOL_LIT:b {: RESULT = new BoolLiteralExpr((boolean) b.getValue()); :}
 | INT_LIT:i {: RESULT = new BoolLiteralExpr((integer) i.getValue()); :}
+| CHAR_LIT:c {: RESULT = new CharLiteralExpr((char) c.getValue()); :}
+| STRING_LIT:s {: RESULT = new StringLiteralExpr((String) s.getValue()); :}
 | ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
 | ID:i LPAREN exprlist RPAREN {: RESULT = new FunctionCallExpr((String) i.value, exprlist); :}
 | ID:i LPAREN RPAREN {: RESULT = new FunctionCallExpr((String) i.value, new ArrayList<Expr>()); :}
@@ -178,8 +167,8 @@ binop ::=
 | expr:e1 NEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
 | expr:e1 GT:o expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
 | expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
-| expr:e1 GTE:o expr:e2 {: RESULT = new BinopExpr(Binop.GTE, e1, e2); :}
-| expr:e1 LTE:o expr:e2 {: RESULT = new BinopExpr(Binop.LTE, e1, e2); :}
+| expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTE, e1, e2); :}
+| expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTE, e1, e2); :}
 ;
 
 unop ::=
@@ -235,6 +224,21 @@ block ::=
   LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
 | LCURL RCURL {: RESULT = new BlockStmt(); :}
 ;
+
+//HIGHEST LEVEL
+source ::=
+  interface:i {: RESULT = (SourceFile) i; :}
+| program:p {: RESULT = (SourceFile) p; :}
+;
+
+interface ::=
+  decl:d {: RESULT = new InterfaceFile(Arrays.asList({d})); :}
+| interface:i decl:d {: i.addDecl(d); RESULT = i; :}
+;
+
+program ::= importlist defnlist {: RESULT = new ProgramFile(importlist, defnlist); :}
+;
+
 
 
 
