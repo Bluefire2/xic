@@ -20,6 +20,7 @@ package lexer;
 /* switch line and column counting on */
 %line
 %column
+%cup
 
 /* macros */
 EOL = \r|\n|\r\n

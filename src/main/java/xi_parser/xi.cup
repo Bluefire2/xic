@@ -1,0 +1,245 @@
+package xi_parser;
+// A stub for a Xi CUP specification.
+
+import java_cup.runtime.*;
+import lexer.XiToken.*;
+
+// You might want to add types to these declarations.
+terminal XiToken ID, STRING_LIT, CHAR_LIT, INT_LIT, BOOL_LIT, INT_TYPE, BOOL_TYPE;
+
+terminal XiToken
+    UNDERSCORE,
+    USE,
+    IF,
+    WHILE,
+    ELSE,
+    RETURN,
+    LENGTH,
+
+    EQ,
+    MINUS,
+    PLUS,
+    NOT,
+    MULT,
+    HI_MULT,
+    DIV,
+    MOD,
+    EQEQ,
+    NEQ,
+    GT,
+    LT,
+    GTEQ,
+    LTEQ,
+    AND,
+    OR,
+    UMINUS, //maybe not necessary
+
+    COLON,
+    SEMICOLON,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRAC,
+    RBRAC,
+    LCURL,
+    RCURL,
+    ERROR;
+
+// You might want to add types to these declarations.
+nonterminal SourceFile source;
+nonterminal InterfaceFile interface;
+nonterminal ProgramFile program;
+
+nonterminal Pair annotated_var;
+nonterminal Type basictype;
+nonterminal Decl decl;
+nonterminal Defn defn;
+nonterminal UseInterface use_interface;
+nonterminal Expr assignable;
+
+nonterminal Expr expr;
+nonterminal Expr binop;
+nonterminal Expr unop;
+
+nonterminal Stmt statement;
+nonterminal Stmt return;
+nonterminal Stmt block;
+
+nonterminal ArrayList<Pair> annotated_varlist;
+nonterminal ArrayList<Expr> exprlist;
+nonterminal ArrayList<Stmt> stmtlist;
+nonterminal ArrayList<UseInterface> importlist;
+nonterminal ArrayList<Expr> assignablelist;
+
+precedence nonassoc UMINUS, NOT;
+precedence left MULT, DIV, MOD, HI_MULT;
+precedence left PLUS, MINUS;
+precedence left LT, GT, LEQ, GEQ;
+precedence left EQ, NEQ;
+precedence left AND;
+precedence left OR;
+precedence left COMMA;
+
+
+
+//HIGHEST LEVEL
+source ::=
+  interface:i {: RESULT = (SourceFile) i; :}
+| program:p {: RESULT = (SourceFile) p; :}
+;
+
+interface ::=
+  decl:d {: RESULT = new InterfaceFile(Arrays.asList({d})); :}
+| interface:i decl:d {: i.addDecl(d); RESULT = i; :}
+;
+
+program ::= importlist defnlist {: RESULT = new ProgramFile(importlist, defnlist); :}
+;
+
+//TYPES
+annotated_varlist ::=
+  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList({a})); :}
+| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {: RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
+;
+
+type ::=
+  BOOL_TYPE:t {: RESULT = new Tvar("bool"); :}
+| INT_TYPE:t {: RESULT = new Tvar("int"); :}
+| type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
+| type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
+| type:t1 COMMA type:t2 {: RESULT = new TupleType(Arrays.asList({t1, t2})); :} // TODO: need new nonterminal for this
+;
+
+//DECLARATIONS AND DEFINITIONS
+decl ::=
+  ID:n LPAREN RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), {}); :}
+| ID:n LPAREN RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t); :}
+| ID:n LPAREN annotated_varlist:p RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), p); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), p, t); :}
+;
+
+defn ::=
+  ID:n LPAREN RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), {}, b); :}
+| ID:n LPAREN RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), p, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), p, t, b); :}
+;
+
+defnlist ::=
+  defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList({d})); :}
+| defnlist:l defn:d {: l.add(e); RESULT = l; :}
+;
+
+//IMPORTS
+use_interface ::=
+  USE ID:i {: RESULT = new UseInterface((String) i.getValue()); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface((String) i.getValue()); :}
+;
+
+importlist ::=
+  use_interface:i {: RESULT = new ArrayList<UseInterface>(Arrays.asList({i})); :}
+| importlist:l use_interface:i {: l.add(i); RESULT = l; :}
+;
+
+//EXPRESSIONS
+exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  expr:e {: RESULT = new ArrayList<Expr>(Arrays.asList({e})); :}
+| exprlist:l COMMA expr:e {: l.add(e); RESULT = l; :}
+;
+
+expr ::=
+  binop:b {: RESULT = b; :}
+| unop:u {: RESULT = u; :}
+| BOOL_LIT:b {: RESULT = new BoolLiteralExpr((boolean) b.getValue()); :}
+| INT_LIT:i {: RESULT = new BoolLiteralExpr((integer) i.getValue()); :}
+| ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
+| ID:i LPAREN exprlist RPAREN {: RESULT = new FunctionCallExpr((String) i.value, exprlist); :}
+| ID:i LPAREN RPAREN {: RESULT = new FunctionCallExpr((String) i.value, new ArrayList<Expr>()); :}
+| expr:e1 LBRAC expr:e2 RBRAC {: RESULT = new IndexExpr(e1, e2); :}
+| LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
+| LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
+| LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
+;
+
+binop ::=
+  expr:e1 AND:o expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
+| expr:e1 OR:o expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2); :}
+| expr:e1 PLUS:o expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2); :}
+| expr:e1 MINUS:o expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2); :}
+| expr:e1 DIV:o expr:e2 {: RESULT = new BinopExpr(Binop.DIV, e1, e2); :}
+| expr:e1 MOD:o expr:e2 {: RESULT = new BinopExpr(Binop.MOD, e1, e2); :}
+| expr:e1 MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.MULT, e1, e2); :}
+| expr:e1 HI_MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.HI_MULT, e1, e2); :}
+| expr:e1 EQEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.EQEQ, e1, e2); :}
+| expr:e1 NEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
+| expr:e1 GT:o expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
+| expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
+| expr:e1 GTE:o expr:e2 {: RESULT = new BinopExpr(Binop.GTE, e1, e2); :}
+| expr:e1 LTE:o expr:e2 {: RESULT = new BinopExpr(Binop.LTE, e1, e2); :}
+;
+
+unop ::=
+  MINUS expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e); :}
+| NOT expr:e {: RESULT = new UnopExpr(Unop.NOT, e); :}
+;
+
+//STATEMENTS
+//    IfStmt,
+//    IfElseStmt,
+//    WhileStmt,
+//    BlockStmt
+
+assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  assignable:a {: RESULT = new ArrayList<Expr>(Arrays.asList({e})); :}
+| assignablelist:l COMMA assignable:a {: l.add(e); RESULT = l; :}
+;
+
+assignable ::= //enforces assignability of the left side expression
+ UNDERSCORE {: RESULT = new UnderscoreExpr(); :}
+| expr:e {: RESULT = e; :} //in semantic analysis need to make sure that left side does not begin with ( or {
+;
+
+statement ::= 
+  statement:s SEMICOLON {: RESULT = s; :}
+| block:b {: RESULT b; :}
+| assignable:a EQ expr:e {: RESULT = new AssignStmt(a, e); :}
+| assignablelist:a EQ exprlist:e {: RESULT = new MultiAssignStmt(a, e); :}
+| annotated_var:d EQ expr:e {: RESULT = new DeclAssignStmt(d, e); :}
+| annotated_varlist:d EQ exprlist:e {: RESULT = new MultiDeclAssignStmt(d, e); :}
+| annotated_var:d {: RESULT = new DeclStmt(d); :}
+| annotated_varlist:d {: RESULT = new MultiDeclStmt(d); :}
+| ID:i LPAREN exprlist RPAREN {: RESULT = new ProcedureCallExpr((String) i.value, exprlist); :}
+| ID:i LPAREN RPAREN {: RESULT = new ProcedureCallExpr((String) i.value, new ArrayList<Expr>()); :}
+| IF expr:e statement:s {: RESULT = new IfStmt(e,s); :}
+| IF expr:e statement:s1 ELSE statement:s2 {: RESULT = new IfElseStmt(e,s1,s2); :}
+| WHILE expr:e statement:s {: RESULT = new WhileStmt(e,s); :}
+;
+
+return ::= //enforces return statements being at the end of blocks + cannot replace blocks
+  RETURN {: RESULT = new ProcedureReturnStmt(); :}
+| RETURN expr:e {: RESULT = new FunctionReturnStmt(e); :}
+| return:r SEMICOLON {: RESULT = r; :}
+;
+
+stmtlist ::=
+  statement:s {: RESULT = new ArrayList<Stmt>(Arrays.asList({s})); :}
+| stmtlist:l statement:s {: l.add(s); RESULT = l; :}
+| stmtlist:l return:r {: l.add(r); RESULT = l; :}
+;
+
+block ::=
+  LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
+| LCURL RCURL {: RESULT = new BlockStmt(); :}
+;
+
+
+
+
+
+
+
+

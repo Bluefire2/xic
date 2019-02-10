@@ -103,4 +103,20 @@ public class XiToken {
     public boolean isError() {
         return type == TokenType.ERROR;
     }
+
+    public TokenType getType() {
+        return type;
+    }
+
+    public int getLine() {
+        return line;
+    }
+
+    public int getCol() {
+        return col;
+    }
+
+    public Object getValue() {
+        return value;
+    }
 }
