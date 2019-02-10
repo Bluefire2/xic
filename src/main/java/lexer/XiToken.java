@@ -68,13 +68,19 @@ public class XiToken {
         this.value = value;
     }
 
-    private String format(String s) {
-        return s.replace("\\", "\\\\")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t")
-                .replace("\"", "\\\"")
-                .replace("\'", "\\'");
+    private String format() {
+        String s = value.toString();
+        switch (type) {
+            case STRING_LIT:
+            case CHAR_LIT:
+                return s.replace("\\", "\\\\")
+                        .replace("\n", "\\n")
+                        .replace("\r", "\\r")
+                        .replace("\t", "\\t")
+                        .replace("\"", "\\\"")
+                        .replace("\'", "\\'");
+            default: return s;
+        }
     }
 
     public String toString() {
@@ -88,7 +94,7 @@ public class XiToken {
             default:            break;
         }
         // make line and col 1-indexed
-        return (line+1) + ":" + (col+1) + " " + type_rep + format(value.toString());
+        return (line+1) + ":" + (col+1) + " " + type_rep + format();
     }
 
     public boolean isError() {

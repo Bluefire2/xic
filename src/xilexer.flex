@@ -66,8 +66,15 @@ INTEGER = 0 | [1-9][0-9]*
         yyline, yycolumn, yytext()); }
 
     /* literals */
-    {INTEGER}   { return new XiToken(TokenType.INT_LIT,
-        yyline, yycolumn, new Long(yytext())); }
+    {INTEGER}   {
+        try {
+            return new XiToken(TokenType.INT_LIT,
+                yyline, yycolumn, Long.parseLong(yytext()));
+        } catch (NumberFormatException e) {
+            return new XiToken(TokenType.ERROR,
+                yyline, yycolumn, "invalid integer");
+        }
+    }
     \"          { stringLiteral.setLength(0);
                 stringLiteralStartCol = yycolumn;
                 yybegin(STRING); }
@@ -116,6 +123,8 @@ INTEGER = 0 | [1-9][0-9]*
     \"              { yybegin(YYINITIAL);
                       return new XiToken(TokenType.STRING_LIT,
         yyline, stringLiteralStartCol, stringLiteral.toString()); }
+    {EOL}           { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
+        yyline, stringLiteralStartCol, "missing ending double quotes"); }
     [^\n\r\"\\]+    { stringLiteral.append( yytext() ); }
     \\x{HEX}        { stringLiteral.append( (char) Integer.parseInt(
                         yytext().substring(2, yylength()), 16
@@ -126,34 +135,37 @@ INTEGER = 0 | [1-9][0-9]*
     \\\"            { stringLiteral.append( '\"' ); }
     \\\'            { stringLiteral.append( '\'' ); }
     \\\\            { stringLiteral.append( "\\" ); }
+    // yycolumn instead of string start col because the escape is the
+    // problem, not the string itself
     \\.             { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
-                                yyline, charLiteralStartCol, "invalid escape character"); }
+        yyline, yycolumn, "invalid escape character"); }
 }
 
 <CHAR> {
     \'              { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
-                 yyline, charLiteralStartCol, "empty character literal"); }
+        yyline, charLiteralStartCol, "empty character literal"); }
     [^\n\r\'\\\"]\' { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, yytext().charAt(0)); }
+        yyline, charLiteralStartCol, yytext().charAt(0)); }
     \\x{HEX}\'      { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, Character.forDigit(
-                Integer.parseInt(yytext().substring(2,yylength()) ,16), 10)); }
+        yyline, charLiteralStartCol, Character.forDigit(
+            Integer.parseInt(yytext().substring(2,yylength()) ,16), 10)
+        ); }
     \\t\'           { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                 yyline, charLiteralStartCol, '\t'); }
+        yyline, charLiteralStartCol, '\t'); }
     \\n\'           { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, '\n'); }
+        yyline, charLiteralStartCol, '\n'); }
     \\r\'           { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, '\r'); }
+        yyline, charLiteralStartCol, '\r'); }
     \\\'            { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, '\\'); }
+        yyline, charLiteralStartCol, '\\'); }
     \\\'\'          { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, '\''); }
+        yyline, charLiteralStartCol, '\''); }
     \\\"\'          { yybegin(YYINITIAL); return new XiToken(TokenType.CHAR_LIT,
-                yyline, charLiteralStartCol, '\"'); }
+        yyline, charLiteralStartCol, '\"'); }
     \\.\'           { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
-                    yyline, charLiteralStartCol, "invalid escape character"); }
-   [^]              { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
-                                    yyline, charLiteralStartCol, "invalid character"); }
+        yyline, charLiteralStartCol, "invalid escape character"); }
+    [^]             { yybegin(YYINITIAL); return new XiToken(TokenType.ERROR,
+        yyline, charLiteralStartCol, "invalid character"); }
 }
 
 /* error fallback */

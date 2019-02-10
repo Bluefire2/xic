@@ -29,18 +29,25 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test --lex") "--lex" {
-    ex1.xi;
-    ex2.xi (Lexical, "empty character literal");
-    spec1.xi;
-    spec2.xi;
-    spec3.xi;
-    gcd.xi;
-    ratadd.xi;
-    ratadduse.xi;
-    insertionsort.xi;
-    arrayinit.xi;
-    arrayinit2.xi;
-    mdarrays.xi;
-    add.xi;
-    beauty.xi;
+    catch_long_int_error_largeintliteral.xi;
+    consecutive_double_quotes_string07.xi;
+    dangling_backslash_space_string06.xi;
+    dangling_backslash_string05.xi;
+    escape_char03.xi;
+    escape_string08.xi;
+    ill_char_char02.xi;
+    illegal_escape_string03.xi;
+    illegal_hex_string04.xi;
+    incorrect_lexing_string05.xi;
+    min_int_int06.xi;
+    split_string_string01.xi;
+    split_string_string02.xi;
+    string_in_char_char04.xi;
+    true_false_keyword09_others.xi;
+    unclosed_double_quotes_string02.xi;
+    unclosed_double_quotes_string_string02.xi;
+    unclosed_sing_quotes_char03.xi;
+    unclosed_sing_quotes_char06.xi;
+    unclosed_sing_quotes_sing_letter_char06.xi;
+    unescaped_backslash_string01.xi;
 }
