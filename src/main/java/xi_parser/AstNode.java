@@ -192,8 +192,7 @@ class UnopExpr extends Expr {
     private String op;
     private Expr expr;
 
-    // TODO: remove left & right params
-    UnopExpr(String op, Expr left, Expr right) {
+    UnopExpr(String op, Expr expr) {
         this.op = op;
         this.expr = expr;
         this.e_type = ExprType.UnopExpr;
