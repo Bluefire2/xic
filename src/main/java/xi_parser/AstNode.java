@@ -44,6 +44,7 @@ enum Unop{
 
 enum Binop{
     EQ, //=
+    PLUS,
     MINUS,
     NOT,
     MULT,
@@ -164,18 +165,18 @@ class Expr {
 }
 
 class BinopExpr extends Expr {
-    private String op;
+    private Binop op;
     private Expr left;
     private Expr right;
 
-    BinopExpr(String op, Expr left, Expr right) {
+    BinopExpr(Binop op, Expr left, Expr right) {
         this.op = op;
         this.left = left;
         this.right = right;
         this.e_type = ExprType.BinopExpr;
     }
 
-    public String getOp() {
+    public Binop getOp() {
         return op;
     }
 
@@ -189,16 +190,16 @@ class BinopExpr extends Expr {
 }
 
 class UnopExpr extends Expr {
-    private String op;
+    private Unop op;
     private Expr expr;
 
-    UnopExpr(String op, Expr expr) {
+    UnopExpr(Unop op, Expr expr) {
         this.op = op;
         this.expr = expr;
         this.e_type = ExprType.UnopExpr;
     }
 
-    public String getOp() {
+    public Unop getOp() {
         return op;
     }
 

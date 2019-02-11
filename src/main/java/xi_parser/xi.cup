@@ -186,8 +186,8 @@ binop ::=
 | expr:e1 NEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
 | expr:e1 GT:o expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
 | expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
-| expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTE, e1, e2); :}
-| expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTE, e1, e2); :}
+| expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2); :}
+| expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2); :}
 ;
 
 unop ::=
