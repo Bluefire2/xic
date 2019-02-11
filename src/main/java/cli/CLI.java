@@ -34,11 +34,20 @@ public class CLI implements Runnable {
             description = "Specify where to place generated diagnostic files.")
     private Path path;
 
+    @Option(names = "-sourcepath", defaultValue = ".",
+            description = "Specify where to find input source files.")
+    private Path sourcepath;
+
     @Override
     public void run() {
         if (Files.exists(path)) {
-            if (optLex) {
-                lex();
+            if(Files.exists(sourcepath)) {
+                if (optLex) {
+                    lex();
+                }
+            }
+            else {
+                System.out.println(String.format("Error: directory %s not found", sourcepath));
             }
         } else {
             System.out.println(String.format("Error: directory %s not found", path));
@@ -50,7 +59,7 @@ public class CLI implements Runnable {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".lexed")
                     .toString();
-            try (FileReader fileReader = new FileReader(f);
+            try (FileReader fileReader = new FileReader(sourcepath.toString() + "/" + f.getName());
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 XiLexer lexer = new XiLexer(fileReader);
 
