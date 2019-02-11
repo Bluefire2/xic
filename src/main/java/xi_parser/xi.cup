@@ -84,7 +84,7 @@ nonterminal UseInterface use_interface;
 
 nonterminal Expr expr;
 
-nonterminal Stmt statement;
+nonterminal Stmt statement, matchedstmt, unmatchedstmt;
 nonterminal Stmt return;
 nonterminal Stmt block;
 
@@ -95,15 +95,16 @@ nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Expr> assignablelist;
 nonterminal ArrayList<Defn> defnlist;
 
-precedence left LBRAC, RBRAC, LPAREN, RPAREN;
-precedence nonassoc UMINUS, NOT;
-precedence left MULT, DIV, MOD, HI_MULT;
-precedence left PLUS, MINUS;
-precedence left LT, GT, LTEQ, GTEQ;
-precedence left EQ, NEQ, EQEQ;
-precedence left AND;
-precedence left OR;
 precedence left COMMA;
+precedence left OR;
+precedence left AND;
+precedence left EQ, NEQ, EQEQ;
+precedence left LT, GT, LTEQ, GTEQ;
+precedence left PLUS, MINUS;
+precedence left MULT, DIV, MOD, HI_MULT;
+precedence nonassoc UMINUS, NOT;
+precedence left LBRAC, RBRAC, LPAREN, RPAREN;
+
 
 start with source;
 
@@ -206,20 +207,20 @@ expr ::=
 | LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
 | LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
 | LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
-| expr:e1 AND:o expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
-| expr:e1 OR:o expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2); :}
-| expr:e1 PLUS:o expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2); :}
-| expr:e1 MINUS:o expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2); :}
-| expr:e1 DIV:o expr:e2 {: RESULT = new BinopExpr(Binop.DIV, e1, e2); :}
-| expr:e1 MOD:o expr:e2 {: RESULT = new BinopExpr(Binop.MOD, e1, e2); :}
-| expr:e1 MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.MULT, e1, e2); :}
-| expr:e1 HI_MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.HI_MULT, e1, e2); :}
-| expr:e1 EQEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.EQEQ, e1, e2); :}
-| expr:e1 NEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
-| expr:e1 GT:o expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
-| expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
-| expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2); :}
-| expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2); :}
+| expr:e1 AND expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
+| expr:e1 OR expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2); :}
+| expr:e1 PLUS expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2); :}
+| expr:e1 MINUS expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2); :}
+| expr:e1 DIV expr:e2 {: RESULT = new BinopExpr(Binop.DIV, e1, e2); :}
+| expr:e1 MOD expr:e2 {: RESULT = new BinopExpr(Binop.MOD, e1, e2); :}
+| expr:e1 MULT expr:e2 {: RESULT = new BinopExpr(Binop.MULT, e1, e2); :}
+| expr:e1 HI_MULT expr:e2 {: RESULT = new BinopExpr(Binop.HI_MULT, e1, e2); :}
+| expr:e1 EQEQ expr:e2 {: RESULT = new BinopExpr(Binop.EQEQ, e1, e2); :}
+| expr:e1 NEQ expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
+| expr:e1 GT expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
+| expr:e1 LT expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
+| expr:e1 GTEQ expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2); :}
+| expr:e1 LTEQ expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2); :}
 | MINUS expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e); :} %prec UMINUS
 | NOT expr:e {: RESULT = new UnopExpr(Unop.NOT, e); :}
 ;
@@ -236,20 +237,30 @@ assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 | assignablelist:l COMMA expr:e {: l.add(a); RESULT = l; :}
 ;
 
-statement ::=
-  block:b {: RESULT = b; :}
+matchedstmt ::=
+  IF expr:e matchedstmt:s1 ELSE matchedstmt:s2 {:
+     RESULT = new IfElseStmt(e,s1,s2); :}
+| WHILE expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s); :}
+| block:b {: RESULT = b; :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
 | annotated_varlist:d EQ exprlist:e {:
-    RESULT = new DeclAssignStmt(d, e); :}
+      RESULT = new DeclAssignStmt(d, e); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-    RESULT = new ProcedureCallStmt((String) i.getValue(), el); :}
+      RESULT = new ProcedureCallStmt((String) i.getValue(), el); :}
 | ID:i LPAREN RPAREN {:
-    RESULT = new ProcedureCallStmt((String) i.getValue(), new ArrayList<Expr>()); :}
-| IF expr:e statement:s {: RESULT = new IfStmt(e,s); :}
-| IF expr:e statement:s1 ELSE statement:s2 {:
-    RESULT = new IfElseStmt(e,s1,s2); :}
-| WHILE expr:e statement:s {: RESULT = new WhileStmt(e,s); :}
+      RESULT = new ProcedureCallStmt((String) i.getValue(), new ArrayList<Expr>()); :}
+;
+
+
+unmatchedstmt ::=
+  IF expr:e unmatchedstmt:s {: RESULT = new IfStmt(e,s); :}
+| IF expr:e matchedstmt:s {: RESULT = new IfStmt(e,s); :}
+| WHILE expr:e unmatchedstmt:s {: RESULT = new WhileStmt(e,s); :}
+;
+
+statement ::=
+  matchedstmt | unmatchedstmt
 ;
 
 return ::= //enforces return statements being at the end of blocks + cannot replace blocks
