@@ -1,6 +1,7 @@
 package xi_parser;
 
 import java.util.*;
+import polyglot.util.Pair;
 
 enum ExprType {
     BinopExpr,
@@ -59,28 +60,6 @@ enum Binop {
     LTEQ,
     AND,
     OR
-}
-
-class Pair<A, B> {
-    private A first;
-    private B second;
-
-    Pair(A first, B second) {
-        this.first = first;
-        this.second = second;
-    }
-
-    public A fst() {
-        return first;
-    }
-
-    public B snd() {
-        return second;
-    }
-
-    public String toString() {
-        return "(" + first.toString() + "," + second.toString() + ")";
-    }
 }
 
 abstract class Type {
