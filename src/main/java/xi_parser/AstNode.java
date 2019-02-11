@@ -224,13 +224,13 @@ class IdExpr extends Expr {
 class IntLiteralExpr extends Expr {
     private Long value;
 
-    IntLiteralExpr(long val) {
+    IntLiteralExpr(Long val) {
         this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
     }
 
-    IntLiteralExpr(String val) {
-        this.value = Long.parseLong(val);
+    IntLiteralExpr(Character val) {
+        this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
     }
 
@@ -242,8 +242,8 @@ class IntLiteralExpr extends Expr {
 class BoolLiteralExpr extends Expr {
     private Boolean value;
 
-    BoolLiteralExpr(String val) {
-        this.value = Boolean.parseBoolean(val);
+    BoolLiteralExpr(Boolean val) {
+        this.value = val;
         this.e_type = ExprType.BoolLiteralExpr;
     }
 
