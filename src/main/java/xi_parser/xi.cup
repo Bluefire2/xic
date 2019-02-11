@@ -92,7 +92,7 @@ nonterminal Stmt statement;
 nonterminal Stmt return;
 nonterminal Stmt block;
 
-nonterminal ArrayList<Pair> annotated_varlist;
+nonterminal ArrayList<Pair<String,Type>> annotated_varlist;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
@@ -250,14 +250,12 @@ assignable ::= //enforces assignability of the left side expression
 
 statement ::=
   statement:s SEMICOLON {: RESULT = s; :}
-| block:b {: RESULT b; :}
+| block:b {: RESULT = b; :}
 | assignable:a EQ expr:e {:
     ArrayList<Expr> l1 = new ArrayList<>();
     l1.add(a);
-    RESULT = l1;
     ArrayList<Expr> l2 = new ArrayList<>();
     l2.add(e);
-    RESULT = l2;
     RESULT = new AssignStmt(l1, l2); :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
 | annotated_var:d EQ expr:e {:
@@ -273,10 +271,10 @@ statement ::=
     l.add(d);
     RESULT = new DeclStmt(l); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
-| ID:i LPAREN exprlist RPAREN {:
-    RESULT = new ProcedureCallExpr((String) i.value, exprlist); :}
+| ID:i LPAREN exprlist:el RPAREN {:
+    RESULT = new ProcedureCallStmt((String) i.getValue(), el); :}
 | ID:i LPAREN RPAREN {:
-    RESULT = new ProcedureCallExpr((String) i.value, new ArrayList<Expr>()); :}
+    RESULT = new ProcedureCallStmt((String) i.getValue(), new ArrayList<Expr>()); :}
 | IF expr:e statement:s {: RESULT = new IfStmt(e,s); :}
 | IF expr:e statement:s1 ELSE statement:s2 {:
     RESULT = new IfElseStmt(e,s1,s2); :}
@@ -299,7 +297,7 @@ stmtlist ::=
 
 block ::=
   LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
-| LCURL stmtlist:l return:r RCURL {: l.append(r); RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
 | LCURL RCURL {: RESULT = new BlockStmt(); :}
 ;
 
@@ -313,12 +311,12 @@ interface ::=
   decl:d {:
       ArrayList<Decl> l = new ArrayList<>();
       l.add(d);
-      RESULT = l; :}
+      RESULT = new InterfaceFile(l); :}
 | interface:i decl:d {: i.addDecl(d); RESULT = i; :}
 ;
 
-program ::= importlist defnlist {:
-    RESULT = new ProgramFile(importlist, defnlist); :}
+program ::= importlist:il defnlist:dl {:
+    RESULT = new ProgramFile(il, dl); :}
 ;
 
 
