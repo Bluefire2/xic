@@ -223,15 +223,18 @@ class IdExpr extends Expr {
 
 class IntLiteralExpr extends Expr {
     private Long value;
+    public boolean isChar;
 
     IntLiteralExpr(Long val) {
         this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
+        this.isChar = false;
     }
 
     IntLiteralExpr(Character val) {
         this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
+        this.isChar = true;
     }
 
     public Long getValue() {
@@ -254,10 +257,12 @@ class BoolLiteralExpr extends Expr {
 
 class ListLiteralExpr extends Expr {
     private List<Expr> contents;
+    public boolean isString;
 
     ListLiteralExpr(List<Expr> contents) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
+        this.isString = false;
     }
 
     ListLiteralExpr(String value) {
@@ -266,6 +271,7 @@ class ListLiteralExpr extends Expr {
         for (int i = 0; i < chars.length; i++) {
             contents.add(new IntLiteralExpr(chars[i]));
         }
+        this.isString = true;
     }
 
     public List<Expr> getContents() {
