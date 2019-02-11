@@ -32,3 +32,5 @@ zip:
 clean:
 	rm -rf xic.zip build .gradle xic ~/bin/xic
 	rm -f src/main/java/lexer/XiLexer.java*
+	rm -f src/main/java/xi_parser/XiParser.java* 
+	rm -f src/main/java/xi_parser/sym.java* 

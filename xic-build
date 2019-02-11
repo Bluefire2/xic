@@ -10,7 +10,7 @@ make clean
 java -jar lib/jflex-full-1.7.0.jar src/xilexer.flex -d src/main/java/lexer/
 
 #Run cup
-./lib/cup -parser "Parser" ./src/main/java/xi_parser/xi.cup
+./lib/cup -parser "XiParser" -destdir ./src/main/java/xi_parser ./src/main/java/xi_parser/xi.cup
 
 # Create the compiler using gradle, create xic binary
 if which gradle > /dev/null; then
