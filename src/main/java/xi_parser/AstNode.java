@@ -2,7 +2,7 @@ package xi_parser;
 
 import java.util.*;
 
-enum ExprType{
+enum ExprType {
     BinopExpr,
     BoolLiteralExpr,
     FunctionCallExpr,
@@ -15,7 +15,7 @@ enum ExprType{
     UnderscoreExpr
 }
 
-enum StmtType{
+enum StmtType {
     ProcedureReturnStmt,
     FunctionReturnStmt,
     AssignStmt,
@@ -31,18 +31,18 @@ enum StmtType{
     BlockStmt
 }
 
-enum TypeType{
+enum TypeType {
     ListType,
     TupleType,
     Tvar
 }
 
-enum Unop{
+enum Unop {
     NOT,
     UMINUS
 }
 
-enum Binop{
+enum Binop {
     EQ, //=
     PLUS,
     MINUS,
@@ -157,11 +157,11 @@ class TupleType extends Type {
 
 
 class Expr {
-     public ExprType e_type;
+    public ExprType e_type;
 
-     public ExprType getE_type(){
-         return e_type;
-     }
+    public ExprType getE_type() {
+        return e_type;
+    }
 }
 
 class BinopExpr extends Expr {
@@ -329,7 +329,7 @@ class LengthExpr extends Expr {
 }
 
 class UnderscoreExpr extends Expr {
-    UnderscoreExpr(){
+    UnderscoreExpr() {
         this.e_type = ExprType.UnderscoreExpr;
     }
 }
@@ -337,7 +337,7 @@ class UnderscoreExpr extends Expr {
 class Stmt {
     public StmtType s_type;
 
-    public StmtType getS_type(){
+    public StmtType getS_type() {
         return s_type;
     }
 
@@ -424,31 +424,11 @@ class ProcedureCallStmt extends Stmt {
     }
 }
 
-// TODO: this is a special case of the next class
 class AssignStmt extends Stmt {
-    private Expr left;
-    private Expr right;
-
-    public AssignStmt(Expr left, Expr right) {
-        this.left = left;
-        this.right = right;
-        this.s_type = StmtType.AssignStmt;
-    }
-
-    public Expr getLeft() {
-        return left;
-    }
-
-    public Expr getRight() {
-        return right;
-    }
-}
-
-class MultiAssignStmt extends Stmt {
     private List<Expr> left;
     private List<Expr> right;
 
-    public MultiAssignStmt(List<Expr> left, List<Expr> right) {
+    public AssignStmt(List<Expr> left, List<Expr> right) {
         this.left = left;
         this.right = right;
         this.s_type = StmtType.MultiAssignStmt;
@@ -463,24 +443,10 @@ class MultiAssignStmt extends Stmt {
     }
 }
 
-// TODO: ditto
 class DeclStmt extends Stmt {
-    private Pair<String, Type> decl;
-
-    public DeclStmt(Pair<String, Type> decl) {
-        this.decl = decl;
-        this.s_type = StmtType.DeclStmt;
-    }
-
-    public Pair<String, Type> getDecl() {
-        return decl;
-    }
-}
-
-class MultiDeclStmt extends Stmt {
     private List<Pair<String, Type>> decls;
 
-    public MultiDeclStmt(List<Pair<String, Type>> decls) {
+    public DeclStmt(List<Pair<String, Type>> decls) {
         this.decls = decls;
         this.s_type = StmtType.MultiDeclStmt;
     }
@@ -490,31 +456,11 @@ class MultiDeclStmt extends Stmt {
     }
 }
 
-// TODO: ditto
 class DeclAssignStmt extends Stmt {
-    private Pair<String, Type> decl;
-    private Expr right;
-
-    public DeclAssignStmt(Pair<String, Type> decl, Expr right) {
-        this.decl = decl;
-        this.right = right;
-        this.s_type = StmtType.DeclAssignStmt;
-    }
-
-    public Pair<String, Type> getDecl() {
-        return decl;
-    }
-
-    public Expr getRight() {
-        return right;
-    }
-}
-
-class MultiDeclAssignStmt extends Stmt {
     private List<Pair<String, Type>> decls;
     private List<Expr> right;
 
-    public MultiDeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right) {
+    public DeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right) {
         this.decls = decls;
         this.right = right;
         this.s_type = StmtType.MultiDeclAssignStmt;
@@ -545,12 +491,12 @@ class BlockStmt extends Stmt {
         return statements;
     }
 
-    public boolean isEmpty(){
+    public boolean isEmpty() {
         return statements.size() == 0;
     }
 
-    public Stmt getLastStatement(){
-        return statements.get(statements.size()-1);
+    public Stmt getLastStatement() {
+        return statements.get(statements.size() - 1);
     }
 }
 

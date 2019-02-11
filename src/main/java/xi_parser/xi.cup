@@ -24,7 +24,14 @@ return lexer.next_token();
 :};
 
 // You might want to add types to these declarations.
-terminal XiToken ID, STRING_LIT, CHAR_LIT, INT_LIT, BOOL_LIT, INT_TYPE, BOOL_TYPE;
+terminal XiToken
+    ID,
+    STRING_LIT,
+    CHAR_LIT,
+    INT_LIT,
+    BOOL_LIT,
+    INT_TYPE,
+    BOOL_TYPE;
 
 terminal XiToken
     UNDERSCORE,
@@ -108,35 +115,58 @@ type ::=
 | INT_TYPE:t {: RESULT = new Tvar("int"); :}
 | type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
 | type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
-| type:t1 COMMA type:t2 {: RESULT = new TupleType(Arrays.asList(new Type[] {t1, t2})); :} // TODO: need new nonterminal for this
+| type:t1 COMMA type:t2 {:
+    ArrayList<Type> l = new ArrayList<>();
+    l.add(t1);
+    l.add(t2);
+    RESULT = new TupleType(l); :} // TODO: need new nonterminal for this
 ;
 
 annotated_varlist ::=
-  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList(new Pair<String,Type>[] {a})); :}
+  annotated_var:a {:
+    ArrayList<Pair<String,Type>> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
 | annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
 annotated_var ::=
-  ID:i COLON type:t {: RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
+  ID:i COLON type:t {:
+    RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
 ;
 
 //DECLARATIONS AND DEFINITIONS
 decl ::=
-  ID:n LPAREN RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), new ArrayList<Pair<String, Type>>()); :}
-| ID:n LPAREN RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t); :}
-| ID:n LPAREN annotated_varlist:p RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), p); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), p, t); :}
+  ID:n LPAREN RPAREN {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new ProcedureDecl((String) n.getValue(), l); :}
+| ID:n LPAREN RPAREN COLON type:t {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new FunctionDecl((String) n.getValue(), l, t); :}
+| ID:n LPAREN annotated_varlist:p RPAREN {:
+    RESULT = new ProcedureDecl((String) n.getValue(), p); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
+    RESULT = new FunctionDecl((String) n.getValue(), p, t); :}
 ;
 
 defn ::=
-  ID:n LPAREN RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), new ArrayList<Pair<String, Type>>(), b); :}
-| ID:n LPAREN RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t, b); :}
-| ID:n LPAREN annotated_varlist:p RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), p, b); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), p, t, b); :}
+  ID:n LPAREN RPAREN block:b {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new ProcedureDefn((String) n.getValue(), l, b); :}
+| ID:n LPAREN RPAREN COLON type:t block:b {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new FunctionDefn((String) n.getValue(), l, t, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN block:b {:
+    RESULT = new ProcedureDefn((String) n.getValue(), p, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {:
+    RESULT = new FunctionDefn((String) n.getValue(), p, t, b); :}
 ;
 
 defnlist ::=
-  defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList(new Defn[] {d})); :}
+  defn:d {:
+      ArrayList<Defn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
 | defnlist:l defn:d {: l.add(d); RESULT = l; :}
 ;
 
@@ -147,13 +177,19 @@ use_interface ::=
 ;
 
 importlist ::=
-  use_interface:i {: RESULT = new ArrayList<UseInterface>(Arrays.asList(new UseInterface[] {i})); :}
+  use_interface:i {:
+      ArrayList<UseInterface> l = new ArrayList<>();
+      l.add(i);
+      RESULT = l; :}
 | importlist:l use_interface:i {: l.add(i); RESULT = l; :}
 ;
 
 //EXPRESSIONS
 exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  expr:e {: RESULT = new ArrayList<Expr>(Arrays.asList(new Expr[] {e})); :}
+  expr:e {:
+       ArrayList<Expr> l = new ArrayList<>();
+       l.add(e);
+       RESULT = l; :}
 | exprlist:l COMMA expr:e {: l.add(e); RESULT = l; :}
 ;
 
@@ -165,8 +201,10 @@ expr ::=
 | CHAR_LIT:c {: RESULT = new IntLiteralExpr(c.getValue()); :} // chars are really ints
 | STRING_LIT:s {: RESULT = new ListLiteralExpr(s); :} // strings are really lists of ints
 | ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
-| ID:i LPAREN exprlist RPAREN {: RESULT = new FunctionCallExpr((String) i.getValue(), exprlist); :}
-| ID:i LPAREN RPAREN {: RESULT = new FunctionCallExpr((String) i.getValue(), new ArrayList<Expr>()); :}
+| ID:i LPAREN exprlist RPAREN {:
+    RESULT = new FunctionCallExpr((String) i.value, exprlist); :}
+| ID:i LPAREN RPAREN {:
+    RESULT = new FunctionCallExpr((String) i.value, new ArrayList<Expr>()); :}
 | expr:e1 LBRAC expr:e2 RBRAC {: RESULT = new IndexExpr(e1, e2); :}
 | LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
 | LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
@@ -198,8 +236,11 @@ unop ::=
 //STATEMENTS
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  assignable:a {: RESULT = new ArrayList<Expr>(Arrays.asList(new Expr[] {a})); :}
-| assignablelist:l COMMA assignable:a {: l.add(e); RESULT = l; :}
+  assignable:a {:
+      ArrayList<Expr> l = new ArrayList<>();
+      l.add(a);
+      RESULT = l; :}
+| assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
 ;
 
 assignable ::= //enforces assignability of the left side expression
@@ -210,16 +251,35 @@ assignable ::= //enforces assignability of the left side expression
 statement ::=
   statement:s SEMICOLON {: RESULT = s; :}
 | block:b {: RESULT b; :}
-| assignable:a EQ expr:e {: RESULT = new AssignStmt(a, e); :}
-| assignablelist:a EQ exprlist:e {: RESULT = new MultiAssignStmt(a, e); :}
-| annotated_var:d EQ expr:e {: RESULT = new DeclAssignStmt(d, e); :}
-| annotated_varlist:d EQ exprlist:e {: RESULT = new MultiDeclAssignStmt(d, e); :}
-| annotated_var:d {: RESULT = new DeclStmt(d); :}
-| annotated_varlist:d {: RESULT = new MultiDeclStmt(d); :}
-| ID:i LPAREN exprlist RPAREN {: RESULT = new ProcedureCallExpr((String) i.getValue(), exprlist); :}
-| ID:i LPAREN RPAREN {: RESULT = new ProcedureCallExpr((String) i.getValue(), new ArrayList<Expr>()); :}
+| assignable:a EQ expr:e {:
+    ArrayList<Expr> l1 = new ArrayList<>();
+    l1.add(a);
+    RESULT = l1;
+    ArrayList<Expr> l2 = new ArrayList<>();
+    l2.add(e);
+    RESULT = l2;
+    RESULT = new AssignStmt(l1, l2); :}
+| assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
+| annotated_var:d EQ expr:e {:
+    ArrayList<Pair<String,Type>> l1 = new ArrayList<>();
+    l1.add(d);
+    ArrayList<Expr> l2 = new ArrayList<>();
+    l2.add(e);
+    RESULT = new DeclAssignStmt(l1, l2); :}
+| annotated_varlist:d EQ exprlist:e {:
+    RESULT = new DeclAssignStmt(d, e); :}
+| annotated_var:d {:
+    ArrayList<Pair<String,Type>> l = new ArrayList<>();
+    l.add(d);
+    RESULT = new DeclStmt(l); :}
+| annotated_varlist:d {: RESULT = new DeclStmt(d); :}
+| ID:i LPAREN exprlist RPAREN {:
+    RESULT = new ProcedureCallExpr((String) i.value, exprlist); :}
+| ID:i LPAREN RPAREN {:
+    RESULT = new ProcedureCallExpr((String) i.value, new ArrayList<Expr>()); :}
 | IF expr:e statement:s {: RESULT = new IfStmt(e,s); :}
-| IF expr:e statement:s1 ELSE statement:s2 {: RESULT = new IfElseStmt(e,s1,s2); :}
+| IF expr:e statement:s1 ELSE statement:s2 {:
+    RESULT = new IfElseStmt(e,s1,s2); :}
 | WHILE expr:e statement:s {: RESULT = new WhileStmt(e,s); :}
 ;
 
@@ -230,7 +290,10 @@ return ::= //enforces return statements being at the end of blocks + cannot repl
 ;
 
 stmtlist ::=
-  statement:s {: RESULT = new ArrayList<Stmt>(Arrays.asList(new Stmt[] {s})); :}
+  statement:s {:
+     ArrayList<Stmt> l = new ArrayList<>();
+     l.add(s);
+     RESULT = l; :}
 | stmtlist:l statement:s {: l.add(s); RESULT = l; :}
 ;
 
@@ -247,11 +310,15 @@ source ::=
 ;
 
 interface ::=
-  decl:d {: RESULT = new InterfaceFile(Arrays.asList(new Decl[] {d})); :}
+  decl:d {:
+      ArrayList<Decl> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
 | interface:i decl:d {: i.addDecl(d); RESULT = i; :}
 ;
 
-program ::= importlist defnlist {: RESULT = new ProgramFile(importlist, defnlist); :}
+program ::= importlist defnlist {:
+    RESULT = new ProgramFile(importlist, defnlist); :}
 ;
 
 
