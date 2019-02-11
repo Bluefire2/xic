@@ -245,6 +245,7 @@ class StringLiteralExpr extends Expr {
     public String getValue() { return value; }
 }
 
+// TODO: change this to Long
 class IntLiteralExpr extends Expr {
     private Integer value;
 
@@ -435,6 +436,7 @@ class ProcedureCallStmt extends Stmt {
     }
 }
 
+// TODO: this is a special case of the next class
 class AssignStmt extends Stmt {
     private Expr left;
     private Expr right;
@@ -473,7 +475,7 @@ class MultiAssignStmt extends Stmt {
     }
 }
 
-
+// TODO: ditto
 class DeclStmt extends Stmt {
     private Pair<String, Type> decl;
 
@@ -500,6 +502,7 @@ class MultiDeclStmt extends Stmt {
     }
 }
 
+// TODO: ditto
 class DeclAssignStmt extends Stmt {
     private Pair<String, Type> decl;
     private Expr right;
