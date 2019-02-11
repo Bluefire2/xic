@@ -177,10 +177,6 @@ unop ::=
 ;
 
 //STATEMENTS
-//    IfStmt,
-//    IfElseStmt,
-//    WhileStmt,
-//    BlockStmt
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
   assignable:a {: RESULT = new ArrayList<Expr>(Arrays.asList({e})); :}
@@ -192,7 +188,7 @@ assignable ::= //enforces assignability of the left side expression
 | expr:e {: RESULT = e; :} //in semantic analysis need to make sure that left side does not begin with ( or {
 ;
 
-statement ::= 
+statement ::=
   statement:s SEMICOLON {: RESULT = s; :}
 | block:b {: RESULT b; :}
 | assignable:a EQ expr:e {: RESULT = new AssignStmt(a, e); :}
