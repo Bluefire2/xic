@@ -5,14 +5,12 @@ import java.util.*;
 enum ExprType{
     BinopExpr,
     BoolLiteralExpr,
-    CharLiteralExpr,
     FunctionCallExpr,
     IdExpr,
     IndexExpr,
     IntLiteralExpr,
     LengthExpr,
     ListLiteralExpr,
-    StringLiteralExpr,
     UnopExpr,
     UnderscoreExpr
 }
@@ -194,6 +192,7 @@ class UnopExpr extends Expr {
     private String op;
     private Expr expr;
 
+    // TODO: remove left & right params
     UnopExpr(String op, Expr left, Expr right) {
         this.op = op;
         this.expr = expr;
@@ -222,37 +221,20 @@ class IdExpr extends Expr {
     }
 }
 
-class CharLiteralExpr extends Expr {
-    private Character value;
-
-    CharLiteralExpr(char val) {
-        this.value = val;
-        this.e_type = ExprType.CharLiteralExpr;
-    }
-
-    public Character getValue() { return value; }
-}
-
-class StringLiteralExpr extends Expr {
-    private String value;
-
-    StringLiteralExpr(String val) {
-        this.value = val;
-        this.e_type = ExprType.StringLiteralExpr;
-    }
-
-    public String getValue() { return value; }
-}
-
 class IntLiteralExpr extends Expr {
-    private Integer value;
+    private Long value;
 
-    IntLiteralExpr(int val) {
-        this.value = value;
+    IntLiteralExpr(long val) {
+        this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
     }
 
-    public Integer getValue() {
+    IntLiteralExpr(String val) {
+        this.value = Long.parseLong(val);
+        this.e_type = ExprType.IntLiteralExpr;
+    }
+
+    public Long getValue() {
         return value;
     }
 }
@@ -260,8 +242,8 @@ class IntLiteralExpr extends Expr {
 class BoolLiteralExpr extends Expr {
     private Boolean value;
 
-    BoolLiteralExpr(boolean val) {
-        this.value = value;
+    BoolLiteralExpr(String val) {
+        this.value = Boolean.parseBoolean(val);
         this.e_type = ExprType.BoolLiteralExpr;
     }
 
@@ -276,6 +258,14 @@ class ListLiteralExpr extends Expr {
     ListLiteralExpr(List<Expr> contents) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
+    }
+
+    ListLiteralExpr(String value) {
+        char[] chars = value.toCharArray();
+        this.contents = new ArrayList<>();
+        for (int i = 0; i < chars.length; i++) {
+            contents.add(new IntLiteralExpr(chars[i]));
+        }
     }
 
     public List<Expr> getContents() {
@@ -434,6 +424,7 @@ class ProcedureCallStmt extends Stmt {
     }
 }
 
+// TODO: this is a special case of the next class
 class AssignStmt extends Stmt {
     private Expr left;
     private Expr right;
@@ -472,7 +463,7 @@ class MultiAssignStmt extends Stmt {
     }
 }
 
-
+// TODO: ditto
 class DeclStmt extends Stmt {
     private Pair<String, Type> decl;
 
@@ -499,6 +490,7 @@ class MultiDeclStmt extends Stmt {
     }
 }
 
+// TODO: ditto
 class DeclAssignStmt extends Stmt {
     private Pair<String, Type> decl;
     private Expr right;
@@ -545,9 +537,8 @@ class BlockStmt extends Stmt {
         this.s_type = StmtType.BlockStmt;
     }
 
-    public BlockStmt() {    //empty block
-        this.statements = new ArrayList<Stmt>();
-        this.s_type = StmtType.BlockStmt;
+    public BlockStmt() {
+        this(new ArrayList<>());
     }
 
     public List<Stmt> getStatments() {
@@ -568,11 +559,28 @@ abstract class Defn {
     public boolean isProcedure;
 }
 
-class FunctionDefn extends Defn {
-    private String name;
-    private List<Pair<String, Type>> params;
+abstract class FPDefn extends Defn {
+    String name;
+    List<Pair<String, Type>> params;
+    Stmt body;
+
+    public String getName() {
+        return name;
+    }
+
+    public List<Pair<String, Type>> getParams() {
+        return params;
+    }
+
+    public Stmt getBody() {
+        return body;
+    }
+
+    abstract boolean isProcedure();
+}
+
+class FunctionDefn extends FPDefn {
     private Type output;
-    private Stmt body;
 
     public FunctionDefn(String name, List<Pair<String, Type>> params, Type output, Stmt body) {
         this.name = name;
@@ -581,51 +589,25 @@ class FunctionDefn extends Defn {
         this.body = body;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Pair<String, Type>> getParams() {
-        return params;
-    }
-
     public Type getOutput() {
         return output;
     }
 
-    public Stmt getBody() {
-        return body;
-    }
-
-    public boolean isProcedure(){
+    @Override
+    public boolean isProcedure() {
         return false;
     }
 }
 
-class ProcedureDefn extends Defn {
-    private String name;
-    private List<Pair<String, Type>> params;
-    private Stmt body;
-
+class ProcedureDefn extends FPDefn {
     public ProcedureDefn(String name, List<Pair<String, Type>> params, Stmt body) {
         this.name = name;
         this.params = params;
         this.body = body;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Pair<String, Type>> getParams() {
-        return params;
-    }
-
-    public Stmt getBody() {
-        return body;
-    }
-
-    public boolean isProcedure(){
+    @Override
+    public boolean isProcedure() {
         return true;
     }
 
@@ -671,7 +653,7 @@ class FunctionDecl extends Decl {
         return output;
     }
 
-    public boolean isProcedure(){
+    public boolean isProcedure() {
         return false;
     }
 }
@@ -693,7 +675,7 @@ class ProcedureDecl extends Decl {
         return params;
     }
 
-    public boolean isProcedure(){
+    public boolean isProcedure() {
         return true;
     }
 }
@@ -703,7 +685,7 @@ abstract class SourceFile {
     abstract boolean isInterface();
 }
 
-class InterfaceFile extends SourceFile{
+class InterfaceFile extends SourceFile {
     private ArrayList<Decl> declarations;
 
     public InterfaceFile(List<Decl> declarations) {
@@ -714,11 +696,11 @@ class InterfaceFile extends SourceFile{
         return declarations;
     }
 
-    public void addDecl(Decl decl){
+    public void addDecl(Decl decl) {
         declarations.add(decl);
     }
 
-    public boolean isInterface(){
+    public boolean isInterface() {
         return true;
     }
 }
@@ -740,15 +722,15 @@ class ProgramFile extends SourceFile {
         return definitions;
     }
 
-    public void addDefn(Defn defn){
+    public void addDefn(Defn defn) {
         definitions.add(defn);
     }
 
-    public void addImport(UseInterface use){
+    public void addImport(UseInterface use) {
         imports.add(use);
     }
 
-    public boolean isInterface(){
+    public boolean isInterface() {
         return false;
     }
 }

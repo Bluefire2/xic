@@ -138,7 +138,7 @@ defn ::=
 
 defnlist ::=
   defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList({d})); :}
-| defnlist:l defn:d {: l.add(e); RESULT = l; :}
+| defnlist:l defn:d {: l.add(d); RESULT = l; :}
 ;
 
 //IMPORTS
@@ -161,10 +161,10 @@ exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 expr ::=
   binop:b {: RESULT = b; :}
 | unop:u {: RESULT = u; :}
-| BOOL_LIT:b {: RESULT = new BoolLiteralExpr((boolean) b.getValue()); :}
-| INT_LIT:i {: RESULT = new BoolLiteralExpr((integer) i.getValue()); :}
-| CHAR_LIT:c {: RESULT = new CharLiteralExpr((char) c.getValue()); :}
-| STRING_LIT:s {: RESULT = new StringLiteralExpr((String) s.getValue()); :}
+| BOOL_LIT:b {: RESULT = new BoolLiteralExpr(Boolean.parseBoolean(b.getValue())); :}
+| INT_LIT:i {: RESULT = new IntLiteralExpr(Long.parseLong(i.getValue())); :}
+| CHAR_LIT:c {: RESULT = new IntLiteralExpr(Long.parseLong(c.getValue())); :} // chars are really ints
+| STRING_LIT:s {: RESULT = new ListLiteralExpr(s); :} // strings are really lists of ints
 | ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
 | ID:i LPAREN exprlist RPAREN {: RESULT = new FunctionCallExpr((String) i.value, exprlist); :}
 | ID:i LPAREN RPAREN {: RESULT = new FunctionCallExpr((String) i.value, new ArrayList<Expr>()); :}
