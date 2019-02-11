@@ -5,14 +5,12 @@ import java.util.*;
 enum ExprType{
     BinopExpr,
     BoolLiteralExpr,
-    CharLiteralExpr,
     FunctionCallExpr,
     IdExpr,
     IndexExpr,
     IntLiteralExpr,
     LengthExpr,
     ListLiteralExpr,
-    StringLiteralExpr,
     UnopExpr,
     UnderscoreExpr
 }
@@ -223,38 +221,20 @@ class IdExpr extends Expr {
     }
 }
 
-class CharLiteralExpr extends Expr {
-    private Character value;
-
-    CharLiteralExpr(char val) {
-        this.value = val;
-        this.e_type = ExprType.CharLiteralExpr;
-    }
-
-    public Character getValue() { return value; }
-}
-
-class StringLiteralExpr extends Expr {
-    private String value;
-
-    StringLiteralExpr(String val) {
-        this.value = val;
-        this.e_type = ExprType.StringLiteralExpr;
-    }
-
-    public String getValue() { return value; }
-}
-
-// TODO: change this to Long
 class IntLiteralExpr extends Expr {
-    private Integer value;
+    private Long value;
 
-    IntLiteralExpr(int val) {
-        this.value = value;
+    IntLiteralExpr(long val) {
+        this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
     }
 
-    public Integer getValue() {
+    IntLiteralExpr(String val) {
+        this.value = Long.parseLong(val);
+        this.e_type = ExprType.IntLiteralExpr;
+    }
+
+    public Long getValue() {
         return value;
     }
 }
@@ -262,8 +242,8 @@ class IntLiteralExpr extends Expr {
 class BoolLiteralExpr extends Expr {
     private Boolean value;
 
-    BoolLiteralExpr(boolean val) {
-        this.value = value;
+    BoolLiteralExpr(String val) {
+        this.value = Boolean.parseBoolean(val);
         this.e_type = ExprType.BoolLiteralExpr;
     }
 
@@ -278,6 +258,14 @@ class ListLiteralExpr extends Expr {
     ListLiteralExpr(List<Expr> contents) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
+    }
+
+    ListLiteralExpr(String value) {
+        char[] chars = value.toCharArray();
+        this.contents = new ArrayList<>();
+        for (int i = 0; i < chars.length; i++) {
+            contents.add(new IntLiteralExpr(chars[i]));
+        }
     }
 
     public List<Expr> getContents() {
