@@ -3,6 +3,26 @@ package xi_parser;
 
 import java_cup.runtime.*;
 import lexer.XiToken.*;
+import lexer.XiLexer;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+parser code
+{:
+    public XiLexer lexer;
+
+    public
+
+:};
+
+scan with
+{:
+return lexer.yylex();
+:};
 
 // You might want to add types to these declarations.
 terminal XiToken ID, STRING_LIT, CHAR_LIT, INT_LIT, BOOL_LIT, INT_TYPE, BOOL_TYPE;

@@ -1,4 +1,6 @@
 package lexer;
+import java_cup.runtime.*;
+
 
 enum TokenType {
     // identifiers/variables
@@ -54,7 +56,7 @@ enum TokenType {
     ERROR
 }
 
-public class XiToken {
+public class XiToken extends Symbol{
 
     private TokenType type;
     private int line;
@@ -62,6 +64,15 @@ public class XiToken {
     private Object value;
 
     XiToken(TokenType type, int line, int col, Object value) {
+        super(type.ordinal(), -1, -1, value);
+        this.type = type;
+        this.line = line;
+        this.col = col;
+        this.value = value;
+    }
+
+    XiToken(TokenType type, int line, int col, int left, int right, Object value) {
+        super(type.ordinal(), left, right, value);
         this.type = type;
         this.line = line;
         this.col = col;
