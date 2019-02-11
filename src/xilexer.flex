@@ -1,6 +1,7 @@
 package lexer;
 
 import java_cup.runtime.*;
+import java_cup.sym;
 
 %%
 
@@ -11,6 +12,10 @@ import java_cup.runtime.*;
 %cup
 %type XiToken
 
+/* switch line and column counting on */
+%line
+%column
+
 /* declare variables */
 %{
     // A buffer to start and store strings when lexing
@@ -19,10 +24,6 @@ import java_cup.runtime.*;
     int stringLiteralStartCol = 0;
     int charLiteralStartCol = 0;
 %}
-
-/* switch line and column counting on */
-%line
-%column
 
 /* macros */
 EOL = \r|\n|\r\n
@@ -34,6 +35,10 @@ COMMENT = "//"{NON_EOL}*{EOL}? // {EOL}? since comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
 
 %state STRING, CHAR
+
+%eofval{
+  return new XiToken(TokenType.EOF, yyline, yycolumn, null);
+%eofval}
 
 %%
 
