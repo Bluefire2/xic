@@ -1,11 +1,14 @@
 package lexer;
 
+import java_cup.runtime.*;
+
 %%
 
 /* the name of your lexer class */
 %public
 %class XiLexer
-
+%unicode
+%cup
 %type XiToken
 
 /* declare variables */
@@ -20,7 +23,6 @@ package lexer;
 /* switch line and column counting on */
 %line
 %column
-%cup
 
 /* macros */
 EOL = \r|\n|\r\n
