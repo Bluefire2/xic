@@ -138,7 +138,7 @@ defn ::=
 
 defnlist ::=
   defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList({d})); :}
-| defnlist:l defn:d {: l.add(e); RESULT = l; :}
+| defnlist:l defn:d {: l.add(d); RESULT = l; :}
 ;
 
 //IMPORTS
