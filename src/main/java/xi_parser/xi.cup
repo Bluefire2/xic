@@ -106,11 +106,11 @@ type ::=
 | INT_TYPE:t {: RESULT = new Tvar("int"); :}
 | type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
 | type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
-| type:t1 COMMA type:t2 {: RESULT = new TupleType(Arrays.asList({t1, t2})); :} // TODO: need new nonterminal for this
+| type:t1 COMMA type:t2 {: RESULT = new TupleType(Arrays.asList(new Type[] {t1, t2})); :} // TODO: need new nonterminal for this
 ;
 
 annotated_varlist ::=
-  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList({a})); :}
+  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList(new Pair<>[] {a})); :}
 | annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
@@ -120,21 +120,21 @@ annotated_var ::=
 
 //DECLARATIONS AND DEFINITIONS
 decl ::=
-  ID:n LPAREN RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), {}); :}
+  ID:n LPAREN RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), new ArrayList<Pair<String, Type>>()); :}
 | ID:n LPAREN RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {: RESULT = new ProcedureDecl((String) n.getValue(), p); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {: RESULT = new FunctionDecl((String) n.getValue(), p, t); :}
 ;
 
 defn ::=
-  ID:n LPAREN RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), {}, b); :}
+  ID:n LPAREN RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), new ArrayList<Pair<String, Type>>(), b); :}
 | ID:n LPAREN RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), new ArrayList<Pair<String,Type>>(), t, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {: RESULT = new ProcedureDefn((String) n.getValue(), p, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {: RESULT = new FunctionDefn((String) n.getValue(), p, t, b); :}
 ;
 
 defnlist ::=
-  defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList({d})); :}
+  defn:d {: RESULT = new ArrayList<Defn>(Arrays.asList(new Defn[] {d})); :}
 | defnlist:l defn:d {: l.add(d); RESULT = l; :}
 ;
 
@@ -145,13 +145,13 @@ use_interface ::=
 ;
 
 importlist ::=
-  use_interface:i {: RESULT = new ArrayList<UseInterface>(Arrays.asList({i})); :}
+  use_interface:i {: RESULT = new ArrayList<UseInterface>(Arrays.asList(new UseInterface[] {i})); :}
 | importlist:l use_interface:i {: l.add(i); RESULT = l; :}
 ;
 
 //EXPRESSIONS
 exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  expr:e {: RESULT = new ArrayList<Expr>(Arrays.asList({e})); :}
+  expr:e {: RESULT = new ArrayList<Expr>(Arrays.asList(new Expr[] {e})); :}
 | exprlist:l COMMA expr:e {: l.add(e); RESULT = l; :}
 ;
 
@@ -196,7 +196,7 @@ unop ::=
 //STATEMENTS
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  assignable:a {: RESULT = new ArrayList<Expr>(Arrays.asList({e})); :}
+  assignable:a {: RESULT = new ArrayList<Expr>(Arrays.asList(new Expr[] {a})); :}
 | assignablelist:l COMMA assignable:a {: l.add(e); RESULT = l; :}
 ;
 
@@ -228,7 +228,7 @@ return ::= //enforces return statements being at the end of blocks + cannot repl
 ;
 
 stmtlist ::=
-  statement:s {: RESULT = new ArrayList<Stmt>(Arrays.asList({s})); :}
+  statement:s {: RESULT = new ArrayList<Stmt>(Arrays.asList(new Stmt[] {s})); :}
 | stmtlist:l statement:s {: l.add(s); RESULT = l; :}
 ;
 
@@ -245,7 +245,7 @@ source ::=
 ;
 
 interface ::=
-  decl:d {: RESULT = new InterfaceFile(Arrays.asList({d})); :}
+  decl:d {: RESULT = new InterfaceFile(Arrays.asList(new Decl[] {d})); :}
 | interface:i decl:d {: i.addDecl(d); RESULT = i; :}
 ;
 

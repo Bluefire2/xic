@@ -53,9 +53,9 @@ public class CLI implements Runnable {
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 XiLexer lexer = new XiLexer(fileReader);
 
-                for (XiToken next = lexer.yylex();
+                for (XiToken next = lexer.next_token();
                      next != null;
-                     next = lexer.yylex()) {
+                     next = lexer.next_token()) {
                     // Tokenize the next string and write the token
                     fileWriter.write(next.toString() + "\n");
                     if (next.isError()) {
