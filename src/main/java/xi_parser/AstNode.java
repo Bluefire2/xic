@@ -1,7 +1,10 @@
 package xi_parser;
 
-import java.util.*;
 import polyglot.util.Pair;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 enum ExprType {
     BinopExpr,
