@@ -110,7 +110,7 @@ type ::=
 ;
 
 annotated_varlist ::=
-  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList(new Pair<>[] {a})); :}
+  annotated_var:a {: RESULT = new ArrayList<Pair<String,Type>>(Arrays.asList(new Pair<Pair<String,Type>>[] {a})); :}
 | annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
