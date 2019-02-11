@@ -13,9 +13,6 @@ import java.nio.file.Paths;
 
 parser code
 {:
-    public XiLexer lexer;
-
-    public
 
 :};
 
@@ -233,11 +230,11 @@ return ::= //enforces return statements being at the end of blocks + cannot repl
 stmtlist ::=
   statement:s {: RESULT = new ArrayList<Stmt>(Arrays.asList({s})); :}
 | stmtlist:l statement:s {: l.add(s); RESULT = l; :}
-| stmtlist:l return:r {: l.add(r); RESULT = l; :}
 ;
 
 block ::=
   LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l return:r RCURL {: l.append(r); RESULT = new BlockStmt(l); :}
 | LCURL RCURL {: RESULT = new BlockStmt(); :}
 ;
 
