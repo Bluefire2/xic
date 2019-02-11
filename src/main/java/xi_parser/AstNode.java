@@ -549,11 +549,6 @@ class BlockStmt extends Stmt {
         this.s_type = StmtType.BlockStmt;
     }
 
-    public BlockStmt() {    //empty block
-        this.statements = new ArrayList<Stmt>();
-        this.s_type = StmtType.BlockStmt;
-    }
-
     public List<Stmt> getStatments() {
         return statements;
     }
