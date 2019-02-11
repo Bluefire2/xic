@@ -77,16 +77,12 @@ nonterminal InterfaceFile interface;
 nonterminal ProgramFile program;
 
 nonterminal Pair annotated_var;
-nonterminal Type basictype;
 nonterminal Type type;
 nonterminal Decl decl;
 nonterminal Defn defn;
 nonterminal UseInterface use_interface;
-nonterminal Expr assignable;
 
 nonterminal Expr expr;
-nonterminal Expr binop;
-nonterminal Expr unop;
 
 nonterminal Stmt statement;
 nonterminal Stmt return;
@@ -99,6 +95,7 @@ nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Expr> assignablelist;
 nonterminal ArrayList<Defn> defnlist;
 
+precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 precedence nonassoc UMINUS, NOT;
 precedence left MULT, DIV, MOD, HI_MULT;
 precedence left PLUS, MINUS;
@@ -196,9 +193,7 @@ exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 ;
 
 expr ::=
-  binop:b {: RESULT = b; :}
-| unop:u {: RESULT = u; :}
-| BOOL_LIT:b {: RESULT = new BoolLiteralExpr((Boolean) b.getValue()); :}
+  BOOL_LIT:b {: RESULT = new BoolLiteralExpr((Boolean) b.getValue()); :}
 | INT_LIT:i {: RESULT = new IntLiteralExpr((Long) i.getValue()); :}
 | CHAR_LIT:c {: RESULT = new IntLiteralExpr((Character) c.getValue()); :} // chars are really ints
 | STRING_LIT:s {: RESULT = new ListLiteralExpr((String) s.getValue()); :} // strings are really lists of ints
@@ -211,10 +206,7 @@ expr ::=
 | LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
 | LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
 | LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
-;
-
-binop ::=
-  expr:e1 AND:o expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
+| expr:e1 AND:o expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
 | expr:e1 OR:o expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2); :}
 | expr:e1 PLUS:o expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2); :}
 | expr:e1 MINUS:o expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2); :}
@@ -228,50 +220,27 @@ binop ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2); :}
-;
-
-unop ::=
-  MINUS expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e); :}
+| MINUS expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e); :} %prec UMINUS
 | NOT expr:e {: RESULT = new UnopExpr(Unop.NOT, e); :}
 ;
 
 //STATEMENTS
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  assignable:a {:
-      ArrayList<Expr> l = new ArrayList<>();
-      l.add(a);
-      RESULT = l; :}
-| assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
-;
-
-assignable ::= //enforces assignability of the left side expression
- UNDERSCORE {: RESULT = new UnderscoreExpr(); :}
-| expr:e {: RESULT = e; :} //in semantic analysis need to make sure that left side does not begin with ( or {
+  UNDERSCORE {:
+     ArrayList<Expr> l = new ArrayList<>();
+     l.add(new UnderscoreExpr());
+     RESULT = l; :}
+| exprlist:l COMMA UNDERSCORE {: l.add(new UnderscoreExpr()); RESULT = l; :}
+| assignablelist:l COMMA UNDERSCORE {: l.add(new UnderscoreExpr()); RESULT = l; :}
+| assignablelist:l COMMA expr:e {: l.add(a); RESULT = l; :}
 ;
 
 statement ::=
-  statement:s SEMICOLON {: RESULT = s; :}
-| block:b {: RESULT = b; :}
-| assignable:a EQ expr:e {:
-    ArrayList<Expr> l1 = new ArrayList<>();
-    l1.add(a);
-    ArrayList<Expr> l2 = new ArrayList<>();
-    l2.add(e);
-    RESULT = new AssignStmt(l1, l2); :}
+  block:b {: RESULT = b; :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
-| annotated_var:d EQ expr:e {:
-    ArrayList<Pair<String,Type>> l1 = new ArrayList<>();
-    l1.add(d);
-    ArrayList<Expr> l2 = new ArrayList<>();
-    l2.add(e);
-    RESULT = new DeclAssignStmt(l1, l2); :}
 | annotated_varlist:d EQ exprlist:e {:
     RESULT = new DeclAssignStmt(d, e); :}
-| annotated_var:d {:
-    ArrayList<Pair<String,Type>> l = new ArrayList<>();
-    l.add(d);
-    RESULT = new DeclStmt(l); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
 | ID:i LPAREN exprlist:el RPAREN {:
     RESULT = new ProcedureCallStmt((String) i.getValue(), el); :}
@@ -295,6 +264,7 @@ stmtlist ::=
      l.add(s);
      RESULT = l; :}
 | stmtlist:l statement:s {: l.add(s); RESULT = l; :}
+| stmtlist:l SEMICOLON {: RESULT = l; :}
 ;
 
 block ::=
