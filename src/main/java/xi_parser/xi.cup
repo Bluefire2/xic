@@ -108,6 +108,8 @@ precedence left AND;
 precedence left OR;
 precedence left COMMA;
 
+start with source;
+
 //TYPES
 
 type ::=
