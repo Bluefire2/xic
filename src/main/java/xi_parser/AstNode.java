@@ -194,6 +194,7 @@ class UnopExpr extends Expr {
     private String op;
     private Expr expr;
 
+    // TODO: remove left & right params
     UnopExpr(String op, Expr left, Expr right) {
         this.op = op;
         this.expr = expr;
