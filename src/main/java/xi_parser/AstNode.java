@@ -567,11 +567,28 @@ abstract class Defn {
     public boolean isProcedure;
 }
 
-class FunctionDefn extends Defn {
-    private String name;
-    private List<Pair<String, Type>> params;
+abstract class FPDefn extends Defn {
+    String name;
+    List<Pair<String, Type>> params;
+    Stmt body;
+
+    public String getName() {
+        return name;
+    }
+
+    public List<Pair<String, Type>> getParams() {
+        return params;
+    }
+
+    public Stmt getBody() {
+        return body;
+    }
+
+    abstract boolean isProcedure();
+}
+
+class FunctionDefn extends FPDefn {
     private Type output;
-    private Stmt body;
 
     public FunctionDefn(String name, List<Pair<String, Type>> params, Type output, Stmt body) {
         this.name = name;
@@ -580,51 +597,25 @@ class FunctionDefn extends Defn {
         this.body = body;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Pair<String, Type>> getParams() {
-        return params;
-    }
-
     public Type getOutput() {
         return output;
     }
 
-    public Stmt getBody() {
-        return body;
-    }
-
-    public boolean isProcedure(){
+    @Override
+    public boolean isProcedure() {
         return false;
     }
 }
 
-class ProcedureDefn extends Defn {
-    private String name;
-    private List<Pair<String, Type>> params;
-    private Stmt body;
-
+class ProcedureDefn extends FPDefn {
     public ProcedureDefn(String name, List<Pair<String, Type>> params, Stmt body) {
         this.name = name;
         this.params = params;
         this.body = body;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Pair<String, Type>> getParams() {
-        return params;
-    }
-
-    public Stmt getBody() {
-        return body;
-    }
-
-    public boolean isProcedure(){
+    @Override
+    public boolean isProcedure() {
         return true;
     }
 
