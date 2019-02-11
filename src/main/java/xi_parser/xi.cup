@@ -84,11 +84,13 @@ nonterminal Stmt return;
 nonterminal Stmt block;
 
 nonterminal ArrayList<Pair<String,Type>> annotated_varlist;
+nonterminal ArrayList<Pair<String,Type>> decl_list;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Expr> assignablelist;
 nonterminal ArrayList<Defn> defnlist;
+nonterminal ArrayList<Type> typelist;
 
 precedence left COMMA;
 precedence left OR;
@@ -110,11 +112,14 @@ type ::=
 | INT_TYPE:t {: RESULT = new Tvar("int"); :}
 | type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
 | type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
-| type:t1 COMMA type:t2 {:
+;
+
+typelist ::=
+  type:t {:
     ArrayList<Type> l = new ArrayList<>();
-    l.add(t1);
-    l.add(t2);
-    RESULT = new TupleType(l); :} // TODO: need new nonterminal for this
+    l.add(t);
+    RESULT = l; :}
+  | typelist:l COMMA type:t {: l.add(t); RESULT = l; :}
 ;
 
 annotated_varlist ::=
@@ -130,31 +135,39 @@ annotated_var ::=
     RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
 ;
 
+decl_list ::=
+  annotated_varlist:l COMMA UNDERSCORE {:
+    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+| decl_list:l COMMA UNDERSCORE {:
+    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+| decl_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
 //DECLARATIONS AND DEFINITIONS
 decl ::=
   ID:n LPAREN RPAREN {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new ProcedureDecl((String) n.getValue(), l); :}
-| ID:n LPAREN RPAREN COLON type:t {:
+    RESULT = new Decl((String) n.getValue(), l); :}
+| ID:n LPAREN RPAREN COLON typelist:t {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FunctionDecl((String) n.getValue(), l, t); :}
+    RESULT = new Decl((String) n.getValue(), l, t); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new ProcedureDecl((String) n.getValue(), p); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
-    RESULT = new FunctionDecl((String) n.getValue(), p, t); :}
+    RESULT = new Decl((String) n.getValue(), p); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
+    RESULT = new Decl((String) n.getValue(), p, t); :}
 ;
 
 defn ::=
   ID:n LPAREN RPAREN block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new ProcedureDefn((String) n.getValue(), l, b); :}
-| ID:n LPAREN RPAREN COLON type:t block:b {:
+    RESULT = new Defn((String) n.getValue(), l, b); :}
+| ID:n LPAREN RPAREN COLON typelist:t block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FunctionDefn((String) n.getValue(), l, t, b); :}
+    RESULT = new Defn((String) n.getValue(), l, t, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
-    RESULT = new ProcedureDefn((String) n.getValue(), p, b); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {:
-    RESULT = new FunctionDefn((String) n.getValue(), p, t, b); :}
+    RESULT = new Defn((String) n.getValue(), p, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
+    RESULT = new Defn((String) n.getValue(), p, t, b); :}
 ;
 
 defnlist ::=
@@ -244,7 +257,7 @@ matchedstmt ::=
 | WHILE expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s); :}
 | block:b {: RESULT = b; :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
-| annotated_varlist:d EQ exprlist:e {:
+| decl_list:d EQ exprlist:e {:
       RESULT = new DeclAssignStmt(d, e); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
 | ID:i LPAREN exprlist:el RPAREN {:
@@ -265,9 +278,10 @@ statement ::=
 ;
 
 return ::= //enforces return statements being at the end of blocks + cannot replace blocks
-  RETURN {: RESULT = new ProcedureReturnStmt(); :}
-| RETURN expr:e {: RESULT = new FunctionReturnStmt(e); :}
-| return:r SEMICOLON {: RESULT = r; :}
+  RETURN {: RESULT = new ReturnStmt(); :}
+| RETURN exprlist:e {: RESULT = new ReturnStmt(e); :}
+|  RETURN SEMICOLON {: RESULT = new ReturnStmt(); :}
+| RETURN exprlist:e SEMICOLON {: RESULT = new ReturnStmt(e); :}
 ;
 
 stmtlist ::=
@@ -275,13 +289,15 @@ stmtlist ::=
      ArrayList<Stmt> l = new ArrayList<>();
      l.add(s);
      RESULT = l; :}
+| stmtlist:l SEMICOLON statement:s {: l.add(s); RESULT = l; :}
 | stmtlist:l statement:s {: l.add(s); RESULT = l; :}
-| stmtlist:l SEMICOLON {: RESULT = l; :}
 ;
 
 block ::=
   LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
 | LCURL stmtlist:l return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l SEMICOLON RCURL {: RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
 | LCURL RCURL {: RESULT = new BlockStmt(); :}
 ;
 

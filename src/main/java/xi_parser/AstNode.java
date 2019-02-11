@@ -3,8 +3,9 @@ package xi_parser;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 enum ExprType {
     BinopExpr,
@@ -37,7 +38,7 @@ enum StmtType {
 
 enum TypeType {
     ListType,
-    TupleType,
+    AnyType,
     Tvar
 }
 
@@ -47,10 +48,8 @@ enum Unop {
 }
 
 enum Binop {
-    EQ, //=
     PLUS,
     MINUS,
-    NOT,
     MULT,
     HI_MULT,// *>>
     DIV,
@@ -65,12 +64,24 @@ enum Binop {
     OR
 }
 
-abstract class Type {
+interface Printable {
+    void prettyPrint(CodeWriterSExpPrinter w);
+}
+
+abstract class Type implements Printable {
     public TypeType t_type;
 
     public TypeType getT_type() {
         return this.t_type;
     }
+}
+
+class AnyType extends Type{
+    AnyType() {
+        this.t_type = TypeType.AnyType;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) { }
 }
 
 class Tvar extends Type {
@@ -87,6 +98,10 @@ class Tvar extends Type {
 
     public String getName() {
         return name;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.printAtom(this.toString());
     }
 }
 
@@ -116,30 +131,21 @@ class ListType extends Type {
     public Expr getLength() {
         return length;
     }
-}
 
-class TupleType extends Type {
-    private List<Type> contentsTypes;
-
-    TupleType(List<Type> types) {
-        this.contentsTypes = types;
-        this.t_type = TypeType.TupleType;
-    }
-
-    public String toString() {
-        List<String> typeNames = new ArrayList<>();
-        Arrays.asList(contentsTypes).forEach(elt -> typeNames.add(elt.toString()));
-        return String.join(" * ", typeNames);
-    }
-
-    public List<Type> getContentsTypes() {
-        return contentsTypes;
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("[]");
+        contentsType.prettyPrint(w);
+        if (length != null){
+            length.prettyPrint(w);
+        }
+        w.endList();
     }
 }
 
 
-class Expr {
-    public ExprType e_type;
+abstract class Expr implements Printable {
+    ExprType e_type;
 
     public ExprType getE_type() {
         return e_type;
@@ -169,6 +175,35 @@ class BinopExpr extends Expr {
     public Expr getRight() {
         return right;
     }
+
+    public String opToString(){
+        String opString = "";
+        switch (op) {
+            case PLUS: opString = "+"; break;
+            case MINUS: opString = "-"; break;
+            case MULT: opString = "*"; break;
+            case HI_MULT: opString = "*>>"; break;
+            case DIV: opString = "/"; break;
+            case MOD: opString = "%"; break;
+            case EQEQ: opString = "=="; break;
+            case NEQ: opString = "!="; break;
+            case GT: opString = ">"; break;
+            case LT: opString = "<"; break;
+            case GTEQ: opString = ">="; break;
+            case LTEQ: opString = "<="; break;
+            case AND: opString = "&"; break;
+            case OR: opString = "|"; break;
+        }
+        return opString;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom(this.opToString());
+        left.prettyPrint(w);
+        right.prettyPrint(w);
+        w.endList();
+    }
 }
 
 class UnopExpr extends Expr {
@@ -188,6 +223,22 @@ class UnopExpr extends Expr {
     public Expr getExpr() {
         return expr;
     }
+
+    public String opToString(){
+        String opString = "";
+        switch (op) {
+            case NOT: opString = "!"; break;
+            case UMINUS: opString = "-"; break;
+        }
+        return opString;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom(this.opToString());
+        expr.prettyPrint(w);
+        w.endList();
+    }
 }
 
 class IdExpr extends Expr {
@@ -200,6 +251,10 @@ class IdExpr extends Expr {
 
     public String getName() {
         return name;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.printAtom(name);
     }
 }
 
@@ -222,6 +277,10 @@ class IntLiteralExpr extends Expr {
     public Long getValue() {
         return value;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.printAtom(value.toString());
+    }
 }
 
 class BoolLiteralExpr extends Expr {
@@ -234,6 +293,10 @@ class BoolLiteralExpr extends Expr {
 
     public Boolean getValue() {
         return value;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.printAtom(value.toString());
     }
 }
 
@@ -263,6 +326,12 @@ class ListLiteralExpr extends Expr {
     public int getLength() {
         return contents.size();
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        contents.forEach((e) -> e.prettyPrint(w));
+        w.endList();
+    }
 }
 
 class IndexExpr extends Expr {
@@ -281,6 +350,14 @@ class IndexExpr extends Expr {
 
     public Expr getIndex() {
         return index;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("[]");
+        list.prettyPrint(w);
+        index.prettyPrint(w);
+        w.endList();
     }
 }
 
@@ -301,6 +378,13 @@ class FunctionCallExpr extends Expr {
     public List<Expr> getArgs() {
         return args;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom(name);
+        args.forEach((a) -> a.prettyPrint(w));
+        w.endList();
+    }
 }
 
 class LengthExpr extends Expr {
@@ -314,39 +398,66 @@ class LengthExpr extends Expr {
     public Expr getList() {
         return list;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("length");
+        list.prettyPrint(w);
+        w.endList();
+    }
 }
 
 class UnderscoreExpr extends Expr {
     UnderscoreExpr() {
         this.e_type = ExprType.UnderscoreExpr;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.printAtom("_");
+    }
 }
 
-class Stmt {
-    public StmtType s_type;
+abstract class Stmt implements Printable {
+    StmtType s_type;
 
     public StmtType getS_type() {
         return s_type;
     }
 
+    public void printPair(Pair<String, Type> p, CodeWriterSExpPrinter w){
+        if (p.part2().getT_type() != TypeType.AnyType){
+            w.startList();
+            w.printAtom(p.part1());
+            p.part2().prettyPrint(w);
+            w.endList();
+        } else {
+            w.printAtom("_");
+        }
+    }
 }
 
-class FunctionReturnStmt extends Stmt {
-    private Expr returnVal;
+class ReturnStmt extends Stmt {
+    private List<Expr> returnVals;
 
-    FunctionReturnStmt(Expr returnVal) {
-        this.returnVal = returnVal;
+    ReturnStmt(List<Expr> returnVals) {
+        this.returnVals = returnVals;
         this.s_type = StmtType.FunctionReturnStmt;
     }
 
-    public Expr getReturnVal() {
-        return returnVal;
-    }
-}
-
-class ProcedureReturnStmt extends Stmt {
-    ProcedureReturnStmt() {
+    ReturnStmt() {
+        this.returnVals = new ArrayList<Expr>();
         this.s_type = StmtType.ProcedureReturnStmt;
+    }
+
+    public List<Expr> getReturnVals() {
+        return returnVals;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("return");
+        returnVals.forEach((v) -> v.prettyPrint(w));
+        w.endList();
     }
 }
 
@@ -358,6 +469,13 @@ class IfStmt extends Stmt {
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.s_type = StmtType.IfStmt;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        guard.prettyPrint(w);
+        thenStmt.prettyPrint(w);
+        w.endList();
     }
 }
 
@@ -371,6 +489,14 @@ class IfElseStmt extends Stmt {
         this.thenStmt = thenStmt;
         this.elseStmt = elseStmt;
         this.s_type = StmtType.IfElseStmt;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        guard.prettyPrint(w);
+        thenStmt.prettyPrint(w);
+        elseStmt.prettyPrint(w);
+        w.endList();
     }
 }
 
@@ -391,6 +517,13 @@ class WhileStmt extends Stmt {
     public Stmt getDoStmt() {
         return doStmt;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        guard.prettyPrint(w);
+        doStmt.prettyPrint(w);
+        w.endList();
+    }
 }
 
 class ProcedureCallStmt extends Stmt {
@@ -409,6 +542,13 @@ class ProcedureCallStmt extends Stmt {
 
     public List<Expr> getArgs() {
         return args;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom(name);
+        args.forEach((a) -> a.prettyPrint(w));
+        w.endList();
     }
 }
 
@@ -429,6 +569,26 @@ class AssignStmt extends Stmt {
     public List<Expr> getRight() {
         return right;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("=");
+        if (left.size() == 1){
+            left.get(0).prettyPrint(w);
+        } else {
+            w.startList();
+            left.forEach((e) -> e.prettyPrint(w));
+            w.endList();
+        }
+        if (right.size() == 1){
+            right.get(0).prettyPrint(w);
+        } else {
+            w.startList();
+            right.forEach((e) -> e.prettyPrint(w));
+            w.endList();
+        }
+        w.endList();
+    }
 }
 
 class DeclStmt extends Stmt {
@@ -441,6 +601,16 @@ class DeclStmt extends Stmt {
 
     public List<Pair<String, Type>> getDecls() {
         return decls;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        if (decls.size() == 1){
+            this.printPair(decls.get(0),w);
+        } else {
+            w.startList();
+            decls.forEach((d) -> this.printPair(d, w));
+            w.endList();
+        }
     }
 }
 
@@ -460,6 +630,27 @@ class DeclAssignStmt extends Stmt {
 
     public List<Expr> getRight() {
         return right;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("=");
+        if (decls.size() == 1){
+            this.printPair(decls.get(0),w);
+        } else {
+            w.startList();
+            decls.forEach((d) -> this.printPair(d,w));
+            w.endList();
+        }
+        w.endList();
+        if (right.size() == 1){
+            right.get(0).prettyPrint(w);
+        } else {
+            w.startList();
+            right.forEach((e) -> e.prettyPrint(w));
+            w.endList();
+        }
+        w.endList();
     }
 }
 
@@ -486,17 +677,34 @@ class BlockStmt extends Stmt {
     public Stmt getLastStatement() {
         return statements.get(statements.size() - 1);
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        statements.forEach((s) -> s.prettyPrint(w));
+        w.endList();
+    }
 }
 
 //definitions are for program files
-abstract class Defn {
-    public boolean isProcedure;
-}
+class Defn implements Printable {
+    private String name;
+    private List<Pair<String, Type>> params;
+    private Stmt body;
+    private List<Type> output;
 
-abstract class FPDefn extends Defn {
-    String name;
-    List<Pair<String, Type>> params;
-    Stmt body;
+    public Defn(String name, List<Pair<String, Type>> params, List<Type> output, Stmt body) {
+        this.name = name;
+        this.params = params;
+        this.output = output;
+        this.body = body;
+    }
+
+    public Defn(String name, List<Pair<String, Type>> params, Stmt body) {
+        this.name = name;
+        this.params = params;
+        this.body = body;
+        this.output = new ArrayList<Type>();
+    }
 
     public String getName() {
         return name;
@@ -510,41 +718,37 @@ abstract class FPDefn extends Defn {
         return body;
     }
 
-    abstract boolean isProcedure();
-}
-
-class FunctionDefn extends FPDefn {
-    private Type output;
-
-    public FunctionDefn(String name, List<Pair<String, Type>> params, Type output, Stmt body) {
-        this.name = name;
-        this.params = params;
-        this.output = output;
-        this.body = body;
-    }
-
-    public Type getOutput() {
+    public List<Type> getOutput() {
         return output;
     }
 
-    @Override
     public boolean isProcedure() {
-        return false;
-    }
-}
-
-class ProcedureDefn extends FPDefn {
-    public ProcedureDefn(String name, List<Pair<String, Type>> params, Stmt body) {
-        this.name = name;
-        this.params = params;
-        this.body = body;
+        return output.size()==0;
     }
 
-    @Override
-    public boolean isProcedure() {
-        return true;
+    public void printPair(Pair<String, Type> p, CodeWriterSExpPrinter w){
+        if (p.part2().getT_type() != TypeType.AnyType){
+            w.startList();
+            w.printAtom(p.part1());
+            p.part2().prettyPrint(w);
+            w.endList();
+        } else {
+            w.printAtom("_");
+        }
     }
 
+    public void prettyPrint(CodeWriterSExpPrinter w){
+        w.startList();
+        w.printAtom(name);
+        w.startList();
+        params.forEach((p) -> this.printPair(p, w));
+        w.endList();
+        w.startList();
+        output.forEach((t) -> t.prettyPrint(w));
+        w.endList();
+        body.prettyPrint(w);
+        w.endList();
+    }
 }
 
 class UseInterface {
@@ -557,24 +761,33 @@ class UseInterface {
     public String getName() {
         return name;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startList();
+        w.printAtom("use");
+        w.printAtom(name);
+        w.endList();
+    }
 }
 
 //declarations are for interfaces
-abstract class Decl {
-    abstract boolean isProcedure();
-}
-
-class FunctionDecl extends Decl {
+class Decl implements Printable {
     private String name;
     private List<Pair<String, Type>> params;
-    private Type output;
+    private List<Type> output;
 
-    public FunctionDecl(String name, List<Pair<String, Type>> params, Type output) {
+    public Decl(String name, List<Pair<String, Type>> params, List<Type> output) {
         this.name = name;
         this.params = params;
         this.output = output;
     }
 
+    public Decl(String name, List<Pair<String, Type>> params) {
+        this.name = name;
+        this.params = params;
+        this.output = new ArrayList<Type>();
+    }
+
     public String getName() {
         return name;
     }
@@ -583,39 +796,40 @@ class FunctionDecl extends Decl {
         return params;
     }
 
-    public Type getOutput() {
+    public List<Type> getOutput() {
         return output;
     }
 
     public boolean isProcedure() {
-        return false;
-    }
-}
-
-class ProcedureDecl extends Decl {
-    private String name;
-    private List<Pair<String, Type>> params;
-
-    public ProcedureDecl(String name, List<Pair<String, Type>> params) {
-        this.name = name;
-        this.params = params;
+        return output.size()==0;
     }
 
-    public String getName() {
-        return name;
+    public void printPair(Pair<String, Type> p, CodeWriterSExpPrinter w){
+        if (p.part2().getT_type() != TypeType.AnyType){
+            w.startList();
+            w.printAtom(p.part1());
+            p.part2().prettyPrint(w);
+            w.endList();
+        } else {
+            w.printAtom("_");
+        }
     }
 
-    public List<Pair<String, Type>> getParams() {
-        return params;
-    }
-
-    public boolean isProcedure() {
-        return true;
+    public void prettyPrint(CodeWriterSExpPrinter w){
+        w.startList();
+        w.printAtom(name);
+        w.startList();
+        params.forEach((p) -> this.printPair(p, w));
+        w.endList();
+        w.startList();
+        output.forEach((t) -> t.prettyPrint(w));
+        w.endList();
+        w.endList();
     }
 }
 
 //top level "nodes"
-abstract class SourceFile {
+abstract class SourceFile implements Printable {
     abstract boolean isInterface();
 }
 
@@ -636,6 +850,14 @@ class InterfaceFile extends SourceFile {
 
     public boolean isInterface() {
         return true;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        w.startUnifiedList();
+        declarations.forEach((i) -> i.prettyPrint(w));
+        w.endList();
+        w.endList();
     }
 }
 
@@ -667,4 +889,16 @@ class ProgramFile extends SourceFile {
     public boolean isInterface() {
         return false;
     }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        w.startUnifiedList();
+        w.startUnifiedList();
+        imports.forEach((i) -> i.prettyPrint(w));
+        w.endList();
+        w.startUnifiedList();
+        definitions.forEach((d) -> d.prettyPrint(w));
+        w.endList();
+        w.endList();
+    }
 }
+
