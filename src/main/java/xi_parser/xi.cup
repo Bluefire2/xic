@@ -83,6 +83,7 @@ nonterminal Defn defn;
 nonterminal UseInterface use_interface;
 
 nonterminal Expr expr;
+nonterminal Expr assignable;
 
 nonterminal Stmt statement;
 nonterminal Stmt return;
@@ -100,7 +101,7 @@ precedence nonassoc UMINUS, NOT;
 precedence left MULT, DIV, MOD, HI_MULT;
 precedence left PLUS, MINUS;
 precedence left LT, GT, LTEQ, GTEQ;
-precedence left EQ, NEQ, EQEQ;
+precedence left NEQ, EQEQ;
 precedence left AND;
 precedence left OR;
 precedence left COMMA;
@@ -227,13 +228,19 @@ expr ::=
 //STATEMENTS
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  UNDERSCORE {:
-     ArrayList<Expr> l = new ArrayList<>();
-     l.add(new UnderscoreExpr());
-     RESULT = l; :}
-| exprlist:l COMMA UNDERSCORE {: l.add(new UnderscoreExpr()); RESULT = l; :}
-| assignablelist:l COMMA UNDERSCORE {: l.add(new UnderscoreExpr()); RESULT = l; :}
-| assignablelist:l COMMA expr:e {: l.add(a); RESULT = l; :}
+  assignable:a {:
+    ArrayList<Expr> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
+| assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
+;
+
+assignable ::=
+  UNDERSCORE {: RESULT = new UnderscoreExpr(); :}
+| ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
+| ID:i LBRAC expr:e RBRAC {:
+    Expr id = new IdExpr((String) i.getValue());
+    RESULT = new IndexExpr(id, e); :}
 ;
 
 statement ::=
