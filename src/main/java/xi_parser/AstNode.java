@@ -661,7 +661,7 @@ class FunctionDecl extends Decl {
         return output;
     }
 
-    public boolean isProcedure(){
+    public boolean isProcedure() {
         return false;
     }
 }
@@ -683,7 +683,7 @@ class ProcedureDecl extends Decl {
         return params;
     }
 
-    public boolean isProcedure(){
+    public boolean isProcedure() {
         return true;
     }
 }
@@ -693,7 +693,7 @@ abstract class SourceFile {
     abstract boolean isInterface();
 }
 
-class InterfaceFile extends SourceFile{
+class InterfaceFile extends SourceFile {
     private ArrayList<Decl> declarations;
 
     public InterfaceFile(List<Decl> declarations) {
@@ -704,11 +704,11 @@ class InterfaceFile extends SourceFile{
         return declarations;
     }
 
-    public void addDecl(Decl decl){
+    public void addDecl(Decl decl) {
         declarations.add(decl);
     }
 
-    public boolean isInterface(){
+    public boolean isInterface() {
         return true;
     }
 }
@@ -730,15 +730,15 @@ class ProgramFile extends SourceFile {
         return definitions;
     }
 
-    public void addDefn(Defn defn){
+    public void addDefn(Defn defn) {
         definitions.add(defn);
     }
 
-    public void addImport(UseInterface use){
+    public void addImport(UseInterface use) {
         imports.add(use);
     }
 
-    public boolean isInterface(){
+    public boolean isInterface() {
         return false;
     }
 }
