@@ -2,6 +2,7 @@ package cli;
 
 import lexer.XiLexer;
 import lexer.XiToken;
+import lexer.TokenType;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -54,7 +55,7 @@ public class CLI implements Runnable {
                 XiLexer lexer = new XiLexer(fileReader);
 
                 for (XiToken next = lexer.next_token();
-                     next != null && next.getValue() != null;
+                     next != null && next.getType() != TokenType.EOF;
                      next = lexer.next_token()) {
                     // Tokenize the next string and write the token
                     fileWriter.write(next.toString() + "\n");
