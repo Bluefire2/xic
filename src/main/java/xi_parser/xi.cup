@@ -265,6 +265,8 @@ matchedstmt ::=
 | decl_list:d EQ exprlist:e {:
       RESULT = new DeclAssignStmt(d, e); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
+| annotated_varlist:d EQ exprlist:e {:
+      RESULT = new DeclAssignStmt(d, e); :}
 | ID:i LPAREN exprlist:el RPAREN {:
       RESULT = new ProcedureCallStmt(i, el); :}
 | ID:i LPAREN RPAREN {:
