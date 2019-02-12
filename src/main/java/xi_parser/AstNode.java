@@ -481,6 +481,7 @@ class IfStmt extends Stmt {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
+        w.printAtom("if");
         guard.prettyPrint(w);
         thenStmt.prettyPrint(w);
         w.endList();
@@ -501,6 +502,7 @@ class IfElseStmt extends Stmt {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
+        w.printAtom("if");
         guard.prettyPrint(w);
         thenStmt.prettyPrint(w);
         elseStmt.prettyPrint(w);
@@ -528,6 +530,7 @@ class WhileStmt extends Stmt {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
+        w.printAtom("while");
         guard.prettyPrint(w);
         doStmt.prettyPrint(w);
         w.endList();
