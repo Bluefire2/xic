@@ -304,7 +304,8 @@ stmtlist ::=
 ;
 
 block ::=
-  LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
+  LCURL return:r RCURL {: RESULT = new BlockStmt(); :}
+| LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
 | LCURL stmtlist:l return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
 | LCURL stmtlist:l SEMICOLON RCURL {: RESULT = new BlockStmt(l); :}
 | LCURL stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
