@@ -143,6 +143,8 @@ annotated_var ::=
 decl_list ::=
   annotated_varlist:l COMMA UNDERSCORE {:
     l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+| UNDERSCORE COMMA annotated_varlist:l {:
+    l.add(0, new Pair<String, Type>("_", new AnyType())); RESULT = l; :}
 | decl_list:l COMMA UNDERSCORE {:
     l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
 | decl_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
