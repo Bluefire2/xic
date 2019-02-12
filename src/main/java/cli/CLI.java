@@ -12,6 +12,7 @@ import xi_parser.Printable;
 import xi_parser.XiParser;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Files;
@@ -34,6 +35,10 @@ public class CLI implements Runnable {
     @Option(names = {"--parse"},
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
+
+    @Option(names = {"--debugparse"},
+            description = "Parse in debug mode and print AST to terminal.")
+    private boolean optDebug = false;
 
     @Parameters(arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
@@ -105,12 +110,19 @@ public class CLI implements Runnable {
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
-                OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
-                //Object root =
-                parser.debug_parse();
-               /* if (root instanceof Printable) {
-                    ((Printable) root).prettyPrint(new CodeWriterSExpPrinter(cw));
-                }*/
+                CodeWriterSExpPrinter printer;
+                Object root;
+                if (optDebug){ //debug mode
+                    PrintWriter cw = new PrintWriter(System.out);
+                    root = parser.debug_parse().value;
+                    printer = new CodeWriterSExpPrinter(cw);
+                } else {
+                    OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
+                    root = parser.parse().value;
+                    printer = new CodeWriterSExpPrinter(cw);
+                }
+                ((Printable) root).prettyPrint(printer);
+                printer.close();
             } catch (Exception e) {
                 e.printStackTrace();
                 continue;
