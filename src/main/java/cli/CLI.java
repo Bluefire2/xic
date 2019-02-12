@@ -3,10 +3,12 @@ package cli;
 import lexer.XiLexer;
 import lexer.XiToken;
 import lexer.TokenType;
+import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import xi_parser.XiParser;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,6 +27,10 @@ public class CLI implements Runnable {
     @Option(names = {"-l", "--lex"},
             description = "Generate output from lexical analysis.")
     private boolean optLex = false;
+
+    @Option(names = {"--parse"},
+            description = "Generate output from syntactic analysis.")
+    private boolean optParse = false;
 
     @Parameters(arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
@@ -45,6 +51,9 @@ public class CLI implements Runnable {
                 if (optLex) {
                     lex();
                 }
+                if (optParse) {
+                    parse();
+                }
             }
             else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -59,7 +68,8 @@ public class CLI implements Runnable {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".lexed")
                     .toString();
-            try (FileReader fileReader = new FileReader(sourcepath.toString() + "/" + f.getName());
+            try (FileReader fileReader = new FileReader(
+                    sourcepath.toString() + "/" + f.getPath());
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 XiLexer lexer = new XiLexer(fileReader);
 
@@ -73,6 +83,28 @@ public class CLI implements Runnable {
                         break;
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+                continue;
+            }
+        }
+    }
+
+    private void parse() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".parsed")
+                    .toString();
+            try (FileReader fileReader = new FileReader(
+                    sourcepath.toString() + "/" + f.getPath());
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                XiLexer lexer = new XiLexer(fileReader);
+                XiParser parser = new XiParser(lexer, new XiTokenFactory());
+                parser.parse();
+
+                //TODO: get ast node from parser.parse()
+
             } catch (Exception e) {
                 e.printStackTrace();
                 continue;
