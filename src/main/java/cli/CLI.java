@@ -102,18 +102,14 @@ public class CLI implements Runnable {
                     sourcepath.toString() + "/" + f.getPath());
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                Scanner lexer = new XiLexer(fileReader);
-                XiParser parser = new XiParser(lexer, new XiTokenFactory());
+                XiTokenFactory xtf = new XiTokenFactory();
+                XiLexer lexer = new XiLexer(fileReader, xtf);
+                XiParser parser = new XiParser(lexer, xtf);
                 OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
-                try { //todo: change try catch to while(next token != null) without consuming it
                     Object root = parser.parse();
                     if (root instanceof Printable) {
                         ((Printable) root).prettyPrint(new CodeWriterSExpPrinter(cw));
                     }
-                }
-                catch (Exception e) {
-                    continue;
-                }
             } catch (Exception e) {
                 e.printStackTrace();
                 continue;
