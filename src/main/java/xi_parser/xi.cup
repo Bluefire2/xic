@@ -82,7 +82,7 @@ nonterminal Defn defn;
 nonterminal UseInterface use_interface;
 
 nonterminal Expr expr;
-nonterminal Expr assignable;
+nonterminal Assignable assignable;
 
 nonterminal Stmt statement, matchedstmt, unmatchedstmt;
 nonterminal Stmt return;
@@ -93,9 +93,10 @@ nonterminal ArrayList<Pair<String,Type>> decl_list;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
-nonterminal ArrayList<Expr> assignablelist;
+nonterminal ArrayList<Assignable> assignablelist;
 nonterminal ArrayList<Defn> defnlist;
 nonterminal ArrayList<Type> typelist;
+nonterminal ArrayList<Expr> indices;
 
 precedence left COMMA;
 precedence left OR;
@@ -244,18 +245,21 @@ expr ::=
 
 assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
   assignable:a {:
-    ArrayList<Expr> l = new ArrayList<>();
+    ArrayList<Assignable> l = new ArrayList<>();
     l.add(a);
     RESULT = l; :}
 | assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
 ;
 
 assignable ::=
-  UNDERSCORE {: RESULT = new UnderscoreExpr(); :}
-| ID:i {: RESULT = new IdExpr(i); :}
-| ID:i LBRAC expr:e RBRAC {:
-    Expr id = new IdExpr(i);
-    RESULT = new IndexExpr(id, e); :}
+  UNDERSCORE {: RESULT = new UnderscoreAssignable(); :}
+| ID:i {: RESULT = new IdAssignable(new IdExpr(i)); :}
+| ID:i indices:l {: RESULT = new IndexAssignable(new IdExpr(i), l); :}
+;
+
+indices ::=
+  LBRAC expr:e RBRAC {: ArrayList<Expr> l = new ArrayList<>(); l.add(e); RESULT = l; :}
+| indices:l LBRAC expr:e RBRAC {: l.add(e); RESULT = l; :}
 ;
 
 matchedstmt ::=

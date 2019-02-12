@@ -560,17 +560,74 @@ class ProcedureCallStmt extends Stmt {
     }
 }
 
+abstract class Assignable implements Printable {
+
+}
+
+class UnderscoreAssignable extends Assignable {
+    @Override
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+
+    }
+}
+
+class IdAssignable extends Assignable {
+    private IdExpr id;
+
+    IdAssignable(IdExpr id) {
+        this.id = id;
+    }
+
+    public IdExpr getId() {
+        return id;
+    }
+
+    @Override
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        // TODO
+    }
+}
+
+class IndexAssignable extends Assignable {
+    private IdExpr list; // has to be an ID!
+    private List<Expr> index;
+
+    IndexAssignable(IdExpr list, List<Expr> index) {
+        this.list = list;
+        this.index = index;
+    }
+
+    public IdExpr getList() {
+        return list;
+    }
+
+    public List<Expr> getIndex() {
+        return index;
+    }
+
+    public void prettyPrint(CodeWriterSExpPrinter w) {
+        // TODO
+        w.startList();
+        w.printAtom("[]");
+        list.prettyPrint(w);
+        for (Expr e : index) {
+            e.prettyPrint(w);
+        }
+        w.endList();
+    }
+}
+
 class AssignStmt extends Stmt {
-    private List<Expr> left;
+    private List<Assignable> left;
     private List<Expr> right;
 
-    public AssignStmt(List<Expr> left, List<Expr> right) {
+    public AssignStmt(List<Assignable> left, List<Expr> right) {
         this.left = left;
         this.right = right;
         this.s_type = StmtType.MultiAssignStmt;
     }
 
-    public List<Expr> getLeft() {
+    public List<Assignable> getLeft() {
         return left;
     }
 
