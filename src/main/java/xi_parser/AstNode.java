@@ -256,6 +256,7 @@ class IdExpr extends Expr {
 
 class IntLiteralExpr extends Expr {
     private Long value;
+    private Character raw;
     public boolean isChar;
 
     IntLiteralExpr(Long val) {
@@ -268,6 +269,7 @@ class IntLiteralExpr extends Expr {
         this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = true;
+        this.raw = val;
     }
 
     public Long getValue() {
@@ -275,7 +277,11 @@ class IntLiteralExpr extends Expr {
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.printAtom(value.toString());
+        if (this.isChar) {
+            w.printAtom("\'"+raw.toString()+"\'");
+        } else {
+            w.printAtom(value.toString());
+        }
     }
 }
 
@@ -299,6 +305,7 @@ class BoolLiteralExpr extends Expr {
 class ListLiteralExpr extends Expr {
     private List<Expr> contents;
     public boolean isString;
+    private String raw;
 
     ListLiteralExpr(List<Expr> contents) {
         this.contents = contents;
@@ -313,6 +320,7 @@ class ListLiteralExpr extends Expr {
             contents.add(new IntLiteralExpr(chars[i]));
         }
         this.isString = true;
+        this.raw = value;
     }
 
     public List<Expr> getContents() {
@@ -324,9 +332,13 @@ class ListLiteralExpr extends Expr {
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.startList();
-        contents.forEach((e) -> e.prettyPrint(w));
-        w.endList();
+        if (this.isString) {
+            w.printAtom("\""+raw+"\"");
+        } else {
+            w.startList();
+            contents.forEach((e) -> e.prettyPrint(w));
+            w.endList();
+        }
     }
 }
 
