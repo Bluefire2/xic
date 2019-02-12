@@ -106,10 +106,11 @@ public class CLI implements Runnable {
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
                 OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
-                    Object root = parser.parse();
-                    if (root instanceof Printable) {
-                        ((Printable) root).prettyPrint(new CodeWriterSExpPrinter(cw));
-                    }
+                //Object root =
+                parser.debug_parse();
+               /* if (root instanceof Printable) {
+                    ((Printable) root).prettyPrint(new CodeWriterSExpPrinter(cw));
+                }*/
             } catch (Exception e) {
                 e.printStackTrace();
                 continue;

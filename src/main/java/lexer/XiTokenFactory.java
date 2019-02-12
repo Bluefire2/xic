@@ -1,9 +1,10 @@
 package lexer;
 
+import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 
-public class XiTokenFactory implements SymbolFactory {
+public class XiTokenFactory extends ComplexSymbolFactory {
 
     public XiTokenFactory() {}
 
