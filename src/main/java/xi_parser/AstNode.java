@@ -64,10 +64,6 @@ enum Binop {
     OR
 }
 
-interface Printable {
-    void prettyPrint(CodeWriterSExpPrinter w);
-}
-
 abstract class Type implements Printable {
     public TypeType t_type;
 
