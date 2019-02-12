@@ -281,7 +281,8 @@ unmatchedstmt ::=
 ;
 
 statement ::=
-  matchedstmt | unmatchedstmt
+  matchedstmt:m {: RESULT = m; :}
+| unmatchedstmt:u {: RESULT = u; :}
 ;
 
 return ::= //enforces return statements being at the end of blocks + cannot replace blocks
