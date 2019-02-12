@@ -28,30 +28,6 @@
 #
 # xth runs the commands in order of appearance.
 
-# build compiler first
-build
-
-xic ("Test --help") "--help" {
-    ;
-}
-
-xic ("Test --lex") ["../pa1"] "--lex" {
-    ex1.xi;
-    ex2.xi (Lexical, "empty character literal");
-    spec1.xi;
-    spec2.xi;
-    spec3.xi;
-    gcd.xi;
-    ratadd.xi;
-    ratadduse.xi;
-    insertionsort.xi;
-    arrayinit.xi;
-    arrayinit2.xi;
-    mdarrays.xi;
-    add.xi;
-    beauty.xi;
-}
-
 xic ("Test --parse") "--parse" {
     ex1.xi;
     ex2.xi;

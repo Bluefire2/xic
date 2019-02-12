@@ -1,7 +1,7 @@
 XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
-XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests
+XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
 RED_COLOR='\033[0;31m'
