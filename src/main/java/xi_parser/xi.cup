@@ -323,8 +323,10 @@ interface ::=
 | interface:i decl:d {: i.addDecl(d); RESULT = i; :}
 ;
 
-program ::= importlist:il defnlist:dl {:
-    RESULT = new ProgramFile(il, dl); :}
+program ::=
+importlist:il defnlist:dl {: RESULT = new ProgramFile(il, dl); :}
+| defnlist:dl {:
+    RESULT = new ProgramFile(new ArrayList<UseInterface>(), dl); :}
 ;
 
 
