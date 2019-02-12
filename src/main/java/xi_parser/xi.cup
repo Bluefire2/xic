@@ -7,9 +7,16 @@ import polyglot.util.Pair;
 
 import java.util.ArrayList;
 
+import lexer.XiTokenFactory;
+
 parser code
 {:
   XiLexer lexer;
+
+  public XiParser (XiLexer l, XiTokenFactory xtf) {
+        super(l,xtf);
+        this.lexer = l;
+  }
 :};
 
 scan with
