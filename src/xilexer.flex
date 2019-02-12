@@ -82,7 +82,7 @@ INTEGER = 0 | [1-9][0-9]*
         false); }
 
     /* identifiers */
-    {ID}        { return symbol("id " + yytext(), sym.ID, yyline, yycolumn); }
+    {ID}        { return symbol("id " + yytext(), sym.ID, yyline, yycolumn, yytext()); }
 
     /* literals */
     {INTEGER}   {
@@ -178,27 +178,27 @@ INTEGER = 0 | [1-9][0-9]*
                       return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\t\'           { yybegin(YYINITIAL);
-                      char c = '\t';
+                      Character c = new Character('\t');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\n\'           { yybegin(YYINITIAL);
-                      char c = '\n';
+                      Character c = new Character('\n');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\r\'           { yybegin(YYINITIAL);
-                      char c = '\r';
+                      Character c = new Character('\r');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'           { yybegin(YYINITIAL);
-                      char c = '\\';
+                      Character c = new Character('\\');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'\'           { yybegin(YYINITIAL);
-                      char c = '\'';
+                      Character c = new Character('\'');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\"\'           { yybegin(YYINITIAL);
-                      char c = '\"';
+                      Character c = new Character('\"');
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\.\'           { yybegin(YYINITIAL); return symbol(

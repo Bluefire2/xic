@@ -25,16 +25,14 @@ return lexer.next_token();
 :};
 
 // You might want to add types to these declarations.
-terminal XiToken
-    ID,
-    STRING_LIT,
-    CHAR_LIT,
-    INT_LIT,
-    BOOL_LIT,
-    INT_TYPE,
-    BOOL_TYPE;
+terminal String ID;
+terminal String STRING_LIT;
+terminal Character CHAR_LIT;
+terminal Long INT_LIT;
+terminal Boolean BOOL_LIT;
+terminal INT_TYPE, BOOL_TYPE;
 
-terminal XiToken
+terminal
     UNDERSCORE,
     USE,
     IF,
@@ -139,7 +137,7 @@ annotated_varlist ::=
 
 annotated_var ::=
   ID:i COLON type:t {:
-    RESULT = new Pair<String,Type>((String) i.getValue(), t); :}
+    RESULT = new Pair<String,Type>(i, t); :}
 ;
 
 decl_list ::=
@@ -154,27 +152,27 @@ decl_list ::=
 decl ::=
   ID:n LPAREN RPAREN {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Decl((String) n.getValue(), l); :}
+    RESULT = new Decl(n, l); :}
 | ID:n LPAREN RPAREN COLON typelist:t {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Decl((String) n.getValue(), l, t); :}
+    RESULT = new Decl(n, l, t); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new Decl((String) n.getValue(), p); :}
+    RESULT = new Decl(n, p); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
-    RESULT = new Decl((String) n.getValue(), p, t); :}
+    RESULT = new Decl(n, p, t); :}
 ;
 
 defn ::=
   ID:n LPAREN RPAREN block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Defn((String) n.getValue(), l, b); :}
+    RESULT = new Defn(n, l, b); :}
 | ID:n LPAREN RPAREN COLON typelist:t block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Defn((String) n.getValue(), l, t, b); :}
+    RESULT = new Defn(n, l, t, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
-    RESULT = new Defn((String) n.getValue(), p, b); :}
+    RESULT = new Defn(n, p, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
-    RESULT = new Defn((String) n.getValue(), p, t, b); :}
+    RESULT = new Defn(n, p, t, b); :}
 ;
 
 defnlist ::=
@@ -187,8 +185,8 @@ defnlist ::=
 
 //IMPORTS
 use_interface ::=
-  USE ID:i {: RESULT = new UseInterface((String) i.getValue()); :}
-| USE ID:i SEMICOLON {: RESULT = new UseInterface((String) i.getValue()); :}
+  USE ID:i {: RESULT = new UseInterface(i); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface(i); :}
 ;
 
 importlist ::=
@@ -209,15 +207,15 @@ exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 ;
 
 expr ::=
-  BOOL_LIT:b {: RESULT = new BoolLiteralExpr((Boolean) b.getValue()); :}
-| INT_LIT:i {: RESULT = new IntLiteralExpr((Long) i.getValue()); :}
-| CHAR_LIT:c {: RESULT = new IntLiteralExpr((Character) c.getValue()); :} // chars are really ints
-| STRING_LIT:s {: RESULT = new ListLiteralExpr((String) s.getValue()); :} // strings are really lists of ints
-| ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
+  BOOL_LIT:b {: RESULT = new BoolLiteralExpr(b); :}
+| INT_LIT:i {: RESULT = new IntLiteralExpr(i); :}
+| CHAR_LIT:c {: RESULT = new IntLiteralExpr(c); :} // chars are really ints
+| STRING_LIT:s {: RESULT = new ListLiteralExpr(s); :} // strings are really lists of ints
+| ID:i {: RESULT = new IdExpr(i); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-    RESULT = new FunctionCallExpr((String) i.getValue(), el); :}
+    RESULT = new FunctionCallExpr(i, el); :}
 | ID:i LPAREN RPAREN {:
-    RESULT = new FunctionCallExpr((String) i.getValue(), new ArrayList<Expr>()); :}
+    RESULT = new FunctionCallExpr(i, new ArrayList<Expr>()); :}
 | expr:e1 LBRAC expr:e2 RBRAC {: RESULT = new IndexExpr(e1, e2); :}
 | LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
 | LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
@@ -252,9 +250,9 @@ assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 
 assignable ::=
   UNDERSCORE {: RESULT = new UnderscoreExpr(); :}
-| ID:i {: RESULT = new IdExpr((String) i.getValue()); :}
+| ID:i {: RESULT = new IdExpr(i); :}
 | ID:i LBRAC expr:e RBRAC {:
-    Expr id = new IdExpr((String) i.getValue());
+    Expr id = new IdExpr(i);
     RESULT = new IndexExpr(id, e); :}
 ;
 
@@ -268,9 +266,9 @@ matchedstmt ::=
       RESULT = new DeclAssignStmt(d, e); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-      RESULT = new ProcedureCallStmt((String) i.getValue(), el); :}
+      RESULT = new ProcedureCallStmt(i, el); :}
 | ID:i LPAREN RPAREN {:
-      RESULT = new ProcedureCallStmt((String) i.getValue(), new ArrayList<Expr>()); :}
+      RESULT = new ProcedureCallStmt(i, new ArrayList<Expr>()); :}
 ;
 
 
