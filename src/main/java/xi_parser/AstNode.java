@@ -638,7 +638,6 @@ class DeclAssignStmt extends Stmt {
             decls.forEach((d) -> this.printPair(d,w));
             w.endList();
         }
-        w.endList();
         if (right.size() == 1){
             right.get(0).prettyPrint(w);
         } else {
