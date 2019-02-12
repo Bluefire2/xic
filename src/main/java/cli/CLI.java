@@ -1,8 +1,6 @@
 package cli;
 
 import lexer.XiLexer;
-import lexer.XiToken;
-import lexer.TokenType;
 import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
@@ -17,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import java_cup.runtime.*;
+import xi_parser.sym;
 
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
@@ -71,14 +71,14 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(
                     sourcepath.toString() + "/" + f.getPath());
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
-                XiLexer lexer = new XiLexer(fileReader);
+                XiLexer lexer = new XiLexer(fileReader, new XiTokenFactory());
 
-                for (XiToken next = lexer.next_token();
-                     next != null && next.getType() != TokenType.EOF;
+                for (Symbol next = lexer.next_token();
+                     next != null && next.sym != sym.EOF;
                      next = lexer.next_token()) {
                     // Tokenize the next string and write the token
                     fileWriter.write(next.toString() + "\n");
-                    if (next.isError()) {
+                    if (next.sym == sym.ERROR) {
                         // TODO: should we stop the compiler on a lexer error?
                         break;
                     }

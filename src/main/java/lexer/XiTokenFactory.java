@@ -5,33 +5,45 @@ import java_cup.runtime.SymbolFactory;
 
 public class XiTokenFactory implements SymbolFactory {
 
-    @Override
-    public Symbol newSymbol(String s, int i, Symbol symbol, Symbol symbol1, Object o) {
-        return newSymbol(s,i,o);
+    public XiTokenFactory() {}
+
+    public Symbol newSymbol(String name, int id, XiTokenLocation left,
+                            XiTokenLocation right, Object value) {
+        return new XiToken(name, id, left, right, value);
     }
 
-    @Override
-    public Symbol newSymbol(String s, int i, Symbol symbol, Symbol symbol1) {
-        return new XiToken(TokenType.valueOf(s), 0, 0,  null);
+    public Symbol newSymbol(String name, int id, XiTokenLocation left,
+                            XiTokenLocation right) {
+        return new XiToken(name, id, left, right);
     }
 
-    @Override
-    public Symbol newSymbol(String s, int i, Symbol symbol, Object o) {
-        return newSymbol(s,i,o);
+    public Symbol newSymbol(String name, int id, XiTokenLocation left,
+                            Object value) {
+        return new XiToken(name, id, left, value);
     }
 
-    @Override
-    public Symbol newSymbol(String s, int i, Object o) {
-        return new XiToken(TokenType.valueOf(s), 0, 0,  o);
+    public Symbol newSymbol(String name, int id, Symbol left, Symbol right,
+                            Object value) {
+        return new XiToken(name, id, left, right, value);
     }
 
-    @Override
-    public Symbol newSymbol(String s, int i) {
-        return new XiToken(TokenType.valueOf(s), 0, 0,  null);
+    public Symbol newSymbol(String name, int id, Symbol left, Object value) {
+        return new XiToken(name, id, left, value);
     }
 
-    @Override
-    public Symbol startSymbol(String s, int i, int i1) {
-        return new XiToken(TokenType.valueOf(s), 0, 0,  null);
+    public Symbol newSymbol(String name, int id, Symbol left, Symbol right) {
+        return new XiToken(name, id, left, right);
+    }
+
+    public Symbol newSymbol(String name, int id, Object value) {
+        return new XiToken(name, id, value);
+    }
+
+    public Symbol newSymbol(String name, int id) {
+        return new XiToken(name, id);
+    }
+
+    public Symbol startSymbol(String name, int id, int state) {
+        return new XiToken(name, id, state);
     }
 }

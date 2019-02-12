@@ -3,68 +3,80 @@ import java_cup.runtime.*;
 
 public class XiToken extends Symbol {
 
-    private TokenType type;
-    private int line;
-    private int col;
-    private Object value;
+    private String name;
+    private XiTokenLocation tLeft;
+    private XiTokenLocation tRight;
 
-    XiToken(TokenType type, int line, int col, int left, int right, Object value) {
-        super(type.ordinal(), left, right, value);
-        this.type = type;
-        this.line = line + 1; // flex outputs 0-indexed line, we need 1-indexed
-        this.col = col + 1;
-        this.value = value;
+    XiToken(String name, int id, Symbol left, Symbol right, Object value) {
+        super(id, left.left, right.right, value);
+        this.name = name;
+        tLeft = ((XiToken) left).tLeft;
+        tRight = ((XiToken) right).tRight;
     }
 
-    XiToken(TokenType type, int line, int col, Object value) {
-        this(type, line, col, -1, -1, value);
+    XiToken(String name, int id, Symbol left, Object value) {
+        super(id, left.left, left.left, value);
+        this.name = name;
+        tLeft = ((XiToken) left).tLeft;
+        tRight = ((XiToken) left).tLeft;
     }
 
-    public TokenType getType() {
-        return type;
+    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right,
+            Object value) {
+        // left and right to super constructor doesn't matter here
+        super(id, value);
+        this.name = name;
+        tLeft = left;
+        tRight = right;
     }
 
-    public int getLine() {
-        return line;
+    XiToken(String name, int id, XiTokenLocation left, Object value) {
+        // left and right to super constructor doesn't matter here
+        super(id, value);
+        this.name = name;
+        tLeft = left;
+        tRight = left;
     }
 
-    public int getCol() {
-        return col;
+    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right) {
+        super(id, -1, -1);
+        this.name = name;
+        this.tLeft = left;
+        this.tRight = right;
+    }
+
+    XiToken(String name, int id) {
+        super(id);
+        this.name = name;
+    }
+
+    XiToken(String name, int id, Object value) {
+        super(id, value);
+        this.name = name;
+    }
+
+    XiToken(String name, int id, int state) {
+        super(id, state);
+        this.name = name;
+    }
+
+    public XiTokenLocation getLeft() {
+        return tLeft;
+    }
+
+    public XiTokenLocation getRight() {
+        return tRight;
     }
 
     public Object getValue() {
         return value;
     }
 
-    public boolean isError() {
-        return getType() == TokenType.ERROR;
-    }
-
-    private String format() {
-        String s = getValue().toString();
-        switch (getType()) {
-            case STRING_LIT:
-            case CHAR_LIT:
-                return s.replace("\\", "\\\\")
-                        .replace("\n", "\\n")
-                        .replace("\r", "\\r")
-                        .replace("\t", "\\t")
-                        .replace("\"", "\\\"")
-                        .replace("\'", "\\'");
-            default: return s;
-        }
+    public String getName() {
+        return name;
     }
 
     public String toString() {
-        String type_rep = "";
-        switch (getType()) {
-            case INT_LIT:       type_rep = "integer "; break;
-            case STRING_LIT:    type_rep = "string "; break;
-            case CHAR_LIT:      type_rep = "character "; break;
-            case ID:            type_rep = "id "; break;
-            case ERROR:         type_rep = "error:"; break;
-            default:            break;
-        }
-        return getLine() + ":" + getCol() + " " + type_rep + format();
+        return getLeft().toString() + " " + getName();
     }
 }
