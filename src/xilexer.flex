@@ -36,7 +36,7 @@ import xi_parser.sym;
     // flex generates 0-indexed line, col, we need 1-indexed
     private Symbol symbol(String name, int id, int line, int col) {
         XiTokenLocation loc = new XiTokenLocation(line+1, col+1);
-        return symFactory.newSymbol(name, id, loc, id);
+        return symFactory.newSymbol(name, id, loc, name);
     }
 
     private Symbol symbol(String name, int id, int line, int col, Object val) {
