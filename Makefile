@@ -26,11 +26,13 @@ $(XTH_TEST_DIRS):
 	echo -e "$(RED_COLOR) xth on $(SCRIPT) $(NO_COLOR)"
 	$(XTH_BIN) -testpath $@ $(SCRIPT)
 
-zip:
-	zip -r xic.zip $(GRADLE_SETUP_FILES) lib Makefile src xic-build
+zip: clean
+	zip -r xic.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic tests/pa1-fix-tests -x *.results*
 
 clean:
-	rm -rf xic.zip build .gradle xic ~/bin/xic
+	rm -rf xic.zip build .gradle ~/bin/xic
 	rm -f src/main/java/lexer/XiLexer.java*
 	rm -f src/main/java/xi_parser/XiParser.java* 
 	rm -f src/main/java/xi_parser/sym.java* 
+	find . -name "*.lexed" -type f -delete
+	find . -name "*.parsed" -type f -delete
