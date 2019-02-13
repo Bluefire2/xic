@@ -147,12 +147,12 @@ INTEGER = 0 | [1-9][0-9]*
     \\x{HEX}        { stringLiteral.append( (char) Integer.parseInt(
                         yytext().substring(2, yylength()), 16
                     )); }
-    \\t             { stringLiteral.append( "\\t" ); }
-    \\n             { stringLiteral.append( "\\n" ); }
-    \\r             { stringLiteral.append( "\\r" ); }
-    \\\"            { stringLiteral.append( "\\\"" ); }
-    \\\'            { stringLiteral.append( "\\\'" ); }
-    \\\\            { stringLiteral.append( "\\\\" ); }
+    \\t             { stringLiteral.append( "\t" ); }
+    \\n             { stringLiteral.append( "\n" ); }
+    \\r             { stringLiteral.append( "\r" ); }
+    \\\"            { stringLiteral.append( "\"" ); }
+    \\\'            { stringLiteral.append( "\'" ); }
+    \\\\            { stringLiteral.append( "\\" ); }
     // yycolumn instead of string start col because the escape is the
     // problem, not the string itself
     \\.             { yybegin(YYINITIAL); return symbol(
@@ -178,27 +178,27 @@ INTEGER = 0 | [1-9][0-9]*
                         yyline, charLiteralStartCol, c); }
     \\t\'           { yybegin(YYINITIAL);
                       char c = '\t';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\n\'           { yybegin(YYINITIAL);
                       char c = '\n';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\r\'           { yybegin(YYINITIAL);
                       char c = '\r';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'           { yybegin(YYINITIAL);
                       char c = '\\';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'\'           { yybegin(YYINITIAL);
                       char c = '\'';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\"\'           { yybegin(YYINITIAL);
                       char c = '\"';
-                      return symbol("character \\" + c, sym.CHAR_LIT,
+                      return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\.\'           { yybegin(YYINITIAL); return symbol(
               errorString + "invalid escape character", sym.ERROR, yyline,

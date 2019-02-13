@@ -1,5 +1,6 @@
 package xi_parser;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -333,7 +334,7 @@ class ListLiteralExpr extends Expr {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         if (this.isString) {
-            w.printAtom("\""+raw+"\"");
+            w.printAtom("\""+ StringEscapeUtils.escapeJava(raw) +"\"");
         } else {
             w.startList();
             contents.forEach((e) -> e.prettyPrint(w));

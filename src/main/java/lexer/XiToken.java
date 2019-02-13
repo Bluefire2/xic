@@ -1,4 +1,6 @@
 package lexer;
+
+import org.apache.commons.lang3.StringEscapeUtils;
 import java_cup.runtime.*;
 
 public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
@@ -71,11 +73,21 @@ public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
     }
 
     public Object getValue() {
-        return value;
+        switch (this.sym) {
+            case xi_parser.sym.STRING_LIT:
+            case xi_parser.sym.CHAR_LIT:
+                return StringEscapeUtils.escapeJava(value.toString());
+            default: return value;
+        }
     }
 
     public String getName() {
-        return name;
+        switch (this.sym) {
+            case xi_parser.sym.STRING_LIT:
+            case xi_parser.sym.CHAR_LIT:
+                return StringEscapeUtils.escapeJava(name);
+            default: return name;
+        }
     }
 
     public String toString() {
