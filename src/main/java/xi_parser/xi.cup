@@ -23,8 +23,8 @@ parser code
     public void syntax_error(Symbol s) {
         if (s instanceof XiToken) {
             XiToken t = (XiToken) s;
-            String message = t.getLeft() + " error:Unexpected token " +
-                t.getValue();
+            String message = String.format("%s error:Unexpected token %s",
+                                                t.getLeft(), t.getValue());
             throw new SyntaxError(message);
         }
     }
