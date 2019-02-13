@@ -10,6 +10,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import xi_parser.Printable;
+import xi_parser.SyntaxError;
 import xi_parser.XiParser;
 
 import java.io.*;
@@ -121,9 +122,27 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
+            } catch (LexicalError e) {
+                System.out.println("Lexical Error");
+                System.out.println(e.getMessage());
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (SyntaxError e) {
+                System.out.println("Syntax Error");
+                System.out.println(e.getMessage());
+                fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private void fileoutError(String outputFilePath, String errMessage) {
+        try {
+            FileWriter fw = new FileWriter(outputFilePath);
+            fw.write(errMessage);
+            fw.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 

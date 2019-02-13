@@ -3,11 +3,13 @@ package xi_parser;
 
 import lexer.XiLexer;
 import lexer.XiToken;
+import lexer.LexicalError;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
 
 import lexer.XiTokenFactory;
+import java_cup.runtime.Symbol;
 
 parser code
 {:
@@ -18,25 +20,24 @@ parser code
         this.lexer = l;
     }
 
-    public void report_error(String message, Object info) {
-        if (info instanceof XiToken) {
-            System.out.println("Syntax Error");
-            System.out.println(info);
-        } else {
-            System.out.println(message);
+    public void syntax_error(Symbol s) {
+        if (s instanceof XiToken) {
+            XiToken t = (XiToken) s;
+            String message = t.getLeft() + " error:Unexpected token " +
+                t.getValue();
+            throw new SyntaxError(message);
         }
-
-    }
-
-    public void report_fatal_error(String message, Object info) {
-        report_error(message, info);
-        System.exit(1);
     }
 :};
 
 scan with
 {:
-return lexer.next_token();
+    Symbol s = lexer.next_token();
+    XiToken t = (XiToken) s;
+    if (t.sym == sym.ERROR)
+        throw new LexicalError(t.toString());
+    // no lexer error, pass on the symbol
+    return s;
 :};
 
 // You might want to add types to these declarations.
