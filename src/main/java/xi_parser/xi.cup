@@ -116,8 +116,28 @@ start with source;
 type ::=
   BOOL_TYPE:t {: RESULT = new Tvar("bool"); :}
 | INT_TYPE:t {: RESULT = new Tvar("int"); :}
-| type:t LBRAC RBRAC {: RESULT = new ListType(t); :}
-| type:t LBRAC expr:e RBRAC {: RESULT = new ListType(t,e); :}
+| type:t LBRAC RBRAC {:
+    if (t instanceof ListType){
+        ListType curr = (ListType) t;
+        while (curr.getContentsType() instanceof ListType){
+            curr = (ListType) curr.getContentsType();
+        }
+        curr.setContentsType(new ListType(curr.getContentsType()));
+        RESULT = t;
+    } else {
+        RESULT = new ListType(t);
+    } :}
+| type:t LBRAC expr:e RBRAC {:
+    if (t instanceof ListType){
+        ListType curr = (ListType) t;
+        while (curr.getContentsType() instanceof ListType){
+            curr = (ListType) curr.getContentsType();
+        }
+        curr.setContentsType(new ListType(curr.getContentsType(),e));
+        RESULT = t;
+    } else {
+        RESULT = new ListType(t,e);
+    } :}
 ;
 
 typelist ::=
@@ -254,7 +274,13 @@ assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 assignable ::=
   UNDERSCORE {: RESULT = new UnderscoreAssignable(); :}
 | ID:i {: RESULT = new IdAssignable(new IdExpr(i)); :}
-| ID:i indices:l {: RESULT = new IndexAssignable(new IdExpr(i), l); :}
+| ID:i indices:l {:
+    Expr idx = new IdExpr(i);
+    for (Expr e: l){
+        idx = new IndexExpr(idx,e);
+    }
+    RESULT = new IndexAssignable(idx);
+    :}
 ;
 
 indices ::=
