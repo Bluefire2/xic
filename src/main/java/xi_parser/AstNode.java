@@ -17,18 +17,14 @@ enum ExprType {
     LengthExpr,
     ListLiteralExpr,
     UnopExpr,
-    UnderscoreExpr
 }
 
 enum StmtType {
     ProcedureReturnStmt,
     FunctionReturnStmt,
     AssignStmt,
-    MultiAssignStmt,
     DeclStmt,
-    MultiDeclStmt,
     DeclAssignStmt,
-    MultiDeclAssignStmt,
     ProcedureCallStmt,
     IfStmt,
     IfElseStmt,
@@ -126,6 +122,10 @@ class ListType extends Type {
 
     public Expr getLength() {
         return length;
+    }
+
+    public void setContentsType(Type contentsType) {
+        this.contentsType = contentsType;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
@@ -415,16 +415,6 @@ class LengthExpr extends Expr {
     }
 }
 
-class UnderscoreExpr extends Expr {
-    UnderscoreExpr() {
-        this.e_type = ExprType.UnderscoreExpr;
-    }
-
-    public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.printAtom("_");
-    }
-}
-
 abstract class Stmt implements Printable {
     StmtType s_type;
 
@@ -575,13 +565,13 @@ class UnderscoreAssignable extends Assignable {
 }
 
 class IdAssignable extends Assignable {
-    private IdExpr id;
+    private Expr id;
 
-    IdAssignable(IdExpr id) {
+    IdAssignable(Expr id) {
         this.id = id;
     }
 
-    public IdExpr getId() {
+    public Expr getId() {
         return id;
     }
 
@@ -592,32 +582,19 @@ class IdAssignable extends Assignable {
 }
 
 class IndexAssignable extends Assignable {
-    private IdExpr list; // has to be an ID!
-    private List<Expr> index;
+    private Expr index; // has to be an ID!
 
-    IndexAssignable(IdExpr list, List<Expr> index) {
-        this.list = list;
+    IndexAssignable(Expr index) {
         this.index = index;
     }
 
-    public IdExpr getList() {
-        return list;
-    }
-
-    public List<Expr> getIndex() {
+    public Expr getIndex() {
         return index;
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        // TODO
-        w.startList();
-        w.printAtom("[]");
-        list.prettyPrint(w);
-        for (Expr e : index) {
-            e.prettyPrint(w);
-        }
-        w.endList();
+        index.prettyPrint(w);
     }
 }
 
@@ -628,7 +605,7 @@ class AssignStmt extends Stmt {
     public AssignStmt(List<Assignable> left, List<Expr> right) {
         this.left = left;
         this.right = right;
-        this.s_type = StmtType.MultiAssignStmt;
+        this.s_type = StmtType.AssignStmt;
     }
 
     public List<Assignable> getLeft() {
@@ -665,7 +642,7 @@ class DeclStmt extends Stmt {
 
     public DeclStmt(List<Pair<String, Type>> decls) {
         this.decls = decls;
-        this.s_type = StmtType.MultiDeclStmt;
+        this.s_type = StmtType.DeclStmt;
     }
 
     public List<Pair<String, Type>> getDecls() {
@@ -690,7 +667,7 @@ class DeclAssignStmt extends Stmt {
     public DeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right) {
         this.decls = decls;
         this.right = right;
-        this.s_type = StmtType.MultiDeclAssignStmt;
+        this.s_type = StmtType.DeclAssignStmt;
     }
 
     public List<Pair<String, Type>> getDecls() {
