@@ -1,0 +1,390 @@
+package xi_parser;
+// A stub for a Xi CUP specification.
+
+import lexer.XiLexer;
+import lexer.XiToken;
+import lexer.LexicalError;
+import polyglot.util.Pair;
+
+import java.util.ArrayList;
+
+import lexer.XiTokenFactory;
+import java_cup.runtime.Symbol;
+
+parser code
+{:
+    XiLexer lexer;
+
+    public XiParser (XiLexer l, XiTokenFactory xtf) {
+        super(l,xtf);
+        this.lexer = l;
+    }
+
+    public void syntax_error(Symbol s) {
+        if (s instanceof XiToken) {
+            XiToken t = (XiToken) s;
+            String message = String.format("%s error:Unexpected token %s",
+                                                t.getLeft(), t.getValue());
+            throw new SyntaxError(message);
+        }
+    }
+:};
+
+scan with
+{:
+    Symbol s = lexer.next_token();
+    XiToken t = (XiToken) s;
+    if (t.sym == sym.ERROR)
+        throw new LexicalError(t.toString());
+    // no lexer error, pass on the symbol
+    return s;
+:};
+
+// You might want to add types to these declarations.
+terminal String ID;
+terminal String STRING_LIT;
+terminal Character CHAR_LIT;
+terminal Long INT_LIT;
+terminal Boolean BOOL_LIT;
+terminal INT_TYPE, BOOL_TYPE;
+
+terminal
+    UNDERSCORE,
+    USE,
+    IF,
+    WHILE,
+    ELSE,
+    RETURN,
+    LENGTH,
+
+    EQ,
+    MINUS,
+    PLUS,
+    NOT,
+    MULT,
+    HI_MULT,
+    DIV,
+    MOD,
+    EQEQ,
+    NEQ,
+    GT,
+    LT,
+    GTEQ,
+    LTEQ,
+    AND,
+    OR,
+    UMINUS, //maybe not necessary
+
+    COLON,
+    SEMICOLON,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRAC,
+    RBRAC,
+    LCURL,
+    RCURL,
+    ERROR;
+
+// You might want to add types to these declarations.
+nonterminal SourceFile source;
+nonterminal InterfaceFile interface;
+nonterminal ProgramFile program;
+
+nonterminal Pair annotated_var;
+nonterminal Type type;
+nonterminal Decl decl;
+nonterminal Defn defn;
+nonterminal UseInterface use_interface;
+
+nonterminal Expr expr;
+nonterminal Assignable assignable;
+
+nonterminal Stmt statement, matchedstmt, unmatchedstmt;
+nonterminal Stmt return;
+nonterminal Stmt block;
+
+nonterminal ArrayList<Pair<String,Type>> annotated_varlist;
+nonterminal ArrayList<Pair<String,Type>> decl_list;
+nonterminal ArrayList<Expr> exprlist;
+nonterminal ArrayList<Stmt> stmtlist;
+nonterminal ArrayList<UseInterface> importlist;
+nonterminal ArrayList<Assignable> assignablelist;
+nonterminal ArrayList<Defn> defnlist;
+nonterminal ArrayList<Type> typelist;
+nonterminal ArrayList<Expr> indices;
+
+precedence left COMMA;
+precedence left OR;
+precedence left AND;
+precedence left NEQ, EQEQ;
+precedence left LT, GT, LTEQ, GTEQ;
+precedence left PLUS, MINUS;
+precedence left MULT, DIV, MOD, HI_MULT;
+precedence nonassoc UMINUS, NOT;
+precedence left LBRAC, RBRAC, LPAREN, RPAREN;
+
+
+start with source;
+
+//TYPES
+
+type ::=
+  BOOL_TYPE:t {: RESULT = new Tvar("bool"); :}
+| INT_TYPE:t {: RESULT = new Tvar("int"); :}
+| type:t LBRAC RBRAC {:
+    if (t instanceof ListType){
+        ListType curr = (ListType) t;
+        while (curr.getContentsType() instanceof ListType){
+            curr = (ListType) curr.getContentsType();
+        }
+        curr.setContentsType(new ListType(curr.getContentsType()));
+        RESULT = t;
+    } else {
+        RESULT = new ListType(t);
+    } :}
+| type:t LBRAC expr:e RBRAC {:
+    if (t instanceof ListType){
+        ListType curr = (ListType) t;
+        while (curr.getContentsType() instanceof ListType){
+            curr = (ListType) curr.getContentsType();
+        }
+        curr.setContentsType(new ListType(curr.getContentsType(),e));
+        RESULT = t;
+    } else {
+        RESULT = new ListType(t,e);
+    } :}
+;
+
+typelist ::=
+  type:t {:
+    ArrayList<Type> l = new ArrayList<>();
+    l.add(t);
+    RESULT = l; :}
+  | typelist:l COMMA type:t {: l.add(t); RESULT = l; :}
+;
+
+annotated_varlist ::=
+  annotated_var:a {:
+    ArrayList<Pair<String,Type>> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
+| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {:
+    RESULT = new Pair<String,Type>(i, t); :}
+;
+
+decl_list ::=
+  annotated_varlist:l COMMA UNDERSCORE {:
+    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+| UNDERSCORE COMMA annotated_varlist:l {:
+    l.add(0, new Pair<String, Type>("_", new AnyType())); RESULT = l; :}
+| decl_list:l COMMA UNDERSCORE {:
+    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+| decl_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+//DECLARATIONS AND DEFINITIONS
+decl ::=
+  ID:n LPAREN RPAREN {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new Decl(n, l); :}
+| ID:n LPAREN RPAREN COLON typelist:t {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new Decl(n, l, t); :}
+| ID:n LPAREN annotated_varlist:p RPAREN {:
+    RESULT = new Decl(n, p); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
+    RESULT = new Decl(n, p, t); :}
+;
+
+defn ::=
+  ID:n LPAREN RPAREN block:b {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new Defn(n, l, b); :}
+| ID:n LPAREN RPAREN COLON typelist:t block:b {:
+    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    RESULT = new Defn(n, l, t, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN block:b {:
+    RESULT = new Defn(n, p, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
+    RESULT = new Defn(n, p, t, b); :}
+;
+
+defnlist ::=
+  defn:d {:
+      ArrayList<Defn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
+| defnlist:l defn:d {: l.add(d); RESULT = l; :}
+;
+
+//IMPORTS
+use_interface ::=
+  USE ID:i {: RESULT = new UseInterface(i); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface(i); :}
+;
+
+importlist ::=
+  use_interface:i {:
+      ArrayList<UseInterface> l = new ArrayList<>();
+      l.add(i);
+      RESULT = l; :}
+| importlist:l use_interface:i {: l.add(i); RESULT = l; :}
+;
+
+//EXPRESSIONS
+exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  expr:e {:
+       ArrayList<Expr> l = new ArrayList<>();
+       l.add(e);
+       RESULT = l; :}
+| exprlist:l COMMA expr:e {: l.add(e); RESULT = l; :}
+;
+
+expr ::=
+  BOOL_LIT:b {: RESULT = new BoolLiteralExpr(b); :}
+| INT_LIT:i {: RESULT = new IntLiteralExpr(i); :}
+| CHAR_LIT:c {: RESULT = new IntLiteralExpr(c); :} // chars are really ints
+| STRING_LIT:s {: RESULT = new ListLiteralExpr(s); :} // strings are really lists of ints
+| ID:i {: RESULT = new IdExpr(i); :}
+| ID:i LPAREN exprlist:el RPAREN {:
+    RESULT = new FunctionCallExpr(i, el); :}
+| ID:i LPAREN RPAREN {:
+    RESULT = new FunctionCallExpr(i, new ArrayList<Expr>()); :}
+| expr:e1 LBRAC expr:e2 RBRAC {: RESULT = new IndexExpr(e1, e2); :}
+| LENGTH LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e); :}
+| LCURL exprlist:e RCURL {: RESULT = new ListLiteralExpr(e); :}
+| LCURL exprlist:e COMMA RCURL {: RESULT = new ListLiteralExpr(e); :}
+| LCURL RCURL {: RESULT = new ListLiteralExpr(new ArrayList<Expr>()); :}
+| LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
+| expr:e1 AND expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2); :}
+| expr:e1 OR expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2); :}
+| expr:e1 PLUS expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2); :}
+| expr:e1 MINUS expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2); :}
+| expr:e1 DIV expr:e2 {: RESULT = new BinopExpr(Binop.DIV, e1, e2); :}
+| expr:e1 MOD expr:e2 {: RESULT = new BinopExpr(Binop.MOD, e1, e2); :}
+| expr:e1 MULT expr:e2 {: RESULT = new BinopExpr(Binop.MULT, e1, e2); :}
+| expr:e1 HI_MULT expr:e2 {: RESULT = new BinopExpr(Binop.HI_MULT, e1, e2); :}
+| expr:e1 EQEQ expr:e2 {: RESULT = new BinopExpr(Binop.EQEQ, e1, e2); :}
+| expr:e1 NEQ expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2); :}
+| expr:e1 GT expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2); :}
+| expr:e1 LT expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2); :}
+| expr:e1 GTEQ expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2); :}
+| expr:e1 LTEQ expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2); :}
+| MINUS expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e); :} %prec UMINUS
+| NOT expr:e {: RESULT = new UnopExpr(Unop.NOT, e); :}
+;
+
+//STATEMENTS
+
+assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  assignable:a {:
+    ArrayList<Assignable> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
+| assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
+;
+
+assignable ::=
+  UNDERSCORE {: RESULT = new UnderscoreAssignable(); :}
+| ID:i {: RESULT = new IdAssignable(new IdExpr(i)); :}
+| ID:i indices:l {:
+    Expr idx = new IdExpr(i);
+    for (Expr e: l){
+        idx = new IndexExpr(idx,e);
+    }
+    RESULT = new IndexAssignable(idx);
+    :}
+;
+
+indices ::=
+  LBRAC expr:e RBRAC {: ArrayList<Expr> l = new ArrayList<>(); l.add(e); RESULT = l; :}
+| indices:l LBRAC expr:e RBRAC {: l.add(e); RESULT = l; :}
+;
+
+matchedstmt ::=
+  IF expr:e matchedstmt:s1 ELSE matchedstmt:s2 {:
+     RESULT = new IfElseStmt(e,s1,s2); :}
+| WHILE expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s); :}
+| block:b {: RESULT = b; :}
+| assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
+| decl_list:d EQ exprlist:e {:
+      RESULT = new DeclAssignStmt(d, e); :}
+| annotated_varlist:d {: RESULT = new DeclStmt(d); :}
+| annotated_varlist:d EQ exprlist:e {:
+      RESULT = new DeclAssignStmt(d, e); :}
+| ID:i LPAREN exprlist:el RPAREN {:
+      RESULT = new ProcedureCallStmt(i, el); :}
+| ID:i LPAREN RPAREN {:
+      RESULT = new ProcedureCallStmt(i, new ArrayList<Expr>()); :}
+;
+
+
+unmatchedstmt ::=
+  IF expr:e unmatchedstmt:s {: RESULT = new IfStmt(e,s); :}
+| IF expr:e matchedstmt:s {: RESULT = new IfStmt(e,s); :}
+| WHILE expr:e unmatchedstmt:s {: RESULT = new WhileStmt(e,s); :}
+;
+
+statement ::=
+  matchedstmt:m {: RESULT = m; :}
+| unmatchedstmt:u {: RESULT = u; :}
+;
+
+return ::= //enforces return statements being at the end of blocks + cannot replace blocks
+  RETURN {: RESULT = new ReturnStmt(); :}
+| RETURN exprlist:e {: RESULT = new ReturnStmt(e); :}
+|  RETURN SEMICOLON {: RESULT = new ReturnStmt(); :}
+| RETURN exprlist:e SEMICOLON {: RESULT = new ReturnStmt(e); :}
+;
+
+stmtlist ::=
+  statement:s {:
+     ArrayList<Stmt> l = new ArrayList<>();
+     l.add(s);
+     RESULT = l; :}
+| stmtlist:l SEMICOLON statement:s {: l.add(s); RESULT = l; :}
+| stmtlist:l statement:s {: l.add(s); RESULT = l; :}
+;
+
+block ::=
+  LCURL return:r RCURL {: RESULT = new BlockStmt(); :}
+| LCURL stmtlist:l RCURL {: RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l SEMICOLON RCURL {: RESULT = new BlockStmt(l); :}
+| LCURL stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new BlockStmt(l); :}
+| LCURL RCURL {: RESULT = new BlockStmt(); :}
+;
+
+//HIGHEST LEVEL
+source ::=
+  interface:i {: RESULT = (SourceFile) i; :}
+| program:p {: RESULT = (SourceFile) p; :}
+;
+
+interface ::=
+  decl:d {:
+      ArrayList<Decl> l = new ArrayList<>();
+      l.add(d);
+      RESULT = new InterfaceFile(l); :}
+| interface:i decl:d {: i.addDecl(d); RESULT = i; :}
+;
+
+program ::=
+importlist:il defnlist:dl {: RESULT = new ProgramFile(il, dl); :}
+| defnlist:dl {:
+    RESULT = new ProgramFile(new ArrayList<UseInterface>(), dl); :}
+;
+
+
+
+
+
+
+
+
+

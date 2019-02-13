@@ -28,9 +28,10 @@
 #
 # xth runs the commands in order of appearance.
 
-xic ("Test --lex") "--lex" {
+xic ("Test --parse") "--parse" {
     ex1.xi;
-    ex2.xi (Lexical, "empty character literal");
+    ex2.xi;
+    ex3.xi (Syntax, "Unexpected token +");
     spec1.xi;
     spec2.xi;
     spec3.xi;
@@ -41,6 +42,7 @@ xic ("Test --lex") "--lex" {
     arrayinit.xi;
     arrayinit2.xi;
     mdarrays.xi;
-    add.xi;
-    beauty.xi;
+    add.xi (Syntax, "Unexpected token +");
+    beauty.xi (Syntax, "Unexpected token ==");
+    io.ixi;
 }

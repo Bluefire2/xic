@@ -3,11 +3,11 @@
 package your.pkg.name.here;
 
 // You might want to add types to these declarations.
-terminal IDENTIFIER;
-terminal STRING_LITERAL;
-terminal CHARACTER_LITERAL;
-terminal INTEGER_LITERAL;
-terminal TRUE, FALSE;
+terminal String IDENTIFIER;
+terminal String STRING_LITERAL;
+terminal Character CHARACTER_LITERAL;
+terminal Integer INTEGER_LITERAL;
+terminal Boolean TRUE, FALSE;
 terminal INT, BOOL;
 
 terminal IF, ELSE, WHILE, BREAK, RETURN, USE, LENGTH, PLUS, MINUS, TIMES,
