@@ -16,7 +16,22 @@ parser code
     public XiParser (XiLexer l, XiTokenFactory xtf) {
         super(l,xtf);
         this.lexer = l;
-  }
+    }
+
+    public void report_error(String message, Object info) {
+        if (info instanceof XiToken) {
+            System.out.println("Syntax Error");
+            System.out.println(info);
+        } else {
+            System.out.println(message);
+        }
+
+    }
+
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
 :};
 
 scan with
