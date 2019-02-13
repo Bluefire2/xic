@@ -570,7 +570,7 @@ abstract class Assignable implements Printable {
 class UnderscoreAssignable extends Assignable {
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-
+        w.printAtom("_");
     }
 }
 
@@ -587,7 +587,7 @@ class IdAssignable extends Assignable {
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        // TODO
+        id.prettyPrint(w);
     }
 }
 
@@ -608,6 +608,7 @@ class IndexAssignable extends Assignable {
         return index;
     }
 
+    @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         // TODO
         w.startList();
