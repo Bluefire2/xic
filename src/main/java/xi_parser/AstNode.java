@@ -1,12 +1,11 @@
 package xi_parser;
 
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import org.apache.commons.lang3.StringEscapeUtils;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 enum ExprType {
     BinopExpr,

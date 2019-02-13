@@ -1,6 +1,7 @@
 package cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 import lexer.LexicalError;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
@@ -12,14 +13,15 @@ import polyglot.util.OptimalCodeWriter;
 import xi_parser.Printable;
 import xi_parser.SyntaxError;
 import xi_parser.XiParser;
+import xi_parser.sym;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import java_cup.runtime.*;
-import xi_parser.sym;
 
 @CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {

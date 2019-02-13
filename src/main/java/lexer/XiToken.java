@@ -1,7 +1,8 @@
 package lexer;
 
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
 import org.apache.commons.lang3.StringEscapeUtils;
-import java_cup.runtime.*;
 
 public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
 

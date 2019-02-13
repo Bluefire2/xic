@@ -1,6 +1,5 @@
 package lexer;
 
-
 import java_cup.runtime.ComplexSymbolFactory;
 
 public class XiTokenLocation  extends ComplexSymbolFactory.Location {
