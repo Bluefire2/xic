@@ -11,9 +11,9 @@ import lexer.XiTokenFactory;
 
 parser code
 {:
-  XiLexer lexer;
+    XiLexer lexer;
 
-  public XiParser (XiLexer l, XiTokenFactory xtf) {
+    public XiParser (XiLexer l, XiTokenFactory xtf) {
         super(l,xtf);
         this.lexer = l;
   }

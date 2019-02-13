@@ -1,6 +1,7 @@
 package cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import lexer.LexicalError;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
@@ -11,10 +12,7 @@ import polyglot.util.OptimalCodeWriter;
 import xi_parser.Printable;
 import xi_parser.XiParser;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -76,24 +74,23 @@ public class CLI implements Runnable {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".lexed")
                     .toString();
-            try (FileReader fileReader = new FileReader(
-                    sourcepath.toString() + "/" + f.getPath());
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
                 XiLexer lexer = new XiLexer(fileReader, new XiTokenFactory());
 
                 for (Symbol next = lexer.next_token();
-                     next != null && next.sym != sym.EOF;
+                     next.sym != sym.EOF;
                      next = lexer.next_token()) {
                     // Tokenize the next string and write the token
                     fileWriter.write(next.toString() + "\n");
                     if (next.sym == sym.ERROR) {
-                        // TODO: should we stop the compiler on a lexer error?
                         break;
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                continue;
             }
         }
     }
@@ -103,8 +100,9 @@ public class CLI implements Runnable {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".parsed")
                     .toString();
-            try (FileReader fileReader = new FileReader(
-                    sourcepath.toString() + "/" + f.getPath());
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
                 XiTokenFactory xtf = new XiTokenFactory();
@@ -112,7 +110,7 @@ public class CLI implements Runnable {
                 XiParser parser = new XiParser(lexer, xtf);
                 CodeWriterSExpPrinter printer;
                 Object root;
-                if (optDebug){ //debug mode
+                if (optDebug) { //debug mode
                     PrintWriter cw = new PrintWriter(System.out);
                     root = parser.debug_parse().value;
                     printer = new CodeWriterSExpPrinter(cw);
@@ -125,7 +123,6 @@ public class CLI implements Runnable {
                 printer.close();
             } catch (Exception e) {
                 e.printStackTrace();
-                continue;
             }
         }
     }

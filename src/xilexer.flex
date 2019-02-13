@@ -34,14 +34,13 @@ import xi_parser.sym;
     }
 
     // flex generates 0-indexed line, col, we need 1-indexed
-    private Symbol symbol(String name, int id, int line, int col) {
-        XiTokenLocation loc = new XiTokenLocation(line+1, col+1);
-        return symFactory.newSymbol(name, id, loc, name);
-    }
-
     private Symbol symbol(String name, int id, int line, int col, Object val) {
         XiTokenLocation loc = new XiTokenLocation(line+1, col+1);
         return symFactory.newSymbol(name, id, loc, val);
+    }
+
+    private Symbol symbol(String name, int id, int line, int col) {
+        return symbol(name, id, line, col, name);
     }
 
 %}
@@ -178,27 +177,27 @@ INTEGER = 0 | [1-9][0-9]*
                       return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\t\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\t');
+                      char c = '\t';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\n\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\n');
+                      char c = '\n';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\r\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\r');
+                      char c = '\r';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\\');
+                      char c = '\\';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\'\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\'');
+                      char c = '\'';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\\"\'           { yybegin(YYINITIAL);
-                      Character c = new Character('\"');
+                      char c = '\"';
                       return symbol("character \\" + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
     \\.\'           { yybegin(YYINITIAL); return symbol(
