@@ -592,6 +592,7 @@ class IndexAssignable extends Assignable {
         return index;
     }
 
+    @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         index.prettyPrint(w);
     }
