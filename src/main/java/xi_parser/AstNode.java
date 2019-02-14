@@ -278,7 +278,7 @@ class IntLiteralExpr extends Expr {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         if (this.isChar) {
-            w.printAtom("\'"+raw.toString()+"\'");
+            w.printAtom("\'"+StringEscapeUtils.escapeJava(raw.toString())+"\'");
         } else {
             w.printAtom(value.toString());
         }
