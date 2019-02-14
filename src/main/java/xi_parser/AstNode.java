@@ -730,21 +730,21 @@ class BlockStmt extends Stmt {
     }
 }
 
-//definitions are for program files
-class Defn implements Printable {
+//funcDefns are for program files
+class FuncDefn implements Printable {
     private String name;
     private List<Pair<String, Type>> params;
     private Stmt body;
     private List<Type> output;
 
-    public Defn(String name, List<Pair<String, Type>> params, List<Type> output, Stmt body) {
+    public FuncDefn(String name, List<Pair<String, Type>> params, List<Type> output, Stmt body) {
         this.name = name;
         this.params = params;
         this.output = output;
         this.body = body;
     }
 
-    public Defn(String name, List<Pair<String, Type>> params, Stmt body) {
+    public FuncDefn(String name, List<Pair<String, Type>> params, Stmt body) {
         this.name = name;
         this.params = params;
         this.body = body;
@@ -815,19 +815,19 @@ class UseInterface {
     }
 }
 
-//declarations are for interfaces
-class Decl implements Printable {
+//funcDecls are for interfaces
+class FuncDecl implements Printable {
     private String name;
     private List<Pair<String, Type>> params;
     private List<Type> output;
 
-    public Decl(String name, List<Pair<String, Type>> params, List<Type> output) {
+    public FuncDecl(String name, List<Pair<String, Type>> params, List<Type> output) {
         this.name = name;
         this.params = params;
         this.output = output;
     }
 
-    public Decl(String name, List<Pair<String, Type>> params) {
+    public FuncDecl(String name, List<Pair<String, Type>> params) {
         this.name = name;
         this.params = params;
         this.output = new ArrayList<Type>();
@@ -879,18 +879,18 @@ abstract class SourceFile implements Printable {
 }
 
 class InterfaceFile extends SourceFile {
-    private ArrayList<Decl> declarations;
+    private ArrayList<FuncDecl> funcDecls;
 
-    public InterfaceFile(List<Decl> declarations) {
-        this.declarations = new ArrayList<>(declarations);
+    public InterfaceFile(List<FuncDecl> funcDecls) {
+        this.funcDecls = new ArrayList<>(funcDecls);
     }
 
-    public List<Decl> getDeclarations() {
-        return declarations;
+    public List<FuncDecl> getFuncDecls() {
+        return funcDecls;
     }
 
-    public void addDecl(Decl decl) {
-        declarations.add(decl);
+    public void addFuncDecl(FuncDecl funcDecl) {
+        funcDecls.add(funcDecl);
     }
 
     public boolean isInterface() {
@@ -900,7 +900,7 @@ class InterfaceFile extends SourceFile {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
         w.startUnifiedList();
-        declarations.forEach((i) -> i.prettyPrint(w));
+        funcDecls.forEach((i) -> i.prettyPrint(w));
         w.endList();
         w.endList();
     }
@@ -908,23 +908,23 @@ class InterfaceFile extends SourceFile {
 
 class ProgramFile extends SourceFile {
     private ArrayList<UseInterface> imports;
-    private ArrayList<Defn> definitions;
+    private ArrayList<FuncDefn> funcDefns;
 
-    public ProgramFile(List<UseInterface> imports, List<Defn> definitions) {
+    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns) {
         this.imports = new ArrayList<>(imports);
-        this.definitions = new ArrayList<>(definitions);
+        this.funcDefns = new ArrayList<>(funcDefns);
     }
 
     public List<UseInterface> getImports() {
         return imports;
     }
 
-    public List<Defn> getDefinitions() {
-        return definitions;
+    public List<FuncDefn> getFuncDefns() {
+        return funcDefns;
     }
 
-    public void addDefn(Defn defn) {
-        definitions.add(defn);
+    public void addFuncDefn(FuncDefn funcDefn) {
+        funcDefns.add(funcDefn);
     }
 
     public void addImport(UseInterface use) {
@@ -941,7 +941,7 @@ class ProgramFile extends SourceFile {
         imports.forEach((i) -> i.prettyPrint(w));
         w.endList();
         w.startUnifiedList();
-        definitions.forEach((d) -> d.prettyPrint(w));
+        funcDefns.forEach((d) -> d.prettyPrint(w));
         w.endList();
         w.endList();
     }

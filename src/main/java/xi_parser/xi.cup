@@ -40,7 +40,6 @@ scan with
     return s;
 :};
 
-// You might want to add types to these declarations.
 terminal String ID;
 terminal String STRING_LIT;
 terminal Character CHAR_LIT;
@@ -86,15 +85,14 @@ terminal
     RCURL,
     ERROR;
 
-// You might want to add types to these declarations.
 nonterminal SourceFile source;
 nonterminal InterfaceFile interface;
 nonterminal ProgramFile program;
 
 nonterminal Pair annotated_var;
 nonterminal Type type;
-nonterminal Decl decl;
-nonterminal Defn defn;
+nonterminal FuncDecl func_decl;
+nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
 
 nonterminal Expr expr;
@@ -105,12 +103,12 @@ nonterminal Stmt return;
 nonterminal Stmt block;
 
 nonterminal ArrayList<Pair<String,Type>> annotated_varlist;
-nonterminal ArrayList<Pair<String,Type>> decl_list;
+nonterminal ArrayList<Pair<String,Type>> underscore_varlist;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Assignable> assignablelist;
-nonterminal ArrayList<Defn> defnlist;
+nonterminal ArrayList<FuncDefn> func_defnlist;
 nonterminal ArrayList<Type> typelist;
 nonterminal ArrayList<Expr> indices;
 
@@ -177,49 +175,49 @@ annotated_var ::=
     RESULT = new Pair<String,Type>(i, t); :}
 ;
 
-decl_list ::=
+underscore_varlist ::=
   annotated_varlist:l COMMA UNDERSCORE {:
     l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
 | UNDERSCORE COMMA annotated_varlist:l {:
     l.add(0, new Pair<String, Type>("_", new AnyType())); RESULT = l; :}
-| decl_list:l COMMA UNDERSCORE {:
+| underscore_varlist:l COMMA UNDERSCORE {:
     l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
-| decl_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+| underscore_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
-//DECLARATIONS AND DEFINITIONS
-decl ::=
+//FUNCTION DECLARATIONS AND DEFINITIONS
+func_decl ::=
   ID:n LPAREN RPAREN {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Decl(n, l); :}
+    RESULT = new FuncDecl(n, l); :}
 | ID:n LPAREN RPAREN COLON typelist:t {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Decl(n, l, t); :}
+    RESULT = new FuncDecl(n, l, t); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new Decl(n, p); :}
+    RESULT = new FuncDecl(n, p); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
-    RESULT = new Decl(n, p, t); :}
+    RESULT = new FuncDecl(n, p, t); :}
 ;
 
-defn ::=
+func_defn ::=
   ID:n LPAREN RPAREN block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Defn(n, l, b); :}
+    RESULT = new FuncDefn(n, l, b); :}
 | ID:n LPAREN RPAREN COLON typelist:t block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new Defn(n, l, t, b); :}
+    RESULT = new FuncDefn(n, l, t, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
-    RESULT = new Defn(n, p, b); :}
+    RESULT = new FuncDefn(n, p, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
-    RESULT = new Defn(n, p, t, b); :}
+    RESULT = new FuncDefn(n, p, t, b); :}
 ;
 
-defnlist ::=
-  defn:d {:
-      ArrayList<Defn> l = new ArrayList<>();
+func_defnlist ::=
+  func_defn:d {:
+      ArrayList<FuncDefn> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
-| defnlist:l defn:d {: l.add(d); RESULT = l; :}
+| func_defnlist:l func_defn:d {: l.add(d); RESULT = l; :}
 ;
 
 //IMPORTS
@@ -312,7 +310,7 @@ matchedstmt ::=
 | WHILE expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s); :}
 | block:b {: RESULT = b; :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
-| decl_list:d EQ exprlist:e {:
+| underscore_varlist:d EQ exprlist:e {:
       RESULT = new DeclAssignStmt(d, e); :}
 | annotated_varlist:d {: RESULT = new DeclStmt(d); :}
 | annotated_varlist:d EQ exprlist:e {:
@@ -338,7 +336,7 @@ statement ::=
 return ::= //enforces return statements being at the end of blocks + cannot replace blocks
   RETURN {: RESULT = new ReturnStmt(); :}
 | RETURN exprlist:e {: RESULT = new ReturnStmt(e); :}
-|  RETURN SEMICOLON {: RESULT = new ReturnStmt(); :}
+| RETURN SEMICOLON {: RESULT = new ReturnStmt(); :}
 | RETURN exprlist:e SEMICOLON {: RESULT = new ReturnStmt(e); :}
 ;
 
@@ -367,16 +365,16 @@ source ::=
 ;
 
 interface ::=
-  decl:d {:
-      ArrayList<Decl> l = new ArrayList<>();
+  func_decl:d {:
+      ArrayList<FuncDecl> l = new ArrayList<>();
       l.add(d);
       RESULT = new InterfaceFile(l); :}
-| interface:i decl:d {: i.addDecl(d); RESULT = i; :}
+| interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
 ;
 
 program ::=
-importlist:il defnlist:dl {: RESULT = new ProgramFile(il, dl); :}
-| defnlist:dl {:
+importlist:il func_defnlist:dl {: RESULT = new ProgramFile(il, dl); :}
+| func_defnlist:dl {:
     RESULT = new ProgramFile(new ArrayList<UseInterface>(), dl); :}
 ;
 
