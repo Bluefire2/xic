@@ -60,7 +60,12 @@ enum Binop {
     OR
 }
 
-abstract class Type implements Printable {
+abstract class Node {
+    int start_line;
+    int start_col;
+}
+
+abstract class Type extends Node implements Printable {
     public TypeType t_type;
 
     public TypeType getT_type() {
@@ -69,8 +74,10 @@ abstract class Type implements Printable {
 }
 
 class AnyType extends Type{
-    AnyType() {
+    AnyType(int start_line, int start_col) {
         this.t_type = TypeType.AnyType;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) { }
@@ -79,9 +86,11 @@ class AnyType extends Type{
 class Tvar extends Type {
     private String name;
 
-    Tvar(String name) {
+    Tvar(String name, int start_line, int start_col) {
         this.name = name;
         this.t_type = TypeType.Tvar;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String toString() {
@@ -101,15 +110,19 @@ class ListType extends Type {
     private Type contentsType;
     private Expr length;
 
-    ListType(Type type) {
+    ListType(Type type, int start_line, int start_col) {
         this.contentsType = type;
         this.t_type = TypeType.ListType;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    ListType(Type type, Expr length) {
+    ListType(Type type, Expr length, int start_line, int start_col) {
         this.contentsType = type;
         this.length = length;
         this.t_type = TypeType.ListType;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String toString() {
@@ -140,7 +153,7 @@ class ListType extends Type {
 }
 
 
-abstract class Expr implements Printable {
+abstract class Expr extends Node implements Printable {
     ExprType e_type;
 
     public ExprType getE_type() {
@@ -153,11 +166,13 @@ class BinopExpr extends Expr {
     private Expr left;
     private Expr right;
 
-    BinopExpr(Binop op, Expr left, Expr right) {
+    BinopExpr(Binop op, Expr left, Expr right, int start_line, int start_col) {
         this.op = op;
         this.left = left;
         this.right = right;
         this.e_type = ExprType.BinopExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Binop getOp() {
@@ -206,10 +221,12 @@ class UnopExpr extends Expr {
     private Unop op;
     private Expr expr;
 
-    UnopExpr(Unop op, Expr expr) {
+    UnopExpr(Unop op, Expr expr, int start_line, int start_col) {
         this.op = op;
         this.expr = expr;
         this.e_type = ExprType.UnopExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Unop getOp() {
@@ -240,9 +257,11 @@ class UnopExpr extends Expr {
 class IdExpr extends Expr {
     private String name;
 
-    IdExpr(String name) {
+    IdExpr(String name, int start_line, int start_col) {
         this.name = name;
         this.e_type = ExprType.IdExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -259,17 +278,21 @@ class IntLiteralExpr extends Expr {
     private Character raw;
     public boolean isChar;
 
-    IntLiteralExpr(Long val) {
+    IntLiteralExpr(Long val, int start_line, int start_col) {
         this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = false;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    IntLiteralExpr(Character val) {
+    IntLiteralExpr(Character val, int start_line, int start_col) {
         this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = true;
         this.raw = val;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Long getValue() {
@@ -288,9 +311,11 @@ class IntLiteralExpr extends Expr {
 class BoolLiteralExpr extends Expr {
     private Boolean value;
 
-    BoolLiteralExpr(Boolean val) {
+    BoolLiteralExpr(Boolean val, int start_line, int start_col) {
         this.value = val;
         this.e_type = ExprType.BoolLiteralExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Boolean getValue() {
@@ -307,20 +332,24 @@ class ListLiteralExpr extends Expr {
     public boolean isString;
     private String raw;
 
-    ListLiteralExpr(List<Expr> contents) {
+    ListLiteralExpr(List<Expr> contents, int start_line, int start_col) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
         this.isString = false;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    ListLiteralExpr(String value) {
+    ListLiteralExpr(String value, int start_line, int start_col) {
         char[] chars = value.toCharArray();
         this.contents = new ArrayList<>();
         for (int i = 0; i < chars.length; i++) {
-            contents.add(new IntLiteralExpr(chars[i]));
+            contents.add(new IntLiteralExpr(chars[i], start_line, start_col));
         }
         this.isString = true;
         this.raw = value;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<Expr> getContents() {
@@ -346,10 +375,12 @@ class IndexExpr extends Expr {
     private Expr list;
     private Expr index;
 
-    IndexExpr(Expr list, Expr index) {
+    IndexExpr(Expr list, Expr index, int start_line, int start_col) {
         this.list = list;
         this.index = index;
         this.e_type = ExprType.IndexExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Expr getList() {
@@ -373,10 +404,12 @@ class FunctionCallExpr extends Expr {
     private String name;
     private List<Expr> args;
 
-    FunctionCallExpr(String name, List<Expr> args) {
+    FunctionCallExpr(String name, List<Expr> args, int start_line, int start_col) {
         this.name = name;
         this.args = args;
         this.e_type = ExprType.FunctionCallExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -398,9 +431,11 @@ class FunctionCallExpr extends Expr {
 class LengthExpr extends Expr {
     private Expr list;
 
-    LengthExpr(Expr list) {
+    LengthExpr(Expr list, int start_line, int start_col) {
         this.list = list;
         this.e_type = ExprType.LengthExpr;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Expr getList() {
@@ -415,7 +450,7 @@ class LengthExpr extends Expr {
     }
 }
 
-abstract class Stmt implements Printable {
+abstract class Stmt extends Node implements Printable {
     StmtType s_type;
 
     public StmtType getS_type() {
@@ -437,14 +472,18 @@ abstract class Stmt implements Printable {
 class ReturnStmt extends Stmt {
     private List<Expr> returnVals;
 
-    ReturnStmt(List<Expr> returnVals) {
+    ReturnStmt(List<Expr> returnVals, int start_line, int start_col) {
         this.returnVals = returnVals;
         this.s_type = StmtType.FunctionReturnStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    ReturnStmt() {
+    ReturnStmt(int start_line, int start_col) {
         this.returnVals = new ArrayList<Expr>();
         this.s_type = StmtType.ProcedureReturnStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<Expr> getReturnVals() {
@@ -463,10 +502,12 @@ class IfStmt extends Stmt {
     private Expr guard;
     private Stmt thenStmt;
 
-    IfStmt(Expr guard, Stmt thenStmt) {
+    IfStmt(Expr guard, Stmt thenStmt, int start_line, int start_col) {
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.s_type = StmtType.IfStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
@@ -483,11 +524,13 @@ class IfElseStmt extends Stmt {
     private Stmt thenStmt;
     private Stmt elseStmt;
 
-    IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt) {
+    IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt, int start_line, int start_col) {
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.elseStmt = elseStmt;
         this.s_type = StmtType.IfElseStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
@@ -504,10 +547,12 @@ class WhileStmt extends Stmt {
     private Expr guard;
     private Stmt doStmt;
 
-    WhileStmt(Expr guard, Stmt doStmt) {
+    WhileStmt(Expr guard, Stmt doStmt, int start_line, int start_col) {
         this.guard = guard;
         this.doStmt = doStmt;
         this.s_type = StmtType.WhileStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Expr getGuard() {
@@ -531,10 +576,12 @@ class ProcedureCallStmt extends Stmt {
     private String name;
     private List<Expr> args;
 
-    public ProcedureCallStmt(String name, List<Expr> args) {
+    public ProcedureCallStmt(String name, List<Expr> args, int start_line, int start_col) {
         this.name = name;
         this.args = args;
         this.s_type = StmtType.ProcedureCallStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -553,7 +600,7 @@ class ProcedureCallStmt extends Stmt {
     }
 }
 
-abstract class Assignable implements Printable {
+abstract class Assignable extends Node implements Printable {
 
 }
 
@@ -567,8 +614,10 @@ class UnderscoreAssignable extends Assignable {
 class IdAssignable extends Assignable {
     private Expr id;
 
-    IdAssignable(Expr id) {
+    IdAssignable(Expr id, int start_line, int start_col) {
         this.id = id;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Expr getId() {
@@ -584,8 +633,10 @@ class IdAssignable extends Assignable {
 class IndexAssignable extends Assignable {
     private Expr index; // has to be an ID!
 
-    IndexAssignable(Expr index) {
+    IndexAssignable(Expr index, int start_line, int start_col) {
         this.index = index;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public Expr getIndex() {
@@ -602,10 +653,12 @@ class AssignStmt extends Stmt {
     private List<Assignable> left;
     private List<Expr> right;
 
-    public AssignStmt(List<Assignable> left, List<Expr> right) {
+    public AssignStmt(List<Assignable> left, List<Expr> right, int start_line, int start_col) {
         this.left = left;
         this.right = right;
         this.s_type = StmtType.AssignStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<Assignable> getLeft() {
@@ -640,9 +693,11 @@ class AssignStmt extends Stmt {
 class DeclStmt extends Stmt {
     private List<Pair<String, Type>> decls;
 
-    public DeclStmt(List<Pair<String, Type>> decls) {
+    public DeclStmt(List<Pair<String, Type>> decls, int start_line, int start_col) {
         this.decls = decls;
         this.s_type = StmtType.DeclStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<Pair<String, Type>> getDecls() {
@@ -664,10 +719,12 @@ class DeclAssignStmt extends Stmt {
     private List<Pair<String, Type>> decls;
     private List<Expr> right;
 
-    public DeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right) {
+    public DeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right, int start_line, int start_col) {
         this.decls = decls;
         this.right = right;
         this.s_type = StmtType.DeclAssignStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<Pair<String, Type>> getDecls() {
@@ -702,13 +759,15 @@ class DeclAssignStmt extends Stmt {
 class BlockStmt extends Stmt {
     private List<Stmt> statements;
 
-    public BlockStmt(List<Stmt> statements) {
+    public BlockStmt(List<Stmt> statements, int start_line, int start_col) {
         this.statements = statements;
         this.s_type = StmtType.BlockStmt;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    public BlockStmt() {
-        this(new ArrayList<>());
+    public BlockStmt(int start_line, int start_col) {
+        this(new ArrayList<>(), start_line, start_col);
     }
 
     public List<Stmt> getStatments() {
@@ -731,24 +790,29 @@ class BlockStmt extends Stmt {
 }
 
 //funcDefns are for program files
-class FuncDefn implements Printable {
+class FuncDefn extends Node implements Printable {
     private String name;
     private List<Pair<String, Type>> params;
     private Stmt body;
     private List<Type> output;
 
-    public FuncDefn(String name, List<Pair<String, Type>> params, List<Type> output, Stmt body) {
+    public FuncDefn(String name, List<Pair<String, Type>> params, List<Type> output, Stmt body,
+                    int start_line, int start_col) {
         this.name = name;
         this.params = params;
         this.output = output;
         this.body = body;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    public FuncDefn(String name, List<Pair<String, Type>> params, Stmt body) {
+    public FuncDefn(String name, List<Pair<String, Type>> params, Stmt body, int start_line, int start_col) {
         this.name = name;
         this.params = params;
         this.body = body;
         this.output = new ArrayList<Type>();
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -796,11 +860,13 @@ class FuncDefn implements Printable {
     }
 }
 
-class UseInterface {
+class UseInterface extends Node{
     private String name;
 
-    public UseInterface(String name) {
+    public UseInterface(String name, int start_line, int start_col) {
         this.name = name;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -816,21 +882,25 @@ class UseInterface {
 }
 
 //funcDecls are for interfaces
-class FuncDecl implements Printable {
+class FuncDecl extends Node implements Printable {
     private String name;
     private List<Pair<String, Type>> params;
     private List<Type> output;
 
-    public FuncDecl(String name, List<Pair<String, Type>> params, List<Type> output) {
+    public FuncDecl(String name, List<Pair<String, Type>> params, List<Type> output, int start_line, int start_col) {
         this.name = name;
         this.params = params;
         this.output = output;
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
-    public FuncDecl(String name, List<Pair<String, Type>> params) {
+    public FuncDecl(String name, List<Pair<String, Type>> params, int start_line, int start_col) {
         this.name = name;
         this.params = params;
         this.output = new ArrayList<Type>();
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public String getName() {
@@ -874,15 +944,17 @@ class FuncDecl implements Printable {
 }
 
 //top level "nodes"
-abstract class SourceFile implements Printable {
+abstract class SourceFile extends Node implements Printable {
     abstract boolean isInterface();
 }
 
 class InterfaceFile extends SourceFile {
     private ArrayList<FuncDecl> funcDecls;
 
-    public InterfaceFile(List<FuncDecl> funcDecls) {
+    public InterfaceFile(List<FuncDecl> funcDecls, int start_line, int start_col) {
         this.funcDecls = new ArrayList<>(funcDecls);
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<FuncDecl> getFuncDecls() {
@@ -910,9 +982,11 @@ class ProgramFile extends SourceFile {
     private ArrayList<UseInterface> imports;
     private ArrayList<FuncDefn> funcDefns;
 
-    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns) {
+    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns, int start_line, int start_col) {
         this.imports = new ArrayList<>(imports);
         this.funcDefns = new ArrayList<>(funcDefns);
+        this.start_line = start_line;
+        this.start_col = start_col;
     }
 
     public List<UseInterface> getImports() {
