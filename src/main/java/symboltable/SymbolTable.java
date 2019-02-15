@@ -19,4 +19,10 @@ public interface SymbolTable {
      * @param type The type.
      */
     void add(String ID, Type type);
+
+    /** Create and enter a new scope */
+    void enterScope();
+
+    /** Exit the current scope */
+    void exitScope();
 }
