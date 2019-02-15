@@ -12,4 +12,11 @@ public interface SymbolTable {
      *         current context.
      */
     Type lookup(String ID) throws NotFoundException;
+
+    /**
+     * Add an identifier to the current scope with a given type.
+     * @param ID The identifier.
+     * @param type The type.
+     */
+    void add(String ID, Type type);
 }
