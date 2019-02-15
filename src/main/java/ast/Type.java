@@ -1,7 +1,5 @@
 package ast;
 
-import xi_parser.Printable;
-
 public abstract class Type implements Printable {
     public TypeType t_type;
 

@@ -1,4 +1,4 @@
-package xi_parser;
+package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 

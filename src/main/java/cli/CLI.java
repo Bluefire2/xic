@@ -10,7 +10,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
-import xi_parser.Printable;
+import ast.Printable;
 import xi_parser.SyntaxError;
 import xi_parser.XiParser;
 import xi_parser.sym;
