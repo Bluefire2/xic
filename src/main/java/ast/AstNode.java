@@ -52,5 +52,3 @@ enum Binop {
     AND,
     OR
 }
-
-
