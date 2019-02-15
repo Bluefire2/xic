@@ -26,7 +26,7 @@ parser code
             XiToken t = (XiToken) s;
             String message = String.format("%s error:Unexpected token %s",
                                                 t.getLeft(), t.getValue());
-            throw new SyntaxError(message);
+            throw new SyntaxException(message);
         }
     }
 :};
@@ -36,7 +36,7 @@ scan with
     Symbol s = lexer.next_token();
     XiToken t = (XiToken) s;
     if (t.sym == sym.ERROR)
-        throw new LexicalError(t.toString());
+        throw new LexicalException(t.toString());
     // no lexer error, pass on the symbol
     return s;
 :};
