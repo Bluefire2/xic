@@ -8,7 +8,7 @@ public interface SymbolTable {
      *
      * @param id The identifier.
      * @return The type of the identifier, if it has been declared.
-     * @throws NotFoundException If there is no identifier {@code ID} in the
+     * @throws NotFoundException If there is no identifier {@code id} in the
      *         current context.
      */
     Type lookup(String id) throws NotFoundException;
