@@ -2,7 +2,7 @@ package cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
-import lexer.LexicalException;
+import lexer.LexicalErrorException;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
@@ -11,7 +11,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import ast.Printable;
-import xi_parser.SyntaxException;
+import xi_parser.SyntaxErrorException;
 import xi_parser.XiParser;
 import xi_parser.sym;
 
@@ -124,11 +124,11 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
-            } catch (LexicalException e) {
+            } catch (LexicalErrorException e) {
                 System.out.println("Lexical Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxException e) {
+            } catch (SyntaxErrorException e) {
                 System.out.println("Syntax Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
