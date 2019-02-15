@@ -3,8 +3,8 @@ package symboltable;
 public class NotFoundException extends Exception {
     private String message;
 
-    public NotFoundException(String ID) {
-        this.message = String.format("Undefined identified \"%s\"", ID);
+    public NotFoundException(String id) {
+        this.message = String.format("Undefined identifier \"%s\"", id);
     }
 
     @Override
