@@ -8,13 +8,13 @@ public class IntLiteralExpr extends Expr {
     private Character raw;
     public boolean isChar;
 
-    IntLiteralExpr(Long val) {
+    public IntLiteralExpr(Long val) {
         this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = false;
     }
 
-    IntLiteralExpr(Character val) {
+    public IntLiteralExpr(Character val) {
         this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = true;

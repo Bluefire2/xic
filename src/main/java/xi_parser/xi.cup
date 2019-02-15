@@ -1,6 +1,7 @@
 package xi_parser;
 // A stub for a Xi CUP specification.
 
+import ast.*;
 import lexer.XiLexer;
 import lexer.XiToken;
 import lexer.LexicalError;

@@ -6,7 +6,7 @@ public class IndexExpr extends Expr {
     private Expr list;
     private Expr index;
 
-    IndexExpr(Expr list, Expr index) {
+    public IndexExpr(Expr list, Expr index) {
         this.list = list;
         this.index = index;
         this.e_type = ExprType.IndexExpr;

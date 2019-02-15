@@ -11,13 +11,13 @@ public class ListLiteralExpr extends Expr {
     public boolean isString;
     private String raw;
 
-    ListLiteralExpr(List<Expr> contents) {
+    public ListLiteralExpr(List<Expr> contents) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
         this.isString = false;
     }
 
-    ListLiteralExpr(String value) {
+    public ListLiteralExpr(String value) {
         char[] chars = value.toCharArray();
         this.contents = new ArrayList<>();
         for (int i = 0; i < chars.length; i++) {

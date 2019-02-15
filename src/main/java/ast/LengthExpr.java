@@ -5,7 +5,7 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 public class LengthExpr extends Expr {
     private Expr list;
 
-    LengthExpr(Expr list) {
+    public LengthExpr(Expr list) {
         this.list = list;
         this.e_type = ExprType.LengthExpr;
     }

@@ -6,7 +6,7 @@ public class IfStmt extends Stmt {
     private Expr guard;
     private Stmt thenStmt;
 
-    IfStmt(Expr guard, Stmt thenStmt) {
+    public IfStmt(Expr guard, Stmt thenStmt) {
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.s_type = StmtType.IfStmt;

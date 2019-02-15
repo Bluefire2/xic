@@ -7,7 +7,7 @@ public class IfElseStmt extends Stmt {
     private Stmt thenStmt;
     private Stmt elseStmt;
 
-    IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt) {
+    public IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt) {
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.elseStmt = elseStmt;

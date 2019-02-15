@@ -5,7 +5,7 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 public class IdExpr extends Expr {
     private String name;
 
-    IdExpr(String name) {
+    public IdExpr(String name) {
         this.name = name;
         this.e_type = ExprType.IdExpr;
     }

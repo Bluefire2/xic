@@ -6,7 +6,7 @@ public class WhileStmt extends Stmt {
     private Expr guard;
     private Stmt doStmt;
 
-    WhileStmt(Expr guard, Stmt doStmt) {
+    public WhileStmt(Expr guard, Stmt doStmt) {
         this.guard = guard;
         this.doStmt = doStmt;
         this.s_type = StmtType.WhileStmt;

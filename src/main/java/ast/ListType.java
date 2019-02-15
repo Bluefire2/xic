@@ -6,12 +6,12 @@ public class ListType extends Type {
     private Type contentsType;
     private Expr length;
 
-    ListType(Type type) {
+    public ListType(Type type) {
         this.contentsType = type;
         this.t_type = TypeType.ListType;
     }
 
-    ListType(Type type, Expr length) {
+    public ListType(Type type, Expr length) {
         this.contentsType = type;
         this.length = length;
         this.t_type = TypeType.ListType;

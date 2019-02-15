@@ -5,7 +5,7 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 public class BoolLiteralExpr extends Expr {
     private Boolean value;
 
-    BoolLiteralExpr(Boolean val) {
+    public BoolLiteralExpr(Boolean val) {
         this.value = val;
         this.e_type = ExprType.BoolLiteralExpr;
     }

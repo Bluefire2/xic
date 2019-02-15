@@ -8,12 +8,12 @@ import java.util.List;
 public class ReturnStmt extends Stmt {
     private List<Expr> returnVals;
 
-    ReturnStmt(List<Expr> returnVals) {
+    public ReturnStmt(List<Expr> returnVals) {
         this.returnVals = returnVals;
         this.s_type = StmtType.FunctionReturnStmt;
     }
 
-    ReturnStmt() {
+    public ReturnStmt() {
         this.returnVals = new ArrayList<Expr>();
         this.s_type = StmtType.ProcedureReturnStmt;
     }

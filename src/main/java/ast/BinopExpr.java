@@ -7,7 +7,7 @@ public class BinopExpr extends Expr {
     private Expr left;
     private Expr right;
 
-    BinopExpr(Binop op, Expr left, Expr right) {
+    public BinopExpr(Binop op, Expr left, Expr right) {
         this.op = op;
         this.left = left;
         this.right = right;
