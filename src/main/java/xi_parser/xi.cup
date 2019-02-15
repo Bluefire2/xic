@@ -4,7 +4,7 @@ package xi_parser;
 import ast.*;
 import lexer.XiLexer;
 import lexer.XiToken;
-import lexer.LexicalError;
+import lexer.LexicalException;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
