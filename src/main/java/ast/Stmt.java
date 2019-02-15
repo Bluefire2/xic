@@ -2,7 +2,6 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import polyglot.util.Pair;
-import xi_parser.Printable;
 
 public abstract class Stmt implements Printable {
     StmtType s_type;
