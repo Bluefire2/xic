@@ -1,8 +1,9 @@
-package xi_parser;
+package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import org.apache.commons.lang3.StringEscapeUtils;
 import polyglot.util.Pair;
+import xi_parser.Printable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +61,7 @@ enum Binop {
     OR
 }
 
-abstract class Type implements Printable {
+public abstract class Type implements Printable {
     public TypeType t_type;
 
     public TypeType getT_type() {
