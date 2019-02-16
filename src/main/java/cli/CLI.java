@@ -23,48 +23,47 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
+@CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
-    @Option(names = {"-h", "--help"}, usageHelp = true,
+    @Option (names = {"-h", "--help"}, usageHelp = true,
             description = "Print a synopsis of options.")
     private boolean optHelp = false;
 
-    @Option(names = {"-l", "--lex"},
+    @Option (names = {"-l", "--lex"},
             description = "Generate output from lexical analysis.")
     private boolean optLex = false;
 
-    @Option(names = {"--parse"},
+    @Option (names = {"--parse"},
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
 
-    @Option(names = {"--debugparse"},
+    @Option (names = {"--debugparse"},
             description = "Parse in debug mode and print AST to terminal.")
     private boolean optDebug = false;
 
-    @Parameters(arity = "1..*", paramLabel = "FILE",
+    @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
 
-    @Option(names = "-D", defaultValue = ".",
+    @Option (names = "-D", defaultValue = ".",
             description = "Specify where to place generated diagnostic files.")
     private Path path;
 
-    @Option(names = "-sourcepath", defaultValue = ".",
+    @Option (names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
     private Path sourcepath;
 
     @Override
     public void run() {
         if (Files.exists(path)) {
-            if(Files.exists(sourcepath)) {
+            if (Files.exists(sourcepath)) {
                 if (optLex) {
                     lex();
                 }
                 if (optParse) {
                     parse();
                 }
-            }
-            else {
+            } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
             }
         } else {
