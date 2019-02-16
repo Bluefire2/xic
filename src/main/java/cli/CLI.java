@@ -1,5 +1,6 @@
 package cli;
 
+import ast.Printable;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
 import lexer.LexicalErrorException;
@@ -10,7 +11,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
-import ast.Printable;
 import xi_parser.SyntaxErrorException;
 import xi_parser.XiParser;
 import xi_parser.sym;
