@@ -17,4 +17,9 @@ public class IdExpr extends Expr {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.printAtom(name);
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        visitor.visit(this);
+    }
 }

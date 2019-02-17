@@ -1,9 +1,18 @@
 package ast;
 
-public abstract class Expr implements Printable {
-    ExprType e_type;
+public abstract class Expr implements Printable, TypeCheckable {
+    ExprType e_type;//what kind of expression it is
+    MetaType typeCheckType;
 
     public ExprType getE_type() {
         return e_type;
+    }
+
+    public MetaType getTypeCheckType() {
+        return typeCheckType;
+    }
+
+    public void setTypeCheckType(MetaType typecheckType) {
+        this.typeCheckType = typecheckType;
     }
 }

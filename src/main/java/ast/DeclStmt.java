@@ -26,4 +26,9 @@ public class DeclStmt extends Stmt {
             w.endList();
         }
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        visitor.visit(this);
+    }
 }

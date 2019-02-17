@@ -44,4 +44,10 @@ public class ListLiteralExpr extends Expr {
             w.endList();
         }
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        contents.forEach((e) -> e.accept(visitor));
+        visitor.visit(this);
+    }
 }

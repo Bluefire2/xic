@@ -32,4 +32,9 @@ public class IntLiteralExpr extends Expr {
             w.printAtom(value.toString());
         }
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        visitor.visit(this);
+    }
 }

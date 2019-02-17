@@ -41,4 +41,11 @@ public class AssignStmt extends Stmt {
         }
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        left.forEach((e) -> e.accept(visitor));
+        right.forEach((e) -> e.accept(visitor));
+        visitor.visit(this);
+    }
 }

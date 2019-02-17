@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProgramFile extends SourceFile {
-    private ArrayList<UseInterface> imports;
-    private ArrayList<FuncDefn> funcDefns;
+    private List<UseInterface> imports;
+    private List<FuncDefn> funcDefns;
 
     public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns) {
         this.imports = new ArrayList<>(imports);
@@ -43,5 +43,10 @@ public class ProgramFile extends SourceFile {
         funcDefns.forEach((d) -> d.prettyPrint(w));
         w.endList();
         w.endList();
+    }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        //TODO
     }
 }

@@ -129,8 +129,8 @@ start with source;
 //TYPES
 
 type ::=
-  BOOL_TYPE:t {: RESULT = new Tvar("bool"); :}
-| INT_TYPE:t {: RESULT = new Tvar("int"); :}
+  BOOL_TYPE:t {: RESULT = new BoolType(); :}
+| INT_TYPE:t {: RESULT = new IntType(); :}
 | type:t LBRAC RBRAC {:
     if (t instanceof ListType){
         ListType curr = (ListType) t;
@@ -178,11 +178,11 @@ annotated_var ::=
 
 underscore_varlist ::=
   annotated_varlist:l COMMA UNDERSCORE {:
-    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+    l.add(new Pair<String,Type>("_", new UnitType())); RESULT = l; :}
 | UNDERSCORE COMMA annotated_varlist:l {:
-    l.add(0, new Pair<String, Type>("_", new AnyType())); RESULT = l; :}
+    l.add(0, new Pair<String, Type>("_", new UnitType())); RESULT = l; :}
 | underscore_varlist:l COMMA UNDERSCORE {:
-    l.add(new Pair<String,Type>("_", new AnyType())); RESULT = l; :}
+    l.add(new Pair<String,Type>("_", new UnitType())); RESULT = l; :}
 | underscore_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
@@ -193,11 +193,11 @@ func_decl ::=
     RESULT = new FuncDecl(n, l); :}
 | ID:n LPAREN RPAREN COLON typelist:t {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, t); :}
+    RESULT = new FuncDecl(n, l, new MetaTypeList(t)); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
     RESULT = new FuncDecl(n, p); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
-    RESULT = new FuncDecl(n, p, t); :}
+    RESULT = new FuncDecl(n, p, new MetaTypeList(t)); :}
 ;
 
 func_defn ::=
@@ -206,11 +206,11 @@ func_defn ::=
     RESULT = new FuncDefn(n, l, b); :}
 | ID:n LPAREN RPAREN COLON typelist:t block:b {:
     ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, t, b); :}
+    RESULT = new FuncDefn(n, l, new MetaTypeList(t), b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
     RESULT = new FuncDefn(n, p, b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
-    RESULT = new FuncDefn(n, p, t, b); :}
+    RESULT = new FuncDefn(n, p, new MetaTypeList(t), b); :}
 ;
 
 func_defnlist ::=

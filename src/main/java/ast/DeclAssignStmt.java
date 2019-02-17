@@ -42,4 +42,10 @@ public class DeclAssignStmt extends Stmt {
         }
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        right.forEach((e) -> e.accept(visitor));
+        visitor.visit(this);
+    }
 }

@@ -54,4 +54,13 @@ public class BinopExpr extends Expr {
         right.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        left.accept(visitor);
+        right.accept(visitor);
+        visitor.visit(this);
+    }
+
+
 }

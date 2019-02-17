@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //funcDefns are for program files
-public class FuncDefn implements Printable {
+public class FuncDefn implements Printable, TypeCheckable {
     private String name;
     private List<Pair<String, Type>> params;
     private Stmt body;
@@ -48,7 +48,7 @@ public class FuncDefn implements Printable {
     }
 
     public void printPair(Pair<String, Type> p, CodeWriterSExpPrinter w){
-        if (p.part2().getT_type() != TypeType.AnyType){
+        if (p.part2() instanceof UnitType){
             w.startList();
             w.printAtom(p.part1());
             p.part2().prettyPrint(w);
@@ -69,5 +69,10 @@ public class FuncDefn implements Printable {
         w.endList();
         body.prettyPrint(w);
         w.endList();
+    }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        //TODO
     }
 }

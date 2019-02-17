@@ -22,4 +22,12 @@ public class IfElseStmt extends Stmt {
         elseStmt.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        guard.accept(visitor);
+        thenStmt.accept(visitor);
+        elseStmt.accept(visitor);
+        visitor.visit(this);
+    }
 }

@@ -28,4 +28,10 @@ public class ProcedureCallStmt extends Stmt {
         args.forEach((a) -> a.prettyPrint(w));
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        args.forEach((e) -> e.accept(visitor));
+        visitor.visit(this);
+    }
 }

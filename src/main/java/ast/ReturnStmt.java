@@ -28,4 +28,10 @@ public class ReturnStmt extends Stmt {
         returnVals.forEach((v) -> v.prettyPrint(w));
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        returnVals.forEach((e) -> e.accept(visitor));
+        visitor.visit(this);
+    }
 }

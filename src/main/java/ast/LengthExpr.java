@@ -20,4 +20,10 @@ public class LengthExpr extends Expr {
         list.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        list.accept(visitor);
+        visitor.visit(this);
+    }
 }

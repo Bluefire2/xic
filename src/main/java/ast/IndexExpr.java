@@ -27,4 +27,11 @@ public class IndexExpr extends Expr {
         index.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        list.accept(visitor);
+        index.accept(visitor);
+        visitor.visit(this);
+    }
 }

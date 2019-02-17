@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //funcDecls are for interfaces
-public class FuncDecl implements Printable {
+public class FuncDecl implements Printable, TypeCheckable {
     private String name;
     private List<Pair<String, Type>> params;
     private List<Type> output;
@@ -41,7 +41,7 @@ public class FuncDecl implements Printable {
     }
 
     public void printPair(Pair<String, Type> p, CodeWriterSExpPrinter w){
-        if (p.part2().getT_type() != TypeType.AnyType){
+        if (p.part2() instanceof UnitType){
             w.startList();
             w.printAtom(p.part1());
             p.part2().prettyPrint(w);
@@ -61,5 +61,10 @@ public class FuncDecl implements Printable {
         output.forEach((t) -> t.prettyPrint(w));
         w.endList();
         w.endList();
+    }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        //TODO;
     }
 }

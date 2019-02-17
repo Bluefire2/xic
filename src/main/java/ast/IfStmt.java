@@ -19,4 +19,11 @@ public class IfStmt extends Stmt {
         thenStmt.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        guard.accept(visitor);
+        thenStmt.accept(visitor);
+        visitor.visit(this);
+    }
 }

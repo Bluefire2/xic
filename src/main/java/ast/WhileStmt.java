@@ -27,4 +27,11 @@ public class WhileStmt extends Stmt {
         doStmt.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        guard.accept(visitor);
+        doStmt.accept(visitor);
+        visitor.visit(this);
+    }
 }

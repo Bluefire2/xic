@@ -34,4 +34,10 @@ public class BlockStmt extends Stmt {
         statements.forEach((s) -> s.prettyPrint(w));
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        statements.forEach((s) -> s.accept(visitor));
+        visitor.visit(this);
+    }
 }

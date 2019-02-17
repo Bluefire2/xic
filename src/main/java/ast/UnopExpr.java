@@ -35,4 +35,10 @@ public class UnopExpr extends Expr {
         expr.prettyPrint(w);
         w.endList();
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        expr.accept(visitor);
+        visitor.visit(this);
+    }
 }

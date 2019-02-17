@@ -1,5 +1,5 @@
 package ast;
 
-public abstract class Assignable implements Printable {
+public abstract class Assignable implements Printable, TypeCheckable {
 
 }

@@ -17,4 +17,9 @@ public class BoolLiteralExpr extends Expr {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.printAtom(value.toString());
     }
+
+    @Override
+    public void accept(TypeCheckVisitor visitor) {
+        visitor.visit(this);
+    }
 }
