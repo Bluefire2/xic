@@ -59,7 +59,7 @@ public class FuncDecl implements Printable, ASTNode {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         //TODO;
     }
 }

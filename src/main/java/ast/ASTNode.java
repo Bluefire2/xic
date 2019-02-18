@@ -1,5 +1,5 @@
 package ast;
 
 public interface ASTNode {
-    void accept(ASTVisitor visitor);
+    void accept(VisitorAST visitor);
 }

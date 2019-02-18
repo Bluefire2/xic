@@ -29,7 +29,7 @@ public class WhileStmt extends Stmt {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         guard.accept(visitor);
         doStmt.accept(visitor);
         visitor.visit(this);

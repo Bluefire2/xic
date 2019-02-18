@@ -46,7 +46,7 @@ public class ProgramFile extends SourceFile {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         //TODO
     }
 }

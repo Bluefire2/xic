@@ -29,7 +29,7 @@ public class IndexExpr extends Expr {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         list.accept(visitor);
         index.accept(visitor);
         visitor.visit(this);

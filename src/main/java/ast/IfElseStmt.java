@@ -24,7 +24,7 @@ public class IfElseStmt extends Stmt {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         guard.accept(visitor);
         thenStmt.accept(visitor);
         elseStmt.accept(visitor);

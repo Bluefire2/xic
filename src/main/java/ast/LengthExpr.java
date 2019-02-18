@@ -22,7 +22,7 @@ public class LengthExpr extends Expr {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         list.accept(visitor);
         visitor.visit(this);
     }

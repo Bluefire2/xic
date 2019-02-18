@@ -30,7 +30,7 @@ public class ProcedureCallStmt extends Stmt {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         args.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

@@ -19,7 +19,7 @@ public class IdAssignable extends Assignable {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         // TODO
     }
 }

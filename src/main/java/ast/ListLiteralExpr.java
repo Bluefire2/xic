@@ -20,9 +20,8 @@ public class ListLiteralExpr extends Expr {
     public ListLiteralExpr(String value) {
         char[] chars = value.toCharArray();
         this.contents = new ArrayList<>();
-        for (int i = 0; i < chars.length; i++) {
-            contents.add(new IntLiteralExpr(chars[i]));
-        }
+        for (char c : chars)
+            contents.add(new IntLiteralExpr(c));
         this.isString = true;
         this.raw = value;
     }
@@ -46,7 +45,7 @@ public class ListLiteralExpr extends Expr {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         contents.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

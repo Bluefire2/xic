@@ -34,7 +34,7 @@ public class IntLiteralExpr extends Expr {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

@@ -1,7 +1,6 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import polyglot.util.Pair;
 
 import java.util.List;
 
@@ -22,7 +21,7 @@ public class DeclStmt extends Stmt {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

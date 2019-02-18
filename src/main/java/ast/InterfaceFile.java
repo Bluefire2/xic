@@ -44,7 +44,7 @@ public class InterfaceFile extends SourceFile {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         funcDecls.forEach((d) ->d.accept(visitor));
         visitor.visit(this);
     }

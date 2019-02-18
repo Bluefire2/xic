@@ -1,6 +1,6 @@
 package ast;
 
-interface ASTVisitor {
+interface VisitorAST {
     void visit(BinopExpr node);
     void visit(BoolLiteralExpr node);
     void visit(FunctionCallExpr node);

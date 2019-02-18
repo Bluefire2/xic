@@ -56,7 +56,7 @@ public class BinopExpr extends Expr {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         left.accept(visitor);
         right.accept(visitor);
         visitor.visit(this);

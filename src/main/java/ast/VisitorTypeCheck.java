@@ -3,15 +3,15 @@ package ast;
 import symboltable.*;
 import java.util.List;
 
-interface TypeCheckable {
-    void accept(TypeCheckVisitor visitor);
-}
+public class VisitorTypeCheck implements VisitorAST {
+    private SymbolTable symTable;
 
-class TypeCheckVisitor implements ASTVisitor {
-    public SymbolTable symTable;
-
-    TypeCheckVisitor(SymbolTable symTable){
+    VisitorTypeCheck(SymbolTable symTable){
         this.symTable = symTable;
+    }
+
+    public SymbolTable getSymTable() {
+        return symTable;
     }
 
     @Override

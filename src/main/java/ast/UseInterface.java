@@ -21,7 +21,7 @@ public class UseInterface implements ASTNode {
     }
 
     @Override
-    public void accept(ASTVisitor visitor) {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }
