@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 //funcDefns are for program files
-public class FuncDefn implements Printable, TypeCheckable {
+public class FuncDefn implements Printable, ASTNode {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private Stmt body;
@@ -74,7 +74,7 @@ public class FuncDefn implements Printable, TypeCheckable {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         //TODO
     }
 }

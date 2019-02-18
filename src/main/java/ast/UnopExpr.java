@@ -37,7 +37,7 @@ public class UnopExpr extends Expr {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         expr.accept(visitor);
         visitor.visit(this);
     }

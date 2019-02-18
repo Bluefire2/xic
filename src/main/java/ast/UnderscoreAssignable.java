@@ -7,4 +7,9 @@ public class UnderscoreAssignable extends Assignable {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.printAtom("_");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        // TODO
+    }
 }

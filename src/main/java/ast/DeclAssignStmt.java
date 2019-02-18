@@ -31,7 +31,7 @@ public class DeclAssignStmt extends Stmt {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         right.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

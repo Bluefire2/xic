@@ -6,7 +6,7 @@ import symboltable.SymbolTable;
 
 import java.util.List;
 
-public abstract class Stmt implements Printable, TypeCheckable {
+public abstract class Stmt implements Printable, ASTNode {
     StmtType s_type;
     SymbolTable symTable = null;
     // TODO: again, do we need this; type checker visitor should take care

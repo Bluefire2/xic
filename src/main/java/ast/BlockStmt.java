@@ -36,7 +36,7 @@ public class BlockStmt extends Stmt {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         statements.forEach((s) -> s.accept(visitor));
         visitor.visit(this);
     }

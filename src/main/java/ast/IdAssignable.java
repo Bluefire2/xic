@@ -17,4 +17,9 @@ public class IdAssignable extends Assignable {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         id.prettyPrint(w);
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        // TODO
+    }
 }

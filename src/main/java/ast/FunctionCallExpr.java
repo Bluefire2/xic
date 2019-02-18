@@ -30,7 +30,7 @@ public class FunctionCallExpr extends Expr {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         args.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

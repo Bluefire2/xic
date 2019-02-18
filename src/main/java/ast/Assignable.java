@@ -1,5 +1,3 @@
 package ast;
 
-public abstract class Assignable implements Printable, TypeCheckable {
-
-}
+public abstract class Assignable implements Printable, ASTNode {}

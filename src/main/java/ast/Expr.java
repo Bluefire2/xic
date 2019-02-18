@@ -1,6 +1,6 @@
 package ast;
 
-public abstract class Expr implements Printable, TypeCheckable {
+public abstract class Expr implements Printable, ASTNode {
     ExprType e_type;//what kind of expression it is
     // TODO: do we need this; the Visitor is supposed to take care of ast
     //  node types

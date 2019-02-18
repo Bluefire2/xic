@@ -17,4 +17,9 @@ public class IndexAssignable extends Assignable {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         index.prettyPrint(w);
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        // TODO
+    }
 }

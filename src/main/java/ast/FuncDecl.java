@@ -6,7 +6,7 @@ import polyglot.util.Pair;
 import java.util.List;
 
 //funcDecls are for interfaces
-public class FuncDecl implements Printable, TypeCheckable {
+public class FuncDecl implements Printable, ASTNode {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private TypeT output;
@@ -59,7 +59,7 @@ public class FuncDecl implements Printable, TypeCheckable {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         //TODO;
     }
 }

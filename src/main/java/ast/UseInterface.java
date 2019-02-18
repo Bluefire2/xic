@@ -2,7 +2,7 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class UseInterface implements TypeCheckable{
+public class UseInterface implements ASTNode {
     private String name;
 
     public UseInterface(String name) {
@@ -21,7 +21,7 @@ public class UseInterface implements TypeCheckable{
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         visitor.visit(this);
     }
 }

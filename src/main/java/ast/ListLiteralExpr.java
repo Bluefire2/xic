@@ -46,7 +46,7 @@ public class ListLiteralExpr extends Expr {
     }
 
     @Override
-    public void accept(TypeCheckVisitor visitor) {
+    public void accept(ASTVisitor visitor) {
         contents.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }
