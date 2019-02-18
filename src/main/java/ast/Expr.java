@@ -2,17 +2,19 @@ package ast;
 
 public abstract class Expr implements Printable, TypeCheckable {
     ExprType e_type;//what kind of expression it is
-    MetaType typeCheckType;
+    // TODO: do we need this; the Visitor is supposed to take care of ast
+    //  node types
+    TypeT typeCheckType;
 
     public ExprType getE_type() {
         return e_type;
     }
 
-    public MetaType getTypeCheckType() {
+    public TypeT getTypeCheckType() {
         return typeCheckType;
     }
 
-    public void setTypeCheckType(MetaType typecheckType) {
+    public void setTypeCheckType(TypeT typecheckType) {
         this.typeCheckType = typecheckType;
     }
 }

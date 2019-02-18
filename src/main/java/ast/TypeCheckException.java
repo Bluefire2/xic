@@ -2,11 +2,11 @@ package ast;
 
 public class TypeCheckException extends Exception{
     private String message;
-    private MetaType expected;
-    private MetaType got;
+    private TypeT expected;
+    private TypeT got;
 
 
-    public TypeCheckException(MetaType expected, MetaType actual) {
+    public TypeCheckException(TypeT expected, TypeT actual) {
         this.message = String.format("Expected %s, but found %s",
                 expected.toString(), actual.toString());
         this.expected = expected;
@@ -18,11 +18,11 @@ public class TypeCheckException extends Exception{
         return this.message;
     }
 
-    public MetaType getExpectedType() {
+    public TypeT getExpectedType() {
         return expected;
     }
 
-    public MetaType getActualType() {
+    public TypeT getActualType() {
         return got;
     }
 }

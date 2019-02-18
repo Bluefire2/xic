@@ -1,6 +1,6 @@
 package symboltable;
 
-import ast.Type;
+import ast.TypeTTau;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,21 +8,21 @@ import java.util.Stack;
 
 public class HashMapSymbolTable implements SymbolTable {
     // private so the caller can't mutate this
-    private Stack<Map<String, Type>> scopes;
+    private Stack<Map<String, TypeSymTable>> scopes;
 
     public HashMapSymbolTable() {
         this.scopes = new Stack<>();
     }
 
     @Override
-    public Type lookup(String id) throws NotFoundException {
-        Stack<Map<String, Type>> head = new Stack<>();
-        Type type = null;
+    public TypeSymTable lookup(String id) throws NotFoundException {
+        Stack<Map<String, TypeSymTable>> head = new Stack<>();
+        TypeSymTable typeSymTable = null;
 
         while (!scopes.empty()) {
-            Map<String, Type> scope = scopes.peek();
+            Map<String, TypeSymTable> scope = scopes.peek();
             if (scope.containsKey(id)) {
-                type = scope.get(id);
+                typeSymTable = scope.get(id);
                 break;
             } else {
                 // pop the current scope and try the previous one
@@ -35,20 +35,20 @@ public class HashMapSymbolTable implements SymbolTable {
             scopes.push(head.pop());
         }
 
-        if (type != null) {
-            return type;
+        if (typeSymTable != null) {
+            return typeSymTable;
         } else {
             throw new NotFoundException(id);
         }
     }
 
     @Override
-    public void add(String id, Type type) {
+    public void add(String id, TypeSymTable typeSymTable) {
         if (scopes.empty()) {
             throw new IllegalStateException("Cannot add type: no scopes have been defined");
         }
 
-        scopes.peek().put(id, type); // TODO: should we throw if this ID already exists in the current scope?
+        scopes.peek().put(id, typeSymTable); // TODO: should we throw if this ID already exists in the current scope?
     }
 
     @Override

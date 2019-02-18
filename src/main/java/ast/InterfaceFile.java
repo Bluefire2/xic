@@ -1,7 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import symboltable.CtxType;
+import symboltable.TypeSymTable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,7 @@ import polyglot.util.Pair;
 
 public class InterfaceFile extends SourceFile {
     private List<FuncDecl> funcDecls;
-    private List<Pair<String,CtxType>> signatures;
+    private List<Pair<String, TypeSymTable>> signatures;
 
     public InterfaceFile(List<FuncDecl> funcDecls) {
         this.funcDecls = new ArrayList<>(funcDecls);
@@ -35,11 +35,11 @@ public class InterfaceFile extends SourceFile {
         w.endList();
     }
 
-    public List<Pair<String, CtxType>> getSignatures() {
+    public List<Pair<String, TypeSymTable>> getSignatures() {
         return signatures;
     }
 
-    public void setSignatures(List<Pair<String, CtxType>> signatures) {
+    public void setSignatures(List<Pair<String, TypeSymTable>> signatures) {
         this.signatures = signatures;
     }
 

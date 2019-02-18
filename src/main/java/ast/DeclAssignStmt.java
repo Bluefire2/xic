@@ -1,21 +1,20 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import polyglot.util.Pair;
 
 import java.util.List;
 
 public class DeclAssignStmt extends Stmt {
-    private List<Pair<String, Type>> decls;
+    private List<TypeDecl> decls;
     private List<Expr> right;
 
-    public DeclAssignStmt(List<Pair<String, Type>> decls, List<Expr> right) {
+    public DeclAssignStmt(List<TypeDecl> decls, List<Expr> right) {
         this.decls = decls;
         this.right = right;
         this.s_type = StmtType.DeclAssignStmt;
     }
 
-    public List<Pair<String, Type>> getDecls() {
+    public List<TypeDecl> getDecls() {
         return decls;
     }
 
@@ -26,20 +25,8 @@ public class DeclAssignStmt extends Stmt {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom("=");
-        if (decls.size() == 1){
-            this.printPair(decls.get(0),w);
-        } else {
-            w.startList();
-            decls.forEach((d) -> this.printPair(d,w));
-            w.endList();
-        }
-        if (right.size() == 1){
-            right.get(0).prettyPrint(w);
-        } else {
-            w.startList();
-            right.forEach((e) -> e.prettyPrint(w));
-            w.endList();
-        }
+        prettyPrintList(decls, w);
+        prettyPrintList(right, w);
         w.endList();
     }
 

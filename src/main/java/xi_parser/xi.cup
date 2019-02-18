@@ -7,7 +7,9 @@ import lexer.XiToken;
 import lexer.LexicalErrorException;
 import polyglot.util.Pair;
 
+import java.util.List;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import lexer.XiTokenFactory;
 import java_cup.runtime.Symbol;
@@ -91,7 +93,7 @@ nonterminal InterfaceFile interface;
 nonterminal ProgramFile program;
 
 nonterminal Pair annotated_var;
-nonterminal Type type;
+nonterminal TypeTTau type;
 nonterminal FuncDecl func_decl;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
@@ -103,14 +105,14 @@ nonterminal Stmt statement, matchedstmt, unmatchedstmt;
 nonterminal Stmt return;
 nonterminal Stmt block;
 
-nonterminal ArrayList<Pair<String,Type>> annotated_varlist;
-nonterminal ArrayList<Pair<String,Type>> underscore_varlist;
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_varlist;
+nonterminal ArrayList<TypeDecl> underscore_varlist;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
 nonterminal ArrayList<Assignable> assignablelist;
 nonterminal ArrayList<FuncDefn> func_defnlist;
-nonterminal ArrayList<Type> typelist;
+nonterminal ArrayList<TypeTTau> typelist;
 nonterminal ArrayList<Expr> indices;
 
 precedence left COMMA;
@@ -129,35 +131,35 @@ start with source;
 //TYPES
 
 type ::=
-  BOOL_TYPE:t {: RESULT = new BoolType(); :}
-| INT_TYPE:t {: RESULT = new IntType(); :}
+  BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
+| INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
 | type:t LBRAC RBRAC {:
-    if (t instanceof ListType){
-        ListType curr = (ListType) t;
-        while (curr.getContentsType() instanceof ListType){
-            curr = (ListType) curr.getContentsType();
+    if (t instanceof TypeTTauArray){
+        TypeTTauArray curr = (TypeTTauArray) t;
+        while (curr.getTypeTTau() instanceof TypeTTauArray){
+            curr = (TypeTTauArray) curr.getTypeTTau();
         }
-        curr.setContentsType(new ListType(curr.getContentsType()));
+        curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
         RESULT = t;
     } else {
-        RESULT = new ListType(t);
+        RESULT = new TypeTTauArray(t);
     } :}
 | type:t LBRAC expr:e RBRAC {:
-    if (t instanceof ListType){
-        ListType curr = (ListType) t;
-        while (curr.getContentsType() instanceof ListType){
-            curr = (ListType) curr.getContentsType();
+    if (t instanceof TypeTTauArray){
+        TypeTTauArray curr = (TypeTTauArray) t;
+        while (curr.getTypeTTau() instanceof TypeTTauArray){
+            curr = (TypeTTauArray) curr.getTypeTTau();
         }
-        curr.setContentsType(new ListType(curr.getContentsType(),e));
+        curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau(),e));
         RESULT = t;
     } else {
-        RESULT = new ListType(t,e);
+        RESULT = new TypeTTauArray(t,e);
     } :}
 ;
 
 typelist ::=
   type:t {:
-    ArrayList<Type> l = new ArrayList<>();
+    ArrayList<TypeTTau> l = new ArrayList<>();
     l.add(t);
     RESULT = l; :}
   | typelist:l COMMA type:t {: l.add(t); RESULT = l; :}
@@ -165,52 +167,74 @@ typelist ::=
 
 annotated_varlist ::=
   annotated_var:a {:
-    ArrayList<Pair<String,Type>> l = new ArrayList<>();
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
     l.add(a);
     RESULT = l; :}
 | annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
 annotated_var ::=
-  ID:i COLON type:t {:
-    RESULT = new Pair<String,Type>(i, t); :}
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
+// TODO: IDEA says that p -> New TypeDeclVar(p) can be just a function, which
+//  one?
 underscore_varlist ::=
   annotated_varlist:l COMMA UNDERSCORE {:
-    l.add(new Pair<String,Type>("_", new UnitType())); RESULT = l; :}
+    List<TypeDecl> newl = l.stream()
+        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+    newl.add(new TypeDeclUnderscore()); RESULT = new ArrayList<>(newl); :}
 | UNDERSCORE COMMA annotated_varlist:l {:
-    l.add(0, new Pair<String, Type>("_", new UnitType())); RESULT = l; :}
+    List<TypeDecl> newl = l.stream()
+        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+    newl.add(0, new TypeDeclUnderscore()); RESULT = new ArrayList<>(newl); :}
 | underscore_varlist:l COMMA UNDERSCORE {:
-    l.add(new Pair<String,Type>("_", new UnitType())); RESULT = l; :}
-| underscore_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+    l.add(new TypeDeclUnderscore()); RESULT = l; :}
+| underscore_varlist:l COMMA annotated_var:a {:
+    l.add(new TypeDeclVar(a)); RESULT = l; :}
 ;
 
 //FUNCTION DECLARATIONS AND DEFINITIONS
+// Need to differentiate type and typelist with COMMA, otherwise possible
+// shift-shift conflict
 func_decl ::=
   ID:n LPAREN RPAREN {:
-    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
     RESULT = new FuncDecl(n, l); :}
-| ID:n LPAREN RPAREN COLON typelist:t {:
-    ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, new MetaTypeList(t)); :}
+| ID:n LPAREN RPAREN COLON type:t {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    RESULT = new FuncDecl(n, l, t); :}
+| ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    t2.add(0, t1);
+    RESULT = new FuncDecl(n, l, new TypeTList(t2)); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
     RESULT = new FuncDecl(n, p); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t {:
-    RESULT = new FuncDecl(n, p, new MetaTypeList(t)); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
+    RESULT = new FuncDecl(n, p, t); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 typelist:t2 {:
+    t2.add(0, t1);
+    RESULT = new FuncDecl(n, p, new TypeTList(t2)); :}
 ;
 
 func_defn ::=
   ID:n LPAREN RPAREN block:b {:
-    ArrayList<Pair<String, Type>> l = new ArrayList<>();
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
     RESULT = new FuncDefn(n, l, b); :}
-| ID:n LPAREN RPAREN COLON typelist:t block:b {:
-    ArrayList<Pair<String, Type>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, new MetaTypeList(t), b); :}
+| ID:n LPAREN RPAREN COLON type:t block:b {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    RESULT = new FuncDefn(n, l, t, b); :}
+| ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 block:b {:
+    t2.add(0, t1);
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    RESULT = new FuncDefn(n, l, new TypeTList(t2), b); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
     RESULT = new FuncDefn(n, p, b); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON typelist:t block:b {:
-    RESULT = new FuncDefn(n, p, new MetaTypeList(t), b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {:
+    RESULT = new FuncDefn(n, p, t, b); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 COMMA typelist:t2 block:b {:
+    t2.add(0, t1);
+    RESULT = new FuncDefn(n, p, new TypeTList(t2), b); :}
 ;
 
 func_defnlist ::=
@@ -307,19 +331,24 @@ indices ::=
 
 matchedstmt ::=
   IF expr:e matchedstmt:s1 ELSE matchedstmt:s2 {:
-     RESULT = new IfElseStmt(e,s1,s2); :}
+    RESULT = new IfElseStmt(e,s1,s2); :}
 | WHILE expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s); :}
 | block:b {: RESULT = b; :}
 | assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e); :}
 | underscore_varlist:d EQ exprlist:e {:
-      RESULT = new DeclAssignStmt(d, e); :}
-| annotated_varlist:d {: RESULT = new DeclStmt(d); :}
+    RESULT = new DeclAssignStmt(d, e); :}
+| annotated_varlist:d {:
+    List<TypeDeclVar> newd = d.stream()
+        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+    RESULT = new DeclStmt(newd); :}
 | annotated_varlist:d EQ exprlist:e {:
-      RESULT = new DeclAssignStmt(d, e); :}
+    List<TypeDecl> newd = d.stream()
+        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+    RESULT = new DeclAssignStmt(newd, e); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-      RESULT = new ProcedureCallStmt(i, el); :}
+    RESULT = new ProcedureCallStmt(i, el); :}
 | ID:i LPAREN RPAREN {:
-      RESULT = new ProcedureCallStmt(i, new ArrayList<Expr>()); :}
+    RESULT = new ProcedureCallStmt(i, new ArrayList<Expr>()); :}
 ;
 
 

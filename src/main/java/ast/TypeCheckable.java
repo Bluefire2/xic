@@ -2,64 +2,26 @@ package ast;
 
 import symboltable.*;
 import java.util.List;
-import java.util.ArrayList;
-
-enum StmtFallthrough {
-    Unit, // different from TypeType.UnitType
-    Void,
-}
-
-interface ASTVisitor {
-    void visit(BinopExpr node);
-    void visit(BoolLiteralExpr node);
-    void visit(FunctionCallExpr node);
-    void visit(IdExpr node);
-    void visit(IndexExpr node);
-    void visit(IntLiteralExpr node);
-    void visit(LengthExpr node);
-    void visit(ListLiteralExpr node);
-    void visit(UnopExpr node);
-
-    void visit(IndexAssignable node);
-    void visit(UnderscoreAssignable node);
-    void visit(IdAssignable node);
-
-    void visit(ReturnStmt node);
-    void visit(AssignStmt node);
-    void visit(DeclStmt node);
-    void visit(DeclAssignStmt node);
-    void visit(ProcedureCallStmt node);
-    void visit(IfStmt node);
-    void visit(IfElseStmt node);
-    void visit(WhileStmt node);
-    void visit(BlockStmt node);
-
-    void visit(ProgramFile node);
-    void visit(InterfaceFile node);
-    void visit(FuncDefn node);
-    void visit(FuncDecl node);
-    void visit(UseInterface node);
-}
 
 interface TypeCheckable {
     void accept(TypeCheckVisitor visitor);
 }
 
 class TypeCheckVisitor implements ASTVisitor {
-    public SymbolTable context;
+    public SymbolTable symTable;
 
-    TypeCheckVisitor(SymbolTable st){
-        this.context = st;
+    TypeCheckVisitor(SymbolTable symTable){
+        this.symTable = symTable;
     }
 
     @Override
     public void visit(BinopExpr node) {
         Expr left = node.getLeft();
         Expr right = node.getRight();
-        MetaType lmt = left.typeCheckType;
-        MetaType rmt = right.typeCheckType;
-        IntType i = new IntType();
-        BoolType b = new BoolType();
+        TypeT lmt = left.typeCheckType;
+        TypeT rmt = right.typeCheckType;
+        TypeTTauInt i = new TypeTTauInt();
+        TypeTTauBool b = new TypeTTauBool();
         boolean bothInt = i.equals(lmt) && i.equals(rmt);
         boolean bothBool = b.equals(lmt) && b.equals(rmt);
         switch (node.getOp()) {
@@ -102,7 +64,7 @@ class TypeCheckVisitor implements ASTVisitor {
 
     @Override
     public void visit(BoolLiteralExpr node) {
-        node.setTypeCheckType(new BoolType());
+        node.setTypeCheckType(new TypeTTauBool());
     }
 
     @Override
@@ -110,18 +72,15 @@ class TypeCheckVisitor implements ASTVisitor {
         //TODO: I think we need a meta-type otherwise cannot set type to a list
         String name = node.getName();
         try {
-            CtxType t = context.lookup(name);
-            if (t instanceof FunCtxType) {
-                MetaType inTypes = ((FunCtxType) t).getInputs();
-                MetaType outTypes = ((FunCtxType) t).getOutputs();
+            TypeSymTable t = symTable.lookup(name);
+            if (t instanceof TypeSymTableFunc) {
+                TypeT inTypes = ((TypeSymTableFunc) t).getInput();
+                TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
                 List<Expr> args = node.getArgs();
                 //TODO INCOMPLETE
                 } else {
                     //TODO: throw error
                 }
-            } else {
-                //TODO: throw error
-            }
         } catch (NotFoundException e){
             //TODO: handle exception
         }
@@ -131,9 +90,9 @@ class TypeCheckVisitor implements ASTVisitor {
     public void visit(IdExpr node) {
         String name = node.getName();
         try {
-            CtxType t = context.lookup(name);
-            if (t instanceof VarCtxType) {
-                node.setTypeCheckType(((VarCtxType) t).getType());
+            TypeSymTable t = symTable.lookup(name);
+            if (t instanceof TypeSymTableVar) {
+                node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
             } else {
                 //TODO: throw error
             }
@@ -146,11 +105,11 @@ class TypeCheckVisitor implements ASTVisitor {
     public void visit(IndexExpr node) {
         Expr lst = node.getList();
         Expr idx = node.getIndex();
-        MetaType lt = lst.getTypeCheckType();
-        MetaType it = idx.getTypeCheckType();
-        if (lt instanceof ListType) {
-            if (it instanceof IntType) {
-                node.setTypeCheckType(((ListType) lt).getContentsType());
+        TypeT lt = lst.getTypeCheckType();
+        TypeT it = idx.getTypeCheckType();
+        if (lt instanceof TypeTTauArray) {
+            if (it instanceof TypeTTauInt) {
+                node.setTypeCheckType(((TypeTTauArray) lt).getTypeTTau());
             } else {
                 //TODO: throw error
             }
@@ -161,13 +120,13 @@ class TypeCheckVisitor implements ASTVisitor {
 
     @Override
     public void visit(IntLiteralExpr node) {
-        node.setTypeCheckType(new IntType());
+        node.setTypeCheckType(new TypeTTauInt());
     }
 
     @Override
     public void visit(LengthExpr node) {
-        if (node.getTypeCheckType() instanceof ListType){
-            node.setTypeCheckType(new IntType());
+        if (node.getTypeCheckType() instanceof TypeTTauArray){
+            node.setTypeCheckType(new TypeTTauInt());
         } else {
             //TODO: throw error
         }
@@ -178,9 +137,9 @@ class TypeCheckVisitor implements ASTVisitor {
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
-            node.setTypeCheckType(new ListType(new UnitType()));
+            node.setTypeCheckType(new TypeTTauArray(new TypeTUnit()));
         } else {
-            MetaType init = contents.get(0).getTypeCheckType();
+            TypeT init = contents.get(0).getTypeCheckType();
             for (Expr e: contents) {
                 if (!(e.getTypeCheckType().equals(init))){
                     //TODO: throw error
@@ -193,9 +152,9 @@ class TypeCheckVisitor implements ASTVisitor {
     @Override
     public void visit(UnopExpr node) {
         Expr e = node.getExpr();
-        MetaType et = e.getTypeCheckType();
-        IntType i = new IntType();
-        BoolType b = new BoolType();
+        TypeT et = e.getTypeCheckType();
+        TypeTTauInt i = new TypeTTauInt();
+        TypeTTauBool b = new TypeTTauBool();
         switch (node.getOp()) {
             case NOT:
                 if (et.equals(b)){
