@@ -89,7 +89,37 @@ public class VisitorTypeCheck implements VisitorAST {
             if (t instanceof TypeSymTableFunc) {
                 TypeT inTypes = ((TypeSymTableFunc) t).getInput();
                 TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
-                // TODO: incomplete
+                if (!(outTypes instanceof TypeTUnit)) {
+                    // non-unit return type
+                    if (inTypes instanceof TypeTUnit) {
+                        // procedure with no args
+                        node.setTypeCheckType(outTypes);
+                    } else if (inTypes instanceof TypeTTau
+                            && node.getArgs().size() == 1
+                            && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
+                        // procedure with 1 arg
+                        node.setTypeCheckType(outTypes);
+                    } else if (inTypes instanceof TypeTList) {
+                        // procedure with >= 2 args
+                        List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
+                        List<Expr> funcArgs = node.getArgs();
+                        if (inTauList.size() == funcArgs.size()) {
+                            for (int i = 0; i < funcArgs.size(); ++i) {
+                                if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) {
+                                    // TODO: throw error: corresponding type
+                                    //  and tau don't match
+                                }
+                            }
+                            // func args and func sig match
+                            node.setTypeCheckType(outTypes);
+                        } else {
+                            // TODO: throw error: arg and type length not equal
+                        }
+                    }
+                } else {
+                    // TODO: throw error: function call expressions must not
+                    //  return TUnit
+                }
             } else {
                 //TODO: throw error
             }
