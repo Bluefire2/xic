@@ -13,16 +13,22 @@ public class FuncDefn implements Printable, ASTNode {
     private Stmt body;
     private TypeT output;
 
+    private int left;
+    private int right;
+
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params,
-                    TypeT output, Stmt body) {
+                    TypeT output, Stmt body, int left, int right) {
         this.name = name;
         this.params = params;
         this.output = output;
         this.body = body;
+        this.left = left;
+        this.right = right;
     }
 
-    public FuncDefn(String name, List<Pair<String, TypeTTau>> params, Stmt body) {
-        this(name, params, new TypeTUnit(), body);
+    public FuncDefn(String name, List<Pair<String, TypeTTau>> params, Stmt body,
+                                            int left, int right) {
+        this(name, params, new TypeTUnit(), body, left, right);
     }
 
     public String getName() {
@@ -76,5 +82,15 @@ public class FuncDefn implements Printable, ASTNode {
     @Override
     public void accept(VisitorAST visitor) {
         //TODO
+    }
+
+    @Override
+    public int getLeft() {
+        return left;
+    }
+
+    @Override
+    public int getRight() {
+        return right;
     }
 }

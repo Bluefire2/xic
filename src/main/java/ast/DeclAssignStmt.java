@@ -6,11 +6,12 @@ import java.util.List;
 
 public class DeclAssignStmt extends Stmt {
     private List<TypeDecl> decls;
-    private List<Expr> right;
+    private List<Expr> rhs;
 
-    public DeclAssignStmt(List<TypeDecl> decls, List<Expr> right) {
+    public DeclAssignStmt(List<TypeDecl> decls, List<Expr> rhs, int left, int right) {
+        super(left, right);
         this.decls = decls;
-        this.right = right;
+        this.rhs = rhs;
         this.s_type = StmtType.DeclAssignStmt;
     }
 
@@ -18,21 +19,21 @@ public class DeclAssignStmt extends Stmt {
         return decls;
     }
 
-    public List<Expr> getRight() {
-        return right;
+    public List<Expr> getRhs() {
+        return rhs;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom("=");
         prettyPrintList(decls, w);
-        prettyPrintList(right, w);
+        prettyPrintList(rhs, w);
         w.endList();
     }
 
     @Override
     public void accept(VisitorAST visitor) {
-        right.forEach((e) -> e.accept(visitor));
+        rhs.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }
 }

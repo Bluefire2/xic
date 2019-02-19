@@ -11,17 +11,19 @@ public class ArrayLiteralExpr extends Expr {
     public boolean isString;
     private String raw;
 
-    public ArrayLiteralExpr(List<Expr> contents) {
+    public ArrayLiteralExpr(List<Expr> contents, int left, int right) {
+        super(left, right);
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
         this.isString = false;
     }
 
-    public ArrayLiteralExpr(String value) {
+    public ArrayLiteralExpr(String value, int left, int right) {
+        super(left, right);
         char[] chars = value.toCharArray();
         this.contents = new ArrayList<>();
         for (char c : chars)
-            contents.add(new IntLiteralExpr(c));
+            contents.add(new IntLiteralExpr(c, left, right));
         this.isString = true;
         this.raw = value;
     }

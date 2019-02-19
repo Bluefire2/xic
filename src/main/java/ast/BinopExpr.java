@@ -4,13 +4,14 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 public class BinopExpr extends Expr {
     private Binop op;
-    private Expr left;
-    private Expr right;
+    private Expr leftExpr;
+    private Expr rightExpr;
 
-    public BinopExpr(Binop op, Expr left, Expr right) {
+    public BinopExpr(Binop op, Expr leftExpr, Expr rightExpr, int left, int right) {
+        super(left, right);
         this.op = op;
-        this.left = left;
-        this.right = right;
+        this.leftExpr = leftExpr;
+        this.rightExpr = rightExpr;
         this.e_type = ExprType.BinopExpr;
     }
 
@@ -18,12 +19,12 @@ public class BinopExpr extends Expr {
         return op;
     }
 
-    public Expr getLeft() {
-        return left;
+    public Expr getLeftExpr() {
+        return leftExpr;
     }
 
-    public Expr getRight() {
-        return right;
+    public Expr getRightExpr() {
+        return rightExpr;
     }
 
     public String opToString(){
@@ -50,15 +51,15 @@ public class BinopExpr extends Expr {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom(this.opToString());
-        left.prettyPrint(w);
-        right.prettyPrint(w);
+        leftExpr.prettyPrint(w);
+        rightExpr.prettyPrint(w);
         w.endList();
     }
 
     @Override
     public void accept(VisitorAST visitor) {
-        left.accept(visitor);
-        right.accept(visitor);
+        leftExpr.accept(visitor);
+        rightExpr.accept(visitor);
         visitor.visit(this);
     }
 

@@ -8,7 +8,8 @@ public class ProcedureCallStmt extends Stmt {
     private String name;
     private List<Expr> args;
 
-    public ProcedureCallStmt(String name, List<Expr> args) {
+    public ProcedureCallStmt(String name, List<Expr> args, int left, int right) {
+        super(left, right);
         this.name = name;
         this.args = args;
         this.s_type = StmtType.ProcedureCallStmt;

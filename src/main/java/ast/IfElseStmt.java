@@ -7,7 +7,8 @@ public class IfElseStmt extends Stmt {
     private Stmt thenStmt;
     private Stmt elseStmt;
 
-    public IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt) {
+    public IfElseStmt(Expr guard, Stmt thenStmt, Stmt elseStmt, int left, int right) {
+        super(left, right);
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.elseStmt = elseStmt;

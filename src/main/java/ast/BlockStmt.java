@@ -8,13 +8,14 @@ import java.util.List;
 public class BlockStmt extends Stmt {
     private List<Stmt> statements;
 
-    public BlockStmt(List<Stmt> statements) {
+    public BlockStmt(List<Stmt> statements, int left, int right) {
+        super(left,right);
         this.statements = statements;
         this.s_type = StmtType.BlockStmt;
     }
 
-    public BlockStmt() {
-        this(new ArrayList<>());
+    public BlockStmt(int left, int right) {
+        this(new ArrayList<>(), left, right);
     }
 
     public List<Stmt> getStatments() {

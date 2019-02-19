@@ -9,7 +9,8 @@ public class ProgramFile extends SourceFile {
     private List<UseInterface> imports;
     private List<FuncDefn> funcDefns;
 
-    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns) {
+    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns, int left, int right) {
+        super(left, right);
         this.imports = new ArrayList<>(imports);
         this.funcDefns = new ArrayList<>(funcDefns);
     }

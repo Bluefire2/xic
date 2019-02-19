@@ -6,7 +6,8 @@ public class IndexExpr extends Expr {
     private Expr array;
     private Expr index;
 
-    public IndexExpr(Expr array, Expr index) {
+    public IndexExpr(Expr array, Expr index, int left, int right) {
+        super(left, right);
         this.array = array;
         this.index = index;
         this.e_type = ExprType.IndexExpr;
