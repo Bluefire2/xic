@@ -3,6 +3,8 @@ package ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 public class TypeTTauArray extends TypeTTau {
+    // TODO: The prospect of tau being null might result in
+    //  NullPointerExceptions from many functions in this class
     private TypeTTau typeTTau; //if null, then the list is empty and matches any type
     private Expr size = null;
 
@@ -15,8 +17,6 @@ public class TypeTTauArray extends TypeTTau {
         this.size = size;
     }
 
-    // TODO: don't need this, I think. Arrays must be either int, bool, or a
-    //  tau array
     public TypeTTauArray(){ //For empty lists
     }
 

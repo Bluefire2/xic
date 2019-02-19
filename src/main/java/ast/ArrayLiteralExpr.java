@@ -6,18 +6,18 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ListLiteralExpr extends Expr {
+public class ArrayLiteralExpr extends Expr {
     private List<Expr> contents;
     public boolean isString;
     private String raw;
 
-    public ListLiteralExpr(List<Expr> contents) {
+    public ArrayLiteralExpr(List<Expr> contents) {
         this.contents = contents;
         this.e_type = ExprType.ListLiteralExpr;
         this.isString = false;
     }
 
-    public ListLiteralExpr(String value) {
+    public ArrayLiteralExpr(String value) {
         char[] chars = value.toCharArray();
         this.contents = new ArrayList<>();
         for (char c : chars)

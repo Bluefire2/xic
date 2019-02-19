@@ -8,7 +8,7 @@ interface VisitorAST {
     void visit(IndexExpr node);
     void visit(IntLiteralExpr node);
     void visit(LengthExpr node);
-    void visit(ListLiteralExpr node);
+    void visit(ArrayLiteralExpr node);
     void visit(UnopExpr node);
 
     void visit(IndexAssignable node);

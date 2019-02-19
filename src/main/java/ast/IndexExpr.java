@@ -3,17 +3,17 @@ package ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 public class IndexExpr extends Expr {
-    private Expr list;
+    private Expr array;
     private Expr index;
 
-    public IndexExpr(Expr list, Expr index) {
-        this.list = list;
+    public IndexExpr(Expr array, Expr index) {
+        this.array = array;
         this.index = index;
         this.e_type = ExprType.IndexExpr;
     }
 
-    public Expr getList() {
-        return list;
+    public Expr getArray() {
+        return array;
     }
 
     public Expr getIndex() {
@@ -23,14 +23,14 @@ public class IndexExpr extends Expr {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom("[]");
-        list.prettyPrint(w);
+        array.prettyPrint(w);
         index.prettyPrint(w);
         w.endList();
     }
 
     @Override
     public void accept(VisitorAST visitor) {
-        list.accept(visitor);
+        array.accept(visitor);
         index.accept(visitor);
         visitor.visit(this);
     }

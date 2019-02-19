@@ -16,14 +16,16 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(BinopExpr node) {
-        Expr left = node.getLeft();
-        Expr right = node.getRight();
-        TypeT lmt = left.typeCheckType;
-        TypeT rmt = right.typeCheckType;
-        TypeTTauInt i = new TypeTTauInt();
-        TypeTTauBool b = new TypeTTauBool();
-        boolean bothInt = i.equals(lmt) && i.equals(rmt);
-        boolean bothBool = b.equals(lmt) && b.equals(rmt);
+        TypeT lType = node.getLeft().getTypeCheckType();
+        TypeT rType = node.getRight().getTypeCheckType();
+
+        boolean lTypeIsInt = lType instanceof TypeTTauInt;
+        boolean lTypeIsBool = lType instanceof TypeTTauBool;
+        boolean lTypeIsArray = lType instanceof TypeTTauArray;
+        boolean rTypeIsInt = rType instanceof TypeTTauInt;
+        boolean rTypeIsBool = rType instanceof TypeTTauBool;
+        boolean rTypeIsArray = rType instanceof TypeTTauArray;
+
         switch (node.getOp()) {
             case PLUS:
             case MINUS:
@@ -31,34 +33,45 @@ public class VisitorTypeCheck implements VisitorAST {
             case HI_MULT:
             case DIV:
             case MOD:
-                if (bothInt){
-                    node.setTypeCheckType(i);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if (lTypeIsInt && rTypeIsInt) {
+                    node.setTypeCheckType(new TypeTTauInt());
+                    break;
+                }
+                //TODO: throw error with position
             case EQEQ:
             case NEQ:
-                if (bothInt || bothBool){
-                    node.setTypeCheckType(b);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if ((lTypeIsInt && rTypeIsInt) || (lTypeIsBool && rTypeIsBool)) {
+                    node.setTypeCheckType(new TypeTTauBool());
+                    break;
+                }
+                if (lTypeIsArray && rTypeIsArray) {
+                    TypeTTauArray lTau = (TypeTTauArray) lType;
+                    TypeTTauArray rTau = (TypeTTauArray) rType;
+                    if (lTau.getTypeTTau().equals(rTau.getTypeTTau())) {
+                        node.setTypeCheckType(new TypeTTauBool());
+                        break;
+                    }
+                }
+                // TODO: throw error with position
             case GT:
             case LT:
             case GTEQ:
             case LTEQ:
-                if (bothInt){
-                    node.setTypeCheckType(b);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if (lTypeIsInt && rTypeIsInt) {
+                    node.setTypeCheckType(new TypeTTauBool());
+                    break;
+                }
+                // TODO: throw error with position
             case AND:
             case OR:
-                if (bothBool){
-                    node.setTypeCheckType(b);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if (lTypeIsBool && rTypeIsBool) {
+                    node.setTypeCheckType(new TypeTTauBool());
+                    break;
+                }
+                //TODO: throw error with position
+            default:
+                throw new IllegalArgumentException("Operation Type of " +
+                        "Binop node is invalid");
         }
     }
 
@@ -76,11 +89,10 @@ public class VisitorTypeCheck implements VisitorAST {
             if (t instanceof TypeSymTableFunc) {
                 TypeT inTypes = ((TypeSymTableFunc) t).getInput();
                 TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
-                List<Expr> args = node.getArgs();
-                //TODO INCOMPLETE
-                } else {
-                    //TODO: throw error
-                }
+                // TODO: incomplete
+            } else {
+                //TODO: throw error
+            }
         } catch (NotFoundException e){
             //TODO: handle exception
         }
@@ -103,16 +115,12 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(IndexExpr node) {
-        Expr lst = node.getList();
+        Expr array = node.getArray();
         Expr idx = node.getIndex();
-        TypeT lt = lst.getTypeCheckType();
+        TypeT at = array.getTypeCheckType();
         TypeT it = idx.getTypeCheckType();
-        if (lt instanceof TypeTTauArray) {
-            if (it instanceof TypeTTauInt) {
-                node.setTypeCheckType(((TypeTTauArray) lt).getTypeTTau());
-            } else {
-                //TODO: throw error
-            }
+        if (at instanceof TypeTTauArray && it instanceof TypeTTauInt) {
+            node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
         } else {
             //TODO: throw error
         }
@@ -133,19 +141,27 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ListLiteralExpr node) { //TODO: handle lengths somehow
+    public void visit(ArrayLiteralExpr node) { //TODO: handle lengths somehow
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
-            node.setTypeCheckType(new TypeTTauArray(new TypeTUnit()));
+            // TODO: this makes the tau type of this array node null,
+            //  potentially resulting in unchecked NullPointerExceptions
+            node.setTypeCheckType(new TypeTTauArray());
         } else {
             TypeT init = contents.get(0).getTypeCheckType();
-            for (Expr e: contents) {
-                if (!(e.getTypeCheckType().equals(init))){
-                    //TODO: throw error
+            if (init instanceof TypeTTau) {
+                TypeTTau initTau = (TypeTTau) init;
+                for (Expr e : contents) {
+                    if (!initTau.equals(e.getTypeCheckType())) {
+                        //TODO: throw error
+                    }
                 }
+                // all taus are equal
+                node.setTypeCheckType(new TypeTTauArray(initTau));
+            } else {
+                // TODO: throw error, init is not tau
             }
-
         }
     }
 
