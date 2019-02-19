@@ -6,7 +6,8 @@ public class UnopExpr extends Expr {
     private Unop op;
     private Expr expr;
 
-    public UnopExpr(Unop op, Expr expr) {
+    public UnopExpr(Unop op, Expr expr, int left, int right) {
+        super(left, right);
         this.op = op;
         this.expr = expr;
         this.e_type = ExprType.UnopExpr;

@@ -5,7 +5,8 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 public class IndexAssignable extends Assignable {
     private Expr index; // has to be an ID!
 
-    public IndexAssignable(Expr index) {
+    public IndexAssignable(Expr index, int left, int right) {
+        super(left, right);
         this.index = index;
     }
 

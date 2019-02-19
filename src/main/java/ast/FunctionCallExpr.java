@@ -8,7 +8,8 @@ public class FunctionCallExpr extends Expr {
     private String name;
     private List<Expr> args;
 
-    public FunctionCallExpr(String name, List<Expr> args) {
+    public FunctionCallExpr(String name, List<Expr> args, int left, int right) {
+        super(left, right);
         this.name = name;
         this.args = args;
         this.e_type = ExprType.FunctionCallExpr;

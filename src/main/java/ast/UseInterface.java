@@ -5,7 +5,12 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 public class UseInterface implements ASTNode {
     private String name;
 
-    public UseInterface(String name) {
+    private int left;
+    private int right;
+
+    public UseInterface(String name, int left, int right) {
+        this.left = left;
+        this.right = right;
         this.name = name;
     }
 
@@ -23,5 +28,15 @@ public class UseInterface implements ASTNode {
     @Override
     public void accept(VisitorAST visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public int getLeft() {
+        return left;
+    }
+
+    @Override
+    public int getRight() {
+        return right;
     }
 }

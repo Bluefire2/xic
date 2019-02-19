@@ -16,8 +16,8 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(BinopExpr node) {
-        TypeT lType = node.getLeft().getTypeCheckType();
-        TypeT rType = node.getRight().getTypeCheckType();
+        TypeT lType = node.getLeftExpr().getTypeCheckType();
+        TypeT rType = node.getRightExpr().getTypeCheckType();
 
         boolean lTypeIsInt = lType instanceof TypeTTauInt;
         boolean lTypeIsBool = lType instanceof TypeTTauBool;

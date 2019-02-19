@@ -11,15 +11,21 @@ public class FuncDecl implements Printable, ASTNode {
     private List<Pair<String, TypeTTau>> params;
     private TypeT output;
 
+    private int left;
+    private int right;
+
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
-                    TypeT output) {
+                    TypeT output, int left, int right) {
         this.name = name;
         this.params = params;
         this.output = output;
+        this.left = left;
+        this.right = right;
     }
 
-    public FuncDecl(String name, List<Pair<String, TypeTTau>> params) {
-        this(name, params, new TypeTUnit());
+    public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
+                                        int left, int right) {
+        this(name, params, new TypeTUnit(), left, right);
     }
 
     public String getName() {
@@ -61,5 +67,15 @@ public class FuncDecl implements Printable, ASTNode {
     @Override
     public void accept(VisitorAST visitor) {
         //TODO;
+    }
+
+    @Override
+    public int getLeft() {
+        return left;
+    }
+
+    @Override
+    public int getRight() {
+        return right;
     }
 }

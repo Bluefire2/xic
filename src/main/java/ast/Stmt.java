@@ -12,6 +12,14 @@ public abstract class Stmt implements Printable, ASTNode {
     // TODO: again, do we need this; type checker visitor should take care
     TypeR ret = null;
 
+    int left;
+    int right;
+
+    public Stmt(int left, int right) {
+        this.left = left;
+        this.right = right;
+    }
+
     public StmtType getS_type() {
         return s_type;
     }
@@ -42,5 +50,15 @@ public abstract class Stmt implements Printable, ASTNode {
             list.forEach(el -> el.prettyPrint(w));
             w.endList();
         }
+    }
+
+    @Override
+    public int getLeft() {
+        return left;
+    }
+
+    @Override
+    public int getRight() {
+        return right;
     }
 }

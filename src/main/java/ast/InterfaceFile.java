@@ -11,7 +11,8 @@ public class InterfaceFile extends SourceFile {
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public InterfaceFile(List<FuncDecl> funcDecls) {
+    public InterfaceFile(List<FuncDecl> funcDecls, int left, int right) {
+        super(left, right);
         this.funcDecls = new ArrayList<>(funcDecls);
     }
 

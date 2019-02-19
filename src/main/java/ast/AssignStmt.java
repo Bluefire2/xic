@@ -5,38 +5,39 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java.util.List;
 
 public class AssignStmt extends Stmt {
-    private List<Assignable> left;
-    private List<Expr> right;
+    private List<Assignable> lhs;
+    private List<Expr> rhs;
 
-    public AssignStmt(List<Assignable> left, List<Expr> right) {
-        this.left = left;
-        this.right = right;
+    public AssignStmt(List<Assignable> lhs, List<Expr> rhs, int left, int right) {
+        super(left, right);
+        this.lhs = lhs;
+        this.rhs = rhs;
         this.s_type = StmtType.AssignStmt;
     }
 
-    public List<Assignable> getLeft() {
-        return left;
+    public List<Assignable> getLhs() {
+        return lhs;
     }
 
-    public List<Expr> getRight() {
-        return right;
+    public List<Expr> getRhs() {
+        return rhs;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom("=");
-        if (left.size() == 1){
-            left.get(0).prettyPrint(w);
+        if (lhs.size() == 1){
+            lhs.get(0).prettyPrint(w);
         } else {
             w.startList();
-            left.forEach((e) -> e.prettyPrint(w));
+            lhs.forEach((e) -> e.prettyPrint(w));
             w.endList();
         }
-        if (right.size() == 1){
-            right.get(0).prettyPrint(w);
+        if (rhs.size() == 1){
+            rhs.get(0).prettyPrint(w);
         } else {
             w.startList();
-            right.forEach((e) -> e.prettyPrint(w));
+            rhs.forEach((e) -> e.prettyPrint(w));
             w.endList();
         }
         w.endList();
@@ -44,8 +45,10 @@ public class AssignStmt extends Stmt {
 
     @Override
     public void accept(VisitorAST visitor) {
-        left.forEach((e) -> e.accept(visitor));
-        right.forEach((e) -> e.accept(visitor));
+        lhs.forEach((e) -> e.accept(visitor));
+        rhs.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }
+
+
 }
