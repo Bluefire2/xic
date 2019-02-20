@@ -28,6 +28,18 @@ public class VisitorTypeCheck implements VisitorAST {
 
         switch (node.getOp()) {
             case PLUS:
+                if (lTypeIsInt && rTypeIsInt) {
+                    node.setTypeCheckType(new TypeTTauInt());
+                    break;
+                } else if (lTypeIsArray && rTypeIsArray) {
+                    TypeTTauArray larr = (TypeTTauArray) lType;
+                    TypeTTauArray rarr = (TypeTTauArray) rType;
+                    if (larr.getTypeTTau().equals(rarr.getTypeTTau())) {
+                        node.setTypeCheckType(larr);
+                        break;
+                    }
+                }
+                // TODO: throw error with position
             case MINUS:
             case MULT:
             case HI_MULT:
@@ -197,23 +209,20 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(UnopExpr node) {
-        Expr e = node.getExpr();
-        TypeT et = e.getTypeCheckType();
-        TypeTTauInt i = new TypeTTauInt();
-        TypeTTauBool b = new TypeTTauBool();
+        TypeT et = node.getExpr().getTypeCheckType();
         switch (node.getOp()) {
             case NOT:
-                if (et.equals(b)){
-                    node.setTypeCheckType(b);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if (et instanceof TypeTTauBool) {
+                    node.setTypeCheckType(new TypeTTauBool());
+                    break;
+                }
+                //TODO: throw error with position
             case UMINUS:
-                if (et.equals(i)){
-                    node.setTypeCheckType(i);
-                } else {
-                    //TODO: throw error with position
-                } break;
+                if (et instanceof TypeTTauInt) {
+                    node.setTypeCheckType(new TypeTTauInt());
+                    break;
+                }
+                //TODO: throw error with position
         }
     }
 
