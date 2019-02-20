@@ -57,7 +57,7 @@ public class BinopExpr extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException{
         leftExpr.accept(visitor);
         rightExpr.accept(visitor);
         visitor.visit(this);

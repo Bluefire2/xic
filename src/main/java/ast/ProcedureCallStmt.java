@@ -31,7 +31,7 @@ public class ProcedureCallStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         args.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

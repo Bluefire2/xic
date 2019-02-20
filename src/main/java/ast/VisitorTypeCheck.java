@@ -6,7 +6,7 @@ import java.util.List;
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
 
-    VisitorTypeCheck(SymbolTable symTable){
+    public VisitorTypeCheck(SymbolTable symTable){
         this.symTable = symTable;
     }
 
@@ -15,7 +15,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(BinopExpr node) {
+    public void visit(BinopExpr node) throws SemanticErrorException{
         TypeT lType = node.getLeftExpr().getTypeCheckType();
         TypeT rType = node.getRightExpr().getTypeCheckType();
 
@@ -39,7 +39,8 @@ public class VisitorTypeCheck implements VisitorAST {
                         break;
                     }
                 }
-                // TODO: throw error with position
+                throw new SemanticErrorException("Operator + cannot be applied to" +
+                        lType.toString() + " and " + rType.toString(), node.left, node.right);
             case MINUS:
             case MULT:
             case HI_MULT:
@@ -49,7 +50,8 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauInt());
                     break;
                 }
-                //TODO: throw error with position
+                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
+                        lType.toString() + " and " + rType.toString(), node.left, node.right);
             case EQEQ:
             case NEQ:
                 if ((lTypeIsInt && rTypeIsInt) || (lTypeIsBool && rTypeIsBool)) {
@@ -64,7 +66,8 @@ public class VisitorTypeCheck implements VisitorAST {
                         break;
                     }
                 }
-                // TODO: throw error with position
+                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
+                        lType.toString() + " and " + rType.toString(), node.left, node.right);
             case GT:
             case LT:
             case GTEQ:
@@ -73,14 +76,16 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauBool());
                     break;
                 }
-                // TODO: throw error with position
+                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
+                        lType.toString() + " and " + rType.toString(), node.left, node.right);
             case AND:
             case OR:
                 if (lTypeIsBool && rTypeIsBool) {
                     node.setTypeCheckType(new TypeTTauBool());
                     break;
                 }
-                //TODO: throw error with position
+                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
+                        lType.toString() + " and " + rType.toString(), node.left, node.right);
             default:
                 throw new IllegalArgumentException("Operation Type of " +
                         "Binop node is invalid");
@@ -310,4 +315,5 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(UseInterface node) {
 
     }
+
 }

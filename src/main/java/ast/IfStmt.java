@@ -22,7 +22,7 @@ public class IfStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         guard.accept(visitor);
         thenStmt.accept(visitor);
         visitor.visit(this);

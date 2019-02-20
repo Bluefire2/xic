@@ -32,7 +32,7 @@ public class ReturnStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException{
         returnVals.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

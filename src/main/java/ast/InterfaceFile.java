@@ -45,7 +45,7 @@ public class InterfaceFile extends SourceFile {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         funcDecls.forEach((d) ->d.accept(visitor));
         visitor.visit(this);
     }

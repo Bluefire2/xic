@@ -22,7 +22,7 @@ public class DeclStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor)throws SemanticErrorException {
         visitor.visit(this);
     }
 }

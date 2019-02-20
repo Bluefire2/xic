@@ -23,7 +23,7 @@ public class LengthExpr extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         list.accept(visitor);
         visitor.visit(this);
     }

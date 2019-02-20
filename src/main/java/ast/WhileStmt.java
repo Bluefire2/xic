@@ -30,7 +30,7 @@ public class WhileStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         guard.accept(visitor);
         doStmt.accept(visitor);
         visitor.visit(this);

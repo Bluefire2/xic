@@ -47,7 +47,7 @@ public class ArrayLiteralExpr extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException {
         contents.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }

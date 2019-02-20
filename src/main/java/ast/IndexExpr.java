@@ -30,7 +30,7 @@ public class IndexExpr extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException{
         array.accept(visitor);
         index.accept(visitor);
         visitor.visit(this);

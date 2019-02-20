@@ -32,7 +32,7 @@ public class DeclAssignStmt extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorAST visitor) throws SemanticErrorException{
         rhs.forEach((e) -> e.accept(visitor));
         visitor.visit(this);
     }
