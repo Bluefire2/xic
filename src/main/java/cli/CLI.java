@@ -1,6 +1,9 @@
 package cli;
 
+import ast.ASTNode;
 import ast.Printable;
+import ast.SemanticErrorException;
+import ast.VisitorTypeCheck;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
 import lexer.LexicalErrorException;
@@ -11,6 +14,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
+import symboltable.SymbolTable;
+import symboltable.HashMapSymbolTable;
 import xi_parser.SyntaxErrorException;
 import xi_parser.XiParser;
 import xi_parser.sym;
@@ -41,6 +46,10 @@ public class CLI implements Runnable {
             description = "Parse in debug mode and print AST to terminal.")
     private boolean optDebug = false;
 
+    @Option (names = {"--typecheck"},
+            description = "Generate output from semantic analysis.")
+    private boolean optTypeCheck = false;
+
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
@@ -62,6 +71,9 @@ public class CLI implements Runnable {
                 }
                 if (optParse) {
                     parse();
+                }
+                if(optTypeCheck) {
+                    typeCheck();
                 }
             } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -123,6 +135,42 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
+            } catch (LexicalErrorException e) {
+                System.out.println("Lexical Error");
+                System.out.println(e.getMessage());
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (SyntaxErrorException e) {
+                System.out.println("Syntax Error");
+                System.out.println(e.getMessage());
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void typeCheck() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".parsed")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                XiTokenFactory xtf = new XiTokenFactory();
+                XiLexer lexer = new XiLexer(fileReader, xtf);
+                XiParser parser = new XiParser(lexer, xtf);
+                CodeWriterSExpPrinter printer;
+                ASTNode root = (ASTNode) parser.parse().value;
+                SymbolTable symbolTable = new HashMapSymbolTable();
+                VisitorTypeCheck visitor = new VisitorTypeCheck(symbolTable);
+                root.accept(visitor);
+            } catch (SemanticErrorException e) {
+                System.out.println("Semantic Error");
+                System.out.println(e.getMessage());
+                fileoutError(outputFilePath, e.getMessage());
             } catch (LexicalErrorException e) {
                 System.out.println("Lexical Error");
                 System.out.println(e.getMessage());
