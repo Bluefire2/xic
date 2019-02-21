@@ -243,7 +243,14 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(IdAssignable node) {
-
+        String id = node.getId().getName();
+        try {
+            symTable.lookup(id);
+        }
+        catch (NotFoundException e) {
+            throw new SemanticErrorException("Uninitialized identifier " + id,
+                    node.left, node.right);
+        }
     }
 
     @Override
