@@ -239,8 +239,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableUnderscore node) {
-
+    public void visit(AssignableUnderscore node) { //Do nothing
     }
 
     @Override
@@ -347,6 +346,7 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(FileProgram node) {
+        symTable.enterScope();
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
         for (UseInterface import_node : imports) {
@@ -363,6 +363,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 symTable.add(signature.part1(), signature.part2());
             }
         }
+        symTable.exitScope();
     }
 
     @Override
