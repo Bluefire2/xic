@@ -327,7 +327,20 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(BlockStmt node) {
-
+        symTable.enterScope();
+        List<Stmt> statements = node.getStatments();
+        for (int i=0; i < statements.size() - 1; i++) {
+            Stmt s = statements.get(i);
+            TypeR st = s.getRet();
+            if (!st.equals(TypeR.Unit)) {
+                Stmt nexts = statements.get(i+1);
+                throw new SemanticErrorException("Unreachable statement",
+                        nexts.left, nexts.right);
+            }
+        }
+        TypeR lst = node.getLastStatement().getRet();
+        node.setRet(lst);
+        symTable.exitScope();
     }
 
     @Override
