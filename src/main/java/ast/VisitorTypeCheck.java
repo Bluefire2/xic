@@ -386,7 +386,16 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(FuncDefn node) {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
-        //TODO add exp return type, params to symtable
+        symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
+        for (Pair<String, TypeTTau> param : node.getParams()){
+            if (symTable.contains(param.part1())) {
+                throw new SemanticErrorException(
+                        "No shadowing allowed in function params",
+                        node.getLeft(), node.getRight());
+            } else {
+                symTable.add(param.part1(), new TypeSymTableVar(param.part2()));
+            }
+        }
         node.getBody().accept(this);
         symTable.exitScope();
     }
