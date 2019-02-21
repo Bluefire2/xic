@@ -2,11 +2,11 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class UnopExpr extends Expr {
+public class ExprUnop extends Expr {
     private Unop op;
     private Expr expr;
 
-    public UnopExpr(Unop op, Expr expr, int left, int right) {
+    public ExprUnop(Unop op, Expr expr, int left, int right) {
         super(left, right);
         this.op = op;
         this.expr = expr;

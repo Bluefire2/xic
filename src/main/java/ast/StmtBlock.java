@@ -5,16 +5,16 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BlockStmt extends Stmt {
+public class StmtBlock extends Stmt {
     private List<Stmt> statements;
 
-    public BlockStmt(List<Stmt> statements, int left, int right) {
+    public StmtBlock(List<Stmt> statements, int left, int right) {
         super(left,right);
         this.statements = statements;
         this.s_type = StmtType.BlockStmt;
     }
 
-    public BlockStmt(int left, int right) {
+    public StmtBlock(int left, int right) {
         this(new ArrayList<>(), left, right);
     }
 

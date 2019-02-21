@@ -4,11 +4,11 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 import java.util.List;
 
-public class AssignStmt extends Stmt {
+public class StmtAssign extends Stmt {
     private List<Assignable> lhs;
     private List<Expr> rhs;
 
-    public AssignStmt(List<Assignable> lhs, List<Expr> rhs, int left, int right) {
+    public StmtAssign(List<Assignable> lhs, List<Expr> rhs, int left, int right) {
         super(left, right);
         this.lhs = lhs;
         this.rhs = rhs;

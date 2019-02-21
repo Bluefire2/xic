@@ -1,32 +1,32 @@
 package ast;
 
 interface VisitorAST {
-    void visit(BinopExpr node) throws SemanticErrorException;
-    void visit(BoolLiteralExpr node) throws SemanticErrorException;
-    void visit(FunctionCallExpr node) throws SemanticErrorException;
-    void visit(IdExpr node) throws SemanticErrorException;
-    void visit(IndexExpr node) throws SemanticErrorException;
-    void visit(IntLiteralExpr node) throws SemanticErrorException;
-    void visit(LengthExpr node) throws SemanticErrorException;
-    void visit(ArrayLiteralExpr node) throws SemanticErrorException;
-    void visit(UnopExpr node) throws SemanticErrorException;
+    void visit(ExprBinop node) throws SemanticErrorException;
+    void visit(ExprBoolLiteral node) throws SemanticErrorException;
+    void visit(ExprFunctionCall node) throws SemanticErrorException;
+    void visit(ExprId node) throws SemanticErrorException;
+    void visit(ExprIndex node) throws SemanticErrorException;
+    void visit(ExprIntLiteral node) throws SemanticErrorException;
+    void visit(ExprLength node) throws SemanticErrorException;
+    void visit(ExprArrayLiteral node) throws SemanticErrorException;
+    void visit(ExprUnop node) throws SemanticErrorException;
 
-    void visit(IndexAssignable node) throws SemanticErrorException;
-    void visit(UnderscoreAssignable node) throws SemanticErrorException;
-    void visit(IdAssignable node) throws SemanticErrorException;
+    void visit(AssignableIndex node) throws SemanticErrorException;
+    void visit(AssignableUnderscore node) throws SemanticErrorException;
+    void visit(AssignableId node) throws SemanticErrorException;
 
-    void visit(ReturnStmt node) throws SemanticErrorException;
-    void visit(AssignStmt node) throws SemanticErrorException;
-    void visit(DeclStmt node) throws SemanticErrorException;
-    void visit(DeclAssignStmt node) throws SemanticErrorException;
-    void visit(ProcedureCallStmt node) throws SemanticErrorException;
-    void visit(IfStmt node) throws SemanticErrorException;
-    void visit(IfElseStmt node) throws SemanticErrorException;
-    void visit(WhileStmt node) throws SemanticErrorException;
-    void visit(BlockStmt node) throws SemanticErrorException;
+    void visit(StmtReturn node) throws SemanticErrorException;
+    void visit(StmtAssign node) throws SemanticErrorException;
+    void visit(StmtDecl node) throws SemanticErrorException;
+    void visit(StmtDeclAssign node) throws SemanticErrorException;
+    void visit(StmtProcedureCall node) throws SemanticErrorException;
+    void visit(StmtIf node) throws SemanticErrorException;
+    void visit(StmtIfElse node) throws SemanticErrorException;
+    void visit(StmtWhile node) throws SemanticErrorException;
+    void visit(StmtBlock node) throws SemanticErrorException;
 
-    void visit(ProgramFile node) throws SemanticErrorException;
-    void visit(InterfaceFile node) throws SemanticErrorException;
+    void visit(FileProgram node) throws SemanticErrorException;
+    void visit(FileInterface node) throws SemanticErrorException;
     void visit(FuncDefn node) throws SemanticErrorException;
     void visit(FuncDecl node) throws SemanticErrorException;
     void visit(UseInterface node) throws SemanticErrorException;

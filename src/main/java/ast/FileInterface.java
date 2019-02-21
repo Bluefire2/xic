@@ -8,11 +8,11 @@ import java.util.List;
 import polyglot.util.Pair;
 import symboltable.TypeSymTableFunc;
 
-public class InterfaceFile extends SourceFile {
+public class FileInterface extends SourceFile {
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public InterfaceFile(List<FuncDecl> decls, int left, int right) {
+    public FileInterface(List<FuncDecl> decls, int left, int right) {
         super(left, right);
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();

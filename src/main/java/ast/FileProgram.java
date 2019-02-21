@@ -8,12 +8,12 @@ import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProgramFile extends SourceFile {
+public class FileProgram extends SourceFile {
     private List<UseInterface> imports;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public ProgramFile(List<UseInterface> imports, List<FuncDefn> funcDefns, int left, int right) {
+    public FileProgram(List<UseInterface> imports, List<FuncDefn> funcDefns, int left, int right) {
         super(left, right);
         this.imports = new ArrayList<>(imports);
         this.funcDefns = new ArrayList<>(funcDefns);
