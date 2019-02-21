@@ -258,7 +258,12 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(DeclStmt node) {
-
+        for (TypeDeclVar d : node.getDecls()) {
+            TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
+            for (String did : d.varsOf()) {
+                symTable.add(did, dt);
+            }
+        }
     }
 
     @Override

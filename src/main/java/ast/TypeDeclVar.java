@@ -22,12 +22,12 @@ public class TypeDeclVar extends TypeDecl {
     }
 
     @Override
-    TypeT typeOf(TypeDecl t) {
+    public TypeT typeOf() {
         return pair.part2();
     }
 
     @Override
-    List<String> varsOf(TypeDecl t) {
+    public List<String> varsOf() {
         List<String> vars = new ArrayList<>(1);
         vars.add(pair.part1());
         return vars;
