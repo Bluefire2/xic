@@ -89,8 +89,8 @@ terminal
     ERROR;
 
 nonterminal SourceFile source;
-nonterminal InterfaceFile interface;
-nonterminal ProgramFile program;
+nonterminal FileInterface interface;
+nonterminal FileProgram program;
 
 nonterminal Pair annotated_var;
 nonterminal TypeTTau type;
@@ -314,11 +314,11 @@ assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 
 assignable ::=
   UNDERSCORE:u {: RESULT = new AssignableUnderscore(uleft, uright); :}
-| ID:i {: RESULT = new AssignableId(new IdExpr(i, ileft, iright), ileft, iright); :}
+| ID:i {: RESULT = new AssignableId(new ExprId(i, ileft, iright), ileft, iright); :}
 | ID:i indices:l {:
     Expr idx = new ExprId(i, ileft, iright);
     for (Expr e: l){
-        idx = new ExorIndex(idx,e, ileft, iright);
+        idx = new ExprIndex(idx,e, ileft, iright);
     }
     RESULT = new AssignableIndex(idx, ileft, iright);
     :}
