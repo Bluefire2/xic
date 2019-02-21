@@ -12,6 +12,14 @@ public interface SymbolTable {
     TypeSymTable lookup(String id) throws NotFoundException;
 
     /**
+     * Check if table contains an identifier.
+     *
+     * @param id The identifier.
+     * @return true if the identifier is in the table, false otherwise.
+     */
+    boolean contains(String id);
+
+    /**
      * Add an identifier to the current scope with a given type.
      * @param id The identifier.
      * @param type The type.

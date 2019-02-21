@@ -1,10 +1,14 @@
 package ast;
 
+import polyglot.util.Pair;
 import symboltable.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
+    private String RETURN_KEY = "__return__";
 
     public VisitorTypeCheck(SymbolTable symTable){
         this.symTable = symTable;
@@ -99,7 +103,6 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(FunctionCallExpr node) {
-        //TODO: I think we need a meta-type otherwise cannot set type to a list
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -345,27 +348,56 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(ProgramFile node) {
-
+        List<UseInterface> imports = node.getImports();
+        List<FuncDefn> defns = node.getFuncDefns();
+        for (UseInterface import_node : imports) {
+            import_node.accept(this);
+        }
+        for (FuncDefn defn : defns) {
+            Pair<String, TypeSymTable> signature = defn.getSignature();
+            if (symTable.contains(signature.part1())) {
+                throw new SemanticErrorException(
+                        "Function with name " + signature.part1()
+                                + " already exists",
+                        defn.getLeft(), defn.getRight());
+            } else {
+                symTable.add(signature.part1(), signature.part2());
+            }
+        }
     }
 
     @Override
     public void visit(InterfaceFile node) {
-
+        //note: visitor will only visit program file or interface file
+        List<FuncDecl> decls = node.getFuncDecls();
+        for (FuncDecl decl : decls) {
+            Pair<String, TypeSymTable> signature = decl.getSignature();
+            if (symTable.contains(signature.part1())) {
+                throw new SemanticErrorException(
+                        "Function with name " + signature.part1()
+                                + " already exists",
+                        decl.getLeft(), decl.getRight());
+            } else {
+                symTable.add(signature.part1(), signature.part2());
+            }
+        }
     }
 
     @Override
     public void visit(FuncDefn node) {
-
+        // for TC function body only, signatures are checked at the top-level
+        symTable.enterScope();
+        //TODO add exp return type, params to symtable
+        node.getBody().accept(this);
+        symTable.exitScope();
     }
 
     @Override
-    public void visit(FuncDecl node) {
-
+    public void visit(FuncDecl node) { // do nothing
     }
 
     @Override
     public void visit(UseInterface node) {
-
+        //TODO checking and parsing interface
     }
-
 }
