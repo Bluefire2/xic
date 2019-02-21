@@ -27,4 +27,12 @@ public class IfStmt extends Stmt {
         thenStmt.accept(visitor);
         visitor.visit(this);
     }
+
+    public Expr getGuard() {
+        return guard;
+    }
+
+    public Stmt getThenStmt() {
+        return thenStmt;
+    }
 }

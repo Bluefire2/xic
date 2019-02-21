@@ -31,4 +31,16 @@ public class IfElseStmt extends Stmt {
         elseStmt.accept(visitor);
         visitor.visit(this);
     }
+
+    public Expr getGuard() {
+        return guard;
+    }
+
+    public Stmt getThenStmt() {
+        return thenStmt;
+    }
+
+    public Stmt getElseStmt() {
+        return thenStmt;
+    }
 }

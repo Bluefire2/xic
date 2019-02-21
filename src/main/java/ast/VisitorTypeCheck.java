@@ -273,16 +273,43 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(IfStmt node) {
+        TypeT gt = node.getGuard().getTypeCheckType();
+        if (gt instanceof TypeTTauBool) {
+                node.setRet(TypeR.Unit);
+        }
+        else {
+            throw new SemanticErrorException("Guard of if statement must be a " +
+                    "boolean", node.left, node.right);
+        }
 
     }
 
     @Override
     public void visit(IfElseStmt node) {
-
+        TypeT gt = node.getGuard().getTypeCheckType();
+        if (gt instanceof TypeTTauBool) {
+            TypeR s1r = node.getThenStmt().getRet();
+            TypeR s2r = node.getElseStmt().getRet();
+            TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
+                    TypeR.Void : TypeR.Unit;
+            node.setRet(ret);
+        }
+        else {
+            throw new SemanticErrorException("Guard of if-else statement must be " +
+                    "a boolean", node.left, node.right);
+        }
     }
 
     @Override
     public void visit(WhileStmt node) {
+        TypeT gt = node.getGuard().getTypeCheckType();
+        if (gt instanceof TypeTTauBool) {
+            node.setRet(TypeR.Unit);
+        }
+        else {
+            throw new SemanticErrorException("Guard of while statement must be a " +
+                    "boolean", node.left, node.right);
+        }
 
     }
 
