@@ -62,6 +62,12 @@ public class CLI implements Runnable {
             description = "Specify where to find input source files.")
     private Path sourcepath;
 
+    @Option (names = "-libpath", defaultValue = ".",
+            description = "Specify where to find input source files.")
+    private Path libpath;
+
+    //TODO: Use libpath
+
     @Override
     public void run() {
         if (Files.exists(path)) {
@@ -152,7 +158,7 @@ public class CLI implements Runnable {
     private void typeCheck() {
         for (File f : optInputFiles) {
             String outputFilePath = Paths.get(path.toString(),
-                    FilenameUtils.removeExtension(f.getName()) + ".parsed")
+                    FilenameUtils.removeExtension(f.getName()) + ".typed")
                     .toString();
             String inputFilePath = Paths.get(sourcepath.toString(),
                     f.getPath()).toString();
@@ -167,6 +173,7 @@ public class CLI implements Runnable {
                 SymbolTable symbolTable = new HashMapSymbolTable();
                 VisitorTypeCheck visitor = new VisitorTypeCheck(symbolTable);
                 root.accept(visitor);
+                fileWriter.write("Valid Xi Program");
             } catch (SemanticErrorException e) {
                 System.out.println("Semantic Error");
                 System.out.println(e.getMessage());
