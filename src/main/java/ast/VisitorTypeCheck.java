@@ -125,8 +125,6 @@ public class VisitorTypeCheck implements VisitorAST {
                         if (inTauList.size() == funcArgs.size()) {
                             for (int i = 0; i < funcArgs.size(); ++i) {
                                 if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) {
-                                    // TODO: throw error: corresponding type
-                                    //  and tau don't match
                                     throw new TypeCheckException(inTauList.get(i), funcArgs.get(i).getTypeCheckType());
                                 }
                             }
