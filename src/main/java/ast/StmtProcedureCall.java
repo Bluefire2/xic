@@ -4,15 +4,15 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 import java.util.List;
 
-public class FunctionCallExpr extends Expr {
+public class StmtProcedureCall extends Stmt {
     private String name;
     private List<Expr> args;
 
-    public FunctionCallExpr(String name, List<Expr> args, int left, int right) {
+    public StmtProcedureCall(String name, List<Expr> args, int left, int right) {
         super(left, right);
         this.name = name;
         this.args = args;
-        this.e_type = ExprType.FunctionCallExpr;
+        this.s_type = StmtType.ProcedureCallStmt;
     }
 
     public String getName() {

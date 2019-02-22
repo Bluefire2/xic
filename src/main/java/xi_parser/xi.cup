@@ -89,8 +89,8 @@ terminal
     ERROR;
 
 nonterminal SourceFile source;
-nonterminal InterfaceFile interface;
-nonterminal ProgramFile program;
+nonterminal FileInterface interface;
+nonterminal FileProgram program;
 
 nonterminal Pair annotated_var;
 nonterminal TypeTTau type;
@@ -269,37 +269,37 @@ exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 ;
 
 expr ::=
-  BOOL_LIT:b {: RESULT = new BoolLiteralExpr(b, bleft, bright); :}
-| INT_LIT:i {: RESULT = new IntLiteralExpr(i, ileft, iright); :}
-| CHAR_LIT:c {: RESULT = new IntLiteralExpr(c, cleft, cright); :} // chars are really ints
-| STRING_LIT:s {: RESULT = new ArrayLiteralExpr(s, sleft, sright); :} // strings are really lists of ints
-| ID:i {: RESULT = new IdExpr(i, ileft, iright); :}
+  BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bleft, bright); :}
+| INT_LIT:i {: RESULT = new ExprIntLiteral(i, ileft, iright); :}
+| CHAR_LIT:c {: RESULT = new ExprIntLiteral(c, cleft, cright); :} // chars are really ints
+| STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sleft, sright); :} // strings are really lists of ints
+| ID:i {: RESULT = new ExprId(i, ileft, iright); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-    RESULT = new FunctionCallExpr(i, el, ileft, iright); :}
+    RESULT = new ExprFunctionCall(i, el, ileft, iright); :}
 | ID:i LPAREN RPAREN {:
-    RESULT = new FunctionCallExpr(i, new ArrayList<Expr>(), ileft, iright); :}
-| expr:e1 LBRAC:l expr:e2 RBRAC {: RESULT = new IndexExpr(e1, e2, lleft, lright); :}
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new LengthExpr(e, lleft, lright); :}
-| LCURL:l exprlist:e RCURL {: RESULT = new ArrayLiteralExpr(e, lleft, lright); :}
-| LCURL:l exprlist:e COMMA RCURL {: RESULT = new ArrayLiteralExpr(e, lleft, lright); :}
-| LCURL:l RCURL {: RESULT = new ArrayLiteralExpr(new ArrayList<Expr>(), lleft, lright); :}
+    RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ileft, iright); :}
+| expr:e1 LBRAC:l expr:e2 RBRAC {: RESULT = new ExprIndex(e1, e2, lleft, lright); :}
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lleft, lright); :}
+| LCURL:l exprlist:e RCURL {: RESULT = new ExprArrayLiteral(e, lleft, lright); :}
+| LCURL:l exprlist:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lleft, lright); :}
+| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lleft, lright); :}
 | LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
-| expr:e1 AND:o expr:e2 {: RESULT = new BinopExpr(Binop.AND, e1, e2, oleft, oright); :}
-| expr:e1 OR:o expr:e2 {: RESULT = new BinopExpr(Binop.OR, e1, e2, oleft, oright); :}
-| expr:e1 PLUS:o expr:e2 {: RESULT = new BinopExpr(Binop.PLUS, e1, e2, oleft, oright); :}
-| expr:e1 MINUS:o expr:e2 {: RESULT = new BinopExpr(Binop.MINUS, e1, e2, oleft, oright); :}
-| expr:e1 DIV:o expr:e2 {: RESULT = new BinopExpr(Binop.DIV, e1, e2, oleft, oright); :}
-| expr:e1 MOD:o expr:e2 {: RESULT = new BinopExpr(Binop.MOD, e1, e2, oleft, oright); :}
-| expr:e1 MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.MULT, e1, e2, oleft, oright); :}
-| expr:e1 HI_MULT:o expr:e2 {: RESULT = new BinopExpr(Binop.HI_MULT, e1, e2, oleft, oright); :}
-| expr:e1 EQEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.EQEQ, e1, e2, oleft, oright); :}
-| expr:e1 NEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.NEQ, e1, e2, oleft, oright); :}
-| expr:e1 GT:o expr:e2 {: RESULT = new BinopExpr(Binop.GT, e1, e2, oleft, oright); :}
-| expr:e1 LT:o expr:e2 {: RESULT = new BinopExpr(Binop.LT, e1, e2, oleft, oright); :}
-| expr:e1 GTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.GTEQ, e1, e2, oleft, oright); :}
-| expr:e1 LTEQ:o expr:e2 {: RESULT = new BinopExpr(Binop.LTEQ, e1, e2, oleft, oright); :}
-| MINUS:o expr:e {: RESULT = new UnopExpr(Unop.UMINUS, e, oleft, oright); :} %prec UMINUS
-| NOT:o expr:e {: RESULT = new UnopExpr(Unop.NOT, e, oleft, oright); :}
+| expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oleft, oright); :}
+| expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oleft, oright); :}
+| expr:e1 PLUS:o expr:e2 {: RESULT = new ExprBinop(Binop.PLUS, e1, e2, oleft, oright); :}
+| expr:e1 MINUS:o expr:e2 {: RESULT = new ExprBinop(Binop.MINUS, e1, e2, oleft, oright); :}
+| expr:e1 DIV:o expr:e2 {: RESULT = new ExprBinop(Binop.DIV, e1, e2, oleft, oright); :}
+| expr:e1 MOD:o expr:e2 {: RESULT = new ExprBinop(Binop.MOD, e1, e2, oleft, oright); :}
+| expr:e1 MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.MULT, e1, e2, oleft, oright); :}
+| expr:e1 HI_MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.HI_MULT, e1, e2, oleft, oright); :}
+| expr:e1 EQEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.EQEQ, e1, e2, oleft, oright); :}
+| expr:e1 NEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.NEQ, e1, e2, oleft, oright); :}
+| expr:e1 GT:o expr:e2 {: RESULT = new ExprBinop(Binop.GT, e1, e2, oleft, oright); :}
+| expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oleft, oright); :}
+| expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oleft, oright); :}
+| expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oleft, oright); :}
+| MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oleft, oright); :} %prec UMINUS
+| NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oleft, oright); :}
 ;
 
 //STATEMENTS
@@ -313,14 +313,14 @@ assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 ;
 
 assignable ::=
-  UNDERSCORE:u {: RESULT = new UnderscoreAssignable(uleft, uright); :}
-| ID:i {: RESULT = new IdAssignable(new IdExpr(i, ileft, iright), ileft, iright); :}
+  UNDERSCORE:u {: RESULT = new AssignableUnderscore(uleft, uright); :}
+| ID:i {: RESULT = new AssignableId(new ExprId(i, ileft, iright), ileft, iright); :}
 | ID:i indices:l {:
-    Expr idx = new IdExpr(i, ileft, iright);
+    Expr idx = new ExprId(i, ileft, iright);
     for (Expr e: l){
-        idx = new IndexExpr(idx,e, ileft, iright);
+        idx = new ExprIndex(idx,e, ileft, iright);
     }
-    RESULT = new IndexAssignable(idx, ileft, iright);
+    RESULT = new AssignableIndex(idx, ileft, iright);
     :}
 ;
 
@@ -331,31 +331,31 @@ indices ::=
 
 matchedstmt ::=
   IF:i expr:e matchedstmt:s1 ELSE matchedstmt:s2 {:
-    RESULT = new IfElseStmt(e,s1,s2, ileft, iright); :}
-| WHILE:w expr:e matchedstmt:s {: RESULT = new WhileStmt(e,s, wleft, wright); :}
+    RESULT = new StmtIfElse(e,s1,s2, ileft, iright); :}
+| WHILE:w expr:e matchedstmt:s {: RESULT = new StmtWhile(e,s, wleft, wright); :}
 | block:b {: RESULT = b; :}
-| assignablelist:a EQ exprlist:e {: RESULT = new AssignStmt(a, e, aleft, aright); :}
+| assignablelist:a EQ exprlist:e {: RESULT = new StmtAssign(a, e, aleft, aright); :}
 | underscore_varlist:d EQ exprlist:e {:
-    RESULT = new DeclAssignStmt(d, e, dleft, dright); :}
+    RESULT = new StmtDeclAssign(d, e, dleft, dright); :}
 | annotated_varlist:d {:
     List<TypeDeclVar> newd = d.stream()
         .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
-    RESULT = new DeclStmt(newd, dleft, dright); :}
+    RESULT = new StmtDecl(newd, dleft, dright); :}
 | annotated_varlist:d EQ exprlist:e {:
     List<TypeDecl> newd = d.stream()
         .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
-    RESULT = new DeclAssignStmt(newd, e, dleft, dright); :}
+    RESULT = new StmtDeclAssign(newd, e, dleft, dright); :}
 | ID:i LPAREN exprlist:el RPAREN {:
-    RESULT = new ProcedureCallStmt(i, el, ileft, iright); :}
+    RESULT = new StmtProcedureCall(i, el, ileft, iright); :}
 | ID:i LPAREN RPAREN {:
-    RESULT = new ProcedureCallStmt(i, new ArrayList<Expr>(), ileft, iright); :}
+    RESULT = new StmtProcedureCall(i, new ArrayList<Expr>(), ileft, iright); :}
 ;
 
 
 unmatchedstmt ::=
-  IF:i expr:e unmatchedstmt:s {: RESULT = new IfStmt(e,s, ileft, iright); :}
-| IF:i expr:e matchedstmt:s {: RESULT = new IfStmt(e,s, ileft, iright); :}
-| WHILE:w expr:e unmatchedstmt:s {: RESULT = new WhileStmt(e,s, wleft, wright); :}
+  IF:i expr:e unmatchedstmt:s {: RESULT = new StmtIf(e,s, ileft, iright); :}
+| IF:i expr:e matchedstmt:s {: RESULT = new StmtIf(e,s, ileft, iright); :}
+| WHILE:w expr:e unmatchedstmt:s {: RESULT = new StmtWhile(e,s, wleft, wright); :}
 ;
 
 statement ::=
@@ -364,10 +364,10 @@ statement ::=
 ;
 
 return ::= //enforces return statements being at the end of blocks + cannot replace blocks
-  RETURN:r {: RESULT = new ReturnStmt(rleft, rright); :}
-| RETURN:r exprlist:e {: RESULT = new ReturnStmt(e, rleft, rright); :}
-| RETURN:r SEMICOLON {: RESULT = new ReturnStmt(rleft, rright); :}
-| RETURN:r exprlist:e SEMICOLON {: RESULT = new ReturnStmt(e, rleft, rright); :}
+  RETURN:r {: RESULT = new StmtReturn(rleft, rright); :}
+| RETURN:r exprlist:e {: RESULT = new StmtReturn(e, rleft, rright); :}
+| RETURN:r SEMICOLON {: RESULT = new StmtReturn(rleft, rright); :}
+| RETURN:r exprlist:e SEMICOLON {: RESULT = new StmtReturn(e, rleft, rright); :}
 ;
 
 stmtlist ::=
@@ -380,12 +380,12 @@ stmtlist ::=
 ;
 
 block ::=
-  LCURL:c return:r RCURL {: RESULT = new BlockStmt(cleft, cright); :}
-| LCURL:c stmtlist:l RCURL {: RESULT = new BlockStmt(l, cleft, cright); :}
-| LCURL:c stmtlist:l return:r RCURL {: l.add(r); RESULT = new BlockStmt(l, cleft, cright); :}
-| LCURL:c stmtlist:l SEMICOLON RCURL {: RESULT = new BlockStmt(l, cleft, cright); :}
-| LCURL:c stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new BlockStmt(l, cleft, cright); :}
-| LCURL:c RCURL {: RESULT = new BlockStmt(cleft, cright); :}
+  LCURL:c return:r RCURL {: RESULT = new StmtBlock(cleft, cright); :}
+| LCURL:c stmtlist:l RCURL {: RESULT = new StmtBlock(l, cleft, cright); :}
+| LCURL:c stmtlist:l return:r RCURL {: l.add(r); RESULT = new StmtBlock(l, cleft, cright); :}
+| LCURL:c stmtlist:l SEMICOLON RCURL {: RESULT = new StmtBlock(l, cleft, cright); :}
+| LCURL:c stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new StmtBlock(l, cleft, cright); :}
+| LCURL:c RCURL {: RESULT = new StmtBlock(cleft, cright); :}
 ;
 
 //HIGHEST LEVEL
@@ -398,14 +398,14 @@ interface ::=
   func_decl:d {:
       ArrayList<FuncDecl> l = new ArrayList<>();
       l.add(d);
-      RESULT = new InterfaceFile(l, dleft, dright); :}
+      RESULT = new FileInterface(l, dleft, dright); :}
 | interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
 ;
 
 program ::=
-importlist:il func_defnlist:dl {: RESULT = new ProgramFile(il, dl, illeft, ilright); :}
+importlist:il func_defnlist:dl {: RESULT = new FileProgram(il, dl, illeft, ilright); :}
 | func_defnlist:dl {:
-    RESULT = new ProgramFile(new ArrayList<UseInterface>(), dl, dlleft, dlright); :}
+    RESULT = new FileProgram(new ArrayList<UseInterface>(), dl, dlleft, dlright); :}
 ;
 
 

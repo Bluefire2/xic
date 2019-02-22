@@ -1,10 +1,13 @@
 package ast;
 
+import polyglot.util.Pair;
 import symboltable.*;
+
 import java.util.List;
 
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
+    private String RETURN_KEY = "__return__";
 
     public VisitorTypeCheck(SymbolTable symTable){
         this.symTable = symTable;
@@ -15,7 +18,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(BinopExpr node) throws SemanticErrorException{
+    public void visit(ExprBinop node) throws SemanticErrorException{
         TypeT lType = node.getLeftExpr().getTypeCheckType();
         TypeT rType = node.getRightExpr().getTypeCheckType();
 
@@ -93,13 +96,12 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(BoolLiteralExpr node) {
+    public void visit(ExprBoolLiteral node) {
         node.setTypeCheckType(new TypeTTauBool());
     }
 
     @Override
-    public void visit(FunctionCallExpr node) {
-        //TODO: I think we need a meta-type otherwise cannot set type to a list
+    public void visit(ExprFunctionCall node) {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -146,7 +148,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(IdExpr node) {
+    public void visit(ExprId node) {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -161,7 +163,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(IndexExpr node) {
+    public void visit(ExprIndex node) {
         Expr array = node.getArray();
         Expr idx = node.getIndex();
         TypeT at = array.getTypeCheckType();
@@ -174,12 +176,12 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(IntLiteralExpr node) {
+    public void visit(ExprIntLiteral node) {
         node.setTypeCheckType(new TypeTTauInt());
     }
 
     @Override
-    public void visit(LengthExpr node) {
+    public void visit(ExprLength node) {
         if (node.getTypeCheckType() instanceof TypeTTauArray){
             node.setTypeCheckType(new TypeTTauInt());
         } else {
@@ -188,7 +190,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ArrayLiteralExpr node) { //TODO: handle lengths somehow
+    public void visit(ExprArrayLiteral node) { //TODO: handle lengths somehow
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
@@ -213,7 +215,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(UnopExpr node) {
+    public void visit(ExprUnop node) {
         TypeT et = node.getExpr().getTypeCheckType();
         switch (node.getOp()) {
             case NOT:
@@ -232,17 +234,16 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(IndexAssignable node) {
+    public void visit(AssignableIndex node) {
 
     }
 
     @Override
-    public void visit(UnderscoreAssignable node) {
-
+    public void visit(AssignableUnderscore node) { //Do nothing
     }
 
     @Override
-    public void visit(IdAssignable node) {
+    public void visit(AssignableId node) {
         String id = node.getId().getName();
         try {
             symTable.lookup(id);
@@ -254,17 +255,17 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ReturnStmt node) {
+    public void visit(StmtReturn node) {
 
     }
 
     @Override
-    public void visit(AssignStmt node) {
+    public void visit(StmtAssign node) {
 
     }
 
     @Override
-    public void visit(DeclStmt node) {
+    public void visit(StmtDecl node) {
         for (TypeDeclVar d : node.getDecls()) {
             TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
             for (String did : d.varsOf()) {
@@ -274,17 +275,17 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(DeclAssignStmt node) {
+    public void visit(StmtDeclAssign node) {
 
     }
 
     @Override
-    public void visit(ProcedureCallStmt node) {
+    public void visit(StmtProcedureCall node) {
 
     }
 
     @Override
-    public void visit(IfStmt node) {
+    public void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
                 node.setRet(TypeR.Unit);
@@ -297,7 +298,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(IfElseStmt node) {
+    public void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             TypeR s1r = node.getThenStmt().getRet();
@@ -313,7 +314,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(WhileStmt node) {
+    public void visit(StmtWhile node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             node.setRet(TypeR.Unit);
@@ -326,7 +327,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(BlockStmt node) {
+    public void visit(StmtBlock node) {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
         for (int i=0; i < statements.size() - 1; i++) {
@@ -344,28 +345,68 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ProgramFile node) {
-
+    public void visit(FileProgram node) {
+        symTable.enterScope();
+        List<UseInterface> imports = node.getImports();
+        List<FuncDefn> defns = node.getFuncDefns();
+        for (UseInterface import_node : imports) {
+            import_node.accept(this);
+        }
+        for (FuncDefn defn : defns) {
+            Pair<String, TypeSymTable> signature = defn.getSignature();
+            if (symTable.contains(signature.part1())) {
+                throw new SemanticErrorException(
+                        "Function with name " + signature.part1()
+                                + " already exists",
+                        defn.getLeft(), defn.getRight());
+            } else {
+                symTable.add(signature.part1(), signature.part2());
+            }
+        }
+        symTable.exitScope();
     }
 
     @Override
-    public void visit(InterfaceFile node) {
-
+    public void visit(FileInterface node) {
+        //note: visitor will only visit program file or interface file
+        List<FuncDecl> decls = node.getFuncDecls();
+        for (FuncDecl decl : decls) {
+            Pair<String, TypeSymTable> signature = decl.getSignature();
+            if (symTable.contains(signature.part1())) {
+                throw new SemanticErrorException(
+                        "Function with name " + signature.part1()
+                                + " already exists",
+                        decl.getLeft(), decl.getRight());
+            } else {
+                symTable.add(signature.part1(), signature.part2());
+            }
+        }
     }
 
     @Override
     public void visit(FuncDefn node) {
-
+        // for TC function body only, signatures are checked at the top-level
+        symTable.enterScope();
+        symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
+        for (Pair<String, TypeTTau> param : node.getParams()){
+            if (symTable.contains(param.part1())) {
+                throw new SemanticErrorException(
+                        "No shadowing allowed in function params",
+                        node.getLeft(), node.getRight());
+            } else {
+                symTable.add(param.part1(), new TypeSymTableVar(param.part2()));
+            }
+        }
+        node.getBody().accept(this);
+        symTable.exitScope();
     }
 
     @Override
-    public void visit(FuncDecl node) {
-
+    public void visit(FuncDecl node) { // do nothing
     }
 
     @Override
     public void visit(UseInterface node) {
-
+        //TODO checking and parsing interface
     }
-
 }

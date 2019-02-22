@@ -2,12 +2,12 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class BinopExpr extends Expr {
+public class ExprBinop extends Expr {
     private Binop op;
     private Expr leftExpr;
     private Expr rightExpr;
 
-    public BinopExpr(Binop op, Expr leftExpr, Expr rightExpr, int left, int right) {
+    public ExprBinop(Binop op, Expr leftExpr, Expr rightExpr, int left, int right) {
         super(left, right);
         this.op = op;
         this.leftExpr = leftExpr;

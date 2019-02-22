@@ -2,7 +2,10 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import polyglot.util.Pair;
+import symboltable.TypeSymTable;
+import symboltable.TypeSymTableFunc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 //funcDecls are for interfaces
@@ -13,6 +16,7 @@ public class FuncDecl implements Printable, ASTNode {
 
     private int left;
     private int right;
+    private Pair<String, TypeSymTable> signature;
 
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
                     TypeT output, int left, int right) {
@@ -21,6 +25,19 @@ public class FuncDecl implements Printable, ASTNode {
         this.output = output;
         this.left = left;
         this.right = right;
+
+        List<TypeTTau> param_types = new ArrayList<>();
+        params.forEach((p) -> param_types.add(p.part2()));
+
+        TypeSymTable sig;
+        if (param_types.size() == 0){
+            sig = new TypeSymTableFunc(new TypeTUnit(), output);
+        } else if (param_types.size() == 1) {
+            sig = new TypeSymTableFunc(param_types.get(0), output);
+        } else {
+            sig = new TypeSymTableFunc(new TypeTList(param_types), output);
+        }
+        this.signature = new Pair<>(name, sig);
     }
 
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
@@ -66,7 +83,7 @@ public class FuncDecl implements Printable, ASTNode {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        //TODO;
+        //do nothing
     }
 
     @Override
@@ -77,5 +94,13 @@ public class FuncDecl implements Printable, ASTNode {
     @Override
     public int getRight() {
         return right;
+    }
+
+    public Pair<String, TypeSymTable> getSignature() {
+        return signature;
+    }
+
+    public void setSignature(Pair<String, TypeSymTable> signature) {
+        this.signature = signature;
     }
 }

@@ -2,11 +2,11 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class IndexExpr extends Expr {
+public class ExprIndex extends Expr {
     private Expr array;
     private Expr index;
 
-    public IndexExpr(Expr array, Expr index, int left, int right) {
+    public ExprIndex(Expr array, Expr index, int left, int right) {
         super(left, right);
         this.array = array;
         this.index = index;

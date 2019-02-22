@@ -2,7 +2,10 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import polyglot.util.Pair;
+import symboltable.TypeSymTable;
+import symboltable.TypeSymTableFunc;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,6 +18,7 @@ public class FuncDefn implements Printable, ASTNode {
 
     private int left;
     private int right;
+    private Pair<String, TypeSymTable> signature;
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params,
                     TypeT output, Stmt body, int left, int right) {
@@ -24,6 +28,19 @@ public class FuncDefn implements Printable, ASTNode {
         this.body = body;
         this.left = left;
         this.right = right;
+
+        List<TypeTTau> param_types = new ArrayList<>();
+        params.forEach((p) -> param_types.add(p.part2()));
+
+        TypeSymTable sig;
+        if (param_types.size() == 0){
+            sig = new TypeSymTableFunc(new TypeTUnit(), output);
+        } else if (param_types.size() == 1) {
+            sig = new TypeSymTableFunc(param_types.get(0), output);
+        } else {
+            sig = new TypeSymTableFunc(new TypeTList(param_types), output);
+        }
+        this.signature = new Pair<>(name, sig);
     }
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params, Stmt body,
@@ -81,7 +98,8 @@ public class FuncDefn implements Printable, ASTNode {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        //TODO
+        //cannot visit body here because of scoping
+        visitor.visit(this);
     }
 
     @Override
@@ -92,5 +110,13 @@ public class FuncDefn implements Printable, ASTNode {
     @Override
     public int getRight() {
         return right;
+    }
+
+    public Pair<String, TypeSymTable> getSignature() {
+        return signature;
+    }
+
+    public void setSignature(Pair<String, TypeSymTable> signature) {
+        this.signature = signature;
     }
 }

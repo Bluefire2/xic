@@ -2,15 +2,21 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class UnderscoreAssignable extends Assignable {
+public class AssignableIndex extends Assignable {
+    private Expr index; // has to be an ID!
 
-    public UnderscoreAssignable(int left, int right) {
+    public AssignableIndex(Expr index, int left, int right) {
         super(left, right);
+        this.index = index;
+    }
+
+    public Expr getIndex() {
+        return index;
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.printAtom("_");
+        index.prettyPrint(w);
     }
 
     @Override

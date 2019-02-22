@@ -2,11 +2,11 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class WhileStmt extends Stmt {
+public class StmtWhile extends Stmt {
     private Expr guard;
     private Stmt doStmt;
 
-    public WhileStmt(Expr guard, Stmt doStmt, int left, int right) {
+    public StmtWhile(Expr guard, Stmt doStmt, int left, int right) {
         super(left, right);
         this.guard = guard;
         this.doStmt = doStmt;

@@ -5,16 +5,16 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReturnStmt extends Stmt {
+public class StmtReturn extends Stmt {
     private List<Expr> returnVals;
 
-    public ReturnStmt(List<Expr> returnVals, int left, int right) {
+    public StmtReturn(List<Expr> returnVals, int left, int right) {
         super(left, right);
         this.returnVals = returnVals;
         this.s_type = StmtType.FunctionReturnStmt;
     }
 
-    public ReturnStmt(int left, int right) {
+    public StmtReturn(int left, int right) {
         super(left, right);
         this.returnVals = new ArrayList<Expr>();
         this.s_type = StmtType.ProcedureReturnStmt;

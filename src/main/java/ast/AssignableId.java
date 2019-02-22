@@ -2,21 +2,21 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class IndexAssignable extends Assignable {
-    private Expr index; // has to be an ID!
+public class AssignableId extends Assignable {
+    private ExprId id;
 
-    public IndexAssignable(Expr index, int left, int right) {
+    public AssignableId(ExprId id, int left, int right) {
         super(left, right);
-        this.index = index;
+        this.id = id;
     }
 
-    public Expr getIndex() {
-        return index;
+    public ExprId getId() {
+        return id;
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        index.prettyPrint(w);
+        id.prettyPrint(w);
     }
 
     @Override

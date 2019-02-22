@@ -60,4 +60,28 @@ public class HashMapSymbolTable implements SymbolTable {
     public void exitScope() {
         scopes.pop();
     }
+
+    @Override
+    public boolean contains(String id) {
+        Stack<Map<String, TypeSymTable>> head = new Stack<>();
+        TypeSymTable typeSymTable = null;
+
+        while (!scopes.empty()) {
+            Map<String, TypeSymTable> scope = scopes.peek();
+            if (scope.containsKey(id)) {
+                typeSymTable = scope.get(id);
+                break;
+            } else {
+                // pop the current scope and try the previous one
+                head.push(scopes.pop());
+            }
+        }
+
+        // repair the scope stack
+        while (!head.empty()) {
+            scopes.push(head.pop());
+        }
+
+        return (typeSymTable != null);
+    }
 }

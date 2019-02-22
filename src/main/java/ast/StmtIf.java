@@ -2,11 +2,11 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class IfStmt extends Stmt {
+public class StmtIf extends Stmt {
     private Expr guard;
     private Stmt thenStmt;
 
-    public IfStmt(Expr guard, Stmt thenStmt, int left, int right) {
+    public StmtIf(Expr guard, Stmt thenStmt, int left, int right) {
         super(left, right);
         this.guard = guard;
         this.thenStmt = thenStmt;

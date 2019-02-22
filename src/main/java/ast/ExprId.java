@@ -2,10 +2,10 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
-public class IdExpr extends Expr {
+public class ExprId extends Expr {
     private String name;
 
-    public IdExpr(String name, int left, int right) {
+    public ExprId(String name, int left, int right) {
         super(left, right);
         this.name = name;
         this.e_type = ExprType.IdExpr;

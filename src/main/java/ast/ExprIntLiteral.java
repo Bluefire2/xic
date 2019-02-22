@@ -3,19 +3,19 @@ package ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import org.apache.commons.lang3.StringEscapeUtils;
 
-public class IntLiteralExpr extends Expr {
+public class ExprIntLiteral extends Expr {
     private Long value;
     private Character raw;
     public boolean isChar;
 
-    public IntLiteralExpr(Long val, int left, int right) {
+    public ExprIntLiteral(Long val, int left, int right) {
         super(left, right);
         this.value = val;
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = false;
     }
 
-    public IntLiteralExpr(Character val, int left, int right) {
+    public ExprIntLiteral(Character val, int left, int right) {
         super(left, right);
         this.value = (long) Character.getNumericValue(val);
         this.e_type = ExprType.IntLiteralExpr;
