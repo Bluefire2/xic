@@ -131,18 +131,27 @@ public class VisitorTypeCheck implements VisitorAST {
                             // func args and func sig match
                             node.setTypeCheckType(outTypes);
                         } else {
-                            // TODO: throw error: arg and type length not equal
+                            throw new SemanticErrorException(
+                                    String.format(
+                                            "%d arguments expected, but %d given", inTauList.size(), funcArgs.size()
+                                    ),
+                                    node.left,
+                                    node.right
+                            );
                         }
                     }
                 } else {
-                    // TODO: throw error: function call expressions must not
-                    //  return TUnit
+                    throw new SemanticErrorException("Functions cannot return unit type", node.left, node.right);
                 }
             } else {
-                //TODO: throw error
+                throw new SemanticErrorException(
+                        String.format("%s is not a function", name),
+                        node.left,
+                        node.right
+                );
             }
-        } catch (NotFoundException e){
-            //TODO: handle exception
+        } catch (NotFoundException e) {
+            throw new UnresolvedNameException(name, node.left, node.right);
         }
     }
 
