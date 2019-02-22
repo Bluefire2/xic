@@ -242,8 +242,33 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableIndex node) {
+    public void visit(AssignableIndex node) throws ASTException {
+        if (node.getIndex() instanceof ExprIndex) {
+            ExprIndex ei = (ExprIndex) node.getIndex();
+            Expr array = ei.getArray();
+            Expr index = ei.getIndex();
 
+            if (array instanceof ExprId) {
+                ExprId id = (ExprId) array;
+                try {
+                    symTable.lookup(id.getName());
+                } catch (NotFoundException e) {
+                    throw new UnresolvedNameException(id.getName(), node.left, node.right);
+                }
+            } else if (!(array instanceof ExprIndex)) {
+                throw new SemanticErrorException(
+                        String.format("Cannot index type %s", array.getE_type()),
+                        node.left,
+                        node.right
+                );
+            }
+        } else {
+            throw new SemanticErrorException(
+                    String.format("Cannot index type %s", node.getIndex().getE_type()),
+                    node.left,
+                    node.right
+            );
+        }
     }
 
     @Override
