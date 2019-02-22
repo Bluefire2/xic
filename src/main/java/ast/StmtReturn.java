@@ -32,7 +32,7 @@ public class StmtReturn extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         for (Expr e : returnVals) {
             e.accept(visitor);
         }

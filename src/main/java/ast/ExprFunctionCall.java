@@ -31,7 +31,7 @@ public class ExprFunctionCall extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         for (Expr e : args) {
             e.accept(visitor);
         }

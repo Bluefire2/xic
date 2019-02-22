@@ -20,7 +20,7 @@ public class AssignableIndex extends Assignable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         // TODO
     }
 }

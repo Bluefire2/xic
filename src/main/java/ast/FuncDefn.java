@@ -97,7 +97,7 @@ public class FuncDefn implements Printable, ASTNode {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         //cannot visit body here because of scoping
         visitor.visit(this);
     }

@@ -26,7 +26,7 @@ public class UseInterface implements ASTNode {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         visitor.visit(this);
     }
 

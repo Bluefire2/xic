@@ -18,7 +18,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ExprBinop node) throws SemanticErrorException {
+    public void visit(ExprBinop node) throws ASTException {
         TypeT lType = node.getLeftExpr().getTypeCheckType();
         TypeT rType = node.getRightExpr().getTypeCheckType();
 
@@ -101,7 +101,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ExprFunctionCall node) {
+    public void visit(ExprFunctionCall node) throws ASTException {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -127,6 +127,7 @@ public class VisitorTypeCheck implements VisitorAST {
                                 if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) {
                                     // TODO: throw error: corresponding type
                                     //  and tau don't match
+                                    throw new TypeCheckException(inTauList.get(i), funcArgs.get(i).getTypeCheckType());
                                 }
                             }
                             // func args and func sig match
@@ -243,7 +244,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableId node) throws SemanticErrorException {
+    public void visit(AssignableId node) throws ASTException {
         String id = node.getId().getName();
         try {
             symTable.lookup(id);
@@ -285,7 +286,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(StmtIf node) throws SemanticErrorException {
+    public void visit(StmtIf node) throws ASTException {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
                 node.setRet(TypeR.Unit);
@@ -298,7 +299,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(StmtIfElse node) throws SemanticErrorException {
+    public void visit(StmtIfElse node) throws ASTException {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             TypeR s1r = node.getThenStmt().getRet();
@@ -314,7 +315,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(StmtWhile node) throws SemanticErrorException {
+    public void visit(StmtWhile node) throws ASTException {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             node.setRet(TypeR.Unit);
@@ -327,7 +328,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(StmtBlock node) throws SemanticErrorException {
+    public void visit(StmtBlock node) throws ASTException {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
         for (int i=0; i < statements.size() - 1; i++) {
@@ -345,7 +346,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FileProgram node) throws SemanticErrorException {
+    public void visit(FileProgram node) throws ASTException {
         symTable.enterScope();
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
@@ -367,7 +368,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FileInterface node) throws SemanticErrorException {
+    public void visit(FileInterface node) throws ASTException {
         //note: visitor will only visit program file or interface file
         List<FuncDecl> decls = node.getFuncDecls();
         for (FuncDecl decl : decls) {
@@ -384,7 +385,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FuncDefn node) throws SemanticErrorException {
+    public void visit(FuncDefn node) throws ASTException {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
         symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));

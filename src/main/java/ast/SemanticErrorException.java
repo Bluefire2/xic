@@ -1,6 +1,6 @@
 package ast;
 
-public class SemanticErrorException extends Exception {
+public class SemanticErrorException extends ASTException {
     String message;
 
     public SemanticErrorException(String message, int line, int col) {

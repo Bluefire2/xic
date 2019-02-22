@@ -30,7 +30,7 @@ public class ExprIndex extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException{
+    public void accept(VisitorAST visitor) throws ASTException{
         array.accept(visitor);
         index.accept(visitor);
         visitor.visit(this);

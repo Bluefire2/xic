@@ -38,7 +38,7 @@ public class ExprUnop extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         expr.accept(visitor);
         visitor.visit(this);
     }

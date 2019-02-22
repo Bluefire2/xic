@@ -82,7 +82,7 @@ public class FuncDecl implements Printable, ASTNode {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         //do nothing
     }
 

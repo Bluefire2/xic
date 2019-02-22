@@ -32,7 +32,7 @@ public class StmtDeclAssign extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException{
+    public void accept(VisitorAST visitor) throws ASTException{
         for (Expr e : rhs) {
             e.accept(visitor);
         }

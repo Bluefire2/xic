@@ -37,7 +37,7 @@ public class StmtBlock extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws SemanticErrorException {
+    public void accept(VisitorAST visitor) throws ASTException {
         for (Stmt s : statements) {
             s.accept(visitor);
         }

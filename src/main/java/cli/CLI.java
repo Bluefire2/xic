@@ -1,9 +1,6 @@
 package cli;
 
-import ast.ASTNode;
-import ast.Printable;
-import ast.SemanticErrorException;
-import ast.VisitorTypeCheck;
+import ast.*;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
 import lexer.LexicalErrorException;
@@ -174,7 +171,7 @@ public class CLI implements Runnable {
                 VisitorTypeCheck visitor = new VisitorTypeCheck(symbolTable);
                 root.accept(visitor);
                 fileWriter.write("Valid Xi Program");
-            } catch (SemanticErrorException e) {
+            } catch (ASTException e) {
                 System.out.println("Semantic Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
