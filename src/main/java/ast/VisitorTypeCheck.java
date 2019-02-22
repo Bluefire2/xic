@@ -262,6 +262,10 @@ public class VisitorTypeCheck implements VisitorAST {
                         node.right
                 );
             }
+
+            if (!(index.getTypeCheckType() instanceof TypeTTauInt)) {
+                throw new TypeCheckException(new TypeTTauInt(), index.getTypeCheckType());
+            }
         } else {
             throw new SemanticErrorException(
                     String.format("Cannot index type %s", node.getIndex().getE_type()),
