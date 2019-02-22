@@ -1,9 +1,9 @@
 package ast;
 
 public class SemanticErrorException extends ASTException {
-    String message;
+    private String message;
 
-    public SemanticErrorException(String message, int line, int col) {
+    SemanticErrorException(String message, int line, int col) {
         this.message = line + ":" + col + " error: " + message;
     }
 
