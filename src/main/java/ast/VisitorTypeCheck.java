@@ -296,9 +296,76 @@ public class VisitorTypeCheck implements VisitorAST {
 
     }
 
-    @Override
-    public void visit(StmtAssign node) {
+    private TypeT unrollAssignableIndex(Expr index) throws UnresolvedNameException {
+        int depth = 0;
+        while (!(index instanceof ExprId)) {
+            depth++;
+            if (index instanceof ExprIndex) {
+                index = ((ExprIndex) index).getArray();
+            } else {
+                // TODO: illegal state
+            }
+        }
+        String name = ((ExprId) index).getName();
+        try {
+            TypeSymTable t = symTable.lookup(name);
+            if (t instanceof TypeSymTableVar) {
+                TypeTTau tTau = ((TypeSymTableVar) t).getTypeTTau();
+                if (tTau instanceof TypeTTauArray) {
+                    // TODO: finish this
+                    // check if depth of array type is equal to traversed depth
+                    // if it is, return the type T inside the array
+                    // otherwise return a new array type with reduced depth
+                } else {
+                    // TODO: illegal state
+                }
+            } else {
+                // TODO: illegal state
+            }
+        } catch (NotFoundException e) {
+            throw new UnresolvedNameException(name, index.left, index.right);
+        }
+    }
 
+    @Override
+    public void visit(StmtAssign node) throws ASTException {
+        List<Assignable> lhs = node.getLhs();
+        List<Expr> rhs = node.getRhs();
+
+        if (rhs.size() != 1 && rhs.size() != lhs.size()) {
+            // TODO: illegal state
+        } else if (rhs.size() == lhs.size()) {
+            for (int i = 0; i < rhs.size(); i++) {
+                Assignable currentAssignable = lhs.get(i);
+                Expr currentExpression = rhs.get(i);
+                TypeT tE = currentExpression.getTypeCheckType();
+
+                if (currentAssignable instanceof AssignableId) {
+                    String name = ((AssignableId) currentAssignable).getId().getName();
+                    try {
+                        TypeSymTable tA = symTable.lookup(name);
+                        if (tA instanceof TypeSymTableVar) {
+                            TypeT expected = ((TypeSymTableVar) tA).getTypeTTau();
+                            if (!tE.subtypeOf(expected)) {
+                                throw new TypeCheckException(expected, tE);
+                            }
+                        } else {
+                            // TODO: illegal state
+                        }
+                    } catch (NotFoundException e) {
+                        throw new UnresolvedNameException(name, node.left, node.right);
+                    }
+                } else if (currentAssignable instanceof AssignableIndex) {
+                    AssignableIndex ai = (AssignableIndex) currentAssignable;
+                    Expr index = ai.getIndex();
+                    if
+                } else {
+                    // underscore
+                }
+            }
+        } else {
+
+        }
     }
 
     @Override

@@ -3,7 +3,7 @@ package ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 public class AssignableIndex extends Assignable {
-    private Expr index; // has to be an ID!
+    private Expr index;
 
     public AssignableIndex(Expr index, int left, int right) {
         super(left, right);
