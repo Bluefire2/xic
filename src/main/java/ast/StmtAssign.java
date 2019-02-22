@@ -45,8 +45,12 @@ public class StmtAssign extends Stmt {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        lhs.forEach((e) -> e.accept(visitor));
-        rhs.forEach((e) -> e.accept(visitor));
+        for (Assignable lh : lhs) {
+            lh.accept(visitor);
+        }
+        for (Expr e : rhs) {
+            e.accept(visitor);
+        }
         visitor.visit(this);
     }
 

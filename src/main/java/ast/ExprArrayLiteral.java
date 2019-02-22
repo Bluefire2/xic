@@ -48,7 +48,9 @@ public class ExprArrayLiteral extends Expr {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        contents.forEach((e) -> e.accept(visitor));
+        for (Expr e : contents) {
+            e.accept(visitor);
+        }
         visitor.visit(this);
     }
 }

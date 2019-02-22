@@ -1,6 +1,6 @@
 package ast;
 
-public class TypeCheckException extends Exception{
+public class TypeCheckException extends Exception {
     private String message;
     private TypeT expected;
     private TypeT got;

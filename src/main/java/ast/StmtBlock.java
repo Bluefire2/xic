@@ -38,7 +38,9 @@ public class StmtBlock extends Stmt {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        statements.forEach((s) -> s.accept(visitor));
+        for (Stmt s : statements) {
+            s.accept(visitor);
+        }
         visitor.visit(this);
     }
 }

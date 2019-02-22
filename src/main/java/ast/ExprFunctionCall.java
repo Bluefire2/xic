@@ -32,7 +32,9 @@ public class ExprFunctionCall extends Expr {
 
     @Override
     public void accept(VisitorAST visitor) throws SemanticErrorException {
-        args.forEach((e) -> e.accept(visitor));
+        for (Expr e : args) {
+            e.accept(visitor);
+        }
         visitor.visit(this);
     }
 }
