@@ -124,7 +124,7 @@ public class VisitorTypeCheck implements VisitorAST {
                         List<Expr> funcArgs = node.getArgs();
                         if (inTauList.size() == funcArgs.size()) {
                             for (int i = 0; i < funcArgs.size(); ++i) {
-                                if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) {
+                                if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) { // TODO: why are we using physical equality?
                                     throw new TypeCheckException(inTauList.get(i), funcArgs.get(i).getTypeCheckType());
                                 }
                             }
