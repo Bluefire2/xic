@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,14 +9,14 @@ import java.util.List;
 public class StmtReturn extends Stmt {
     private List<Expr> returnVals;
 
-    public StmtReturn(List<Expr> returnVals, int left, int right) {
-        super(left, right);
+    public StmtReturn(List<Expr> returnVals, Symbol token) {
+        super(token);
         this.returnVals = returnVals;
         this.s_type = StmtType.FunctionReturnStmt;
     }
 
-    public StmtReturn(int left, int right) {
-        super(left, right);
+    public StmtReturn(Symbol token) {
+        super(token);
         this.returnVals = new ArrayList<Expr>();
         this.s_type = StmtType.ProcedureReturnStmt;
     }

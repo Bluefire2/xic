@@ -35,10 +35,9 @@ parser code
 
 scan with
 {:
-    Symbol s = lexer.next_token();
-    XiToken t = (XiToken) s;
-    if (t.sym == sym.ERROR)
-        throw new LexicalErrorException(t.toString());
+    Symbol s = lexer.next_token(); // s is an XiToken wrapped as a Symbol
+    if (s.sym == sym.ERROR)
+        throw new LexicalErrorException(s.toString());
     // no lexer error, pass on the symbol
     return s;
 :};
@@ -200,41 +199,41 @@ underscore_varlist ::=
 func_decl ::=
   ID:n LPAREN RPAREN {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, nleft, nright); :}
+    RESULT = new FuncDecl(n, l, n); :}
 | ID:n LPAREN RPAREN COLON type:t {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, t, nleft, nright); :}
+    RESULT = new FuncDecl(n, l, t, n); :}
 | ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
     t2.add(0, t1);
-    RESULT = new FuncDecl(n, l, new TypeTList(t2), nleft, nright); :}
+    RESULT = new FuncDecl(n, l, new TypeTList(t2), n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new FuncDecl(n, p, nleft, nright); :}
+    RESULT = new FuncDecl(n, p, n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
-    RESULT = new FuncDecl(n, p, t, nleft, nright); :}
+    RESULT = new FuncDecl(n, p, t, n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 typelist:t2 {:
     t2.add(0, t1);
-    RESULT = new FuncDecl(n, p, new TypeTList(t2), nleft, nright); :}
+    RESULT = new FuncDecl(n, p, new TypeTList(t2), n); :}
 ;
 
 func_defn ::=
   ID:n LPAREN RPAREN block:b {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, b, nleft, nright); :}
+    RESULT = new FuncDefn(n, l, b, n); :}
 | ID:n LPAREN RPAREN COLON type:t block:b {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, t, b, nleft, nright); :}
+    RESULT = new FuncDefn(n, l, t, b, n); :}
 | ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 block:b {:
     t2.add(0, t1);
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, new TypeTList(t2), b, nleft, nright); :}
+    RESULT = new FuncDefn(n, l, new TypeTList(t2), b, n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN block:b {:
-    RESULT = new FuncDefn(n, p, b, nleft, nright); :}
+    RESULT = new FuncDefn(n, p, b, n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t block:b {:
-    RESULT = new FuncDefn(n, p, t, b, nleft, nright); :}
+    RESULT = new FuncDefn(n, p, t, b, n); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 COMMA typelist:t2 block:b {:
     t2.add(0, t1);
-    RESULT = new FuncDefn(n, p, new TypeTList(t2), b, nleft, nright); :}
+    RESULT = new FuncDefn(n, p, new TypeTList(t2), b, n); :}
 ;
 
 func_defnlist ::=
@@ -247,7 +246,7 @@ func_defnlist ::=
 
 //IMPORTS
 use_interface ::=
-  USE ID:i {: RESULT = new UseInterface(i, ileft, iright); :}
+  USE ID:i {: RESULT = new UseInterface(i, i); :}
 | USE ID:i SEMICOLON {: RESULT = new UseInterface(i, ileft, iright); :}
 ;
 

@@ -1,6 +1,8 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
+import lexer.XiToken;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
 import symboltable.TypeSymTableFunc;
@@ -14,17 +16,15 @@ public class FuncDecl implements Printable, ASTNode {
     private List<Pair<String, TypeTTau>> params;
     private TypeT output;
 
-    private int left;
-    private int right;
+    private XiToken token;// Lexed token
     private Pair<String, TypeSymTable> signature;
 
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
-                    TypeT output, int left, int right) {
+                    TypeT output, Symbol s) {
         this.name = name;
         this.params = params;
         this.output = output;
-        this.left = left;
-        this.right = right;
+        token = (XiToken) s;
 
         List<TypeTTau> param_types = new ArrayList<>();
         params.forEach((p) -> param_types.add(p.part2()));
@@ -41,8 +41,8 @@ public class FuncDecl implements Printable, ASTNode {
     }
 
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
-                                        int left, int right) {
-        this(name, params, new TypeTUnit(), left, right);
+                    Symbol s) {
+        this(name, params, new TypeTUnit(), s);
     }
 
     public String getName() {
@@ -55,6 +55,11 @@ public class FuncDecl implements Printable, ASTNode {
 
     public TypeT getOutput() {
         return output;
+    }
+
+    @Override
+    public XiToken getToken() {
+        return token;
     }
 
     public boolean isProcedure() {
@@ -84,16 +89,6 @@ public class FuncDecl implements Printable, ASTNode {
     @Override
     public void accept(VisitorAST visitor) throws ASTException {
         //do nothing
-    }
-
-    @Override
-    public int getLeft() {
-        return left;
-    }
-
-    @Override
-    public int getRight() {
-        return right;
     }
 
     public Pair<String, TypeSymTable> getSignature() {

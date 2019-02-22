@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 import java.util.List;
 
@@ -8,8 +9,8 @@ public class StmtProcedureCall extends Stmt {
     private String name;
     private List<Expr> args;
 
-    public StmtProcedureCall(String name, List<Expr> args, int left, int right) {
-        super(left, right);
+    public StmtProcedureCall(String name, List<Expr> args, Symbol token) {
+        super(token);
         this.name = name;
         this.args = args;
         this.s_type = StmtType.ProcedureCallStmt;

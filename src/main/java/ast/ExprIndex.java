@@ -1,13 +1,14 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class ExprIndex extends Expr {
     private Expr array;
     private Expr index;
 
-    public ExprIndex(Expr array, Expr index, int left, int right) {
-        super(left, right);
+    public ExprIndex(Expr array, Expr index, Symbol token) {
+        super(token);
         this.array = array;
         this.index = index;
         this.e_type = ExprType.IndexExpr;

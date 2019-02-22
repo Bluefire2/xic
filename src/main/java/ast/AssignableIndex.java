@@ -1,12 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class AssignableIndex extends Assignable {
     private Expr index;
 
-    public AssignableIndex(Expr index, int left, int right) {
-        super(left, right);
+    public AssignableIndex(Expr index, Symbol token) {
+        super(token);
         this.index = index;
     }
 

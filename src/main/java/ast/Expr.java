@@ -1,36 +1,32 @@
 package ast;
 
+import java_cup.runtime.Symbol;
+import lexer.XiToken;
+
 public abstract class Expr implements Printable, ASTNode {
     ExprType e_type;//what kind of expression it is
     private TypeT typeCheckType;
 
-    int left;
-    int right;
+    private XiToken token;// Lexed token
 
-    public Expr(int left, int right) {
-        this.left = left;
-        this.right = right;
+    public Expr(Symbol s) {
+        token = (XiToken) s;
     }
 
     public ExprType getE_type() {
         return e_type;
     }
 
-    public TypeT getTypeCheckType() {
+    TypeT getTypeCheckType() {
         return typeCheckType;
     }
 
-    public void setTypeCheckType(TypeT typeCheckType) {
+    void setTypeCheckType(TypeT typeCheckType) {
         this.typeCheckType = typeCheckType;
     }
 
     @Override
-    public int getLeft() {
-        return left;
-    }
-
-    @Override
-    public int getRight() {
-        return right;
+    public XiToken getToken() {
+        return token;
     }
 }

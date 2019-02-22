@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 import java.util.List;
 
@@ -8,8 +9,8 @@ public class StmtDeclAssign extends Stmt {
     private List<TypeDecl> decls;
     private List<Expr> rhs;
 
-    public StmtDeclAssign(List<TypeDecl> decls, List<Expr> rhs, int left, int right) {
-        super(left, right);
+    public StmtDeclAssign(List<TypeDecl> decls, List<Expr> rhs, Symbol token) {
+        super(token);
         this.decls = decls;
         this.rhs = rhs;
         this.s_type = StmtType.DeclAssignStmt;

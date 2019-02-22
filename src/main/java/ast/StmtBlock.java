@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,14 +9,14 @@ import java.util.List;
 public class StmtBlock extends Stmt {
     private List<Stmt> statements;
 
-    public StmtBlock(List<Stmt> statements, int left, int right) {
-        super(left,right);
+    public StmtBlock(List<Stmt> statements, Symbol token) {
+        super(token);
         this.statements = statements;
         this.s_type = StmtType.BlockStmt;
     }
 
-    public StmtBlock(int left, int right) {
-        this(new ArrayList<>(), left, right);
+    public StmtBlock(Symbol token) {
+        this(new ArrayList<>(), token);
     }
 
     public List<Stmt> getStatments() {

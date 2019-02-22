@@ -19,34 +19,17 @@ public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
     }
 
     XiToken(String name, int id, Symbol left, Object value) {
-        super(name, id, left, value);
+        super(name, id, left, left, value);
         this.name = name;
         tLeft = ((XiToken) left).tLeft;
         tRight = ((XiToken) left).tLeft;
     }
 
-    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right,
-            Object value) {
-        // left and right to super constructor doesn't matter here
-        super(name, id, value);
-        this.name = name;
-        tLeft = left;
-        tRight = right;
-    }
-
     XiToken(String name, int id, XiTokenLocation left, Object value) {
-        // left and right to super constructor doesn't matter here
-        super(name, id, value);
+        super(name, id, left, left, value);
         this.name = name;
         tLeft = left;
         tRight = left;
-    }
-
-    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right) {
-        super(name, id, left, right);
-        this.name = name;
-        this.tLeft = left;
-        this.tRight = right;
     }
 
     XiToken(String name, int id) {

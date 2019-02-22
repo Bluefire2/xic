@@ -1,6 +1,8 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
+import lexer.XiToken;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
 import symboltable.TypeSymTableFunc;
@@ -16,18 +18,16 @@ public class FuncDefn implements Printable, ASTNode {
     private Stmt body;
     private TypeT output;
 
-    private int left;
-    private int right;
+    private XiToken token;// Lexed token
     private Pair<String, TypeSymTable> signature;
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params,
-                    TypeT output, Stmt body, int left, int right) {
+                    TypeT output, Stmt body, Symbol s) {
         this.name = name;
         this.params = params;
         this.output = output;
         this.body = body;
-        this.left = left;
-        this.right = right;
+        token = (XiToken) s;
 
         List<TypeTTau> param_types = new ArrayList<>();
         params.forEach((p) -> param_types.add(p.part2()));
@@ -44,8 +44,8 @@ public class FuncDefn implements Printable, ASTNode {
     }
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params, Stmt body,
-                                            int left, int right) {
-        this(name, params, new TypeTUnit(), body, left, right);
+                    Symbol s) {
+        this(name, params, new TypeTUnit(), body, s);
     }
 
     public String getName() {
@@ -68,6 +68,11 @@ public class FuncDefn implements Printable, ASTNode {
 
     public TypeT getOutput() {
         return output;
+    }
+
+    @Override
+    public XiToken getToken() {
+        return token;
     }
 
     public boolean isProcedure() {
@@ -100,16 +105,6 @@ public class FuncDefn implements Printable, ASTNode {
     public void accept(VisitorAST visitor) throws ASTException {
         //cannot visit body here because of scoping
         visitor.visit(this);
-    }
-
-    @Override
-    public int getLeft() {
-        return left;
-    }
-
-    @Override
-    public int getRight() {
-        return right;
     }
 
     public Pair<String, TypeSymTable> getSignature() {

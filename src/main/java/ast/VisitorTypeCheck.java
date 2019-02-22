@@ -296,6 +296,7 @@ public class VisitorTypeCheck implements VisitorAST {
 
     }
 
+    /*
     private TypeT unrollAssignableIndex(Expr index) throws UnresolvedNameException {
         int depth = 0;
         while (!(index instanceof ExprId)) {
@@ -326,9 +327,11 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new UnresolvedNameException(name, index.left, index.right);
         }
     }
+    */
 
     @Override
     public void visit(StmtAssign node) throws ASTException {
+        /*
         List<Assignable> lhs = node.getLhs();
         List<Expr> rhs = node.getRhs();
 
@@ -366,6 +369,7 @@ public class VisitorTypeCheck implements VisitorAST {
         } else {
 
         }
+        */
     }
 
     @Override

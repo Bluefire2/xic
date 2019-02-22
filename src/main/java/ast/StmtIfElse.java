@@ -1,14 +1,15 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class StmtIfElse extends Stmt {
     private Expr guard;
     private Stmt thenStmt;
     private Stmt elseStmt;
 
-    public StmtIfElse(Expr guard, Stmt thenStmt, Stmt elseStmt, int left, int right) {
-        super(left, right);
+    public StmtIfElse(Expr guard, Stmt thenStmt, Stmt elseStmt, Symbol token) {
+        super(token);
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.elseStmt = elseStmt;

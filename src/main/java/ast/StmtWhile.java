@@ -1,13 +1,14 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class StmtWhile extends Stmt {
     private Expr guard;
     private Stmt doStmt;
 
-    public StmtWhile(Expr guard, Stmt doStmt, int left, int right) {
-        super(left, right);
+    public StmtWhile(Expr guard, Stmt doStmt, Symbol token) {
+        super(token);
         this.guard = guard;
         this.doStmt = doStmt;
         this.s_type = StmtType.WhileStmt;

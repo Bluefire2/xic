@@ -1,11 +1,12 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class AssignableUnderscore extends Assignable {
 
-    public AssignableUnderscore(int left, int right) {
-        super(left, right);
+    public AssignableUnderscore(Symbol token) {
+        super(token);
     }
 
     @Override

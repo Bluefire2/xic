@@ -1,13 +1,14 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class ExprUnop extends Expr {
     private Unop op;
     private Expr expr;
 
-    public ExprUnop(Unop op, Expr expr, int left, int right) {
-        super(left, right);
+    public ExprUnop(Unop op, Expr expr, Symbol token) {
+        super(token);
         this.op = op;
         this.expr = expr;
         this.e_type = ExprType.UnopExpr;

@@ -1,13 +1,14 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class StmtIf extends Stmt {
     private Expr guard;
     private Stmt thenStmt;
 
-    public StmtIf(Expr guard, Stmt thenStmt, int left, int right) {
-        super(left, right);
+    public StmtIf(Expr guard, Stmt thenStmt, Symbol token) {
+        super(token);
         this.guard = guard;
         this.thenStmt = thenStmt;
         this.s_type = StmtType.IfStmt;

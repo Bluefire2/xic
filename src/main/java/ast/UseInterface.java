@@ -1,16 +1,18 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
+import lexer.XiToken;
 
 public class UseInterface implements ASTNode {
     private String name;
 
+    private XiToken token;// Lexed token
     private int left;
     private int right;
 
-    public UseInterface(String name, int left, int right) {
-        this.left = left;
-        this.right = right;
+    public UseInterface(String name, Symbol s) {
+        token = (XiToken) s;
         this.name = name;
     }
 
@@ -31,12 +33,7 @@ public class UseInterface implements ASTNode {
     }
 
     @Override
-    public int getLeft() {
-        return left;
-    }
-
-    @Override
-    public int getRight() {
-        return right;
+    public XiToken getToken() {
+        return token;
     }
 }

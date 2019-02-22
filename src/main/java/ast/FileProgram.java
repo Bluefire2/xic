@@ -1,20 +1,21 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
-import symboltable.TypeSymTableFunc;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FileProgram extends SourceFile {
+public class FileProgram extends FileSource {
     private List<UseInterface> imports;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public FileProgram(List<UseInterface> imports, List<FuncDefn> funcDefns, int left, int right) {
-        super(left, right);
+    public FileProgram(List<UseInterface> imports, List<FuncDefn> funcDefns,
+                       Symbol token) {
+        super(token);
         this.imports = new ArrayList<>(imports);
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();

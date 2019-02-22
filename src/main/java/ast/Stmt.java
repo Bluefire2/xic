@@ -1,7 +1,8 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import polyglot.util.Pair;
+import java_cup.runtime.Symbol;
+import lexer.XiToken;
 import symboltable.SymbolTable;
 
 import java.util.List;
@@ -12,12 +13,10 @@ public abstract class Stmt implements Printable, ASTNode {
     // TODO: again, do we need this; type checker visitor should take care
     TypeR ret = null;
 
-    int left;
-    int right;
+    private XiToken token;// Lexed token
 
-    public Stmt(int left, int right) {
-        this.left = left;
-        this.right = right;
+    public Stmt(Symbol s) {
+        token = (XiToken) s;
     }
 
     public StmtType getS_type() {
@@ -53,12 +52,7 @@ public abstract class Stmt implements Printable, ASTNode {
     }
 
     @Override
-    public int getLeft() {
-        return left;
-    }
-
-    @Override
-    public int getRight() {
-        return right;
+    public XiToken getToken() {
+        return token;
     }
 }

@@ -1,12 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class ExprBoolLiteral extends Expr {
     private Boolean value;
 
-    public ExprBoolLiteral(Boolean val, int left, int right) {
-        super(left, right);
+    public ExprBoolLiteral(Boolean val, Symbol token) {
+        super(token);
         this.value = val;
         this.e_type = ExprType.BoolLiteralExpr;
     }

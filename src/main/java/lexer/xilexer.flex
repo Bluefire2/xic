@@ -19,14 +19,14 @@ import xi_parser.sym;
 /* declare variables */
 %{
     // A buffer to start and store strings when lexing
-    StringBuffer stringLiteral = new StringBuffer();
-    XiTokenFactory symFactory;
+    private StringBuffer stringLiteral = new StringBuffer();
+    private XiTokenFactory symFactory;
 
     // Store the col where the string or char literal starts
-    int stringLiteralStartCol = 0;
-    int charLiteralStartCol = 0;
+    private int stringLiteralStartCol = 0;
+    private int charLiteralStartCol = 0;
 
-    String errorString = "error:";
+    private String errorString = "error:";
 
     public XiLexer(java.io.Reader in, XiTokenFactory tf){
     	this(in);
@@ -34,12 +34,12 @@ import xi_parser.sym;
     }
 
     // flex generates 0-indexed line, col, we need 1-indexed
-    private Symbol symbol(String name, int id, int line, int col, Object val) {
+    private XiToken symbol(String name, int id, int line, int col, Object val) {
         XiTokenLocation loc = new XiTokenLocation(line+1, col+1);
         return symFactory.newSymbol(name, id, loc, val);
     }
 
-    private Symbol symbol(String name, int id, int line, int col) {
+    private XiToken symbol(String name, int id, int line, int col) {
         return symbol(name, id, line, col, name);
     }
 

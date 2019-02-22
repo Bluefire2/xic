@@ -3,11 +3,13 @@ package ast;
 import java_cup.runtime.Symbol;
 import lexer.XiToken;
 
-public abstract class Assignable implements Printable, ASTNode {
+//top level "nodes"
+public abstract class FileSource implements Printable, ASTNode {
+    abstract boolean isInterface();
 
     private XiToken token;// Lexed token
 
-    public Assignable(Symbol s) {
+    public FileSource(Symbol s) {
         token = (XiToken) s;
     }
 
@@ -15,4 +17,5 @@ public abstract class Assignable implements Printable, ASTNode {
     public XiToken getToken() {
         return token;
     }
+
 }

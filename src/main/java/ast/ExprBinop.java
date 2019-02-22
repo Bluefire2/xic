@@ -1,14 +1,15 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import java_cup.runtime.Symbol;
 
 public class ExprBinop extends Expr {
     private Binop op;
     private Expr leftExpr;
     private Expr rightExpr;
 
-    public ExprBinop(Binop op, Expr leftExpr, Expr rightExpr, int left, int right) {
-        super(left, right);
+    public ExprBinop(Binop op, Expr leftExpr, Expr rightExpr, Symbol token) {
+        super(token);
         this.op = op;
         this.leftExpr = leftExpr;
         this.rightExpr = rightExpr;
