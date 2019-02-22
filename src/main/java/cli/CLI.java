@@ -165,13 +165,10 @@ public class CLI implements Runnable {
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
-                CodeWriterSExpPrinter printer;
                 ASTNode root = (ASTNode) parser.parse().value;
-                SymbolTable symbolTable = new HashMapSymbolTable();
-                VisitorTypeCheck visitor = new VisitorTypeCheck(symbolTable);
-                root.accept(visitor);
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable()));
                 fileWriter.write("Valid Xi Program");
-            } catch (ASTException e) {
+            } catch (SemanticErrorException e) {
                 System.out.println("Semantic Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
