@@ -131,51 +131,48 @@ public class VisitorTypeCheck implements VisitorAST {
             if (t instanceof TypeSymTableFunc) {
                 TypeT inTypes = ((TypeSymTableFunc) t).getInput();
                 TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
-                if (!(outTypes instanceof TypeTUnit)) {
-                    // non-unit return type
-                    if (inTypes instanceof TypeTUnit) {
-                        // procedure with no args
-                        node.setTypeCheckType(outTypes);
-                    } else if (inTypes instanceof TypeTTau
-                            && node.getArgs().size() == 1
-                            && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
-                        // procedure with 1 arg
-                        node.setTypeCheckType(outTypes);
-                    } else if (inTypes instanceof TypeTList) {
-                        // procedure with >= 2 args
-                        List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
-                        List<Expr> funcArgs = node.getArgs();
-                        if (inTauList.size() == funcArgs.size()) {
-                            for (int i = 0; i < funcArgs.size(); ++i) {
-                                Expr ei = funcArgs.get(i);
-                                TypeTTau ti = inTauList.get(i);
-                                if (!ei.getTypeCheckType().equals(ti)) {
-                                    // Gamma |- ei : tj and tj != ti
-                                    throw new SemanticTypeCheckError(
-                                            ti,
-                                            ei.getTypeCheckType(),
-                                            ei.getLocation()
-                                    );
-                                }
+
+                // outTypes being equal to TypeTUnit or not doesn't make a
+                // difference in the resulting type of this function/procedure.
+                // Function types are exactly the same, procedures just have
+                // an extra context return
+                if (inTypes instanceof TypeTUnit) {
+                    // procedure with no args
+                    node.setTypeCheckType(outTypes);
+                } else if (inTypes instanceof TypeTTau
+                        && node.getArgs().size() == 1
+                        && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
+                    // procedure with 1 arg
+                    node.setTypeCheckType(outTypes);
+                } else if (inTypes instanceof TypeTList) {
+                    // procedure with >= 2 args
+                    List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
+                    List<Expr> funcArgs = node.getArgs();
+                    if (inTauList.size() == funcArgs.size()) {
+                        for (int i = 0; i < funcArgs.size(); ++i) {
+                            Expr ei = funcArgs.get(i);
+                            TypeTTau ti = inTauList.get(i);
+                            if (!ei.getTypeCheckType().equals(ti)) {
+                                // Gamma |- ei : tj and tj != ti
+                                throw new SemanticTypeCheckError(
+                                        ti,
+                                        ei.getTypeCheckType(),
+                                        ei.getLocation()
+                                );
                             }
-                            // func args and func sig match
-                            node.setTypeCheckType(outTypes);
-                        } else {
-                            throw new SemanticError(
-                                    String.format("%d arguments expected, but" +
-                                            " %d given", inTauList.size(),
-                                            funcArgs.size()
-                                    ),
-                                    node.getLocation()
-                            );
                         }
+                        // func args and func sig match
+                        node.setTypeCheckType(outTypes);
+                    } else {
+                        // num arguments not equal
+                        throw new SemanticError(
+                                String.format("%d arguments expected, but" +
+                                        " %d given", inTauList.size(),
+                                        funcArgs.size()
+                                ),
+                                node.getLocation()
+                        );
                     }
-                } else {
-                    throw new SemanticError(
-                            String.format("Function %s cannot return unit " +
-                                            "type", name),
-                            node.getLocation()
-                    );
                 }
             } else {
                 throw new SemanticError(
@@ -199,7 +196,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 //TODO: throw error
             }
         } catch (NotFoundException e){
-            //TODO: handle exception
+            throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
     }
 
@@ -209,10 +206,17 @@ public class VisitorTypeCheck implements VisitorAST {
         Expr idx = node.getIndex();
         TypeT at = array.getTypeCheckType();
         TypeT it = idx.getTypeCheckType();
-        if (at instanceof TypeTTauArray && it instanceof TypeTTauInt) {
-            node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
+        if (at instanceof TypeTTauArray) {
+            if (it instanceof TypeTTauInt) {
+                node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
+            } else {
+                throw new SemanticTypeCheckError(new TypeTTauInt(), it,
+                        idx.getLocation());
+            }
         } else {
-            //TODO: throw error
+            throw new SemanticError(
+                    String.format("Cannot index type %s", idx.getE_type()),
+                    array.getLocation());
         }
     }
 
@@ -226,7 +230,8 @@ public class VisitorTypeCheck implements VisitorAST {
         if (node.getTypeCheckType() instanceof TypeTTauArray){
             node.setTypeCheckType(new TypeTTauInt());
         } else {
-            //TODO: throw error
+            throw new SemanticError("Cannot apply length on non-array " +
+                    "type", node.getLocation());
         }
     }
 
@@ -239,18 +244,22 @@ public class VisitorTypeCheck implements VisitorAST {
             //  potentially resulting in unchecked NullPointerExceptions
             node.setTypeCheckType(new TypeTTauArray());
         } else {
-            TypeT init = contents.get(0).getTypeCheckType();
-            if (init instanceof TypeTTau) {
-                TypeTTau initTau = (TypeTTau) init;
+            Expr initContent = contents.get(0);
+            TypeT initT = initContent.getTypeCheckType();
+            if (initT instanceof TypeTTau) {
+                TypeTTau initTau = (TypeTTau) initT;
                 for (Expr e : contents) {
-                    if (!initTau.equals(e.getTypeCheckType())) {
-                        //TODO: throw error
+                    TypeTTau eTau = (TypeTTau) e.getTypeCheckType();
+                    if (!initTau.equals(eTau)) {
+                        throw new SemanticTypeCheckError(initTau, eTau,
+                                e.getLocation());
                     }
                 }
                 // all taus are equal
                 node.setTypeCheckType(new TypeTTauArray(initTau));
             } else {
-                // TODO: throw error, init is not tau
+                throw new SemanticError("Invalid type",
+                        initContent.getLocation());
             }
         }
     }
@@ -264,13 +273,15 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauBool());
                     break;
                 }
-                //TODO: throw error with position
+                throw new SemanticTypeCheckError(new TypeTTauBool(), et,
+                        node.getLocation());
             case UMINUS:
                 if (et instanceof TypeTTauInt) {
                     node.setTypeCheckType(new TypeTTauInt());
                     break;
                 }
-                //TODO: throw error with position
+                throw new SemanticTypeCheckError(new TypeTTauBool(), et,
+                        node.getLocation());
         }
     }
 
@@ -428,13 +439,15 @@ public class VisitorTypeCheck implements VisitorAST {
 
     }
 
+    // TODO: is the symbol table being separated from the changes the if
+    //  block would make in this node? We want to return Gamma, but are we
+    //  really returning it? Same issue for other statement nodes.
     @Override
     public void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
-                node.setRet(TypeR.Unit);
-        }
-        else {
+            node.setTypeCheckType(TypeR.Unit);
+        } else {
             throw new SemanticError("Guard of if statement must be a " +
                     "bool", node.getLocation());
         }
@@ -445,13 +458,12 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
-            TypeR s1r = node.getThenStmt().getRet();
-            TypeR s2r = node.getElseStmt().getRet();
+            TypeR s1r = node.getThenStmt().getTypeCheckType();
+            TypeR s2r = node.getElseStmt().getTypeCheckType();
             TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
                     TypeR.Void : TypeR.Unit;
-            node.setRet(ret);
-        }
-        else {
+            node.setTypeCheckType(ret);
+        } else {
             throw new SemanticError(
                     "Guard of if-else statement must be a bool",
                     node.getLocation());
@@ -462,9 +474,8 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtWhile node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
-            node.setRet(TypeR.Unit);
-        }
-        else {
+            node.setTypeCheckType(TypeR.Unit);
+        } else {
             throw new SemanticError(
                     "Guard of while statement must be a bool",
                     node.getLocation());
@@ -476,17 +487,23 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtBlock node) {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
-        for (int i=0; i < statements.size() - 1; i++) {
-            Stmt s = statements.get(i);
-            TypeR st = s.getRet();
-            if (!st.equals(TypeR.Unit)) {
-                Stmt nexts = statements.get(i+1);
-                throw new SemanticError("Unreachable statement",
-                        nexts.getLocation());
+        if (statements.isEmpty()) {
+            // empty block, follow through
+            node.setTypeCheckType(TypeR.Unit);
+        } else {
+            // non-empty block, visit each statement
+            for (int i = 0; i < statements.size() - 1; i++) {
+                Stmt s = statements.get(i);
+                TypeR st = s.getTypeCheckType();
+                if (!st.equals(TypeR.Unit)) {
+                    Stmt nexts = statements.get(i + 1);
+                    throw new SemanticError("Unreachable statement",
+                            nexts.getLocation());
+                }
             }
+            TypeR lst = node.getLastStatement().getTypeCheckType();
+            node.setTypeCheckType(lst);
         }
-        TypeR lst = node.getLastStatement().getRet();
-        node.setRet(lst);
         symTable.exitScope();
     }
 

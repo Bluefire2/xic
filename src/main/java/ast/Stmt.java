@@ -9,8 +9,7 @@ import java.util.List;
 public abstract class Stmt extends ASTNode implements Printable {
     StmtType s_type;
     SymbolTable symTable = null;
-    // TODO: again, do we need this; type checker visitor should take care
-    TypeR ret = null;
+    TypeR typeCheckType = null;
 
     public Stmt(ComplexSymbolFactory.Location location) {
         super(location);
@@ -28,12 +27,12 @@ public abstract class Stmt extends ASTNode implements Printable {
         this.symTable = symTable;
     }
 
-    public TypeR getRet() {
-        return ret;
+    public TypeR getTypeCheckType() {
+        return typeCheckType;
     }
 
-    public void setRet(TypeR ret) {
-        this.ret = ret;
+    public void setTypeCheckType(TypeR typeCheckType) {
+        this.typeCheckType = typeCheckType;
     }
 
     <T extends Printable> void prettyPrintList(List<T> list,
