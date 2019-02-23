@@ -18,6 +18,7 @@ import xi_parser.sym;
 import xic_error.LexicalError;
 import xic_error.SemanticError;
 import xic_error.SyntaxError;
+import xic_error.XiCompilerError;
 
 import java.io.File;
 import java.io.FileReader;
@@ -140,13 +141,8 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
-            } catch (LexicalError e) {
-                System.out.println("Lexical Error");
-                System.out.println(e.getMessage());
-                fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxError e) {
-                System.out.println("Syntax Error");
-                System.out.println(e.getMessage());
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                stdoutError(e, inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -170,17 +166,8 @@ public class CLI implements Runnable {
                 ASTNode root = (ASTNode) parser.parse().value;
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable(), sourcepath.toString()));
                 fileWriter.write("Valid Xi Program");
-            } catch (SemanticError e) {
-                System.out.println("Semantic Error");
-                System.out.println(e.getMessage());
-                fileoutError(outputFilePath, e.getMessage());
-            } catch (LexicalError e) {
-                System.out.println("Lexical Error");
-                System.out.println(e.getMessage());
-                fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxError e) {
-                System.out.println("Syntax Error");
-                System.out.println(e.getMessage());
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                stdoutError(e, inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -188,6 +175,11 @@ public class CLI implements Runnable {
         }
     }
 
+    /**
+     * Writes the error message in the file.
+     * @param outputFilePath path of the file to write in.
+     * @param errMessage error message.
+     */
     private void fileoutError(String outputFilePath, String errMessage) {
         try {
             FileWriter fw = new FileWriter(outputFilePath);
@@ -196,6 +188,20 @@ public class CLI implements Runnable {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    /**
+     * Outputs an error message on STDOUT in the form
+     *  <errorKind> error beginning at <inputFilePath>:<line>:<column> description.
+     * @param e error object.
+     * @param inputFilePath path of the file where the error was encountered.
+     */
+    private void stdoutError(XiCompilerError e, String inputFilePath) {
+        String message = String.format(
+                "%s error beginning at %s:%s", e.getErrorKindName(),
+                inputFilePath, e.getMessage()
+        );
+        System.out.println(message);
     }
 
     public static void main(String[] args) {

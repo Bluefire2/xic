@@ -1,7 +1,11 @@
 package xic_error;
 
-abstract class XiCompilerError extends Error {
+public abstract class XiCompilerError extends Error {
     XiCompilerError(String message) {
         super(message);
+    }
+
+    public String getErrorKindName() {
+        return "XiCompiler";
     }
 }
