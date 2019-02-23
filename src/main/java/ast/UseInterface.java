@@ -23,7 +23,7 @@ public class UseInterface extends ASTNode {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

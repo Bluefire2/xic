@@ -24,7 +24,7 @@ public class StmtDecl extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor)throws ASTException {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

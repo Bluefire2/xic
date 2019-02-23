@@ -32,7 +32,7 @@ public class ExprIndex extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException{
+    public void accept(VisitorAST visitor) {
         array.accept(visitor);
         index.accept(visitor);
         visitor.visit(this);

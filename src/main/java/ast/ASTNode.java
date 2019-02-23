@@ -10,7 +10,7 @@ public abstract class ASTNode {
         this.location = (XiTokenLocation) location;
     }
 
-    abstract void accept(VisitorAST visitor) throws ASTException;
+    public abstract void accept(VisitorAST visitor);
 
     XiTokenLocation getLocation() {
         return location;

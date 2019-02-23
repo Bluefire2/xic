@@ -38,7 +38,7 @@ public class ExprIntLiteral extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

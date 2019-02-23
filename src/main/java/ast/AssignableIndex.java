@@ -21,7 +21,7 @@ public class AssignableIndex extends Assignable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         index.accept(visitor);
         visitor.visit(this);
     }

@@ -80,7 +80,7 @@ public class FuncDecl extends ASTNode implements Printable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         //do nothing
     }
 

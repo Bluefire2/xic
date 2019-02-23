@@ -2,6 +2,9 @@ package ast;
 
 import polyglot.util.Pair;
 import symboltable.*;
+import xic_error.SemanticError;
+import xic_error.SemanticTypeCheckError;
+import xic_error.SemanticUnresolvedNameError;
 
 import java.util.List;
 
@@ -17,8 +20,24 @@ public class VisitorTypeCheck implements VisitorAST {
         return symTable;
     }
 
+    /**
+     * Throws SemanticErrorException for binary op AST node. Helper function
+     * to visit(BinopExpr node).
+     * @param node that results in a type checking error.
+     */
+    private void throwSemanticErrorBinopVisit(ExprBinop node)
+            throws SemanticError {
+        TypeT lType = node.getLeftExpr().getTypeCheckType();
+        TypeT rType = node.getRightExpr().getTypeCheckType();
+        throw new SemanticError(
+                String.format("Operator %s cannot be applied to %s and %s",
+                        node.opToString(), lType.toString(), rType.toString()),
+                node.getLocation()
+        );
+    }
+
     @Override
-    public void visit(ExprBinop node) throws ASTException {
+    public void visit(ExprBinop node) {
         TypeT lType = node.getLeftExpr().getTypeCheckType();
         TypeT rType = node.getRightExpr().getTypeCheckType();
 
@@ -42,8 +61,7 @@ public class VisitorTypeCheck implements VisitorAST {
                         break;
                     }
                 }
-                throw new SemanticErrorException("Operator + cannot be applied to" +
-                        lType.toString() + " and " + rType.toString(), node.left, node.right);
+                throwSemanticErrorBinopVisit(node);
             case MINUS:
             case MULT:
             case HI_MULT:
@@ -53,8 +71,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauInt());
                     break;
                 }
-                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
-                        lType.toString() + " and " + rType.toString(), node.left, node.right);
+                throwSemanticErrorBinopVisit(node);
             case EQEQ:
             case NEQ:
                 if ((lTypeIsInt && rTypeIsInt) || (lTypeIsBool && rTypeIsBool)) {
@@ -69,8 +86,7 @@ public class VisitorTypeCheck implements VisitorAST {
                         break;
                     }
                 }
-                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
-                        lType.toString() + " and " + rType.toString(), node.left, node.right);
+                throwSemanticErrorBinopVisit(node);
             case GT:
             case LT:
             case GTEQ:
@@ -79,16 +95,14 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauBool());
                     break;
                 }
-                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
-                        lType.toString() + " and " + rType.toString(), node.left, node.right);
+                throwSemanticErrorBinopVisit(node);
             case AND:
             case OR:
                 if (lTypeIsBool && rTypeIsBool) {
                     node.setTypeCheckType(new TypeTTauBool());
                     break;
                 }
-                throw new SemanticErrorException("Operator" + node.opToString() + "cannot be applied to" +
-                        lType.toString() + " and " + rType.toString(), node.left, node.right);
+                throwSemanticErrorBinopVisit(node);
             default:
                 throw new IllegalArgumentException("Operation Type of " +
                         "Binop node is invalid");
@@ -101,7 +115,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ExprFunctionCall node) throws ASTException {
+    public void visit(ExprFunctionCall node) {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -124,34 +138,44 @@ public class VisitorTypeCheck implements VisitorAST {
                         List<Expr> funcArgs = node.getArgs();
                         if (inTauList.size() == funcArgs.size()) {
                             for (int i = 0; i < funcArgs.size(); ++i) {
-                                if (funcArgs.get(i).getTypeCheckType() != inTauList.get(i)) { // TODO: why are we using physical equality?
-                                    throw new TypeCheckException(inTauList.get(i), funcArgs.get(i).getTypeCheckType());
+                                Expr ei = funcArgs.get(i);
+                                TypeTTau ti = inTauList.get(i);
+                                if (!ei.getTypeCheckType().equals(ti)) {
+                                    // Gamma |- ei : tj and tj != ti
+                                    throw new SemanticTypeCheckError(
+                                            ti,
+                                            ei.getTypeCheckType(),
+                                            ei.getLocation()
+                                    );
                                 }
                             }
                             // func args and func sig match
                             node.setTypeCheckType(outTypes);
                         } else {
-                            throw new SemanticErrorException(
-                                    String.format(
-                                            "%d arguments expected, but %d given", inTauList.size(), funcArgs.size()
+                            throw new SemanticError(
+                                    String.format("%d arguments expected, but" +
+                                            " %d given", inTauList.size(),
+                                            funcArgs.size()
                                     ),
-                                    node.left,
-                                    node.right
+                                    node.getLocation()
                             );
                         }
                     }
                 } else {
-                    throw new SemanticErrorException("Functions cannot return unit type", node.left, node.right);
+                    throw new SemanticError(
+                            String.format("Function %s cannot return unit " +
+                                            "type", name),
+                            node.getLocation()
+                    );
                 }
             } else {
-                throw new SemanticErrorException(
+                throw new SemanticError(
                         String.format("%s is not a function", name),
-                        node.left,
-                        node.right
+                        node.getLocation()
                 );
             }
         } catch (NotFoundException e) {
-            throw new UnresolvedNameException(name, node.left, node.right);
+            throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
     }
 
@@ -242,7 +266,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableIndex node) throws ASTException {
+    public void visit(AssignableIndex node) {
         if (node.getIndex() instanceof ExprIndex) {
             ExprIndex ei = (ExprIndex) node.getIndex();
             Expr array = ei.getArray();
@@ -253,24 +277,24 @@ public class VisitorTypeCheck implements VisitorAST {
                 try {
                     symTable.lookup(id.getName());
                 } catch (NotFoundException e) {
-                    throw new UnresolvedNameException(id.getName(), node.left, node.right);
+                    throw new SemanticUnresolvedNameError(id.getName(),
+                            node.getLocation());
                 }
             } else if (!(array instanceof ExprIndex)) {
-                throw new SemanticErrorException(
+                throw new SemanticError(
                         String.format("Cannot index type %s", array.getE_type()),
-                        node.left,
-                        node.right
+                        node.getLocation()
                 );
             }
 
             if (!(index.getTypeCheckType() instanceof TypeTTauInt)) {
-                throw new TypeCheckException(new TypeTTauInt(), index.getTypeCheckType());
+                throw new SemanticTypeCheckError(new TypeTTauInt(),
+                        index.getTypeCheckType(), index.getLocation());
             }
         } else {
-            throw new SemanticErrorException(
+            throw new SemanticError(
                     String.format("Cannot index type %s", node.getIndex().getE_type()),
-                    node.left,
-                    node.right
+                    node.getLocation()
             );
         }
     }
@@ -280,14 +304,14 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableId node) throws ASTException {
+    public void visit(AssignableId node) {
         String id = node.getId().getName();
         try {
             symTable.lookup(id);
         }
         catch (NotFoundException e) {
-            throw new SemanticErrorException("Uninitialized identifier " + id,
-                    node.left, node.right);
+            throw new SemanticError("Uninitialized identifier " + id,
+                    node.getLocation());
         }
     }
 
@@ -330,7 +354,7 @@ public class VisitorTypeCheck implements VisitorAST {
     */
 
     @Override
-    public void visit(StmtAssign node) throws ASTException {
+    public void visit(StmtAssign node) {
         /*
         List<Assignable> lhs = node.getLhs();
         List<Expr> rhs = node.getRhs();
@@ -393,20 +417,20 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(StmtIf node) throws ASTException {
+    public void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
                 node.setRet(TypeR.Unit);
         }
         else {
-            throw new SemanticErrorException("Guard of if statement must be a " +
-                    "boolean", node.left, node.right);
+            throw new SemanticError("Guard of if statement must be a " +
+                    "bool", node.getLocation());
         }
 
     }
 
     @Override
-    public void visit(StmtIfElse node) throws ASTException {
+    public void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             TypeR s1r = node.getThenStmt().getRet();
@@ -416,26 +440,26 @@ public class VisitorTypeCheck implements VisitorAST {
             node.setRet(ret);
         }
         else {
-            throw new SemanticErrorException("Guard of if-else statement must be " +
-                    "a boolean", node.left, node.right);
+            throw new SemanticError("Guard of if-else statement must be " +
+                    "a bool", node.getLocation());
         }
     }
 
     @Override
-    public void visit(StmtWhile node) throws ASTException {
+    public void visit(StmtWhile node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             node.setRet(TypeR.Unit);
         }
         else {
-            throw new SemanticErrorException("Guard of while statement must be a " +
-                    "boolean", node.left, node.right);
+            throw new SemanticError("Guard of while statement must be a " +
+                    "bool", node.getLocation());
         }
 
     }
 
     @Override
-    public void visit(StmtBlock node) throws ASTException {
+    public void visit(StmtBlock node) {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
         for (int i=0; i < statements.size() - 1; i++) {
@@ -443,8 +467,8 @@ public class VisitorTypeCheck implements VisitorAST {
             TypeR st = s.getRet();
             if (!st.equals(TypeR.Unit)) {
                 Stmt nexts = statements.get(i+1);
-                throw new SemanticErrorException("Unreachable statement",
-                        nexts.left, nexts.right);
+                throw new SemanticError("Unreachable statement",
+                        nexts.getLocation());
             }
         }
         TypeR lst = node.getLastStatement().getRet();
@@ -453,7 +477,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FileProgram node) throws ASTException {
+    public void visit(FileProgram node) {
         symTable.enterScope();
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
@@ -463,10 +487,10 @@ public class VisitorTypeCheck implements VisitorAST {
         for (FuncDefn defn : defns) {
             Pair<String, TypeSymTable> signature = defn.getSignature();
             if (symTable.contains(signature.part1())) {
-                throw new SemanticErrorException(
+                throw new SemanticError(
                         "Function with name " + signature.part1()
                                 + " already exists",
-                        defn.getLeft(), defn.getRight());
+                        defn.getLocation());
             } else {
                 symTable.add(signature.part1(), signature.part2());
             }
@@ -475,16 +499,16 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FileInterface node) throws ASTException {
+    public void visit(FileInterface node) {
         //note: visitor will only visit program file or interface file
         List<FuncDecl> decls = node.getFuncDecls();
         for (FuncDecl decl : decls) {
             Pair<String, TypeSymTable> signature = decl.getSignature();
             if (symTable.contains(signature.part1())) {
-                throw new SemanticErrorException(
+                throw new SemanticError(
                         "Function with name " + signature.part1()
                                 + " already exists",
-                        decl.getLeft(), decl.getRight());
+                        decl.getLocation());
             } else {
                 symTable.add(signature.part1(), signature.part2());
             }
@@ -492,15 +516,15 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FuncDefn node) throws ASTException {
+    public void visit(FuncDefn node) {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
         symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
         for (Pair<String, TypeTTau> param : node.getParams()){
             if (symTable.contains(param.part1())) {
-                throw new SemanticErrorException(
+                throw new SemanticError(
                         "No shadowing allowed in function params",
-                        node.getLeft(), node.getRight());
+                        node.getLocation());
             } else {
                 symTable.add(param.part1(), new TypeSymTableVar(param.part2()));
             }

@@ -89,8 +89,9 @@ INTEGER = 0 | [1-9][0-9]*
             return symbol("integer " + yytext(), sym.INT_LIT,
                 yyline, yycolumn, Long.parseLong(yytext()));
         } catch (NumberFormatException e) {
-            return symbol(errorString + "invalid integer", sym.ERROR,
-                yyline, yycolumn);
+            String message = "invalid integer";
+            return symbol(errorString + message, sym.ERROR,
+                yyline, yycolumn, message);
         }
     }
     \"          { stringLiteral.setLength(0);
@@ -140,9 +141,11 @@ INTEGER = 0 | [1-9][0-9]*
                       String s = stringLiteral.toString();
                       return symbol("string " + s, sym.STRING_LIT, yyline,
                         stringLiteralStartCol, s); }
-    {EOL}           { yybegin(YYINITIAL); return symbol(
-              errorString + "missing ending double quotes", sym.ERROR,
-              yyline, stringLiteralStartCol); }
+    {EOL}           { yybegin(YYINITIAL);
+                      String message = "missing ending double quotes";
+                      return symbol(
+              errorString + message, sym.ERROR, yyline, stringLiteralStartCol,
+              message); }
     [^\n\r\"\\]+    { stringLiteral.append( yytext() ); }
     \\x{HEX}        { stringLiteral.append( (char) Integer.parseInt(
                         yytext().substring(2, yylength()), 16
@@ -155,15 +158,18 @@ INTEGER = 0 | [1-9][0-9]*
     \\\\            { stringLiteral.append( "\\" ); }
     // yycolumn instead of string start col because the escape is the
     // problem, not the string itself
-    \\.             { yybegin(YYINITIAL); return symbol(
-              errorString + "invalid escape character", sym.ERROR,
-              yyline, yycolumn); }
+    \\.             { yybegin(YYINITIAL);
+                      String message = "invalid escape character";
+                      return symbol(
+              errorString + message, sym.ERROR, yyline, yycolumn, message); }
 }
 
 <CHAR> {
-    \'              { yybegin(YYINITIAL); return symbol(
-              errorString + "empty character literal", sym.ERROR,
-              yyline, charLiteralStartCol); }
+    \'              { yybegin(YYINITIAL);
+                      String message = "empty character literal";
+                      return symbol(
+              errorString + message, sym.ERROR, yyline, charLiteralStartCol,
+              message); }
     [^\n\r\'\\\"]\' { yybegin(YYINITIAL);
                       Character c = yytext().charAt(0);
                       return symbol("character " + c, sym.CHAR_LIT,
@@ -200,14 +206,19 @@ INTEGER = 0 | [1-9][0-9]*
                       char c = '\"';
                       return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
-    \\.\'           { yybegin(YYINITIAL); return symbol(
-              errorString + "invalid escape character", sym.ERROR, yyline,
-              charLiteralStartCol); }
-    [^]             { yybegin(YYINITIAL); return symbol(
-              errorString + "invalid character", sym.ERROR, yyline,
-              charLiteralStartCol); }
+    \\.\'           { yybegin(YYINITIAL);
+                      String message = "invalid escape character";
+                      return symbol(
+              errorString + message, sym.ERROR, yyline, charLiteralStartCol,
+              message); }
+    [^]             { yybegin(YYINITIAL);
+                      String message = "invalid character";
+                      return symbol(
+              errorString + message, sym.ERROR, yyline, charLiteralStartCol,
+              message); }
 }
 
 /* error fallback */
-[^] { return symbol(errorString + "illegal symbol <" + yytext() + ">",
-        sym.ERROR, yyline, yycolumn); }
+[^] { String message = "illegal symbol <" + yytext() + ">";
+    return symbol (errorString + message, sym.ERROR, yyline, yycolumn,
+     message); }

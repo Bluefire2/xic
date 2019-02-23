@@ -4,7 +4,6 @@ package xi_parser;
 import ast.*;
 import lexer.XiLexer;
 import lexer.XiToken;
-import lexer.LexicalErrorException;
 import polyglot.util.Pair;
 
 import java.util.List;
@@ -13,6 +12,8 @@ import java.util.stream.Collectors;
 
 import lexer.XiTokenFactory;
 import java_cup.runtime.Symbol;
+import xic_error.LexicalError;
+import xic_error.SyntaxError;
 
 parser code
 {:
@@ -24,12 +25,11 @@ parser code
     }
 
     public void syntax_error(Symbol s) {
-        if (s instanceof XiToken) {
-            XiToken t = (XiToken) s;
-            String message = String.format("%s error:Unexpected token %s",
-                                                t.getLeft(), t.getValue());
-            throw new SyntaxErrorException(message);
-        }
+        XiToken t = (XiToken) s;
+        String message = String.format(
+            "Unexpected token %s", t.getValue()
+        );
+        throw new SyntaxError(message, t.getLocation());
     }
 :};
 
@@ -37,10 +37,11 @@ scan with
 {:
     Symbol s = lexer.next_token(); // s is an XiToken wrapped as a Symbol
     XiToken t = (XiToken) s;
-    if (t.sym == sym.ERROR)
-        throw new LexicalErrorException(t.toString());
-    // no lexer error, pass on the symbol
-    return s;
+    if (t.sym == sym.ERROR) {
+        throw new LexicalError(t.getName(), t.getLocation());
+    } else {
+        return s;
+    }
 :};
 
 terminal String ID;

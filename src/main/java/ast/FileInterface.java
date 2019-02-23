@@ -45,7 +45,7 @@ public class FileInterface extends FileSource {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         visitor.visit(this);
     }
 }

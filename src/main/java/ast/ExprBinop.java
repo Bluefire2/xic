@@ -59,7 +59,7 @@ public class ExprBinop extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         leftExpr.accept(visitor);
         rightExpr.accept(visitor);
         visitor.visit(this);

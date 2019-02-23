@@ -1,11 +1,9 @@
 XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
+XTH_VERBOSITY_LEVEL=4
 XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 xth/tests/pa3
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
-
-RED_COLOR='\033[0;31m'
-NO_COLOR='\033[0m'
 
 default: build
 
@@ -17,14 +15,12 @@ test: test-xth-build $(XTH_TEST_DIRS)
 
 test-xth-build:
 	$(eval SCRIPT:=$(addsuffix /xthScriptBuild, $(XTH_BUILD_TEST_DIR)))
-	echo -e "$(RED_COLOR)xth on $(SCRIPT) $(NO_COLOR)"
-	$(XTH_BIN) -testpath $(XTH_BUILD_TEST_DIR) $(SCRIPT)
+	$(XTH_BIN) -v $(XTH_VERBOSITY_LEVEL) -testpath $(XTH_BUILD_TEST_DIR) $(SCRIPT)
 
 .PHONY: $(XTH_TEST_DIRS)
 $(XTH_TEST_DIRS):
 	$(eval SCRIPT:=$(addsuffix /xthScript, $@))
-	echo -e "$(RED_COLOR) xth on $(SCRIPT) $(NO_COLOR)"
-	$(XTH_BIN) -testpath $@ $(SCRIPT)
+	$(XTH_BIN) -v $(XTH_VERBOSITY_LEVEL) -testpath $@ $(SCRIPT)
 
 zip: clean
 	zip -r xic.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic tests/pa1-fix-tests -x *.results*

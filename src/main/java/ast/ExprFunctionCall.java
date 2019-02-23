@@ -33,7 +33,7 @@ public class ExprFunctionCall extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         for (Expr e : args) {
             e.accept(visitor);
         }

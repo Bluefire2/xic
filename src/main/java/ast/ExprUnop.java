@@ -40,7 +40,7 @@ public class ExprUnop extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         expr.accept(visitor);
         visitor.visit(this);
     }

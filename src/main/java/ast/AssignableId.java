@@ -21,7 +21,7 @@ public class AssignableId extends Assignable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         // TODO
     }
 }

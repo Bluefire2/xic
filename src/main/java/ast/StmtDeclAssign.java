@@ -34,7 +34,7 @@ public class StmtDeclAssign extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException{
+    public void accept(VisitorAST visitor) {
         for (Expr e : rhs) {
             e.accept(visitor);
         }

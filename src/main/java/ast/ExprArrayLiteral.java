@@ -2,7 +2,6 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.ComplexSymbolFactory;
-import java_cup.runtime.Symbol;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 import java.util.ArrayList;
@@ -51,7 +50,7 @@ public class ExprArrayLiteral extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         for (Expr e : contents) {
             e.accept(visitor);
         }

@@ -24,7 +24,7 @@ public class ExprLength extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         list.accept(visitor);
         visitor.visit(this);
     }

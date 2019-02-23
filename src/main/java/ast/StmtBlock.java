@@ -39,7 +39,7 @@ public class StmtBlock extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         for (Stmt s : statements) {
             s.accept(visitor);
         }

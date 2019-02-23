@@ -24,7 +24,7 @@ public class StmtIf extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         guard.accept(visitor);
         thenStmt.accept(visitor);
         visitor.visit(this);

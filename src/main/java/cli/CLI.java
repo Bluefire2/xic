@@ -1,9 +1,10 @@
 package cli;
 
-import ast.*;
+import ast.ASTNode;
+import ast.Printable;
+import ast.VisitorTypeCheck;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
-import lexer.LexicalErrorException;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
@@ -11,11 +12,12 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
-import symboltable.SymbolTable;
 import symboltable.HashMapSymbolTable;
-import xi_parser.SyntaxErrorException;
 import xi_parser.XiParser;
 import xi_parser.sym;
+import xic_error.LexicalError;
+import xic_error.SemanticError;
+import xic_error.SyntaxError;
 
 import java.io.File;
 import java.io.FileReader;
@@ -138,11 +140,11 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
-            } catch (LexicalErrorException e) {
+            } catch (LexicalError e) {
                 System.out.println("Lexical Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxErrorException e) {
+            } catch (SyntaxError e) {
                 System.out.println("Syntax Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
@@ -168,15 +170,15 @@ public class CLI implements Runnable {
                 ASTNode root = (ASTNode) parser.parse().value;
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable()));
                 fileWriter.write("Valid Xi Program");
-            } catch (SemanticErrorException e) {
+            } catch (SemanticError e) {
                 System.out.println("Semantic Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
-            } catch (LexicalErrorException e) {
+            } catch (LexicalError e) {
                 System.out.println("Lexical Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxErrorException e) {
+            } catch (SyntaxError e) {
                 System.out.println("Syntax Error");
                 System.out.println(e.getMessage());
                 fileoutError(outputFilePath, e.getMessage());

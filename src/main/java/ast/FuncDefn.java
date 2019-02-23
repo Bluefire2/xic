@@ -96,7 +96,7 @@ public class FuncDefn extends ASTNode implements Printable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         //cannot visit body here because of scoping
         visitor.visit(this);
     }

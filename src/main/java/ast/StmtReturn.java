@@ -34,7 +34,7 @@ public class StmtReturn extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) throws ASTException {
+    public void accept(VisitorAST visitor) {
         for (Expr e : returnVals) {
             e.accept(visitor);
         }
