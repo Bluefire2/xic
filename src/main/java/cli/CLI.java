@@ -168,7 +168,7 @@ public class CLI implements Runnable {
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
                 ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable()));
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable(), sourcepath.toString()));
                 fileWriter.write("Valid Xi Program");
             } catch (SemanticError e) {
                 System.out.println("Semantic Error");

@@ -1,19 +1,28 @@
 package ast;
 
+import lexer.XiLexer;
+import lexer.XiTokenFactory;
 import polyglot.util.Pair;
 import symboltable.*;
 import xic_error.SemanticError;
 import xic_error.SemanticTypeCheckError;
 import xic_error.SemanticUnresolvedNameError;
+import xic_error.LexicalError;
+import xic_error.SyntaxError;
+import xi_parser.XiParser;
 
+import java.io.FileReader;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
+    private String sourcepath;
     private String RETURN_KEY = "__return__";
 
-    public VisitorTypeCheck(SymbolTable symTable){
+    public VisitorTypeCheck(SymbolTable symTable, String sourcepath){
         this.symTable = symTable;
+        this.sourcepath = sourcepath;
     }
 
     public SymbolTable getSymTable() {
@@ -397,7 +406,14 @@ public class VisitorTypeCheck implements VisitorAST {
         for (TypeDeclVar d : node.getDecls()) {
             TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
             for (String did : d.varsOf()) {
-                symTable.add(did, dt);
+                if (symTable.contains(did)) {
+                    throw new SemanticError(
+                            "Variable with name " + did
+                                    + " already exists",
+                            node.getLocation());
+                } else {
+                    symTable.add(did, dt);
+                }
             }
         }
     }
@@ -436,8 +452,9 @@ public class VisitorTypeCheck implements VisitorAST {
             node.setRet(ret);
         }
         else {
-            throw new SemanticError("Guard of if-else statement must be " +
-                    "a bool", node.getLocation());
+            throw new SemanticError(
+                    "Guard of if-else statement must be a bool",
+                    node.getLocation());
         }
     }
 
@@ -448,8 +465,9 @@ public class VisitorTypeCheck implements VisitorAST {
             node.setRet(TypeR.Unit);
         }
         else {
-            throw new SemanticError("Guard of while statement must be a " +
-                    "bool", node.getLocation());
+            throw new SemanticError(
+                    "Guard of while statement must be a bool",
+                    node.getLocation());
         }
 
     }
@@ -535,6 +553,26 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(UseInterface node) {
-        //TODO checking and parsing interface
+        String filename = node.getName() + ".ixi";
+        String inputFilePath = Paths.get(sourcepath, filename).toString();
+        try (FileReader fileReader = new FileReader(inputFilePath)) {
+            XiTokenFactory xtf = new XiTokenFactory();
+            XiLexer lexer = new XiLexer(fileReader, xtf);
+            XiParser parser = new XiParser(lexer, xtf);
+            FileInterface root = (FileInterface) parser.parse().value;
+            root.accept(this);
+        } catch (SyntaxError e) {
+            //TODO should we print which file the error was in?
+            throw e;
+        } catch (LexicalError e) {
+            throw e;
+        } catch (Exception e) {
+            //this would get thrown the file existed but was parsed as
+            // a program file for some reason
+            throw new SemanticError(
+                    "Could not find interface "+node.getName(),
+                    node.getLocation());
+        }
+
     }
 }
