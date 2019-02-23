@@ -381,7 +381,9 @@ stmtlist ::=
 ;
 
 block ::=
-  LCURL:c return:r RCURL {: RESULT = new StmtBlock(cxleft); :}
+  LCURL:c return:r RCURL {:
+    ArrayList<Stmt> l = new ArrayList<>(); l.add(r);
+    RESULT = new StmtBlock(l, cxleft) ; :}
 | LCURL:c stmtlist:l RCURL {: RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c stmtlist:l return:r RCURL {: l.add(r); RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c stmtlist:l SEMICOLON RCURL {: RESULT = new StmtBlock(l, cxleft); :}
