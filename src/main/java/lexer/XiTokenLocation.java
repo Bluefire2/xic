@@ -2,7 +2,7 @@ package lexer;
 
 import java_cup.runtime.ComplexSymbolFactory;
 
-public class XiTokenLocation  extends ComplexSymbolFactory.Location {
+public class XiTokenLocation extends ComplexSymbolFactory.Location {
     private int line;
     private int col;
 

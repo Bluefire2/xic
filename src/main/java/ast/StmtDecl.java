@@ -1,15 +1,16 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 import java.util.List;
 
 public class StmtDecl extends Stmt {
     private List<TypeDeclVar> decls;
 
-    public StmtDecl(List<TypeDeclVar> decls, Symbol token) {
-        super(token);
+    public StmtDecl(List<TypeDeclVar> decls,
+                    ComplexSymbolFactory.Location location) {
+        super(location);
         this.decls = decls;
         this.s_type = StmtType.DeclStmt;
     }

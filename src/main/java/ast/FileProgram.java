@@ -1,7 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
 
@@ -14,8 +14,8 @@ public class FileProgram extends FileSource {
     private List<Pair<String, TypeSymTable>> signatures;
 
     public FileProgram(List<UseInterface> imports, List<FuncDefn> funcDefns,
-                       Symbol token) {
-        super(token);
+                       ComplexSymbolFactory.Location location) {
+        super(location);
         this.imports = new ArrayList<>(imports);
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();

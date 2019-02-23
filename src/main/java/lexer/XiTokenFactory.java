@@ -7,6 +7,8 @@ public class XiTokenFactory extends ComplexSymbolFactory {
 
     public XiTokenFactory() {}
 
+    // Only this function is used by our lexer, the others are there to
+    // formally extend ComplexSymbolFactory
     public XiToken newSymbol(String name, int id, XiTokenLocation left,
                             Object value) {
         return new XiToken(name, id, left, value);

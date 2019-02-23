@@ -1,7 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 import java.util.List;
 
@@ -9,8 +9,9 @@ public class StmtAssign extends Stmt {
     private List<Assignable> lhs;
     private List<Expr> rhs;
 
-    public StmtAssign(List<Assignable> lhs, List<Expr> rhs, Symbol token) {
-        super(token);
+    public StmtAssign(List<Assignable> lhs, List<Expr> rhs,
+                      ComplexSymbolFactory.Location location) {
+        super(location);
         this.lhs = lhs;
         this.rhs = rhs;
         this.s_type = StmtType.AssignStmt;

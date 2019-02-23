@@ -1,13 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class ExprLength extends Expr {
     private Expr list;
 
-    public ExprLength(Expr list, Symbol token) {
-        super(token);
+    public ExprLength(Expr list, ComplexSymbolFactory.Location location) {
+        super(location);
         this.list = list;
         this.e_type = ExprType.LengthExpr;
     }

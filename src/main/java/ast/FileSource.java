@@ -1,21 +1,12 @@
 package ast;
 
-import java_cup.runtime.Symbol;
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
 
 //top level "nodes"
-public abstract class FileSource implements Printable, ASTNode {
-    abstract boolean isInterface();
+public abstract class FileSource extends ASTNode implements Printable {
+    public abstract boolean isInterface();
 
-    private XiToken token;// Lexed token
-
-    public FileSource(Symbol s) {
-        token = (XiToken) s;
+    public FileSource(ComplexSymbolFactory.Location location) {
+        super(location);
     }
-
-    @Override
-    public XiToken getToken() {
-        return token;
-    }
-
 }

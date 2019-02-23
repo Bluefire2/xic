@@ -1,8 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
 import symboltable.TypeSymTableFunc;
@@ -12,22 +11,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 //funcDefns are for program files
-public class FuncDefn implements Printable, ASTNode {
+public class FuncDefn extends ASTNode implements Printable {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private Stmt body;
     private TypeT output;
 
-    private XiToken token;// Lexed token
     private Pair<String, TypeSymTable> signature;
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params,
-                    TypeT output, Stmt body, Symbol s) {
+                    TypeT output, Stmt body,
+                    ComplexSymbolFactory.Location location) {
+        super(location);
         this.name = name;
         this.params = params;
         this.output = output;
         this.body = body;
-        token = (XiToken) s;
 
         List<TypeTTau> param_types = new ArrayList<>();
         params.forEach((p) -> param_types.add(p.part2()));
@@ -44,8 +43,8 @@ public class FuncDefn implements Printable, ASTNode {
     }
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params, Stmt body,
-                    Symbol s) {
-        this(name, params, new TypeTUnit(), body, s);
+                    ComplexSymbolFactory.Location location) {
+        this(name, params, new TypeTUnit(), body, location);
     }
 
     public String getName() {
@@ -68,11 +67,6 @@ public class FuncDefn implements Printable, ASTNode {
 
     public TypeT getOutput() {
         return output;
-    }
-
-    @Override
-    public XiToken getToken() {
-        return token;
     }
 
     public boolean isProcedure() {

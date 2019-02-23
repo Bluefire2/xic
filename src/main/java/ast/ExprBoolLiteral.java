@@ -1,13 +1,14 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class ExprBoolLiteral extends Expr {
     private Boolean value;
 
-    public ExprBoolLiteral(Boolean val, Symbol token) {
-        super(token);
+    public ExprBoolLiteral(Boolean val,
+                           ComplexSymbolFactory.Location location) {
+        super(location);
         this.value = val;
         this.e_type = ExprType.BoolLiteralExpr;
     }

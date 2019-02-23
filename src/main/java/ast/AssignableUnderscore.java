@@ -1,12 +1,12 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class AssignableUnderscore extends Assignable {
 
-    public AssignableUnderscore(Symbol token) {
-        super(token);
+    public AssignableUnderscore(ComplexSymbolFactory.Location location) {
+        super(location);
     }
 
     @Override

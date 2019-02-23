@@ -1,22 +1,19 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
 import symboltable.SymbolTable;
 
 import java.util.List;
 
-public abstract class Stmt implements Printable, ASTNode {
+public abstract class Stmt extends ASTNode implements Printable {
     StmtType s_type;
     SymbolTable symTable = null;
     // TODO: again, do we need this; type checker visitor should take care
     TypeR ret = null;
 
-    private XiToken token;// Lexed token
-
-    public Stmt(Symbol s) {
-        token = (XiToken) s;
+    public Stmt(ComplexSymbolFactory.Location location) {
+        super(location);
     }
 
     public StmtType getS_type() {
@@ -49,10 +46,5 @@ public abstract class Stmt implements Printable, ASTNode {
             list.forEach(el -> el.prettyPrint(w));
             w.endList();
         }
-    }
-
-    @Override
-    public XiToken getToken() {
-        return token;
     }
 }

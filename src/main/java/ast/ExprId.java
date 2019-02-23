@@ -1,13 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class ExprId extends Expr {
     private String name;
 
-    public ExprId(String name, Symbol token) {
-        super(token);
+    public ExprId(String name, ComplexSymbolFactory.Location location) {
+        super(location);
         this.name = name;
         this.e_type = ExprType.IdExpr;
     }

@@ -1,14 +1,15 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class StmtWhile extends Stmt {
     private Expr guard;
     private Stmt doStmt;
 
-    public StmtWhile(Expr guard, Stmt doStmt, Symbol token) {
-        super(token);
+    public StmtWhile(Expr guard, Stmt doStmt,
+                     ComplexSymbolFactory.Location location) {
+        super(location);
         this.guard = guard;
         this.doStmt = doStmt;
         this.s_type = StmtType.WhileStmt;

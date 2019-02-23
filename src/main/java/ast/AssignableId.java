@@ -1,13 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class AssignableId extends Assignable {
     private ExprId id;
 
-    public AssignableId(ExprId id, Symbol token) {
-        super(token);
+    public AssignableId(ExprId id, ComplexSymbolFactory.Location location) {
+        super(location);
         this.id = id;
     }
 

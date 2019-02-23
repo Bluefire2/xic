@@ -1,18 +1,10 @@
 package ast;
 
-import java_cup.runtime.Symbol;
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
 
-public abstract class Assignable implements Printable, ASTNode {
+public abstract class Assignable extends ASTNode implements Printable {
 
-    private XiToken token;// Lexed token
-
-    public Assignable(Symbol s) {
-        token = (XiToken) s;
-    }
-
-    @Override
-    public XiToken getToken() {
-        return token;
+    public Assignable(ComplexSymbolFactory.Location location) {
+        super(location);
     }
 }

@@ -1,8 +1,18 @@
 package ast;
 
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
+import lexer.XiTokenLocation;
 
-public interface ASTNode {
-    void accept(VisitorAST visitor) throws ASTException;
-    XiToken getToken();
+public abstract class ASTNode {
+    private XiTokenLocation location;
+
+    ASTNode(ComplexSymbolFactory.Location location) {
+        this.location = (XiTokenLocation) location;
+    }
+
+    abstract void accept(VisitorAST visitor) throws ASTException;
+
+    XiTokenLocation getLocation() {
+        return location;
+    }
 }

@@ -1,19 +1,20 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
+import polyglot.util.Pair;
 import symboltable.TypeSymTable;
 
 import java.util.ArrayList;
 import java.util.List;
-import polyglot.util.Pair;
 
 public class FileInterface extends FileSource {
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public FileInterface(List<FuncDecl> decls, Symbol token) {
-        super(token);
+    public FileInterface(List<FuncDecl> decls,
+                         ComplexSymbolFactory.Location location) {
+        super(location);
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();
         decls.forEach((d) -> signatures.add(d.getSignature()));

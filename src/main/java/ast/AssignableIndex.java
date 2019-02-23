@@ -1,13 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
 
 public class AssignableIndex extends Assignable {
     private Expr index;
 
-    public AssignableIndex(Expr index, Symbol token) {
-        super(token);
+    public AssignableIndex(Expr index, ComplexSymbolFactory.Location location) {
+        super(location);
         this.index = index;
     }
 

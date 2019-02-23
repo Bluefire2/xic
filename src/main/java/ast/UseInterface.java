@@ -1,18 +1,13 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import java_cup.runtime.Symbol;
-import lexer.XiToken;
+import java_cup.runtime.ComplexSymbolFactory;
 
-public class UseInterface implements ASTNode {
+public class UseInterface extends ASTNode {
     private String name;
 
-    private XiToken token;// Lexed token
-    private int left;
-    private int right;
-
-    public UseInterface(String name, Symbol s) {
-        token = (XiToken) s;
+    public UseInterface(String name, ComplexSymbolFactory.Location location) {
+        super(location);
         this.name = name;
     }
 
@@ -30,10 +25,5 @@ public class UseInterface implements ASTNode {
     @Override
     public void accept(VisitorAST visitor) throws ASTException {
         visitor.visit(this);
-    }
-
-    @Override
-    public XiToken getToken() {
-        return token;
     }
 }
