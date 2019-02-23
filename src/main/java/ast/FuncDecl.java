@@ -28,12 +28,13 @@ public class FuncDecl extends ASTNode implements Printable {
         params.forEach((p) -> param_types.add(p.part2()));
 
         TypeSymTable sig;
-        if (param_types.size() == 0){
-            sig = new TypeSymTableFunc(new TypeTUnit(), output);
-        } else if (param_types.size() == 1) {
-            sig = new TypeSymTableFunc(param_types.get(0), output);
-        } else {
-            sig = new TypeSymTableFunc(new TypeTList(param_types), output);
+        switch (param_types.size()) {
+            case 0:
+                sig = new TypeSymTableFunc(new TypeTUnit(), output); break;
+            case 1:
+                sig = new TypeSymTableFunc(param_types.get(0), output); break;
+            default:
+                sig = new TypeSymTableFunc(new TypeTList(param_types), output);
         }
         this.signature = new Pair<>(name, sig);
     }
