@@ -202,6 +202,10 @@ INTEGER = 0 | [1-9][0-9]*
                       char c = '\'';
                       return symbol("character " + c, sym.CHAR_LIT,
                         yyline, charLiteralStartCol, c); }
+    \"\'           { yybegin(YYINITIAL);
+                      char c = '\"';
+                      return symbol("character " + c, sym.CHAR_LIT,
+                        yyline, charLiteralStartCol, c); }
     \\\"\'           { yybegin(YYINITIAL);
                       char c = '\"';
                       return symbol("character " + c, sym.CHAR_LIT,

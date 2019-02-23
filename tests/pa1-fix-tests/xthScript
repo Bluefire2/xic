@@ -33,6 +33,7 @@ xic ("Test --lex") "--lex" {
     consecutive_double_quotes_string07.xi;
     dangling_backslash_space_string06.xi;
     dangling_backslash_string05.xi;
+    escape_char01.xi
     escape_char03.xi;
     escape_string08.xi;
     ill_char_char02.xi;
