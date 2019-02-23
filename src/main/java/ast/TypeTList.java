@@ -45,6 +45,11 @@ public class TypeTList extends TypeT {
     }
 
     @Override
+    boolean subtypeOf(TypeT t) {
+        throw new Error("not implemented: subtyping tau");
+    }
+
+    @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         tTauList.forEach(t -> t.prettyPrint(w));
     }

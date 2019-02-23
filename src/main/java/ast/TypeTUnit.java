@@ -8,7 +8,7 @@ public class TypeTUnit extends TypeT {
         w.printAtom("_");
     }
 
-    public boolean subtypeOf(TypeTTau t) {
-        return false;
+    public boolean subtypeOf(TypeT t) {
+        throw new Error("not implemented: subtyping tau");
     }
 }
