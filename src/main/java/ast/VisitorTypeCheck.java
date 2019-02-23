@@ -320,42 +320,28 @@ public class VisitorTypeCheck implements VisitorAST {
 
     }
 
-    /*
-    private TypeT unrollAssignableIndex(Expr index) throws UnresolvedNameException {
-        int depth = 0;
-        while (!(index instanceof ExprId)) {
-            depth++;
-            if (index instanceof ExprIndex) {
-                index = ((ExprIndex) index).getArray();
-            } else {
-                // TODO: illegal state
-            }
-        }
-        String name = ((ExprId) index).getName();
-        try {
-            TypeSymTable t = symTable.lookup(name);
-            if (t instanceof TypeSymTableVar) {
-                TypeTTau tTau = ((TypeSymTableVar) t).getTypeTTau();
-                if (tTau instanceof TypeTTauArray) {
-                    // TODO: finish this
-                    // check if depth of array type is equal to traversed depth
-                    // if it is, return the type T inside the array
-                    // otherwise return a new array type with reduced depth
-                } else {
-                    // TODO: illegal state
-                }
-            } else {
-                // TODO: illegal state
-            }
-        } catch (NotFoundException e) {
-            throw new UnresolvedNameException(name, index.left, index.right);
-        }
-    }
-    */
+//    private TypeT unrollAssignableIndex(Expr index) throws UnresolvedNameException {
+//        int depth = 0;
+//        while (!(index instanceof ExprId)) {
+//            depth++;
+//            index = ((ExprIndex) index).getArray();
+//        }
+//        String name = ((ExprId) index).getName();
+//        try {
+//            TypeSymTable t = symTable.lookup(name);
+//            TypeTTau tTau = ((TypeSymTableVar) t).getTypeTTau();
+//            TypeTTauArray tTauArray = (TypeTTauArray) tTau;
+//            // TODO: finish this
+//            // check if depth of array type is equal to traversed depth
+//            // if it is, return the type T inside the array
+//            // otherwise return a new array type with reduced depth
+//        } catch (NotFoundException e) {
+//            throw new UnresolvedNameException(name, index.left, index.right);
+//        }
+//    }
 
     @Override
     public void visit(StmtAssign node) {
-        /*
         List<Assignable> lhs = node.getLhs();
         List<Expr> rhs = node.getRhs();
 
@@ -365,7 +351,7 @@ public class VisitorTypeCheck implements VisitorAST {
             for (int i = 0; i < rhs.size(); i++) {
                 Assignable currentAssignable = lhs.get(i);
                 Expr currentExpression = rhs.get(i);
-                TypeT tE = currentExpression.getTypeCheckType();
+                TypeT givenType = currentExpression.getTypeCheckType();
 
                 if (currentAssignable instanceof AssignableId) {
                     String name = ((AssignableId) currentAssignable).getId().getName();
@@ -373,19 +359,30 @@ public class VisitorTypeCheck implements VisitorAST {
                         TypeSymTable tA = symTable.lookup(name);
                         if (tA instanceof TypeSymTableVar) {
                             TypeT expected = ((TypeSymTableVar) tA).getTypeTTau();
-                            if (!tE.subtypeOf(expected)) {
-                                throw new TypeCheckException(expected, tE);
+                            if (!givenType.subtypeOf(expected)) {
+                                // TODO: what should be error location?
+                                throw new SemanticTypeCheckError(expected,
+                                        givenType, node.getLocation());
                             }
                         } else {
                             // TODO: illegal state
                         }
                     } catch (NotFoundException e) {
-                        throw new UnresolvedNameException(name, node.left, node.right);
+                        throw new SemanticUnresolvedNameError(name,
+                                node.getLocation());
                     }
                 } else if (currentAssignable instanceof AssignableIndex) {
                     AssignableIndex ai = (AssignableIndex) currentAssignable;
-                    Expr index = ai.getIndex();
-                    if
+                    // the index must be ExprIndex
+                    ExprIndex index = (ExprIndex) ai.getIndex();
+                    Expr array = index.getArray();
+                    Expr nextIndex = index.getIndex();
+                    TypeT expectedType = array.getTypeCheckType();
+
+                    // TODO: check if givenType is a subtype of expectedType
+                    // visualised:
+                    // x[][][][] = e
+                    // this means that we require the type of e to be the type of x[][][] (with one [] removed)
                 } else {
                     // underscore
                 }
@@ -393,7 +390,6 @@ public class VisitorTypeCheck implements VisitorAST {
         } else {
 
         }
-        */
     }
 
     @Override

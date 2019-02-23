@@ -1,7 +1,5 @@
 package symboltable;
 
-import ast.TypeTTau;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -63,25 +61,11 @@ public class HashMapSymbolTable implements SymbolTable {
 
     @Override
     public boolean contains(String id) {
-        Stack<Map<String, TypeSymTable>> head = new Stack<>();
-        TypeSymTable typeSymTable = null;
-
-        while (!scopes.empty()) {
-            Map<String, TypeSymTable> scope = scopes.peek();
-            if (scope.containsKey(id)) {
-                typeSymTable = scope.get(id);
-                break;
-            } else {
-                // pop the current scope and try the previous one
-                head.push(scopes.pop());
-            }
+        try {
+            this.lookup(id);
+            return true;
+        } catch (NotFoundException e) {
+            return false;
         }
-
-        // repair the scope stack
-        while (!head.empty()) {
-            scopes.push(head.pop());
-        }
-
-        return (typeSymTable != null);
     }
 }
