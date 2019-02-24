@@ -485,7 +485,6 @@ public class VisitorTypeCheck implements VisitorAST {
                     );
                 }
             } catch (ClassCastException e) {
-                // TODO: throw error, when the RHS is not a function call...
                 throw new SemanticError("Expected callable value here", node.getLocation());
             }
         } else {
@@ -496,7 +495,10 @@ public class VisitorTypeCheck implements VisitorAST {
 
                 // check that the var isn't already declared in the context
                 if (symTable.contains(varName)) {
-                    // TODO: throw semantic error
+                    throw new SemanticError(
+                            String.format("Identifier %s has already been declared in this scope", varName),
+                            node.getLocation()
+                    )
                 } else {
                     // we can safely cast because variables have to be TypeTTau
                     symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
@@ -504,7 +506,7 @@ public class VisitorTypeCheck implements VisitorAST {
 
                 // check that the type of the expression fits the type of the var
                 if (!rhs.getTypeCheckType().subtypeOf(varType)) {
-                    // TODO: throw semantic error
+                    throw new SemanticTypeCheckError(varType, rhs.getTypeCheckType(), node.getLocation());
                 }
             } else {
                 //TODO handle _ = e (should be impossible, do nothing?)
