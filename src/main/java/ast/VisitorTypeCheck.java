@@ -368,6 +368,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     }
                 }
             }
+            node.setTypeCheckType(TypeR.Void);
         } catch (NotFoundException | ClassCastException e) {
             // TODO: illegal state
         }
