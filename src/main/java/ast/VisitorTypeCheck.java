@@ -472,14 +472,20 @@ public class VisitorTypeCheck implements VisitorAST {
                                 TypeT expected = expectedTypes.get(i);
                                 TypeT given = givenTypes.get(i);
                                 if (!given.subtypeOf(expected)) {
-                                    // TODO: throw type error, invalid given type for a variable
+                                    throw new SemanticTypeCheckError(expected, given, node.getLocation());
                                 }
                             }
                         } else {
-                            // TODO: throw semantic error, the function either returns too many or too few things
+                            throw new SemanticError(
+                                    String.format("%d return values expected, but got %d", expectedTypes.size(), givenTypes.size()),
+                                    node.getLocation()
+                            );
                         }
                     } else {
-                        // TODO: throw type error, we need a function that returns multiple things, but this function does not
+                        throw new SemanticError(
+                                "Expected multiple return values, but only got one or none",
+                                node.getLocation()
+                        );
                     }
                 } else {
                     // TODO: throw type error, we needed a function call but got something else
