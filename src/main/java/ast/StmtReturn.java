@@ -18,7 +18,7 @@ public class StmtReturn extends Stmt {
 
     public StmtReturn(ComplexSymbolFactory.Location location) {
         super(location);
-        this.returnVals = new ArrayList<Expr>();
+        this.returnVals = new ArrayList<>();
         this.s_type = StmtType.ProcedureReturnStmt;
     }
 

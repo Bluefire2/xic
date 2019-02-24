@@ -335,28 +335,43 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(StmtReturn node) {
-
+        try {
+            TypeSymTableReturn t = (TypeSymTableReturn) symTable.lookup(RETURN_KEY);
+            TypeT expectedReturnType = t.getReturnType();
+            List<Expr> returnVals = node.getReturnVals();
+            if (returnVals.size() == 0) {
+                // procedure return, function must return unit
+                if (!(expectedReturnType instanceof TypeTUnit)) {
+                    throw new SemanticTypeCheckError(new TypeTUnit(), expectedReturnType, node.getLocation());
+                }
+            } else if (returnVals.size() == 1) {
+                // function return, function must return a single expression of the correct type
+                TypeT givenReturnType = node.getReturnVals().get(0).getTypeCheckType();
+                if (!givenReturnType.subtypeOf(expectedReturnType)) {
+                    throw new SemanticTypeCheckError(expectedReturnType, givenReturnType, node.getLocation());
+                }
+            } else {
+                TypeTList expectedReturnTypes = (TypeTList) expectedReturnType;
+                if (returnVals.size() != expectedReturnTypes.getLength()) {
+                    throw new SemanticError(
+                            String.format("%d return values expected, but got %d",
+                                    expectedReturnTypes.getLength(), returnVals.size()),
+                            node.getLocation());
+                }
+                Iterator<Expr> exprIterator = returnVals.iterator();
+                Iterator<TypeTTau> typeTIterator = expectedReturnTypes.getTTauList().iterator();
+                while (exprIterator.hasNext() && typeTIterator.hasNext()) {
+                    TypeT currentGivenType = exprIterator.next().getTypeCheckType();
+                    TypeTTau currentExpectedType = typeTIterator.next();
+                    if (currentGivenType.subtypeOf(currentExpectedType)) {
+                        throw new SemanticTypeCheckError(currentExpectedType, currentGivenType, node.getLocation());
+                    }
+                }
+            }
+        } catch (NotFoundException | ClassCastException e) {
+            // TODO: illegal state
+        }
     }
-
-//    private TypeT unrollAssignableIndex(Expr index) throws UnresolvedNameException {
-//        int depth = 0;
-//        while (!(index instanceof ExprId)) {
-//            depth++;
-//            index = ((ExprIndex) index).getArray();
-//        }
-//        String name = ((ExprId) index).getName();
-//        try {
-//            TypeSymTable t = symTable.lookup(name);
-//            TypeTTau tTau = ((TypeSymTableVar) t).getTypeTTau();
-//            TypeTTauArray tTauArray = (TypeTTauArray) tTau;
-//            // TODO: finish this
-//            // check if depth of array type is equal to traversed depth
-//            // if it is, return the type T inside the array
-//            // otherwise return a new array type with reduced depth
-//        } catch (NotFoundException e) {
-//            throw new UnresolvedNameException(name, index.left, index.right);
-//        }
-//    }
 
     @Override
     public void visit(StmtAssign node) {
