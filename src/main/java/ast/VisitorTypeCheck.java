@@ -452,42 +452,41 @@ public class VisitorTypeCheck implements VisitorAST {
             try {
                 // multi-assign with function that returns multiple things
                 ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
-                TypeSymTable t = symTable.lookup(fnCall.getName());
+                TypeT output = fnCall.getTypeCheckType();
 
                 //TODO: need to consider the inputs to the function as well!
                 //ex: if f : unit -> int, then x:int = f(3,2) is invalid
-                if (t instanceof TypeSymTableFunc) {
-                    TypeSymTableFunc funcType = (TypeSymTableFunc) t;
-                    TypeT output = funcType.getOutput();
-                    if (output instanceof TypeTList) {
-                        TypeTList outputList = (TypeTList) output;
-                        List<TypeTTau> givenTypes = outputList.getTTauList();
-                        List<TypeT> expectedTypes = vars
-                                .stream()
-                                .map(Pair::part2)
-                                .collect(Collectors.toList());
+                if (output instanceof TypeTList) {
+                    TypeTList outputList = (TypeTList) output;
+                    List<TypeTTau> givenTypes = outputList.getTTauList();
+                    List<TypeT> expectedTypes = vars
+                            .stream()
+                            .map(Pair::part2)
+                            .collect(Collectors.toList());
 
-                        if (givenTypes.size() == expectedTypes.size()) {
-                            for (int i = 0; i < givenTypes.size(); i++) {
-                                TypeT expected = expectedTypes.get(i);
-                                TypeT given = givenTypes.get(i);
-                                if (!given.subtypeOf(expected)) {
-                                    // TODO: throw type error, invalid given type for a variable
-                                }
+                    if (givenTypes.size() == expectedTypes.size()) {
+                        for (int i = 0; i < givenTypes.size(); i++) {
+                            TypeT expected = expectedTypes.get(i);
+                            TypeT given = givenTypes.get(i);
+                            if (!given.subtypeOf(expected)) {
+                                throw new SemanticTypeCheckError(expected, given, node.getLocation());
                             }
-                        } else {
-                            // TODO: throw semantic error, the function either returns too many or too few things
                         }
                     } else {
-                        // TODO: throw type error, we need a function that returns multiple things, but this function does not
+                        throw new SemanticError(
+                                String.format("%d return values expected, but got %d", expectedTypes.size(), givenTypes.size()),
+                                node.getLocation()
+                        );
                     }
                 } else {
-                    // TODO: throw type error, we needed a function call but got something else
+                    throw new SemanticError(
+                            "Expected multiple return values, but only got one or none",
+                            node.getLocation()
+                    );
                 }
-            } catch (NotFoundException e) {
-                // TODO: throw a semantic error, function that is being called does not exist
             } catch (ClassCastException e) {
                 // TODO: throw error, when the RHS is not a function call...
+                throw new SemanticError("Expected callable value here", node.getLocation());
             }
         } else {
             TypeDecl d = decls.get(0);
