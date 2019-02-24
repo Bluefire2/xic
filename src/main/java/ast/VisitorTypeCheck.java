@@ -4,16 +4,14 @@ import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import polyglot.util.Pair;
 import symboltable.*;
-import xic_error.SemanticError;
-import xic_error.SemanticTypeCheckError;
-import xic_error.SemanticUnresolvedNameError;
-import xic_error.LexicalError;
-import xic_error.SyntaxError;
 import xi_parser.XiParser;
+import xic_error.*;
 
 import java.io.FileReader;
 import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
@@ -403,6 +401,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     // visualised:
                     // x[][][][] = e
                     // this means that we require the type of e to be the type of x[][][] (with one [] removed)
+
                 } else {
                     // underscore
                 }
@@ -431,7 +430,89 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(StmtDeclAssign node) {
+        List<TypeDecl> decls = node.getDecls();
+        List<Expr> rhs = node.getRhs();
 
+        // mwahaha
+        List<Pair<String, TypeT>> vars = decls
+                .stream()
+                .flatMap(decl -> {
+                    TypeT type = decl.typeOf();
+                    return decl
+                            .varsOf()
+                            .stream()
+                            .map(var -> new Pair<>(var, type));
+                })
+                .collect(Collectors.toList());
+
+        if (rhs.size() == 1 && vars.size() > 1) {
+            try {
+                // multi-assign with function that returns multiple things
+                ExprFunctionCall fnCall = (ExprFunctionCall) rhs.get(0);
+                TypeSymTable t = symTable.lookup(fnCall.getName());
+
+                if (t instanceof TypeSymTableFunc) {
+                    TypeSymTableFunc funcType = (TypeSymTableFunc) t;
+                    TypeT output = funcType.getOutput();
+                    if (output instanceof TypeTList) {
+                        TypeTList outputList = (TypeTList) output;
+                        List<TypeTTau> givenTypes = outputList.getTTauList();
+                        List<TypeT> expectedTypes = vars
+                                .stream()
+                                .map(Pair::part2)
+                                .collect(Collectors.toList());
+
+                        if (givenTypes.size() == expectedTypes.size()) {
+                            for (int i = 0; i < givenTypes.size(); i++) {
+                                TypeT expected = expectedTypes.get(i);
+                                TypeT given = givenTypes.get(i);
+                                if (!given.subtypeOf(expected)) {
+                                    // TODO: throw type error, invalid given type for a variable
+                                }
+                            }
+                        } else {
+                            // TODO: throw semantic error, the function either returns too many or too few things
+                        }
+                    } else {
+                        // TODO: throw type error, we need a function that returns multiple things, but this function does not
+                    }
+                } else {
+                    // TODO: throw type error, we needed a function call but got something else
+                }
+            } catch (NotFoundException e) {
+                // TODO: throw a semantic error, function that is being called does not exist
+            }
+        } else {
+            if (vars.size() == rhs.size()) {
+                Iterator<Pair<String, TypeT>> varIterator = vars.iterator();
+                Iterator<Expr> exprIterator = rhs.iterator();
+
+                while (varIterator.hasNext() && exprIterator.hasNext()) {
+                    Pair<String, TypeT> var = varIterator.next();
+                    String varName = var.part1();
+                    TypeT varType = var.part2();
+                    Expr e = exprIterator.next();
+
+                    // check that the var isn't already declared in the context
+                    if (symTable.contains(varName)) {
+                        // TODO: throw semantic error
+                        break;
+                    } else {
+                        // we can safely cast because variables have to be TypeTTau
+                        symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
+                    }
+
+                    // check that the type of the expression fits the type of the var
+                    if (!e.getTypeCheckType().subtypeOf(varType)) {
+                        // TODO: throw semantic error
+                        break;
+                    }
+                }
+            } else {
+                // TODO: throw semantic error, we are given either too many or too few expressions on the right hand side
+            }
+        }
+        node.setTypeCheckType(TypeR.Unit);
     }
 
     @Override
