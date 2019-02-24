@@ -203,16 +203,18 @@ decl_annotated_var ::=
   ID:i COLON decl_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
-// TODO: IDEA says that p -> New TypeDeclVar(p) can be just a function, which
-//  one?
 underscore_varlist ::=
-  annotated_varlist:l COMMA UNDERSCORE {:
+  UNDERSCORE COMMA UNDERSCORE {:
+    ArrayList<TypeDecl> l = new ArrayList<>();
+    l.add(new TypeDeclUnderscore()); l.add(new TypeDeclUnderscore());
+    RESULT = l; :}
+| annotated_varlist:l COMMA UNDERSCORE {:
     List<TypeDecl> newl = l.stream()
-        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+        .map(TypeDeclVar::new).collect(Collectors.toList());
     newl.add(new TypeDeclUnderscore()); RESULT = new ArrayList<>(newl); :}
 | UNDERSCORE COMMA annotated_varlist:l {:
     List<TypeDecl> newl = l.stream()
-        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+        .map(TypeDeclVar::new).collect(Collectors.toList());
     newl.add(0, new TypeDeclUnderscore()); RESULT = new ArrayList<>(newl); :}
 | underscore_varlist:l COMMA UNDERSCORE {:
     l.add(new TypeDeclUnderscore()); RESULT = l; :}
