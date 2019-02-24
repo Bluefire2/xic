@@ -340,11 +340,11 @@ matchedstmt ::=
     RESULT = new StmtDeclAssign(d, e, dxleft); :}
 | annotated_varlist:d {:
     List<TypeDeclVar> newd = d.stream()
-        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+        .map(TypeDeclVar::new).collect(Collectors.toList());
     RESULT = new StmtDecl(newd, dxleft); :}
 | annotated_varlist:d EQ exprlist:e {:
     List<TypeDecl> newd = d.stream()
-        .map(p -> new TypeDeclVar(p)).collect(Collectors.toList());
+        .map(TypeDeclVar::new).collect(Collectors.toList());
     RESULT = new StmtDeclAssign(newd, e, dxleft); :}
 | ID:i LPAREN exprlist:el RPAREN {:
     RESULT = new StmtProcedureCall(i, el, ixleft); :}
