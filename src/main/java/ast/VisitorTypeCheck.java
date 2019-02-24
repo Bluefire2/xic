@@ -625,7 +625,6 @@ public class VisitorTypeCheck implements VisitorAST {
                     "Guard of while statement must be a bool",
                     node.getLocation());
         }
-
     }
 
     @Override
@@ -723,10 +722,8 @@ public class VisitorTypeCheck implements VisitorAST {
             XiParser parser = new XiParser(lexer, xtf);
             FileInterface root = (FileInterface) parser.parse().value;
             root.accept(this);
-        } catch (SyntaxError e) {
+        } catch (SyntaxError | LexicalError e) {
             //TODO should we print which file the error was in?
-            throw e;
-        } catch (LexicalError e) {
             throw e;
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
