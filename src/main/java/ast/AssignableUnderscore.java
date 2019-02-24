@@ -15,7 +15,5 @@ public class AssignableUnderscore extends Assignable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
-        // TODO
-    }
+    public void accept(VisitorAST visitor) { }
 }

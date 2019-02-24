@@ -191,7 +191,10 @@ public class VisitorTypeCheck implements VisitorAST {
             if (t instanceof TypeSymTableVar) {
                 node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
             } else {
-                //TODO: throw error
+                throw new SemanticError(
+                        String.format("%s is not a variable", name),
+                        node.getLocation()
+                );
             }
         } catch (NotFoundException e){
             throw new SemanticUnresolvedNameError(name, node.getLocation());
@@ -234,7 +237,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ExprArrayLiteral node) { //TODO: handle lengths somehow
+    public void visit(ExprArrayLiteral node) {
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
@@ -284,54 +287,13 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(AssignableIndex node) {
-        if (node.getIndex() instanceof ExprIndex) {
-            ExprIndex ei = (ExprIndex) node.getIndex();
-            Expr array = ei.getArray();
-            Expr index = ei.getIndex();
-
-            if (array instanceof ExprId) {
-                ExprId id = (ExprId) array;
-                try {
-                    symTable.lookup(id.getName());
-                } catch (NotFoundException e) {
-                    throw new SemanticUnresolvedNameError(id.getName(),
-                            node.getLocation());
-                }
-            } else if (!(array instanceof ExprIndex)) {
-                throw new SemanticError(
-                        String.format("Cannot index type %s", array.getE_type()),
-                        node.getLocation()
-                );
-            }
-
-            if (!(index.getTypeCheckType() instanceof TypeTTauInt)) {
-                throw new SemanticTypeCheckError(new TypeTTauInt(),
-                        index.getTypeCheckType(), index.getLocation());
-            }
-        } else {
-            throw new SemanticError(
-                    String.format("Cannot index type %s", node.getIndex().getE_type()),
-                    node.getLocation()
-            );
-        }
-    }
+    public void visit(AssignableIndex node) { }
 
     @Override
-    public void visit(AssignableUnderscore node) { //Do nothing
-    }
+    public void visit(AssignableUnderscore node) { }
 
     @Override
-    public void visit(AssignableId node) {
-        String id = node.getId().getName();
-        try {
-            symTable.lookup(id);
-        }
-        catch (NotFoundException e) {
-            throw new SemanticError("Uninitialized identifier " + id,
-                    node.getLocation());
-        }
-    }
+    public void visit(AssignableId node) { }
 
     @Override
     public void visit(StmtReturn node) {
@@ -378,40 +340,28 @@ public class VisitorTypeCheck implements VisitorAST {
         Assignable lhs = node.getLhs();
         Expr rhs = node.getRhs();
         TypeT givenType = rhs.getTypeCheckType();
+        TypeT expectedType;
 
         if (lhs instanceof AssignableId) {
-            String name = ((AssignableId) lhs).getId().getName();
-            try {
-                TypeSymTable tA = symTable.lookup(name);
-                if (tA instanceof TypeSymTableVar) {
-                    TypeT expected = ((TypeSymTableVar) tA).getTypeTTau();
-                    if (!givenType.subtypeOf(expected)) {
-                        // TODO: what should be error location?
-                        throw new SemanticTypeCheckError(expected,
-                                givenType, node.getLocation());
-                    }
-                } else {
-                    // TODO: illegal state
-                }
-            } catch (NotFoundException e) {
-                throw new SemanticUnresolvedNameError(name,
-                        node.getLocation());
-            }
+            AssignableId aid = (AssignableId) lhs;
+            ExprId id = aid.getId();
+            expectedType = id.getTypeCheckType();
+
         } else if (lhs instanceof AssignableIndex) {
             AssignableIndex ai = (AssignableIndex) lhs;
-            // the index must be ExprIndex
             ExprIndex index = (ExprIndex) ai.getIndex();
-            Expr array = index.getArray();
-            Expr nextIndex = index.getIndex();
-            TypeT expectedType = array.getTypeCheckType();
-
-            // TODO: check if givenType is a subtype of expectedType
-            // visualised:
-            // x[][][][] = e
-            // this means that we require the type of e to be the type of x[][][] (with one [] removed)
-
-        } else {
-            // underscore
+            // type of LHS index is already pre-calculated
+            expectedType = index.getTypeCheckType();
+        } else { //underscore
+            //if LHS is underscore, RHS must be function call
+            if (!(rhs instanceof ExprFunctionCall)){
+                throw new SemanticError(
+                        "Expected function call", node.getLocation());
+            }
+            expectedType = new TypeTUnit();
+        }
+        if (!givenType.subtypeOf(expectedType)){
+            throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
     }
 
@@ -692,8 +642,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(FuncDecl node) { // do nothing
-    }
+    public void visit(FuncDecl node) { }
 
     @Override
     public void visit(UseInterface node) {

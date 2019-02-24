@@ -22,6 +22,7 @@ public class AssignableId extends Assignable {
 
     @Override
     public void accept(VisitorAST visitor) {
-        // TODO
+        id.accept(visitor);
+        visitor.visit(this);
     }
 }
