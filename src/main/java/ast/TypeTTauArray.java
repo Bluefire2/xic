@@ -59,10 +59,8 @@ public class TypeTTauArray extends TypeTTau {
     }
     */
 
-    // TODO: complete this function
-    /*
-    public boolean subtypeOf(TypeTTau t) {
+    @Override
+    public boolean subtypeOf(TypeT t) {
         return this.equals(t) || t instanceof TypeTUnit;
     }
-    */
 }
