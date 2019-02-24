@@ -131,6 +131,7 @@ INTEGER = 0 | [1-9][0-9]*
     /* other */
     {WHITESPACE} {} // Ignore
     {COMMENT} {} // Ignore
+    // TODO: this is giving us errors at each stage of compiling
     "-9223372036854775808"  { return symbol("integer " + yytext(), sym.INT_LIT,
         yyline, yycolumn, Long.MIN_VALUE); }
 

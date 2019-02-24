@@ -2,7 +2,7 @@ XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
 XTH_VERBOSITY_LEVEL=4
-XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 xth/tests/pa3
+XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 tests/pa2-fix-tests xth/tests/pa3
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
 default: build

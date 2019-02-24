@@ -38,7 +38,7 @@ scan with
     Symbol s = lexer.next_token(); // s is an XiToken wrapped as a Symbol
     XiToken t = (XiToken) s;
     if (t.sym == sym.ERROR) {
-        throw new LexicalError(t.getName(), t.getLocation());
+        throw new LexicalError(t.getValue().toString(), t.getLocation());
     } else {
         return s;
     }

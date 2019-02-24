@@ -29,5 +29,14 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test --parse") "--parse" {
-    return_print_assign01.xi
+  func_arr_return_assign_assign02.xi;
+  func_without_braces_body_codedecl01.xi;
+  func_without_braces_body_codedecl02.xi;
+  func_without_braces_body_codedecl03.xi;
+  if_return_if02.xi;
+  min_int_parse_expr06.xi;
+  multiple_underscore_assign_vardecl03.xi;
+  return_print_assign01.xi;
+  return_print_multi_return_return01.xi;
+  return_print_void_return_return02.xi;
 }
