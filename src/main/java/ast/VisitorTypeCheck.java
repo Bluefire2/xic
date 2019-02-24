@@ -515,7 +515,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     throw new SemanticError(
                             String.format("Identifier %s has already been declared in this scope", varName),
                             node.getLocation()
-                    )
+                    );
                 } else {
                     // we can safely cast because variables have to be TypeTTau
                     symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
@@ -602,12 +602,14 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
-            node.setTypeCheckType(
-                    lub(
-                            node.getThenStmt().getTypeCheckType(),
-                            node.getElseStmt().getTypeCheckType()
-                    )
-            );
+            TypeR s1r = node.getThenStmt().getTypeCheckType();
+            TypeR s2r = node.getElseStmt().getTypeCheckType();
+            if (s1r != null && s2r != null) {
+                TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
+                        TypeR.Void : TypeR.Unit;
+                node.setTypeCheckType(ret);
+            }
+            else node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError(
                     "Guard of if-else statement must be a bool",
