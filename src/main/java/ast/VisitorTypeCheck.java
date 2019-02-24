@@ -436,6 +436,52 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(StmtProcedureCall node) {
+        try {
+            TypeSymTable prType = symTable.lookup(node.getName());
+            if (prType instanceof TypeSymTableFunc) {
+                TypeSymTableFunc prFunc = (TypeSymTableFunc) prType;
+                TypeT prInputs = prFunc.getInput();
+                TypeT prOutput = prFunc.getOutput();
+                List<Expr> args = node.getArgs();
+                if(!(prOutput instanceof TypeTUnit)) {
+                    throw new SemanticError("Not a procedure", node.getLocation());
+                }
+                //no parameters
+                if (prInputs instanceof TypeTUnit) {
+                    if (args.size() > 0) {
+                        throw new SemanticError("Mismatched number of arguments", node.getLocation());
+                    }
+                }
+                //one parameter
+                else if (prInputs instanceof TypeTTau) {
+                    if (!(args.size() == 1 && args.get(0).getTypeCheckType().subtypeOf(prInputs))) {
+                        throw new SemanticError("Mismatched argument type", node.getLocation());
+                    }
+                }
+                //multiple parameters
+                else if (prInputs instanceof TypeTList) {
+                    List<TypeTTau> inputList = ((TypeTList) prInputs).getTTauList();
+                    if (args.size() != inputList.size()) {
+                        throw new SemanticError("Mismatched number of arguments", node.getLocation());
+                    }
+                    for (int i = 0; i < args.size(); i++) {
+                        if (!(args.get(i).getTypeCheckType().subtypeOf(inputList.get(i)))) {
+                            throw new SemanticError("Mismatched argument type", node.getLocation());
+                        }
+                    }
+                }
+                else {
+                    // TODO: Illegal state
+                }
+                node.setTypeCheckType(TypeR.Unit);
+            }
+            else {
+                throw new SemanticError(node.getName() + " is not a function", node.getLocation());
+            }
+        }
+        catch (NotFoundException e) {
+            throw new SemanticError(node.getName() + " is not a function", node.getLocation());
+        }
 
     }
 
