@@ -32,4 +32,8 @@ public class TypeDeclVar extends TypeDecl {
         vars.add(pair.part1());
         return vars;
     }
+
+    public Pair<String, TypeTTau> getPair() {
+        return pair;
+    }
 }

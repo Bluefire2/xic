@@ -8,14 +8,14 @@ import java.util.List;
 public class StmtDecl extends Stmt {
     private TypeDeclVar decl;
 
-    public StmtDecl(List<TypeDeclVar> decls,
+    public StmtDecl(TypeDeclVar decl,
                     ComplexSymbolFactory.Location location) {
         super(location);
         this.decl = decl;
         this.s_type = StmtType.DeclStmt;
     }
 
-    public TypeDeclVar getDecls() {
+    public TypeDeclVar getDecl() {
         return decl;
     }
 

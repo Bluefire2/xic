@@ -94,7 +94,7 @@ nonterminal FileInterface interface;
 nonterminal FileProgram program;
 
 nonterminal Pair annotated_var, decl_annotated_var;
-nonterminal TypeTTau type, basictype, initialized_listtype, decl_type;
+nonterminal TypeTTau type, basic_type, initialized_listtype, decl_type;
 nonterminal FuncDecl func_decl;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
@@ -132,11 +132,12 @@ start with source;
 basic_type ::=
   BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
 | INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+;
 
 //types legal for use everywhere
 //does not allow list types with initialized length
 type ::=
-  basic_type:b {: RESULT = b :}
+  basic_type:b {: RESULT = b; :}
 | type:t LBRAC RBRAC {:
     if (t instanceof TypeTTauArray){
         TypeTTauArray curr = (TypeTTauArray) t;
@@ -148,6 +149,7 @@ type ::=
     } else {
         RESULT = new TypeTTauArray(t);
     } :}
+;
 
 //list types with initialized lengths, can only be used in decl w/o assign
 //example: int[3][n]
@@ -166,8 +168,7 @@ initialized_listtype ::=
 //types legal for decl without assign
 //allows things like int[3][][] but not int[][3]
 decl_type ::=
-  type:t {: RESULT = t :}
-| initialized_listtype:t {: RESULT = t :}
+  initialized_listtype:t {: RESULT = t; :}
 | initialized_listtype:t LBRAC RBRAC {:
     TypeTTauArray curr = (TypeTTauArray) t;
     while (curr.getTypeTTau() instanceof TypeTTauArray){
@@ -176,6 +177,7 @@ decl_type ::=
     curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
     RESULT = t;
 :}
+;
 
 typelist ::=
   type:t {:
@@ -198,8 +200,7 @@ annotated_var ::=
 ;
 
 decl_annotated_var ::=
-  annotated_var:v {: RESULT = v :}
-| ID:i COLON decl_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  ID:i COLON decl_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 // TODO: IDEA says that p -> New TypeDeclVar(p) can be just a function, which
@@ -355,6 +356,8 @@ matchedstmt ::=
 | underscore_varlist:d EQ expr:e {:
     RESULT = new StmtDeclAssign(d, e, dxleft); :}
 | decl_annotated_var:d {:
+    RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
+| annotated_var:d {:
     RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
 | annotated_varlist:d EQ expr:e {:
     List<TypeDecl> newd = d.stream()

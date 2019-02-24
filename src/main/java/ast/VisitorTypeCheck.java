@@ -360,70 +360,58 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(StmtAssign node) {
-        List<Assignable> lhs = node.getLhs();
-        List<Expr> rhs = node.getRhs();
+        Assignable lhs = node.getLhs();
+        Expr rhs = node.getRhs();
+        TypeT givenType = rhs.getTypeCheckType();
 
-        if (rhs.size() != 1 && rhs.size() != lhs.size()) {
-            // TODO: illegal state
-        } else if (rhs.size() == lhs.size()) {
-            for (int i = 0; i < rhs.size(); i++) {
-                Assignable currentAssignable = lhs.get(i);
-                Expr currentExpression = rhs.get(i);
-                TypeT givenType = currentExpression.getTypeCheckType();
-
-                if (currentAssignable instanceof AssignableId) {
-                    String name = ((AssignableId) currentAssignable).getId().getName();
-                    try {
-                        TypeSymTable tA = symTable.lookup(name);
-                        if (tA instanceof TypeSymTableVar) {
-                            TypeT expected = ((TypeSymTableVar) tA).getTypeTTau();
-                            if (!givenType.subtypeOf(expected)) {
-                                // TODO: what should be error location?
-                                throw new SemanticTypeCheckError(expected,
-                                        givenType, node.getLocation());
-                            }
-                        } else {
-                            // TODO: illegal state
-                        }
-                    } catch (NotFoundException e) {
-                        throw new SemanticUnresolvedNameError(name,
-                                node.getLocation());
+        if (lhs instanceof AssignableId) {
+            String name = ((AssignableId) lhs).getId().getName();
+            try {
+                TypeSymTable tA = symTable.lookup(name);
+                if (tA instanceof TypeSymTableVar) {
+                    TypeT expected = ((TypeSymTableVar) tA).getTypeTTau();
+                    if (!givenType.subtypeOf(expected)) {
+                        // TODO: what should be error location?
+                        throw new SemanticTypeCheckError(expected,
+                                givenType, node.getLocation());
                     }
-                } else if (currentAssignable instanceof AssignableIndex) {
-                    AssignableIndex ai = (AssignableIndex) currentAssignable;
-                    // the index must be ExprIndex
-                    ExprIndex index = (ExprIndex) ai.getIndex();
-                    Expr array = index.getArray();
-                    Expr nextIndex = index.getIndex();
-                    TypeT expectedType = array.getTypeCheckType();
-
-                    // TODO: check if givenType is a subtype of expectedType
-                    // visualised:
-                    // x[][][][] = e
-                    // this means that we require the type of e to be the type of x[][][] (with one [] removed)
-
                 } else {
-                    // underscore
+                    // TODO: illegal state
                 }
+            } catch (NotFoundException e) {
+                throw new SemanticUnresolvedNameError(name,
+                        node.getLocation());
             }
-        } else {
+        } else if (lhs instanceof AssignableIndex) {
+            AssignableIndex ai = (AssignableIndex) lhs;
+            // the index must be ExprIndex
+            ExprIndex index = (ExprIndex) ai.getIndex();
+            Expr array = index.getArray();
+            Expr nextIndex = index.getIndex();
+            TypeT expectedType = array.getTypeCheckType();
 
+            // TODO: check if givenType is a subtype of expectedType
+            // visualised:
+            // x[][][][] = e
+            // this means that we require the type of e to be the type of x[][][] (with one [] removed)
+
+        } else {
+            // underscore
         }
     }
 
     @Override
     public void visit(StmtDecl node) {
-        for (TypeDeclVar d : node.getDecls()) {
-            TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
-            for (String did : d.varsOf()) {
-                if (symTable.contains(did)) {
-                    throw new SemanticError(
-                            "Variable with name " + did
-                                    + " already exists",
-                            node.getLocation());
-                } else {
-                    symTable.add(did, dt);
-                }
+        TypeDeclVar d = node.getDecl();
+        TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
+        for (String did : d.varsOf()) {
+            if (symTable.contains(did)) {
+                throw new SemanticError(
+                        "Variable with name " + did
+                                + " already exists",
+                        node.getLocation());
+            } else {
+                symTable.add(did, dt);
             }
         }
     }
@@ -431,9 +419,9 @@ public class VisitorTypeCheck implements VisitorAST {
     @Override
     public void visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
-        List<Expr> rhs = node.getRhs();
+        Expr rhs = node.getRhs();
 
-        // mwahaha
+        // mwahaha what the fuck is this
         List<Pair<String, TypeT>> vars = decls
                 .stream()
                 .flatMap(decl -> {
@@ -445,12 +433,14 @@ public class VisitorTypeCheck implements VisitorAST {
                 })
                 .collect(Collectors.toList());
 
-        if (rhs.size() == 1 && vars.size() > 1) {
+        if (vars.size() > 1) {
             try {
                 // multi-assign with function that returns multiple things
-                ExprFunctionCall fnCall = (ExprFunctionCall) rhs.get(0);
+                ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
                 TypeSymTable t = symTable.lookup(fnCall.getName());
 
+                //TODO: need to consider the inputs to the function as well!
+                //ex: if f : unit -> int, then x:int = f(3,2) is invalid
                 if (t instanceof TypeSymTableFunc) {
                     TypeSymTableFunc funcType = (TypeSymTableFunc) t;
                     TypeT output = funcType.getOutput();
@@ -481,36 +471,31 @@ public class VisitorTypeCheck implements VisitorAST {
                 }
             } catch (NotFoundException e) {
                 // TODO: throw a semantic error, function that is being called does not exist
+            } catch (ClassCastException e) {
+                // TODO: throw error, when the RHS is not a function call...
             }
         } else {
-            if (vars.size() == rhs.size()) {
-                Iterator<Pair<String, TypeT>> varIterator = vars.iterator();
-                Iterator<Expr> exprIterator = rhs.iterator();
+            TypeDecl d = decls.get(0);
+            if (d instanceof TypeDeclVar) {
+                String varName = d.varsOf().get(0);
+                TypeT varType = d.typeOf();
 
-                while (varIterator.hasNext() && exprIterator.hasNext()) {
-                    Pair<String, TypeT> var = varIterator.next();
-                    String varName = var.part1();
-                    TypeT varType = var.part2();
-                    Expr e = exprIterator.next();
+                // check that the var isn't already declared in the context
+                if (symTable.contains(varName)) {
+                    // TODO: throw semantic error
+                } else {
+                    // we can safely cast because variables have to be TypeTTau
+                    symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
+                }
 
-                    // check that the var isn't already declared in the context
-                    if (symTable.contains(varName)) {
-                        // TODO: throw semantic error
-                        break;
-                    } else {
-                        // we can safely cast because variables have to be TypeTTau
-                        symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
-                    }
-
-                    // check that the type of the expression fits the type of the var
-                    if (!e.getTypeCheckType().subtypeOf(varType)) {
-                        // TODO: throw semantic error
-                        break;
-                    }
+                // check that the type of the expression fits the type of the var
+                if (!rhs.getTypeCheckType().subtypeOf(varType)) {
+                    // TODO: throw semantic error
                 }
             } else {
-                // TODO: throw semantic error, we are given either too many or too few expressions on the right hand side
+                //TODO handle _ = e (should be impossible, do nothing?)
             }
+
         }
         node.setTypeCheckType(TypeR.Unit);
     }
