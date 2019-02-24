@@ -7,9 +7,9 @@ import java.util.List;
 
 public class StmtDeclAssign extends Stmt {
     private List<TypeDecl> decls;
-    private List<Expr> rhs;
+    private Expr rhs;
 
-    public StmtDeclAssign(List<TypeDecl> decls, List<Expr> rhs,
+    public StmtDeclAssign(List<TypeDecl> decls, Expr rhs,
                           ComplexSymbolFactory.Location location) {
         super(location);
         this.decls = decls;
@@ -21,7 +21,7 @@ public class StmtDeclAssign extends Stmt {
         return decls;
     }
 
-    public List<Expr> getRhs() {
+    public Expr getRhs() {
         return rhs;
     }
 
@@ -29,15 +29,13 @@ public class StmtDeclAssign extends Stmt {
         w.startList();
         w.printAtom("=");
         prettyPrintList(decls, w);
-        prettyPrintList(rhs, w);
+        rhs.prettyPrint(w);
         w.endList();
     }
 
     @Override
     public void accept(VisitorAST visitor) {
-        for (Expr e : rhs) {
-            e.accept(visitor);
-        }
+        rhs.accept(visitor);
         visitor.visit(this);
     }
 }

@@ -93,8 +93,8 @@ nonterminal FileSource source;
 nonterminal FileInterface interface;
 nonterminal FileProgram program;
 
-nonterminal Pair annotated_var;
-nonterminal TypeTTau type;
+nonterminal Pair annotated_var, decl_annotated_var;
+nonterminal TypeTTau type, basictype, initialized_listtype, decl_type;
 nonterminal FuncDecl func_decl;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
@@ -111,7 +111,6 @@ nonterminal ArrayList<TypeDecl> underscore_varlist;
 nonterminal ArrayList<Expr> exprlist;
 nonterminal ArrayList<Stmt> stmtlist;
 nonterminal ArrayList<UseInterface> importlist;
-nonterminal ArrayList<Assignable> assignablelist;
 nonterminal ArrayList<FuncDefn> func_defnlist;
 nonterminal ArrayList<TypeTTau> typelist;
 nonterminal ArrayList<Expr> indices;
@@ -130,10 +129,14 @@ precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 start with source;
 
 //TYPES
-
-type ::=
+basic_type ::=
   BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
 | INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+
+//types legal for use everywhere
+//does not allow list types with initialized length
+type ::=
+  basic_type:b {: RESULT = b :}
 | type:t LBRAC RBRAC {:
     if (t instanceof TypeTTauArray){
         TypeTTauArray curr = (TypeTTauArray) t;
@@ -145,18 +148,34 @@ type ::=
     } else {
         RESULT = new TypeTTauArray(t);
     } :}
-| type:t LBRAC expr:e RBRAC {:
-    if (t instanceof TypeTTauArray){
-        TypeTTauArray curr = (TypeTTauArray) t;
-        while (curr.getTypeTTau() instanceof TypeTTauArray){
-            curr = (TypeTTauArray) curr.getTypeTTau();
-        }
-        curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau(),e));
-        RESULT = t;
-    } else {
-        RESULT = new TypeTTauArray(t,e);
-    } :}
+
+//list types with initialized lengths, can only be used in decl w/o assign
+//example: int[3][n]
+initialized_listtype ::=
+  basic_type:t LBRAC expr:e RBRAC {: RESULT = new TypeTTauArray(t,e); :}
+| initialized_listtype:t LBRAC expr:e RBRAC {:
+    TypeTTauArray curr = (TypeTTauArray) t;
+    while (curr.getTypeTTau() instanceof TypeTTauArray){
+        curr = (TypeTTauArray) curr.getTypeTTau();
+    }
+    curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau(),e));
+    RESULT = t;
+:}
 ;
+
+//types legal for decl without assign
+//allows things like int[3][][] but not int[][3]
+decl_type ::=
+  type:t {: RESULT = t :}
+| initialized_listtype:t {: RESULT = t :}
+| initialized_listtype:t LBRAC RBRAC {:
+    TypeTTauArray curr = (TypeTTauArray) t;
+    while (curr.getTypeTTau() instanceof TypeTTauArray){
+        curr = (TypeTTauArray) curr.getTypeTTau();
+    }
+    curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
+    RESULT = t;
+:}
 
 typelist ::=
   type:t {:
@@ -176,6 +195,11 @@ annotated_varlist ::=
 
 annotated_var ::=
   ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+decl_annotated_var ::=
+  annotated_var:v {: RESULT = v :}
+| ID:i COLON decl_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 // TODO: IDEA says that p -> New TypeDeclVar(p) can be just a function, which
@@ -305,14 +329,6 @@ expr ::=
 
 //STATEMENTS
 
-assignablelist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
-  assignable:a {:
-    ArrayList<Assignable> l = new ArrayList<>();
-    l.add(a);
-    RESULT = l; :}
-| assignablelist:l COMMA assignable:a {: l.add(a); RESULT = l; :}
-;
-
 assignable ::=
   UNDERSCORE:u {: RESULT = new AssignableUnderscore(uxleft); :}
 | ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
@@ -335,14 +351,12 @@ matchedstmt ::=
     RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e matchedstmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 | block:b {: RESULT = b; :}
-| assignablelist:a EQ exprlist:e {: RESULT = new StmtAssign(a, e, axleft); :}
-| underscore_varlist:d EQ exprlist:e {:
+| assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
+| underscore_varlist:d EQ expr:e {:
     RESULT = new StmtDeclAssign(d, e, dxleft); :}
-| annotated_varlist:d {:
-    List<TypeDeclVar> newd = d.stream()
-        .map(TypeDeclVar::new).collect(Collectors.toList());
-    RESULT = new StmtDecl(newd, dxleft); :}
-| annotated_varlist:d EQ exprlist:e {:
+| decl_annotated_var:d {:
+    RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
+| annotated_varlist:d EQ expr:e {:
     List<TypeDecl> newd = d.stream()
         .map(TypeDeclVar::new).collect(Collectors.toList());
     RESULT = new StmtDeclAssign(newd, e, dxleft); :}

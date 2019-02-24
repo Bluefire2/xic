@@ -6,21 +6,21 @@ import java_cup.runtime.ComplexSymbolFactory;
 import java.util.List;
 
 public class StmtDecl extends Stmt {
-    private List<TypeDeclVar> decls;
+    private TypeDeclVar decl;
 
     public StmtDecl(List<TypeDeclVar> decls,
                     ComplexSymbolFactory.Location location) {
         super(location);
-        this.decls = decls;
+        this.decl = decl;
         this.s_type = StmtType.DeclStmt;
     }
 
-    public List<TypeDeclVar> getDecls() {
-        return decls;
+    public TypeDeclVar getDecls() {
+        return decl;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        prettyPrintList(decls, w);
+        decl.prettyPrint(w);
     }
 
     @Override
