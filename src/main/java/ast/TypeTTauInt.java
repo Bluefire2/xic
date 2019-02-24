@@ -22,6 +22,7 @@ public class TypeTTauInt extends TypeTTau {
         return t instanceof TypeTTauInt || t instanceof TypeTUnit;
     }
 
+    @Override
     public boolean subtypeOf(TypeT t) {
         return t instanceof TypeTTauInt || t instanceof TypeTUnit;
     }
