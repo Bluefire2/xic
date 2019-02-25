@@ -64,7 +64,9 @@ public class TypeTTauArray extends TypeTTau {
         if (!(t instanceof TypeTTauArray)) {
             return false;
         }
-        return this.typeTTau.subtypeOf(((TypeTTauArray)t).typeTTau) ||
-                t instanceof TypeTUnit;
+        if (t instanceof TypeTUnit) {
+            return true;
+        }
+        return this.typeTTau.subtypeOf(((TypeTTauArray)t).typeTTau);
     }
 }

@@ -77,10 +77,8 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(new TypeTTauInt());
                     break;
                 } else if (lTypeIsArray && rTypeIsArray) {
-                    TypeTTauArray larr = (TypeTTauArray) lType;
-                    TypeTTauArray rarr = (TypeTTauArray) rType;
-                    if (larr.getTypeTTau().equals(rarr.getTypeTTau())) {
-                        node.setTypeCheckType(larr);
+                    if (lType.subtypeOf(rType)) {
+                        node.setTypeCheckType(lType);
                         break;
                     }
                 }
@@ -102,9 +100,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     break;
                 }
                 if (lTypeIsArray && rTypeIsArray) {
-                    TypeTTauArray lTau = (TypeTTauArray) lType;
-                    TypeTTauArray rTau = (TypeTTauArray) rType;
-                    if (lTau.getTypeTTau().equals(rTau.getTypeTTau())) {
+                    if (lType.subtypeOf(rType)) {
                         node.setTypeCheckType(new TypeTTauBool());
                         break;
                     }
@@ -166,7 +162,7 @@ public class VisitorTypeCheck implements VisitorAST {
                         for (int i = 0; i < funcArgs.size(); ++i) {
                             Expr ei = funcArgs.get(i);
                             TypeTTau ti = inTauList.get(i);
-                            if (!ei.getTypeCheckType().equals(ti)) {
+                            if (!(ei.getTypeCheckType().subtypeOf(ti))) {
                                 // Gamma |- ei : tj and tj != ti
                                 throw new SemanticTypeCheckError(
                                         ti,
@@ -267,7 +263,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 TypeTTau initTau = (TypeTTau) initT;
                 for (Expr e : contents) {
                     TypeTTau eTau = (TypeTTau) e.getTypeCheckType();
-                    if (!initTau.equals(eTau)) {
+                    if (!initTau.subtypeOf(eTau)) {
                         throw new SemanticTypeCheckError(initTau, eTau,
                                 e.getLocation());
                     }
@@ -392,6 +388,7 @@ public class VisitorTypeCheck implements VisitorAST {
         if (!givenType.subtypeOf(expectedType)){
             throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
+        node.setTypeCheckType(TypeR.Unit);
     }
 
     @Override
