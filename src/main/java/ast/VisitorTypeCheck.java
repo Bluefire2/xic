@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 
 public class VisitorTypeCheck implements VisitorAST {
     private SymbolTable symTable;
-    private String sourcepath;
+    private String libpath;
     private String RETURN_KEY = "__return__";
 
-    public VisitorTypeCheck(SymbolTable symTable, String sourcepath){
+    public VisitorTypeCheck(SymbolTable symTable, String libpath){
         this.symTable = symTable;
-        this.sourcepath = sourcepath;
+        this.libpath = libpath;
     }
 
     public SymbolTable getSymTable() {
@@ -717,7 +717,7 @@ public class VisitorTypeCheck implements VisitorAST {
     @Override
     public void visit(UseInterface node) {
         String filename = node.getName() + ".ixi";
-        String inputFilePath = Paths.get(sourcepath, filename).toString();
+        String inputFilePath = Paths.get(libpath, filename).toString();
         try (FileReader fileReader = new FileReader(inputFilePath)) {
             XiTokenFactory xtf = new XiTokenFactory();
             XiLexer lexer = new XiLexer(fileReader, xtf);
