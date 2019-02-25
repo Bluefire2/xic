@@ -32,6 +32,11 @@ public class ExprIntLiteral extends Expr {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         if (this.isChar) {
             w.printAtom("\'"+ StringEscapeUtils.escapeJava(raw.toString())+"\'");
+        } else if (value == Long.MIN_VALUE) {
+            w.startList();
+            w.printAtom("-");
+            w.printAtom(value.toString().substring(1));
+            w.endList();
         } else {
             w.printAtom(value.toString());
         }
