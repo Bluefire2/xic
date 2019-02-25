@@ -1,6 +1,5 @@
 package symboltable
 
-import ast.TypeTTauInt
 import org.junit.After
 import org.junit.Before
 
@@ -8,9 +7,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 abstract class SymbolTableTest {
-    lateinit var table: SymbolTable
+    lateinit var table: SymbolTable<String>
 
-    abstract fun createInstance(): SymbolTable
+    abstract fun createInstance(): SymbolTable<String>
 
     @Test(expected = NotFoundException::class)
     fun simpleTest() {
@@ -20,16 +19,24 @@ abstract class SymbolTableTest {
     @Test
     fun singleScope() {
         table.enterScope()
-        table.add("x", TypeSymTableVar(TypeTTauInt()))
+        table.add("x", "xType")
         val typeOfx = table.lookup("x")
-        assertEquals(typeOfx, TypeSymTableVar(TypeTTauInt()))
+        assertEquals(typeOfx, "xType")
     }
 
-    private fun sameType(t1: TypeSymTable, t2: TypeSymTable): Boolean {
-        if (t1 is TypeSymTableVar && t2 is TypeSymTableVar) {
-            return t1.typeTTau == t2.typeTTau
-        } else if ()
+    @Test
+    fun multipleScopesShadowing() {
+        table.enterScope()
+        table.add("a", "A")
+        table.enterScope()
+        table.add("a", "B")
+
+        assertEquals(table.lookup("a"), "B")
+        table.exitScope()
+        assertEquals(table.lookup("a"), "A")
     }
+
+    // TODO: add stress tests
 
     @Before
     @Throws(Exception::class)
