@@ -12,7 +12,7 @@ public abstract class ASTNode {
 
     public abstract void accept(VisitorAST visitor);
 
-    XiTokenLocation getLocation() {
+    public XiTokenLocation getLocation() {
         return location;
     }
 }
