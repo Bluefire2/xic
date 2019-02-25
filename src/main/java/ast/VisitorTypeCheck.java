@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class VisitorTypeCheck implements VisitorAST {
-    private SymbolTable symTable;
-    private String sourcepath;
+    private SymbolTable<TypeSymTable> symTable;
+    private String libpath;
     private String RETURN_KEY = "__return__";
 
-    public VisitorTypeCheck(SymbolTable symTable, String sourcepath){
+    public VisitorTypeCheck(SymbolTable<TypeSymTable> symTable, String libpath){
         this.symTable = symTable;
-        this.sourcepath = sourcepath;
+        this.libpath = libpath;
     }
 
     public SymbolTable getSymTable() {
@@ -665,7 +665,7 @@ public class VisitorTypeCheck implements VisitorAST {
     @Override
     public void visit(UseInterface node) {
         String filename = node.getName() + ".ixi";
-        String inputFilePath = Paths.get(sourcepath, filename).toString();
+        String inputFilePath = Paths.get(libpath, filename).toString();
         try (FileReader fileReader = new FileReader(inputFilePath)) {
             XiTokenFactory xtf = new XiTokenFactory();
             XiLexer lexer = new XiLexer(fileReader, xtf);
@@ -673,8 +673,9 @@ public class VisitorTypeCheck implements VisitorAST {
             FileInterface root = (FileInterface) parser.parse().value;
             root.accept(this);
         } catch (SyntaxError | LexicalError e) {
-            //TODO should we print which file the error was in?
-            throw e;
+            // TODO: does changing the cause preserve the original exception?
+            String newMessage = String.format("%s (in %s)", e.getMessage(), filename);
+            throw new Error(newMessage, e);
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason

@@ -4,21 +4,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-public class HashMapSymbolTable implements SymbolTable {
+public class HashMapSymbolTable<T> implements SymbolTable<T> {
     // private so the caller can't mutate this
-    private Stack<Map<String, TypeSymTable>> scopes;
+    private Stack<Map<String, T>> scopes;
 
     public HashMapSymbolTable() {
         this.scopes = new Stack<>();
     }
 
     @Override
-    public TypeSymTable lookup(String id) throws NotFoundException {
-        Stack<Map<String, TypeSymTable>> head = new Stack<>();
-        TypeSymTable typeSymTable = null;
+    public T lookup(String id) throws NotFoundException {
+        Stack<Map<String, T>> head = new Stack<>();
+        T typeSymTable = null;
 
         while (!scopes.empty()) {
-            Map<String, TypeSymTable> scope = scopes.peek();
+            Map<String, T> scope = scopes.peek();
             if (scope.containsKey(id)) {
                 typeSymTable = scope.get(id);
                 break;
@@ -41,7 +41,7 @@ public class HashMapSymbolTable implements SymbolTable {
     }
 
     @Override
-    public void add(String id, TypeSymTable typeSymTable) {
+    public void add(String id, T typeSymTable) {
         if (scopes.empty()) {
             throw new IllegalStateException("Cannot add type: no scopes have been defined");
         }
