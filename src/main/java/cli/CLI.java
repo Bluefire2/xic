@@ -14,6 +14,7 @@ import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import symboltable.HashMapSymbolTable;
 import symboltable.TypeSymTable;
+import xi_parser.IxiParser;
 import xi_parser.XiParser;
 import xi_parser.sym;
 import xic_error.LexicalError;
@@ -115,8 +116,8 @@ public class CLI implements Runnable {
         }
     }
 
-    private void parse() {
-        for (File f : optInputFiles) {
+    private void parseFiles(File[] files, boolean isInterface) {
+        for (File f : files) {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".parsed")
                     .toString();
@@ -124,10 +125,14 @@ public class CLI implements Runnable {
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
-
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
+                java_cup.runtime.lr_parser parser;
+                if (isInterface) {
+                    parser = new IxiParser(lexer, xtf);
+                } else {
+                    parser = new XiParser(lexer, xtf);
+                }
                 CodeWriterSExpPrinter printer;
                 Object root;
                 if (optDebug) { //debug mode
@@ -148,6 +153,15 @@ public class CLI implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    private void parse() {
+        File[] interfaceFiles = new File(libpath.toString()).listFiles();
+        if (interfaceFiles != null) {
+            parseFiles(interfaceFiles, true);
+        }
+        parseFiles(optInputFiles, false);
     }
 
     private void typeCheck() {
