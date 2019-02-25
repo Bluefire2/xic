@@ -43,6 +43,21 @@ public class VisitorTypeCheck implements VisitorAST {
         );
     }
 
+    /**
+     * The lub function as specified in the type inference rule writeup.
+     *
+     * @param a The first result type.
+     * @param b The second result type.
+     * @return The value of lub(a, b).
+     */
+    private TypeR lub(TypeR a, TypeR b) {
+        if (a == TypeR.Unit || b == TypeR.Unit) {
+            return TypeR.Unit;
+        } else {
+            return TypeR.Void;
+        }
+    }
+
     @Override
     public void visit(ExprBinop node) {
         TypeT lType = node.getLeftExpr().getTypeCheckType();
@@ -330,6 +345,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     }
                 }
             }
+            node.setTypeCheckType(TypeR.Void);
         } catch (NotFoundException | ClassCastException e) {
             // TODO: illegal state
         }
@@ -378,6 +394,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 symTable.add(did, dt);
             }
         }
+        node.setTypeCheckType(TypeR.Unit);
     }
 
     @Override
@@ -528,7 +545,6 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new SemanticError("Guard of if statement must be a " +
                     "bool", node.getLocation());
         }
-
     }
 
     @Override
@@ -537,9 +553,12 @@ public class VisitorTypeCheck implements VisitorAST {
         if (gt instanceof TypeTTauBool) {
             TypeR s1r = node.getThenStmt().getTypeCheckType();
             TypeR s2r = node.getElseStmt().getTypeCheckType();
-            TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
-                    TypeR.Void : TypeR.Unit;
-            node.setTypeCheckType(ret);
+            if (s1r != null && s2r != null) {
+                TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
+                        TypeR.Void : TypeR.Unit;
+                node.setTypeCheckType(ret);
+            }
+            else node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError(
                     "Guard of if-else statement must be a bool",
@@ -557,7 +576,6 @@ public class VisitorTypeCheck implements VisitorAST {
                     "Guard of while statement must be a bool",
                     node.getLocation());
         }
-
     }
 
     @Override
@@ -654,10 +672,8 @@ public class VisitorTypeCheck implements VisitorAST {
             XiParser parser = new XiParser(lexer, xtf);
             FileInterface root = (FileInterface) parser.parse().value;
             root.accept(this);
-        } catch (SyntaxError e) {
+        } catch (SyntaxError | LexicalError e) {
             //TODO should we print which file the error was in?
-            throw e;
-        } catch (LexicalError e) {
             throw e;
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
