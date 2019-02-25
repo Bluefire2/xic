@@ -29,6 +29,8 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
@@ -157,8 +159,14 @@ public class CLI implements Runnable {
 
 
     private void parse() {
+        // TODO: major bug: why care about interface files when parsing?
+        //  Fixed the filtering anyway
         File[] interfaceFiles = new File(libpath.toString()).listFiles();
         if (interfaceFiles != null) {
+            // filter interface files
+            interfaceFiles = Arrays.stream(interfaceFiles)
+                    .filter(f -> FilenameUtils.getExtension(f.getPath()).equals("ixi"))
+                    .toArray(File[]::new);
             parseFiles(interfaceFiles, true);
         }
         parseFiles(optInputFiles, false);

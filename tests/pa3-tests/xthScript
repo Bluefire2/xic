@@ -30,11 +30,11 @@
 
 xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
   returntypes0.xi;
-  returntypes0error.xi; (Semantic, ".* return values expected, but got .*");
+  returntypes0error.xi (Semantic, ".* return values expected, but got .*");
   returntypes1.xi;
-  returntypes1error.xi; (Semantic, ".* return values expected, but got .*");
+  returntypes1error.xi (Semantic, ".* return values expected, but got .*");
   returntypes2.xi;
-  returntypes2error.xi; (Semantic, ".* return values expected, but got .*");
-  returntypeserror3.xi; (Semantic, ".* return values expected, but got .*");
-  returntypeserror4.xi; (Semantic, ".* return values expected, but got .*");
+  returntypes2error.xi (Semantic, ".* return values expected, but got .*");
+  returntypeserror3.xi (Semantic, ".* return values expected, but got .*");
+  returntypeserror4.xi (Semantic, ".* return values expected, but got .*");
 }
