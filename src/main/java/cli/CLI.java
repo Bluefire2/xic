@@ -13,6 +13,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import symboltable.HashMapSymbolTable;
+import symboltable.TypeSymTable;
 import xi_parser.XiParser;
 import xi_parser.sym;
 import xic_error.LexicalError;
@@ -163,7 +164,7 @@ public class CLI implements Runnable {
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
                 ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable(), libpath.toString()));
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 stdoutError(e, inputFilePath);

@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class VisitorTypeCheck implements VisitorAST {
-    private SymbolTable symTable;
+    private SymbolTable<TypeSymTable> symTable;
     private String libpath;
     private String RETURN_KEY = "__return__";
 
-    public VisitorTypeCheck(SymbolTable symTable, String libpath){
+    public VisitorTypeCheck(SymbolTable<TypeSymTable> symTable, String libpath){
         this.symTable = symTable;
         this.libpath = libpath;
     }

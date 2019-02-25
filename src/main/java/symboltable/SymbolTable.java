@@ -1,6 +1,6 @@
 package symboltable;
 
-public interface SymbolTable {
+public interface SymbolTable<T> {
     /**
      * Look up the type of an identifier.
      *
@@ -9,7 +9,7 @@ public interface SymbolTable {
      * @throws NotFoundException If there is no identifier {@code id} in the
      *         current symTable.
      */
-    TypeSymTable lookup(String id) throws NotFoundException;
+    T lookup(String id) throws NotFoundException;
 
     /**
      * Check if table contains an identifier.
@@ -24,7 +24,7 @@ public interface SymbolTable {
      * @param id The identifier.
      * @param type The type.
      */
-    void add(String id, TypeSymTable type);
+    void add(String id, T type);
 
     /** Create and enter a new scope */
     void enterScope();
