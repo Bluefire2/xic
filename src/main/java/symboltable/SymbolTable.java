@@ -31,4 +31,11 @@ public interface SymbolTable<T> {
 
     /** Exit the current scope */
     void exitScope();
+
+    /**
+     * Create a copy of the symbol table.
+     *
+     * @return The copy.
+     */
+    SymbolTable<T> copy();
 }
