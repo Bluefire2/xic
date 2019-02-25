@@ -316,18 +316,26 @@ public class VisitorTypeCheck implements VisitorAST {
             TypeSymTableReturn t = (TypeSymTableReturn) symTable.lookup(RETURN_KEY);
             TypeT expectedReturnType = t.getReturnType();
             List<Expr> returnVals = node.getReturnVals();
-            if (returnVals.size() == 0) {
-                // procedure return, function must return unit
-                if (!(expectedReturnType instanceof TypeTUnit)) {
-                    throw new SemanticTypeCheckError(new TypeTUnit(), expectedReturnType, node.getLocation());
+            if (expectedReturnType instanceof TypeTUnit) {
+                if (returnVals.size() != 0) {
+                    throw new SemanticError(
+                            String.format("%d return values expected, but got %d",
+                                    0, returnVals.size()),
+                            node.getLocation());
                 }
-            } else if (returnVals.size() == 1) {
-                // function return, function must return a single expression of the correct type
-                TypeT givenReturnType = node.getReturnVals().get(0).getTypeCheckType();
+            } else if (expectedReturnType instanceof TypeTTau) {
+                if (returnVals.size() != 1) {
+                    throw new SemanticError(
+                            String.format("%d return values expected, but got %d",
+                                    1, returnVals.size()),
+                            node.getLocation());
+                }
+                TypeT givenReturnType = returnVals.get(0).getTypeCheckType();
                 if (!givenReturnType.subtypeOf(expectedReturnType)) {
-                    throw new SemanticTypeCheckError(expectedReturnType, givenReturnType, node.getLocation());
+                    throw new SemanticTypeCheckError(expectedReturnType,
+                            givenReturnType, node.getLocation());
                 }
-            } else {
+            } else { //multiple return types
                 TypeTList expectedReturnTypes = (TypeTList) expectedReturnType;
                 if (returnVals.size() != expectedReturnTypes.getLength()) {
                     throw new SemanticError(
@@ -341,7 +349,8 @@ public class VisitorTypeCheck implements VisitorAST {
                     TypeT currentGivenType = exprIterator.next().getTypeCheckType();
                     TypeTTau currentExpectedType = typeTIterator.next();
                     if (currentGivenType.subtypeOf(currentExpectedType)) {
-                        throw new SemanticTypeCheckError(currentExpectedType, currentGivenType, node.getLocation());
+                        throw new SemanticTypeCheckError(currentExpectedType,
+                                currentGivenType, node.getLocation());
                     }
                 }
             }
