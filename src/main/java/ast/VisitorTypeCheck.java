@@ -396,8 +396,7 @@ public class VisitorTypeCheck implements VisitorAST {
         for (String did : d.varsOf()) {
             if (symTable.contains(did)) {
                 throw new SemanticError(
-                        "Variable with name " + did
-                                + " already exists",
+                        String.format("Duplicate variable %s", did),
                         node.getLocation());
             } else {
                 symTable.add(did, dt);
@@ -429,8 +428,6 @@ public class VisitorTypeCheck implements VisitorAST {
                 ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
                 TypeT output = fnCall.getTypeCheckType();
 
-                //TODO: need to consider the inputs to the function as well!
-                //ex: if f : unit -> int, then x:int = f(3,2) is invalid
                 if (output instanceof TypeTList) {
                     TypeTList outputList = (TypeTList) output;
                     List<TypeTTau> givenTypes = outputList.getTTauList();
@@ -449,18 +446,18 @@ public class VisitorTypeCheck implements VisitorAST {
                         }
                     } else {
                         throw new SemanticError(
-                                String.format("%d return values expected, but got %d", expectedTypes.size(), givenTypes.size()),
+                                "Mismatched number of values",
                                 node.getLocation()
                         );
                     }
                 } else {
                     throw new SemanticError(
-                            "Expected multiple return values, but only got one or none",
+                            "Mismatched number of values",
                             node.getLocation()
                     );
                 }
             } catch (ClassCastException e) {
-                throw new SemanticError("Expected callable value here", node.getLocation());
+                throw new SemanticError("Expected function call", node.getLocation());
             }
         } else {
             TypeDecl d = decls.get(0);
@@ -471,7 +468,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 // check that the var isn't already declared in the context
                 if (symTable.contains(varName)) {
                     throw new SemanticError(
-                            String.format("Identifier %s has already been declared in this scope", varName),
+                            String.format("Duplicate variable %s", varName),
                             node.getLocation()
                     );
                 } else {
@@ -501,29 +498,35 @@ public class VisitorTypeCheck implements VisitorAST {
                 TypeT prOutput = prFunc.getOutput();
                 List<Expr> args = node.getArgs();
                 if(!(prOutput instanceof TypeTUnit)) {
-                    throw new SemanticError("Not a procedure", node.getLocation());
+                    throw new SemanticError(node.getName()
+                            + " is not a procedure", node.getLocation());
                 }
                 //no parameters
                 if (prInputs instanceof TypeTUnit) {
                     if (args.size() > 0) {
-                        throw new SemanticError("Mismatched number of arguments", node.getLocation());
+                        throw new SemanticError(
+                                "Mismatched number of arguments", node.getLocation());
                     }
                 }
                 //one parameter
                 else if (prInputs instanceof TypeTTau) {
                     if (!(args.size() == 1 && args.get(0).getTypeCheckType().subtypeOf(prInputs))) {
-                        throw new SemanticError("Mismatched argument type", node.getLocation());
+                        throw new SemanticError(
+                                "Mismatched argument type", node.getLocation());
                     }
                 }
                 //multiple parameters
                 else if (prInputs instanceof TypeTList) {
                     List<TypeTTau> inputList = ((TypeTList) prInputs).getTTauList();
                     if (args.size() != inputList.size()) {
-                        throw new SemanticError("Mismatched number of arguments", node.getLocation());
+                        throw new SemanticError(
+                                "Mismatched number of arguments", node.getLocation());
                     }
                     for (int i = 0; i < args.size(); i++) {
-                        if (!(args.get(i).getTypeCheckType().subtypeOf(inputList.get(i)))) {
-                            throw new SemanticError("Mismatched argument type", node.getLocation());
+                        TypeT given = args.get(i).getTypeCheckType();
+                        TypeT expected = inputList.get(i);
+                        if (!given.subtypeOf(expected)) {
+                            throw new SemanticTypeCheckError(expected, given, node.getLocation());
                         }
                     }
                 }
@@ -533,11 +536,13 @@ public class VisitorTypeCheck implements VisitorAST {
                 node.setTypeCheckType(TypeR.Unit);
             }
             else {
-                throw new SemanticError(node.getName() + " is not a function", node.getLocation());
+                throw new SemanticError(node.getName()
+                        + " is not a procedure", node.getLocation());
             }
         }
         catch (NotFoundException e) {
-            throw new SemanticError(node.getName() + " is not a function", node.getLocation());
+            throw new SemanticError(node.getName()
+                    + " is not a procedure", node.getLocation());
         }
 
     }
@@ -549,6 +554,9 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
+            symTable.enterScope();
+            node.getThenStmt().accept(this);
+            symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError("Guard of if statement must be a " +
@@ -560,6 +568,12 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
+            symTable.enterScope();
+            node.getThenStmt().accept(this);
+            symTable.exitScope();
+            symTable.enterScope();
+            node.getElseStmt().accept(this);
+            symTable.exitScope();
             TypeR s1r = node.getThenStmt().getTypeCheckType();
             TypeR s2r = node.getElseStmt().getTypeCheckType();
             if (s1r != null && s2r != null) {
@@ -579,6 +593,9 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtWhile node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
+            symTable.enterScope();
+            node.getDoStmt().accept(this);
+            symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError(
