@@ -34,6 +34,7 @@ xic ("Test --parse") "--parse" {
   array_func_param_with_len_paramdecl03.xi;
   array_len_decl_assign_vardecl08.xi;
   full_prog_anon08_03.xi;
+  full_prog_wo_sing_quote_escape_in_string_anon08_03.xi;
   func_arr_return_assign_assign02.xi;
   func_def_return_invalid_type_anon01_17.xi;
   func_in_ixi_x05.ixi;
