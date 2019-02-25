@@ -293,7 +293,7 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(AssignableUnderscore node) { }
 
     @Override
-    public void visit(AssignableId node) { }
+    public void visit(AssignableExpr node) { }
 
     @Override
     public void visit(StmtReturn node) {
@@ -342,11 +342,10 @@ public class VisitorTypeCheck implements VisitorAST {
         TypeT givenType = rhs.getTypeCheckType();
         TypeT expectedType;
 
-        if (lhs instanceof AssignableId) {
-            AssignableId aid = (AssignableId) lhs;
-            ExprId id = aid.getId();
-            expectedType = id.getTypeCheckType();
-
+        if (lhs instanceof AssignableExpr) {
+            AssignableExpr aid = (AssignableExpr) lhs;
+            Expr e = aid.getExpr();
+            expectedType = e.getTypeCheckType();
         } else if (lhs instanceof AssignableIndex) {
             AssignableIndex ai = (AssignableIndex) lhs;
             ExprIndex index = (ExprIndex) ai.getIndex();
@@ -448,7 +447,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     throw new SemanticError(
                             String.format("Identifier %s has already been declared in this scope", varName),
                             node.getLocation()
-                    )
+                    );
                 } else {
                     // we can safely cast because variables have to be TypeTTau
                     symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));

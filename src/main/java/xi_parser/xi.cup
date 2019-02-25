@@ -9,6 +9,7 @@ import polyglot.util.Pair;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import java.util.Collections;
 
 import lexer.XiTokenFactory;
 import java_cup.runtime.Symbol;
@@ -94,12 +95,12 @@ nonterminal FileInterface interface;
 nonterminal FileProgram program;
 
 nonterminal Pair annotated_var, decl_annotated_var;
-nonterminal TypeTTau type, basic_type, initialized_listtype, decl_type;
+nonterminal TypeTTau type, basic_type, init_list_type, list_type;
 nonterminal FuncDecl func_decl;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
 
-nonterminal Expr expr;
+nonterminal Expr expr, assignable_expr;
 nonterminal Assignable assignable;
 
 nonterminal Stmt statement, matchedstmt, unmatchedstmt;
@@ -136,47 +137,46 @@ basic_type ::=
 
 //types legal for use everywhere
 //does not allow list types with initialized length
+//no need to unwrap
 type ::=
   basic_type:b {: RESULT = b; :}
-| type:t LBRAC RBRAC {:
-    if (t instanceof TypeTTauArray){
-        TypeTTauArray curr = (TypeTTauArray) t;
-        while (curr.getTypeTTau() instanceof TypeTTauArray){
-            curr = (TypeTTauArray) curr.getTypeTTau();
-        }
-        curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
-        RESULT = t;
-    } else {
-        RESULT = new TypeTTauArray(t);
-    } :}
+| list_type:t {: RESULT = t; :}
+;
+
+list_type ::=
+  basic_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
+| list_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
 ;
 
 //list types with initialized lengths, can only be used in decl w/o assign
 //example: int[3][n]
-initialized_listtype ::=
-  basic_type:t LBRAC expr:e RBRAC {: RESULT = new TypeTTauArray(t,e); :}
-| initialized_listtype:t LBRAC expr:e RBRAC {:
-    TypeTTauArray curr = (TypeTTauArray) t;
-    while (curr.getTypeTTau() instanceof TypeTTauArray){
-        curr = (TypeTTauArray) curr.getTypeTTau();
+init_list_type ::=
+  basic_type:t indices:i {:
+    TypeTTau curr = t;
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
     }
-    curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau(),e));
-    RESULT = t;
-:}
-;
-
-//types legal for decl without assign
-//allows things like int[3][][] but not int[][3]
-decl_type ::=
-  initialized_listtype:t {: RESULT = t; :}
-| initialized_listtype:t LBRAC RBRAC {:
+    RESULT = curr;
+  :}
+| basic_type:t indices:i LBRAC RBRAC {:
+    TypeTTau curr = new TypeTTauArray(t);
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
+    }
+    RESULT = curr;
+  :}
+| init_list_type:t LBRAC RBRAC {:
     TypeTTauArray curr = (TypeTTauArray) t;
     while (curr.getTypeTTau() instanceof TypeTTauArray){
         curr = (TypeTTauArray) curr.getTypeTTau();
     }
     curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
     RESULT = t;
-:}
+  :}
 ;
 
 typelist ::=
@@ -200,7 +200,7 @@ annotated_var ::=
 ;
 
 decl_annotated_var ::=
-  ID:i COLON decl_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 underscore_varlist ::=
@@ -296,22 +296,23 @@ exprlist ::= //NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 | exprlist:l COMMA expr:e {: l.add(e); RESULT = l; :}
 ;
 
-expr ::=
-  BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
-| INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
-| CHAR_LIT:c {: RESULT = new ExprIntLiteral(c, cxleft); :} // chars are really ints
-| STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
+//exprs without ( or { on LHS
+assignable_expr ::=
+  STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | ID:i LPAREN exprlist:el RPAREN {:
     RESULT = new ExprFunctionCall(i, el, ixleft); :}
 | ID:i LPAREN RPAREN {:
     RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ixleft); :}
-| expr:e1 LBRAC:l expr:e2 RBRAC {: RESULT = new ExprIndex(e1, e2, lxleft); :}
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
+;
+
+expr ::=
+  assignable_expr:e {: RESULT = e; :}
 | LCURL:l exprlist:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l exprlist:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 | expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
 | expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
 | expr:e1 PLUS:o expr:e2 {: RESULT = new ExprBinop(Binop.PLUS, e1, e2, oxleft); :}
@@ -328,19 +329,27 @@ expr ::=
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
+| BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
+| INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
+| CHAR_LIT:c {: RESULT = new ExprIntLiteral(c, cxleft); :} // chars are really ints
+| expr:e1 indices:i {:
+    Expr curr = e1;
+    for (Expr e : i) {
+        curr = new ExprIndex(curr, e, ixleft);
+    }
+    RESULT = curr; :}
 ;
-
 //STATEMENTS
 
 assignable ::=
   UNDERSCORE:u {: RESULT = new AssignableUnderscore(uxleft); :}
-| ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
-| ID:i indices:l {:
-    Expr idx = new ExprId(i, ixleft);
-    for (Expr e: l){
-        idx = new ExprIndex(idx,e, ixleft);
+| assignable_expr:e {: RESULT = new AssignableExpr(e, e.getLocation()); :}
+| assignable_expr:e1 indices:l {:
+    Expr idx = e1;
+    for (Expr e : l){
+        idx = new ExprIndex(idx, e, e.getLocation());
     }
-    RESULT = new AssignableIndex(idx, ixleft);
+    RESULT = new AssignableIndex(idx, e1.getLocation());
     :}
 ;
 

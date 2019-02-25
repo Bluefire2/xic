@@ -3,26 +3,26 @@ package ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.ComplexSymbolFactory;
 
-public class AssignableId extends Assignable {
-    private ExprId id;
+public class AssignableExpr extends Assignable {
+    private Expr e;
 
-    public AssignableId(ExprId id, ComplexSymbolFactory.Location location) {
+    public AssignableExpr(Expr e, ComplexSymbolFactory.Location location) {
         super(location);
-        this.id = id;
+        this.e = e;
     }
 
-    public ExprId getId() {
-        return id;
+    public Expr getExpr() {
+        return e;
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        id.prettyPrint(w);
+        e.prettyPrint(w);
     }
 
     @Override
     public void accept(VisitorAST visitor) {
-        id.accept(visitor);
+        e.accept(visitor);
         visitor.visit(this);
     }
 }

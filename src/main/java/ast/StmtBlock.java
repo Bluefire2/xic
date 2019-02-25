@@ -36,6 +36,7 @@ public class StmtBlock extends Stmt {
         w.startUnifiedList();
         statements.forEach((s) -> s.prettyPrint(w));
         w.endList();
+
     }
 
     @Override

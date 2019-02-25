@@ -13,7 +13,7 @@ interface VisitorAST {
 
     void visit(AssignableIndex node);
     void visit(AssignableUnderscore node);
-    void visit(AssignableId node);
+    void visit(AssignableExpr node);
 
     void visit(StmtReturn node);
     void visit(StmtAssign node);
