@@ -24,6 +24,20 @@ abstract class SymbolTableTest {
         assertEquals(typeOfx, "xType")
     }
 
+    @Test
+    fun multipleScopesShadowing() {
+        table.enterScope()
+        table.add("a", "A")
+        table.enterScope()
+        table.add("a", "B")
+
+        assertEquals(table.lookup("a"), "B")
+        table.exitScope()
+        assertEquals(table.lookup("a"), "A")
+    }
+
+    // TODO: add stress tests
+
     @Before
     @Throws(Exception::class)
     fun setUp() {
