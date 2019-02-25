@@ -90,14 +90,12 @@ terminal
     RCURL,
     ERROR;
 
-nonterminal FileSource source;
 nonterminal FileInterface interface;
 
-nonterminal Pair annotated_var, decl_annotated_var;
-nonterminal TypeTTau type, basic_type, init_list_type, list_type;
+nonterminal Pair annotated_var;
+nonterminal TypeTTau type, basic_type, list_type;
 nonterminal FuncDecl func_decl;
 
-nonterminal ArrayList<FuncDefn> func_defnlist;
 nonterminal ArrayList<TypeTTau> typelist;
 nonterminal ArrayList<Pair<String, TypeTTau>> annotated_varlist;
 
@@ -105,7 +103,7 @@ precedence left COMMA;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 
-start with source;
+start with interface;
 
 //TYPES
 basic_type ::=
@@ -172,10 +170,6 @@ func_decl ::=
 ;
 
 //HIGHEST LEVEL
-source ::=
-  interface:i {: RESULT = (FileSource) i; :}
-;
-
 interface ::=
   func_decl:d {:
       ArrayList<FuncDecl> l = new ArrayList<>();

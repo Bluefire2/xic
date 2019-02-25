@@ -4,7 +4,7 @@ import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import polyglot.util.Pair;
 import symboltable.*;
-import xi_parser.XiParser;
+import xi_parser.IxiParser;
 import xic_error.*;
 
 import java.io.FileReader;
@@ -21,6 +21,7 @@ public class VisitorTypeCheck implements VisitorAST {
     public VisitorTypeCheck(SymbolTable<TypeSymTable> symTable, String libpath){
         this.symTable = symTable;
         this.libpath = libpath;
+        symTable.enterScope();
     }
 
     public SymbolTable getSymTable() {
@@ -370,6 +371,10 @@ public class VisitorTypeCheck implements VisitorAST {
         if (lhs instanceof AssignableExpr) {
             AssignableExpr aid = (AssignableExpr) lhs;
             Expr e = aid.getExpr();
+            if (!(e instanceof ExprId)) {
+                throw new SemanticError(
+                        "Expected assignable", node.getLocation());
+            }
             expectedType = e.getTypeCheckType();
         } else if (lhs instanceof AssignableIndex) {
             AssignableIndex ai = (AssignableIndex) lhs;
@@ -510,9 +515,15 @@ public class VisitorTypeCheck implements VisitorAST {
                 }
                 //one parameter
                 else if (prInputs instanceof TypeTTau) {
-                    if (!(args.size() == 1 && args.get(0).getTypeCheckType().subtypeOf(prInputs))) {
+                    TypeT given = args.get(0).getTypeCheckType();
+                    TypeT expected = prInputs;
+
+                    if (!(args.size() == 1)) {
                         throw new SemanticError(
-                                "Mismatched argument type", node.getLocation());
+                                "Mismatched number of arguments", node.getLocation());
+                    }
+                    if (!(given.subtypeOf(expected))) {
+                        throw new SemanticTypeCheckError(expected, given, node.getLocation());
                     }
                 }
                 //multiple parameters
@@ -630,7 +641,6 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(FileProgram node) {
-        symTable.enterScope();
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
         for (UseInterface import_node : imports) {
@@ -647,7 +657,6 @@ public class VisitorTypeCheck implements VisitorAST {
                 symTable.add(signature.part1(), signature.part2());
             }
         }
-        symTable.exitScope();
     }
 
     @Override
@@ -695,7 +704,7 @@ public class VisitorTypeCheck implements VisitorAST {
         try (FileReader fileReader = new FileReader(inputFilePath)) {
             XiTokenFactory xtf = new XiTokenFactory();
             XiLexer lexer = new XiLexer(fileReader, xtf);
-            XiParser parser = new XiParser(lexer, xtf);
+            IxiParser parser = new IxiParser(lexer, xtf);
             FileInterface root = (FileInterface) parser.parse().value;
             root.accept(this);
         } catch (SyntaxError | LexicalError e) {
@@ -705,6 +714,7 @@ public class VisitorTypeCheck implements VisitorAST {
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason
+            //System.out.println(e.getMessage());
             throw new SemanticError(
                     "Could not find interface "+node.getName(),
                     node.getLocation());

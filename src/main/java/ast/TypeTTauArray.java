@@ -22,7 +22,7 @@ public class TypeTTauArray extends TypeTTau {
 
     @Override
     public String toString() {
-        return typeTTau.toString() + " list";
+        return typeTTau.toString() + "[]";
     }
 
     public TypeTTau getTypeTTau() {
@@ -61,6 +61,10 @@ public class TypeTTauArray extends TypeTTau {
 
     @Override
     public boolean subtypeOf(TypeT t) {
-        return this.equals(t) || t instanceof TypeTUnit;
+        if (!(t instanceof TypeTTauArray)) {
+            return false;
+        }
+        return this.typeTTau.subtypeOf(((TypeTTauArray)t).typeTTau) ||
+                t instanceof TypeTUnit;
     }
 }
