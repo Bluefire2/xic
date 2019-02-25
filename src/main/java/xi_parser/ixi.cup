@@ -1,0 +1,195 @@
+package xi_parser;
+// A stub for a Xi CUP specification.
+
+import ast.*;
+import lexer.XiLexer;
+import lexer.XiToken;
+import polyglot.util.Pair;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.Collections;
+
+import lexer.XiTokenFactory;
+import java_cup.runtime.Symbol;
+import xic_error.LexicalError;
+import xic_error.SyntaxError;
+
+parser code
+{:
+    XiLexer lexer;
+
+    public IxiParser (XiLexer l, XiTokenFactory xtf) {
+        super(l,xtf);
+        this.lexer = l;
+    }
+
+    public void syntax_error(Symbol s) {
+        XiToken t = (XiToken) s;
+        String message = String.format(
+            "Unexpected token %s", t.getValue()
+        );
+        throw new SyntaxError(message, t.getLocation());
+    }
+:};
+
+scan with
+{:
+    Symbol s = lexer.next_token(); // s is an XiToken wrapped as a Symbol
+    XiToken t = (XiToken) s;
+    if (t.sym == sym.ERROR) {
+        throw new LexicalError(t.getValue().toString(), t.getLocation());
+    } else {
+        return s;
+    }
+:};
+
+terminal String ID;
+terminal String STRING_LIT;
+terminal Character CHAR_LIT;
+terminal Long INT_LIT;
+terminal Boolean BOOL_LIT;
+terminal INT_TYPE, BOOL_TYPE;
+
+terminal
+    UNDERSCORE,
+    USE,
+    IF,
+    WHILE,
+    ELSE,
+    RETURN,
+    LENGTH,
+
+    EQ,
+    MINUS,
+    PLUS,
+    NOT,
+    MULT,
+    HI_MULT,
+    DIV,
+    MOD,
+    EQEQ,
+    NEQ,
+    GT,
+    LT,
+    GTEQ,
+    LTEQ,
+    AND,
+    OR,
+    UMINUS, //maybe not necessary
+
+    COLON,
+    SEMICOLON,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRAC,
+    RBRAC,
+    LCURL,
+    RCURL,
+    ERROR;
+
+nonterminal FileSource source;
+nonterminal FileInterface interface;
+
+nonterminal Pair annotated_var, decl_annotated_var;
+nonterminal TypeTTau type, basic_type, init_list_type, list_type;
+nonterminal FuncDecl func_decl;
+
+nonterminal ArrayList<FuncDefn> func_defnlist;
+nonterminal ArrayList<TypeTTau> typelist;
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_varlist;
+
+precedence left COMMA;
+precedence left LBRAC, RBRAC, LPAREN, RPAREN;
+
+
+start with source;
+
+//TYPES
+basic_type ::=
+  BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
+| INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+;
+
+//types legal for use everywhere
+//does not allow list types with initialized length
+//no need to unwrap
+type ::=
+  basic_type:b {: RESULT = b; :}
+| list_type:t {: RESULT = t; :}
+;
+
+list_type ::=
+  basic_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
+| list_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
+;
+
+
+typelist ::=
+  type:t {:
+    ArrayList<TypeTTau> l = new ArrayList<>();
+    l.add(t);
+    RESULT = l; :}
+  | typelist:l COMMA type:t {: l.add(t); RESULT = l; :}
+;
+
+annotated_varlist ::=
+  annotated_var:a {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
+| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+
+//FUNCTION DECLARATIONS AND DEFINITIONS
+// Need to differentiate type and typelist with COMMA, otherwise possible
+// shift-shift conflict
+func_decl ::=
+  ID:n LPAREN RPAREN {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    RESULT = new FuncDecl(n, l, nxleft); :}
+| ID:n LPAREN RPAREN COLON type:t {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    RESULT = new FuncDecl(n, l, t, nxleft); :}
+| ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    t2.add(0, t1);
+    RESULT = new FuncDecl(n, l, new TypeTList(t2), nxleft); :}
+| ID:n LPAREN annotated_varlist:p RPAREN {:
+    RESULT = new FuncDecl(n, p, nxleft); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
+    RESULT = new FuncDecl(n, p, t, nxleft); :}
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 typelist:t2 {:
+    t2.add(0, t1);
+    RESULT = new FuncDecl(n, p, new TypeTList(t2), nxleft); :}
+;
+
+//HIGHEST LEVEL
+source ::=
+  interface:i {: RESULT = (FileSource) i; :}
+;
+
+interface ::=
+  func_decl:d {:
+      ArrayList<FuncDecl> l = new ArrayList<>();
+      l.add(d);
+      RESULT = new FileInterface(l, dxleft); :}
+| interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
+;
+
+
+
+
+
+
+
+
+
+
