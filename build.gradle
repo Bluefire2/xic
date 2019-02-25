@@ -18,6 +18,7 @@ dependencies {
     compile fileTree(dir: 'lib', include: ['picocli-3.9.2.jar'])
     compile fileTree(dir: 'lib', include: ['java_cup.jar'])
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    // this should be 8 and not 11, don't change this!
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
@@ -44,13 +45,13 @@ task customFatJar(type: Jar) {
 
 compileKotlin {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "1.11"
     }
 }
 
 compileTestKotlin {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "1.11"
     }
 }
 
