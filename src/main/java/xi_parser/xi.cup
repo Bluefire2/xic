@@ -90,13 +90,10 @@ terminal
     RCURL,
     ERROR;
 
-nonterminal FileSource source;
-nonterminal FileInterface interface;
 nonterminal FileProgram program;
 
 nonterminal Pair annotated_var, decl_annotated_var;
 nonterminal TypeTTau type, basic_type, init_list_type, list_type;
-nonterminal FuncDecl func_decl;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
 
@@ -127,7 +124,7 @@ precedence nonassoc UMINUS, NOT;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 
-start with source;
+start with program;
 
 //TYPES
 basic_type ::=
@@ -223,27 +220,6 @@ underscore_varlist ::=
 ;
 
 //FUNCTION DECLARATIONS AND DEFINITIONS
-// Need to differentiate type and typelist with COMMA, otherwise possible
-// shift-shift conflict
-func_decl ::=
-  ID:n LPAREN RPAREN {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, t, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, l, new TypeTList(t2), nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new FuncDecl(n, p, nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
-    RESULT = new FuncDecl(n, p, t, nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 typelist:t2 {:
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, p, new TypeTList(t2), nxleft); :}
-;
 
 func_defn ::=
   ID:n LPAREN RPAREN block:b {:
@@ -304,6 +280,7 @@ assignable_expr ::=
     RESULT = new ExprFunctionCall(i, el, ixleft); :}
 | ID:i LPAREN RPAREN {:
     RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ixleft); :}
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
 
 expr ::=
@@ -312,7 +289,6 @@ expr ::=
 | LCURL:l exprlist:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LPAREN expr:e RPAREN {: RESULT = e; :}//grouping expressions
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 | expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
 | expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
 | expr:e1 PLUS:o expr:e2 {: RESULT = new ExprBinop(Binop.PLUS, e1, e2, oxleft); :}
@@ -417,20 +393,6 @@ block ::=
 | LCURL:c stmtlist:l SEMICOLON RCURL {: RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c stmtlist:l SEMICOLON return:r RCURL {: l.add(r); RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c RCURL {: RESULT = new StmtBlock(cxleft); :}
-;
-
-//HIGHEST LEVEL
-source ::=
-  interface:i {: RESULT = (FileSource) i; :}
-| program:p {: RESULT = (FileSource) p; :}
-;
-
-interface ::=
-  func_decl:d {:
-      ArrayList<FuncDecl> l = new ArrayList<>();
-      l.add(d);
-      RESULT = new FileInterface(l, dxleft); :}
-| interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
 ;
 
 program ::=

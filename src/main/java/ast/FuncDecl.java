@@ -14,7 +14,6 @@ public class FuncDecl extends ASTNode implements Printable {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private TypeT output;
-
     private Pair<String, TypeSymTable> signature;
 
     public FuncDecl(String name, List<Pair<String, TypeTTau>> params,
