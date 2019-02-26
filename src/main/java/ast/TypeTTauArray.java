@@ -73,4 +73,12 @@ public class TypeTTauArray extends TypeTTau {
         }
         return this.typeTTau.subtypeOf(ta.typeTTau);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof TypeTTauArray)) {
+            return false;
+        }
+        return this.typeTTau.equals(((TypeTTauArray) obj).typeTTau);
+    }
 }
