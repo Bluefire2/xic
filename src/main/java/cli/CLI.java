@@ -118,8 +118,8 @@ public class CLI implements Runnable {
         }
     }
 
-    private void parseFiles(File[] files, boolean isInterface) {
-        for (File f : files) {
+    private void parse() {
+        for (File f : optInputFiles) {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".parsed")
                     .toString();
@@ -130,7 +130,7 @@ public class CLI implements Runnable {
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 java_cup.runtime.lr_parser parser;
-                if (isInterface) {
+                if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
                     parser = new IxiParser(lexer, xtf);
                 } else {
                     parser = new XiParser(lexer, xtf);
@@ -157,20 +157,6 @@ public class CLI implements Runnable {
         }
     }
 
-
-    private void parse() {
-        // TODO: major bug: why care about interface files when parsing?
-        //  Fixed the filtering anyway
-        File[] interfaceFiles = new File(libpath.toString()).listFiles();
-        if (interfaceFiles != null) {
-            // filter interface files
-            interfaceFiles = Arrays.stream(interfaceFiles)
-                    .filter(f -> FilenameUtils.getExtension(f.getPath()).equals("ixi"))
-                    .toArray(File[]::new);
-            parseFiles(interfaceFiles, true);
-        }
-        parseFiles(optInputFiles, false);
-    }
 
     private void typeCheck() {
         for (File f : optInputFiles) {
