@@ -29,10 +29,9 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
-  func_param_shadowing_by_body_error.xi;
-  func_param_shadowing_by_other_param_error.xi;
   func_param_usage_in_body.xi;
   merge_sort.xi;
+  multi_decl_assign_not_decl_error.xi;
   returntypes0.xi;
   returntypes0error.xi (Semantic, ".* return values expected, but got .*");
   returntypes1.xi;
@@ -45,4 +44,9 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
   scopeerror0.xi (Semantic, "Name .* cannot be resolved");
   scopeerror1.xi (Semantic, "Name .* cannot be resolved");
   scopeerror2.xi (Semantic, "Name .* cannot be resolved");
+  shadowing_func_name_by_a_func_param_error.xi;
+  shadowing_func_param_by_body_error.xi;
+  shadowing_func_param_by_other_param_error.xi;
+  shadowing_var_another_var_error.xi;
+  shadowing_var_another_var_multi_decl_error.xi;
 }
