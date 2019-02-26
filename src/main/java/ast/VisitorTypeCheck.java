@@ -404,6 +404,24 @@ public class VisitorTypeCheck implements VisitorAST {
         node.setTypeCheckType(TypeR.Unit);
     }
 
+    private void checkDeclaration(ASTNode node, String varName, TypeT varType, TypeT givenType) {
+        // check that the var isn't already declared in the context
+        if (symTable.contains(varName)) {
+            throw new SemanticError(
+                    String.format("Duplicate variable %s", varName),
+                    node.getLocation()
+            );
+        } else {
+            // we can safely cast because variables have to be TypeTTau
+            symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
+        }
+
+        // check that the given type is compatible with the expected type
+        if (!givenType.subtypeOf(varType)) {
+            throw new SemanticTypeCheckError(varType, givenType, node.getLocation());
+        }
+    }
+
     @Override
     public void visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
@@ -430,18 +448,15 @@ public class VisitorTypeCheck implements VisitorAST {
                 if (output instanceof TypeTList) {
                     TypeTList outputList = (TypeTList) output;
                     List<TypeTTau> givenTypes = outputList.getTTauList();
-                    List<TypeT> expectedTypes = vars
-                            .stream()
-                            .map(Pair::part2)
-                            .collect(Collectors.toList());
 
-                    if (givenTypes.size() == expectedTypes.size()) {
+                    if (givenTypes.size() == vars.size()) {
                         for (int i = 0; i < givenTypes.size(); i++) {
-                            TypeT expected = expectedTypes.get(i);
+                            Pair<String, TypeT> var = vars.get(i);
+                            String varName = var.part1();
+                            TypeT expected = var.part2();
                             TypeT given = givenTypes.get(i);
-                            if (!given.subtypeOf(expected)) {
-                                throw new SemanticTypeCheckError(expected, given, node.getLocation());
-                            }
+
+                            checkDeclaration(node, varName, expected, given);
                         }
                     } else {
                         throw new SemanticError(
@@ -464,21 +479,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 String varName = d.varsOf().get(0);
                 TypeT varType = d.typeOf();
 
-                // check that the var isn't already declared in the context
-                if (symTable.contains(varName)) {
-                    throw new SemanticError(
-                            String.format("Duplicate variable %s", varName),
-                            node.getLocation()
-                    );
-                } else {
-                    // we can safely cast because variables have to be TypeTTau
-                    symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
-                }
-
-                // check that the type of the expression fits the type of the var
-                if (!rhs.getTypeCheckType().subtypeOf(varType)) {
-                    throw new SemanticTypeCheckError(varType, rhs.getTypeCheckType(), node.getLocation());
-                }
+                checkDeclaration(node, varName, varType, rhs.getTypeCheckType());
             } else {
                 //TODO handle _ = e (should be impossible, do nothing?)
             }
