@@ -141,57 +141,55 @@ public class VisitorTypeCheck implements VisitorAST {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
-            if (t instanceof TypeSymTableFunc) {
-                TypeT inTypes = ((TypeSymTableFunc) t).getInput();
-                TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
-
-                // outTypes being equal to TypeTUnit or not doesn't make a
-                // difference in the resulting type of this function/procedure.
-                // Function types are exactly the same, procedures just have
-                // an extra context return
-                if (inTypes instanceof TypeTUnit) {
-                    // procedure with no args
-                    node.setTypeCheckType(outTypes);
-                } else if (inTypes instanceof TypeTTau
-                        && node.getArgs().size() == 1
-                        && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
-                    // procedure with 1 arg
-                    node.setTypeCheckType(outTypes);
-                } else if (inTypes instanceof TypeTList) {
-                    // procedure with >= 2 args
-                    List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
-                    List<Expr> funcArgs = node.getArgs();
-                    if (inTauList.size() == funcArgs.size()) {
-                        for (int i = 0; i < funcArgs.size(); ++i) {
-                            Expr ei = funcArgs.get(i);
-                            TypeTTau ti = inTauList.get(i);
-                            if (!ei.getTypeCheckType().equals(ti)) {
-                                // Gamma |- ei : tj and tj != ti
-                                throw new SemanticTypeCheckError(
-                                        ti,
-                                        ei.getTypeCheckType(),
-                                        ei.getLocation()
-                                );
-                            }
-                        }
-                        // func args and func sig match
-                        node.setTypeCheckType(outTypes);
-                    } else {
-                        // num arguments not equal
-                        throw new SemanticError(
-                                String.format("%d arguments expected, but" +
-                                        " %d given", inTauList.size(),
-                                        funcArgs.size()
-                                ),
-                                node.getLocation()
-                        );
-                    }
-                }
-            } else {
+            if (!(t instanceof TypeSymTableFunc))
                 throw new SemanticError(
                         String.format("%s is not a function", name),
                         node.getLocation()
                 );
+            // else
+            TypeT inTypes = ((TypeSymTableFunc) t).getInput();
+            TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
+
+            // outTypes being equal to TypeTUnit or not doesn't make a
+            // difference in the resulting type of this function/procedure.
+            // Function types are exactly the same, procedures just have
+            // an extra context return
+            if (inTypes instanceof TypeTUnit) {
+                // procedure with no args
+                node.setTypeCheckType(outTypes);
+            } else if (inTypes instanceof TypeTTau
+                    && node.getArgs().size() == 1
+                    && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
+                // procedure with 1 arg
+                node.setTypeCheckType(outTypes);
+            } else if (inTypes instanceof TypeTList) {
+                // procedure with >= 2 args
+                List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
+                List<Expr> funcArgs = node.getArgs();
+                if (inTauList.size() != funcArgs.size())
+                    // num arguments not equal
+                    throw new SemanticError(
+                            String.format("%d arguments expected, but" +
+                                            " %d given", inTauList.size(),
+                                    funcArgs.size()
+                            ),
+                            node.getLocation()
+                    );
+                // else
+                for (int i = 0; i < funcArgs.size(); ++i) {
+                    Expr ei = funcArgs.get(i);
+                    TypeTTau ti = inTauList.get(i);
+                    if (!ei.getTypeCheckType().equals(ti)) {
+                        // Gamma |- ei : tj and tj != ti
+                        throw new SemanticTypeCheckError(
+                                ti,
+                                ei.getTypeCheckType(),
+                                ei.getLocation()
+                        );
+                    }
+                }
+                // func args and func sig match
+                node.setTypeCheckType(outTypes);
             }
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
@@ -203,14 +201,13 @@ public class VisitorTypeCheck implements VisitorAST {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
-            if (t instanceof TypeSymTableVar) {
-                node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
-            } else {
+            if (!(t instanceof TypeSymTableVar))
                 throw new SemanticError(
                         String.format("%s is not a variable", name),
                         node.getLocation()
                 );
-            }
+            // else
+            node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
         } catch (NotFoundException e){
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
@@ -222,18 +219,16 @@ public class VisitorTypeCheck implements VisitorAST {
         Expr idx = node.getIndex();
         TypeT at = array.getTypeCheckType();
         TypeT it = idx.getTypeCheckType();
-        if (at instanceof TypeTTauArray) {
-            if (it instanceof TypeTTauInt) {
-                node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
-            } else {
-                throw new SemanticTypeCheckError(new TypeTTauInt(), it,
-                        idx.getLocation());
-            }
-        } else {
+        if (!(at instanceof TypeTTauArray))
             throw new SemanticError(
                     String.format("Cannot index type %s", idx.getE_type()),
                     array.getLocation());
-        }
+        // else
+        if (!(it instanceof TypeTTauInt))
+            throw new SemanticTypeCheckError(new TypeTTauInt(), it,
+                    idx.getLocation());
+        // else
+        node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
     }
 
     @Override
@@ -243,12 +238,11 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(ExprLength node) {
-        if (node.getTypeCheckType() instanceof TypeTTauArray){
-            node.setTypeCheckType(new TypeTTauInt());
-        } else {
+        if (!(node.getTypeCheckType() instanceof TypeTTauArray))
             throw new SemanticError("Cannot apply length on non-array " +
                     "type", node.getLocation());
-        }
+        // else
+        node.setTypeCheckType(new TypeTTauInt());
     }
 
     @Override
@@ -262,21 +256,20 @@ public class VisitorTypeCheck implements VisitorAST {
         } else {
             Expr initContent = contents.get(0);
             TypeT initT = initContent.getTypeCheckType();
-            if (initT instanceof TypeTTau) {
-                TypeTTau initTau = (TypeTTau) initT;
-                for (Expr e : contents) {
-                    TypeTTau eTau = (TypeTTau) e.getTypeCheckType();
-                    if (!initTau.equals(eTau)) {
-                        throw new SemanticTypeCheckError(initTau, eTau,
-                                e.getLocation());
-                    }
-                }
-                // all taus are equal
-                node.setTypeCheckType(new TypeTTauArray(initTau));
-            } else {
+            if (!(initT instanceof TypeTTau))
                 throw new SemanticError("Invalid type",
                         initContent.getLocation());
+            // else
+            TypeTTau initTau = (TypeTTau) initT;
+            for (Expr e : contents) {
+                TypeTTau eTau = (TypeTTau) e.getTypeCheckType();
+                if (!initTau.equals(eTau)) {
+                    throw new SemanticTypeCheckError(initTau, eTau,
+                            e.getLocation());
+                }
             }
+            // all taus are equal
+            node.setTypeCheckType(new TypeTTauArray(initTau));
         }
     }
 
