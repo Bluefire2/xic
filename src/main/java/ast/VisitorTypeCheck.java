@@ -239,7 +239,7 @@ public class VisitorTypeCheck implements VisitorAST {
 
     @Override
     public void visit(ExprLength node) {
-        if (!(node.getTypeCheckType() instanceof TypeTTauArray))
+        if (!(node.getArray().getTypeCheckType() instanceof TypeTTauArray))
             throw new SemanticError("Cannot apply length on non-array " +
                     "type", node.getLocation());
         // else
