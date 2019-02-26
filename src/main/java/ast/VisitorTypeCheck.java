@@ -151,7 +151,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     node.setTypeCheckType(outTypes);
                 } else if (inTypes instanceof TypeTTau
                         && node.getArgs().size() == 1
-                        && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
+                        && node.getArgs().get(0).getTypeCheckType().subtypeOf(inTypes)) {
                     // procedure with 1 arg
                     node.setTypeCheckType(outTypes);
                 } else if (inTypes instanceof TypeTList) {
@@ -345,7 +345,7 @@ public class VisitorTypeCheck implements VisitorAST {
                 while (exprIterator.hasNext() && typeTIterator.hasNext()) {
                     TypeT currentGivenType = exprIterator.next().getTypeCheckType();
                     TypeTTau currentExpectedType = typeTIterator.next();
-                    if (currentGivenType.subtypeOf(currentExpectedType)) {
+                    if (!currentGivenType.subtypeOf(currentExpectedType)) {
                         throw new SemanticTypeCheckError(currentExpectedType,
                                 currentGivenType, node.getLocation());
                     }
@@ -616,6 +616,9 @@ public class VisitorTypeCheck implements VisitorAST {
     public void visit(StmtBlock node) {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
+        for (Stmt s : statements) {
+            s.accept(this);
+        }
         if (statements.isEmpty()) {
             // empty block, follow through
             node.setTypeCheckType(TypeR.Unit);

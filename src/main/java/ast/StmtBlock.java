@@ -41,9 +41,6 @@ public class StmtBlock extends Stmt {
 
     @Override
     public void accept(VisitorAST visitor) {
-        for (Stmt s : statements) {
-            s.accept(visitor);
-        }
         visitor.visit(this);
     }
 }

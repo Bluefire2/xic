@@ -22,6 +22,15 @@ public class TypeTList extends TypeT {
     }
 
     @Override
+    public String toString() {
+        String s = "(" + tTauList.get(0).toString();
+        for (int i = 1; i < tTauList.size(); i++) {
+            s = s + "," + tTauList.get(i).toString();
+        }
+        return s + ")";
+    }
+
+    @Override
     public boolean equals(Object obj) {
         // TODO: equals and subtypeOf have repetitive code: can we do
         //  something about it?

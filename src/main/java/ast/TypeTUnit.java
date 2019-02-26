@@ -9,6 +9,11 @@ public class TypeTUnit extends TypeT {
     }
 
     @Override
+    public String toString() {
+        return "unit";
+    }
+
+    @Override
     public boolean subtypeOf(TypeT t) {
         return t instanceof TypeTUnit;
     }
