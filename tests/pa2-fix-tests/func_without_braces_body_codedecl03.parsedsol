@@ -1,1 +1,1 @@
-(((f1 () (int)) (f2 () ())))
+2:1 error:Syntax error: unexpected id f2.
