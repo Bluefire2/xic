@@ -2,7 +2,13 @@ XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
 XTH_VERBOSITY_LEVEL=2
-XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 tests/pa2-staff-extracted-tests xth/tests/pa3 tests/pa3-tests tests/pa3-staff-examples-tests
+
+SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-tests
+PA1_OTHER_TEST_DIRS=xth/tests/pa1
+PA2_OTHER_TEST_DIRS=xth/tests/pa2
+PA3_OTHER_TEST_DIRS=xth/tests/pa3 tests/pa3-staff-examples-tests
+XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS)
+
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
 .DEFAULT_GOAL := help
@@ -34,7 +40,8 @@ test-custom: build	## Run xth on a specific directory given by TESTPATH and with
 	$(XTH_BIN) $(ARGS) -testpath $(TESTPATH) $(SCRIPT)
 
 zip: clean	## Zip Xi Compiler source files into xic.zip
-	zip -r xic.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic tests/pa1-fix-tests -x *.results*
+	# netid of a random group member added to the zip file name
+	zip -r xic-kc875.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic $(SUBMIT_TEST_DIRS) -x *.results*
 
 clean:	## Clean temporary build files from the directory
 	rm -rf xic.zip build .gradle ~/bin/xic
