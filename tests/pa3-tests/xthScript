@@ -61,4 +61,5 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
   if_else_return.xi;
   if_else_return_incorrect_type_error.xi;
   mutual_recursion.xi;
+  multi_decl_multi_underscore_array.xi;
 }

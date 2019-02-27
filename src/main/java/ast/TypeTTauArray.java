@@ -61,11 +61,11 @@ public class TypeTTauArray extends TypeTTau {
 
     @Override
     public boolean subtypeOf(TypeT t) {
-        if (!(t instanceof TypeTTauArray)) {
-            return false;
-        }
         if (t instanceof TypeTUnit) {
             return true;
+        }
+        if (!(t instanceof TypeTTauArray)) {
+            return false;
         }
         TypeTTauArray ta = (TypeTTauArray) t;
         if (ta.typeTTau == null || this.typeTTau == null){

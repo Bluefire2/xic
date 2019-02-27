@@ -430,21 +430,35 @@ public class VisitorTypeCheck implements VisitorAST {
         node.setTypeCheckType(TypeR.Unit);
     }
 
-    private void checkDeclaration(ASTNode node, String varName, TypeT varType, TypeT givenType) {
-        // check that the var isn't already declared in the context
-        if (symTable.contains(varName)) {
-            throw new SemanticError(
-                    String.format("Duplicate variable %s", varName),
-                    node.getLocation()
-            );
-        } else {
-            // we can safely cast because variables have to be TypeTTau
-            symTable.add(varName, new TypeSymTableVar((TypeTTau) varType));
-        }
-
+    /**
+     * Checks that decl and givenType are compatible, and adds the binding
+     * [decl.vi -> decl.typeOf()] for all vi in decl.varsOf() if
+     * compatibility test passed. Throws SemanticError if not compatible.
+     * @param node StmtDeclAssign node of the assignment.
+     * @param decl declaration.
+     * @param givenType type of the corresponding RHS function call.
+     */
+    private void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
         // check that the given type is compatible with the expected type
+        TypeT varType = decl.typeOf();
         if (!givenType.subtypeOf(varType)) {
             throw new SemanticTypeCheckError(varType, givenType, node.getLocation());
+        }
+        // givenType is a subtype of varType == good
+        // check that the var isn't already declared in the context
+        for (String var : decl.varsOf()) {
+            if (symTable.contains(var)) {
+                throw new SemanticError(
+                        String.format("Duplicate variable %s", var),
+                        node.getLocation()
+                );
+            } else {
+                if (varType instanceof TypeTTau) {
+                    symTable.add(var, new TypeSymTableVar((TypeTTau) varType));
+                }
+                // else, do nothing (varType MUST be unit, underscore is not
+                // put in the symTable
+            }
         }
     }
 
@@ -453,6 +467,7 @@ public class VisitorTypeCheck implements VisitorAST {
         List<TypeDecl> decls = node.getDecls();
         Expr rhs = node.getRhs();
 
+        /*
         // mwahaha what the fuck is this
         List<Pair<String, TypeT>> vars = decls
                 .stream()
@@ -464,8 +479,10 @@ public class VisitorTypeCheck implements VisitorAST {
                             .map(var -> new Pair<>(var, type));
                 })
                 .collect(Collectors.toList());
+        vars.forEach(p -> System.out.println(p));
+        */
 
-        if (vars.size() > 1) {
+        if (decls.size() > 1) {
             try {
                 // multi-assign with function that returns multiple things
                 ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
@@ -475,15 +492,10 @@ public class VisitorTypeCheck implements VisitorAST {
                     TypeTList outputList = (TypeTList) output;
                     List<TypeTTau> givenTypes = outputList.getTTauList();
 
-                    if (givenTypes.size() == vars.size()) {
-                        for (int i = 0; i < givenTypes.size(); i++) {
-                            Pair<String, TypeT> var = vars.get(i);
-                            String varName = var.part1();
-                            TypeT expected = var.part2();
-                            TypeT given = givenTypes.get(i);
-
-                            checkDeclaration(node, varName, expected, given);
-                        }
+                    if (givenTypes.size() == decls.size()) {
+                        for (int i = 0; i < givenTypes.size(); i++)
+                            checkDeclaration(node, decls.get(i),
+                                    givenTypes.get(i));
                     } else {
                         throw new SemanticError(
                                 "Mismatched number of values",
@@ -500,16 +512,8 @@ public class VisitorTypeCheck implements VisitorAST {
                 throw new SemanticError("Expected function call", node.getLocation());
             }
         } else {
-            TypeDecl d = decls.get(0);
-            if (d instanceof TypeDeclVar) {
-                String varName = d.varsOf().get(0);
-                TypeT varType = d.typeOf();
-
-                checkDeclaration(node, varName, varType, rhs.getTypeCheckType());
-            } else {
-                //_ = e (should be impossible since that would parse into an expr)
-            }
-
+            // handle type compatibility for one decl
+            checkDeclaration(node, decls.get(0), rhs.getTypeCheckType());
         }
         node.setTypeCheckType(TypeR.Unit);
     }
