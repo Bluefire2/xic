@@ -20,7 +20,6 @@ import xi_parser.sym;
 import xic_error.LexicalError;
 import xic_error.SemanticError;
 import xic_error.SyntaxError;
-import xic_error.XiCompilerError;
 
 import java.io.File;
 import java.io.FileReader;
@@ -29,8 +28,6 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
@@ -149,7 +146,7 @@ public class CLI implements Runnable {
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
-                stdoutError(e, inputFilePath);
+                e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -175,7 +172,7 @@ public class CLI implements Runnable {
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
-                stdoutError(e, inputFilePath);
+                e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -196,20 +193,6 @@ public class CLI implements Runnable {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-    }
-
-    /**
-     * Outputs an error message on STDOUT in the form
-     *  <errorKind> error beginning at <inputFilePath>:<line>:<column> description.
-     * @param e error object.
-     * @param inputFilePath path of the file where the error was encountered.
-     */
-    private void stdoutError(XiCompilerError e, String inputFilePath) {
-        String message = String.format(
-                "%s error beginning at %s:%s", e.getErrorKindName(),
-                inputFilePath, e.getMessage()
-        );
-        System.out.println(message);
     }
 
     public static void main(String[] args) {

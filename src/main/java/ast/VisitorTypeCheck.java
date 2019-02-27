@@ -706,9 +706,11 @@ public class VisitorTypeCheck implements VisitorAST {
             FileInterface root = (FileInterface) parser.parse().value;
             root.accept(this);
         } catch (SyntaxError | LexicalError e) {
-            // TODO: does changing the cause preserve the original exception?
-            String newMessage = String.format("%s (in %s)", e.getMessage(), filename);
-            throw new Error(newMessage, e);
+            e.stdoutError(inputFilePath);
+            throw new SemanticError(
+                    "Faulty interface file " + filename,
+                    node.getLocation()
+            );
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason
