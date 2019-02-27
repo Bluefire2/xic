@@ -2,7 +2,7 @@ XIC_BUILD=./xic-build
 XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
 XTH_VERBOSITY_LEVEL=2
-XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 tests/pa2-fix-tests xth/tests/pa3 tests/pa3-tests
+XTH_TEST_DIRS=xth/tests/pa1 tests/pa1-fix-tests xth/tests/pa2 tests/pa2-fix-tests xth/tests/pa3 tests/pa3-tests tests/pa3-staff-examples-tests
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
 .DEFAULT_GOAL := help
@@ -40,6 +40,8 @@ clean:	## Clean temporary build files from the directory
 	rm -rf xic.zip build .gradle ~/bin/xic
 	rm -f src/main/java/lexer/XiLexer.java*
 	rm -f src/main/java/xi_parser/XiParser.java* 
+	rm -f src/main/java/xi_parser/IxiParser.java* 
 	rm -f src/main/java/xi_parser/sym.java* 
 	find . -name "*.lexed" -type f -delete
 	find . -name "*.parsed" -type f -delete
+	find . -name "*.typed" -type f -delete

@@ -69,15 +69,6 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
         }
     }
 
-    /**
-     * Private constructor for copying purposes.
-     *
-     * @param scopes The scopes to keep in the symbol table.
-     */
-    private HashMapSymbolTable(Stack<Map<String, T>> scopes) {
-        this.scopes = scopes;
-    }
-
     @Override
     public SymbolTable<T> copy() {
         Stack<Map<String, T>> scopesCopy = new Stack<>();
@@ -89,6 +80,8 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
             scopesCopy.push(scopeCopy);
         }
 
-        return new HashMapSymbolTable<>(scopesCopy);
+        HashMapSymbolTable<T> out = new HashMapSymbolTable<>();
+        out.scopes = scopesCopy;
+        return out;
     }
 }
