@@ -465,21 +465,6 @@ public class VisitorTypeCheck implements VisitorAST {
         List<TypeDecl> decls = node.getDecls();
         Expr rhs = node.getRhs();
 
-        /*
-        // mwahaha what the fuck is this
-        List<Pair<String, TypeT>> vars = decls
-                .stream()
-                .flatMap(decl -> {
-                    TypeT type = decl.typeOf();
-                    return decl
-                            .varsOf()
-                            .stream()
-                            .map(var -> new Pair<>(var, type));
-                })
-                .collect(Collectors.toList());
-        vars.forEach(p -> System.out.println(p));
-        */
-
         if (decls.size() > 1) {
             try {
                 // multi-assign with function that returns multiple things
