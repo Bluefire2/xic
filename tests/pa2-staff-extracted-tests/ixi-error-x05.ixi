@@ -1,0 +1,5 @@
+// ixi cannot have function bodies
+bar() {
+    b: int = 42;
+}
+
