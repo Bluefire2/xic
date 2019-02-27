@@ -164,7 +164,7 @@ func_decl ::=
     RESULT = new FuncDecl(n, p, nxleft); :}
 | ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
     RESULT = new FuncDecl(n, p, t, nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 typelist:t2 {:
+| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 COMMA typelist:t2 {:
     t2.add(0, t1);
     RESULT = new FuncDecl(n, p, new TypeTList(t2), nxleft); :}
 ;
