@@ -1,1 +1,1 @@
-2:1 error:Existing function with name test has different signature
+2:1 error: Semantic error: Existing function with name test has different signature
