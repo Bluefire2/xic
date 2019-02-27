@@ -34,11 +34,11 @@ public class FuncDefn extends ASTNode implements Printable {
         TypeSymTable sig;
         switch (param_types.size()) {
             case 0:
-                sig = new TypeSymTableFunc(new TypeTUnit(), output); break;
+                sig = new TypeSymTableFunc(new TypeTUnit(), output, false); break;
             case 1:
-                sig = new TypeSymTableFunc(param_types.get(0), output); break;
+                sig = new TypeSymTableFunc(param_types.get(0), output, false); break;
             default:
-                sig = new TypeSymTableFunc(new TypeTList(param_types), output);
+                sig = new TypeSymTableFunc(new TypeTList(param_types), output, false);
         }
         this.signature = new Pair<>(name, sig);
     }

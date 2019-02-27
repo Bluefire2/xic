@@ -1,0 +1,3 @@
+use bad
+
+main() { }

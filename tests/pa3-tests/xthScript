@@ -41,4 +41,11 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
   scopeerror0.xi (Semantic, "Name .* cannot be resolved");
   scopeerror1.xi (Semantic, "Name .* cannot be resolved");
   scopeerror2.xi (Semantic, "Name .* cannot be resolved");
+  import0.xi;
+  import1.xi (Semantic, "Existing function with name .* has different signature");
+  import2.xi;
+  import3.xi (Semantic, "Existing function with name .* has different signature");
+  import4.xi (Semantic, "Existing function with name .* has different signature");
+  import5.xi;
+  multidef.xi (Semantic, "Function with name .* has already been defined");
 }

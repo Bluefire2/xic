@@ -645,13 +645,27 @@ public class VisitorTypeCheck implements VisitorAST {
         }
         for (FuncDefn defn : defns) {
             Pair<String, TypeSymTable> signature = defn.getSignature();
-            if (symTable.contains(signature.part1())) {
-                throw new SemanticError(
-                        "Function with name " + signature.part1()
-                                + " already exists",
-                        defn.getLocation());
-            } else {
-                symTable.add(signature.part1(), signature.part2());
+            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
+            try {
+                TypeSymTable existing = symTable.lookup(signature.part1());
+                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
+                //existing function has already been defined
+                if (!existingf.can_decl()) {
+                    throw new SemanticError(
+                            String.format("Function with name %s has already been defined",signature.part1()),
+                            defn.getLocation());
+                }
+                //existing function has different signature
+                if (!(existingf.getInput().equals(func_sig.getInput()) &&
+                        existingf.getOutput().equals(func_sig.getOutput()))) {
+                    throw new SemanticError(
+                            String.format("Existing function with name %s has different signature", signature.part1()),
+                            defn.getLocation());
+                }
+                existingf.set_can_decl(false);
+            } catch (NotFoundException e) {
+                //func_sig is already set to not re-declarable
+                symTable.add(signature.part1(), func_sig);
             }
         }
     }
@@ -662,12 +676,21 @@ public class VisitorTypeCheck implements VisitorAST {
         List<FuncDecl> decls = node.getFuncDecls();
         for (FuncDecl decl : decls) {
             Pair<String, TypeSymTable> signature = decl.getSignature();
-            if (symTable.contains(signature.part1())) {
-                throw new SemanticError(
-                        "Function with name " + signature.part1()
-                                + " already exists",
-                        decl.getLocation());
-            } else {
+            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
+            try {
+                TypeSymTable existing = symTable.lookup(signature.part1());
+                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
+                //do not check if re-declarable bc imports come before defns
+
+                //existing function has different signature
+                if (!(existingf.getInput().equals(func_sig.getInput()) &&
+                        existingf.getOutput().equals(func_sig.getOutput()))) {
+                    throw new SemanticError(
+                            String.format("Existing function with name %s has different signature", signature.part1()),
+                            decl.getLocation());
+                }
+                //do nothing because function sig already exists
+            } catch (NotFoundException e) {
                 symTable.add(signature.part1(), signature.part2());
             }
         }
