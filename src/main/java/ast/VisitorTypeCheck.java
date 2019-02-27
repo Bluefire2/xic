@@ -376,7 +376,22 @@ public class VisitorTypeCheck implements VisitorAST {
             expectedType = index.getTypeCheckType();
         } else { //underscore
             //if LHS is underscore, RHS must be function call
-            if (!(rhs instanceof ExprFunctionCall)){
+            if (rhs instanceof ExprFunctionCall) {
+                ExprFunctionCall fc = (ExprFunctionCall) rhs;
+                try {
+                    TypeSymTable f = symTable.lookup(fc.getName());
+                    TypeT returns = ((TypeSymTableFunc) f).getOutput();
+                    if (!(returns.equals(TypeR.Unit))) {
+                           throw new SemanticError(
+                                   "Expected function call", node.getLocation());
+                    }
+                }
+                catch (NotFoundException e) {
+                    throw new SemanticError(
+                            "Expected function call", node.getLocation());
+                }
+            }
+            else {
                 throw new SemanticError(
                         "Expected function call", node.getLocation());
             }
