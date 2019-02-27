@@ -29,7 +29,7 @@ $(XTH_TEST_DIRS):
 test-verbose: XTH_VERBOSITY_LEVEL = 4	## Run xth on all test directories
 test-verbose: test
 
-test-custom:	## Run xth on a specific directory given by TESTPATH and with optional flags given by ARGS
+test-custom: build	## Run xth on a specific directory given by TESTPATH and with optional flags given by ARGS
 	$(eval SCRIPT:=$(addsuffix /xthScript, $(TESTPATH)))
 	$(XTH_BIN) $(ARGS) -testpath $(TESTPATH) $(SCRIPT)
 

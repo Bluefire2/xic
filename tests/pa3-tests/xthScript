@@ -57,4 +57,7 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
   shadowing_var_another_var_multi_decl_error.xi;
   use_empty_interface.xi;
   underscore_procedure_assign.xi;
+  if_else_missing_return_error.xi;
+  if_else_return.xi;
+  if_else_return_incorrect_type_error.xi;
 }
