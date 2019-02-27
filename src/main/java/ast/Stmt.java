@@ -9,7 +9,7 @@ import java.util.List;
 public abstract class Stmt extends ASTNode implements Printable {
     StmtType s_type;
     SymbolTable symTable = null;
-    TypeR typeCheckType = null;
+    private TypeR typeCheckType = null;
 
     public Stmt(ComplexSymbolFactory.Location location) {
         super(location);
