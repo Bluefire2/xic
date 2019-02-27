@@ -150,7 +150,12 @@ public class VisitorTypeCheck implements VisitorAST {
             // else
             TypeT inTypes = ((TypeSymTableFunc) t).getInput();
             TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
-
+            if (outTypes instanceof TypeTUnit) {
+                throw new SemanticError(
+                        String.format("%s is not a function", name),
+                        node.getLocation()
+                );
+            }
             // outTypes being equal to TypeTUnit or not doesn't make a
             // difference in the resulting type of this function/procedure.
             // Function types are exactly the same, procedures just have
@@ -397,6 +402,12 @@ public class VisitorTypeCheck implements VisitorAST {
             }
             expectedType = new TypeTUnit();
         }
+        if (givenType instanceof TypeTList){
+            throw new SemanticError(
+                    "Mismatched number of values",
+                    node.getLocation()
+            );
+        }
         if (!givenType.subtypeOf(expectedType)){
             throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
@@ -496,7 +507,7 @@ public class VisitorTypeCheck implements VisitorAST {
 
                 checkDeclaration(node, varName, varType, rhs.getTypeCheckType());
             } else {
-                //TODO handle _ = e (should be impossible, do nothing?)
+                //_ = e (should be impossible since that would parse into an expr)
             }
 
         }
