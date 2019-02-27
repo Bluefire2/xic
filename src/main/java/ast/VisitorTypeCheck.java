@@ -256,8 +256,6 @@ public class VisitorTypeCheck implements VisitorAST {
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
-            // TODO: this makes the tau type of this array node null,
-            //  potentially resulting in unchecked NullPointerExceptions
             node.setTypeCheckType(new TypeTTauArray());
         } else {
             Expr initContent = contents.get(0);
@@ -355,7 +353,7 @@ public class VisitorTypeCheck implements VisitorAST {
             }
             node.setTypeCheckType(TypeR.Void);
         } catch (NotFoundException | ClassCastException e) {
-            // TODO: illegal state
+            // Illegal state
         }
     }
 
@@ -567,7 +565,7 @@ public class VisitorTypeCheck implements VisitorAST {
                     }
                 }
                 else {
-                    // TODO: Illegal state
+                    // Illegal state
                 }
                 node.setTypeCheckType(TypeR.Unit);
             }
@@ -583,9 +581,6 @@ public class VisitorTypeCheck implements VisitorAST {
 
     }
 
-    // TODO: is the symbol table being separated from the changes the if
-    //  block would make in this node? We want to return Gamma, but are we
-    //  really returning it? Same issue for other statement nodes.
     @Override
     public void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
