@@ -41,6 +41,6 @@ public class StmtIfElse extends Stmt {
     }
 
     public Stmt getElseStmt() {
-        return thenStmt;
+        return elseStmt;
     }
 }

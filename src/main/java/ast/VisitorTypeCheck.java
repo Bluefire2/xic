@@ -740,7 +740,7 @@ public class VisitorTypeCheck implements VisitorAST {
         Stmt body = node.getBody();
         body.accept(this);
         if (!(node.getOutput() instanceof TypeTUnit)
-                && body.typeCheckType != TypeR.Void)
+                && body.getTypeCheckType() != TypeR.Void)
             // func def returns non-unit but doesn't end with a return
             throw new SemanticError("Missing return",
                     body.getLocation());
