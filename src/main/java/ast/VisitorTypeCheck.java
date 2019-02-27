@@ -609,9 +609,7 @@ public class VisitorTypeCheck implements VisitorAST {
             TypeR s1r = node.getThenStmt().getTypeCheckType();
             TypeR s2r = node.getElseStmt().getTypeCheckType();
             if (s1r != null && s2r != null) {
-                TypeR ret = (s1r.equals(TypeR.Void) && s2r.equals(TypeR.Void)) ?
-                        TypeR.Void : TypeR.Unit;
-                node.setTypeCheckType(ret);
+                node.setTypeCheckType(lub(s1r, s2r));
             }
             else node.setTypeCheckType(TypeR.Unit);
         } else {
