@@ -91,6 +91,7 @@ terminal
     ERROR;
 
 nonterminal FileInterface interface;
+nonterminal interfacefile;
 
 nonterminal Pair annotated_var;
 nonterminal TypeTTau type, basic_type, list_type;
@@ -103,7 +104,7 @@ precedence left COMMA;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 
-start with interface;
+start with interfacefile;
 
 //TYPES
 basic_type ::=
@@ -177,6 +178,9 @@ interface ::=
       RESULT = new FileInterface(l, dxleft); :}
 | interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
 ;
+
+interfacefile ::= {: //do nothing :}
+| interface:i {: RESULT=i; :};
 
 
 

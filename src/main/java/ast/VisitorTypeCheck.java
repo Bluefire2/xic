@@ -759,7 +759,9 @@ public class VisitorTypeCheck implements VisitorAST {
             XiLexer lexer = new XiLexer(fileReader, xtf);
             IxiParser parser = new IxiParser(lexer, xtf);
             FileInterface root = (FileInterface) parser.parse().value;
-            root.accept(this);
+            if (root != null) {
+                root.accept(this);
+            }
         } catch (SyntaxError | LexicalError e) {
             e.stdoutError(inputFilePath);
             throw new SemanticError(
@@ -769,7 +771,6 @@ public class VisitorTypeCheck implements VisitorAST {
         } catch (Exception e) {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason
-            //System.out.println(e.getMessage());
             throw new SemanticError(
                     "Could not find interface "+node.getName(),
                     node.getLocation());
