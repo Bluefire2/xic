@@ -16,10 +16,10 @@ java -jar lib/jflex-full-1.7.0.jar src/main/java/lexer/xilexer.flex -d src/main/
 # Create the compiler using gradle, create xic binary
 if which gradle > /dev/null; then
     # gradle installed by package manager
-    gradle customFatJar
+    gradle --no-daemon customFatJar
 else
     # gradle not installed by package manager, try the gradle wrapper supplied
-    ./gradlew customFatJar
+    ./gradlew --no-daemon customFatJar
 fi
 cat make_jar_executable.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
 
