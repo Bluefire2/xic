@@ -1,8 +1,10 @@
 package cli;
 
+import ast.ASTNode;
+import ast.Printable;
+import ast.VisitorTypeCheck;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.Symbol;
-import lexer.LexicalError;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import org.apache.commons.io.FilenameUtils;
@@ -10,10 +12,14 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
-import xi_parser.Printable;
-import xi_parser.SyntaxError;
+import symboltable.HashMapSymbolTable;
+import symboltable.TypeSymTable;
+import xi_parser.IxiParser;
 import xi_parser.XiParser;
 import xi_parser.sym;
+import xic_error.LexicalError;
+import xic_error.SemanticError;
+import xic_error.SyntaxError;
 
 import java.io.File;
 import java.io.FileReader;
@@ -23,48 +29,59 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
+@CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
-    @Option(names = {"-h", "--help"}, usageHelp = true,
+    @Option (names = {"-h", "--help"}, usageHelp = true,
             description = "Print a synopsis of options.")
     private boolean optHelp = false;
 
-    @Option(names = {"-l", "--lex"},
+    @Option (names = {"-l", "--lex"},
             description = "Generate output from lexical analysis.")
     private boolean optLex = false;
 
-    @Option(names = {"--parse"},
+    @Option (names = {"--parse"},
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
 
-    @Option(names = {"--debugparse"},
+    @Option (names = {"--debugparse"},
             description = "Parse in debug mode and print AST to terminal.")
     private boolean optDebug = false;
 
-    @Parameters(arity = "1..*", paramLabel = "FILE",
+    @Option (names = {"--typecheck"},
+            description = "Generate output from semantic analysis.")
+    private boolean optTypeCheck = false;
+
+    @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
 
-    @Option(names = "-D", defaultValue = ".",
+    @Option (names = "-D", defaultValue = ".",
             description = "Specify where to place generated diagnostic files.")
     private Path path;
 
-    @Option(names = "-sourcepath", defaultValue = ".",
+    @Option (names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
     private Path sourcepath;
+
+    @Option (names = "-libpath", defaultValue = ".",
+            description = "Specify where to find library interface files.")
+    private Path libpath;
+
 
     @Override
     public void run() {
         if (Files.exists(path)) {
-            if(Files.exists(sourcepath)) {
+            if (Files.exists(sourcepath)) {
                 if (optLex) {
                     lex();
                 }
                 if (optParse) {
                     parse();
                 }
-            }
-            else {
+                if(optTypeCheck) {
+                    typeCheck();
+                }
+            } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
             }
         } else {
@@ -107,10 +124,14 @@ public class CLI implements Runnable {
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
-
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
+                java_cup.runtime.lr_parser parser;
+                if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
+                    parser = new IxiParser(lexer, xtf);
+                } else {
+                    parser = new XiParser(lexer, xtf);
+                }
                 CodeWriterSExpPrinter printer;
                 Object root;
                 if (optDebug) { //debug mode
@@ -124,13 +145,8 @@ public class CLI implements Runnable {
                 }
                 ((Printable) root).prettyPrint(printer);
                 printer.close();
-            } catch (LexicalError e) {
-                System.out.println("Lexical Error");
-                System.out.println(e.getMessage());
-                fileoutError(outputFilePath, e.getMessage());
-            } catch (SyntaxError e) {
-                System.out.println("Syntax Error");
-                System.out.println(e.getMessage());
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
@@ -138,6 +154,37 @@ public class CLI implements Runnable {
         }
     }
 
+
+    private void typeCheck() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".typed")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                XiTokenFactory xtf = new XiTokenFactory();
+                XiLexer lexer = new XiLexer(fileReader, xtf);
+                XiParser parser = new XiParser(lexer, xtf);
+                ASTNode root = (ASTNode) parser.parse().value;
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                fileWriter.write("Valid Xi Program");
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Writes the error message in the file.
+     * @param outputFilePath path of the file to write in.
+     * @param errMessage error message.
+     */
     private void fileoutError(String outputFilePath, String errMessage) {
         try {
             FileWriter fw = new FileWriter(outputFilePath);

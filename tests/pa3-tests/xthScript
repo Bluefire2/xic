@@ -1,0 +1,73 @@
+# xth test script
+#
+# This file is a test script for xth (xic Test Harness).  It
+# conforms to the following grammar:
+#
+#   ScriptFile      ::= Commands+
+#   Command         ::= build
+#                     | CompilerTest
+#   CompilerTest    ::= TestKind (\(TestName\))? ([TestPath])? ("CmdLineArgs")?
+#                           { (FileTest;)* }
+#   TestKind        ::= xic
+#   TestName        ::= LitString
+#   FileTest        ::= Filenames Description? FailureSet?
+#   Filenames       ::= Filename+
+#   Description     ::= LitString
+#   FailureSet      ::= Failure (, Failure)*
+#   Failure         ::= \( ErrorKind \)
+#                     | \( ErrorKind, LitString \)
+#
+#   TestPath        :   the path to the test files, enclosed in quotes,
+#                       relative to the path given in xth's -testpath flag.
+#   CmdLineArgs     :   command-line arguments for xic
+#   Filename        :   the name of a file, interpreted from TestPath.
+#   LitString       :   a literal string, enclosed in quotes.
+#   ErrorKind       :   one of, or a unique prefix of one of the following
+#                       strings: "Lexical Error", "Syntax Error", or
+#                       "Semantic Error".
+#
+# xth runs the commands in order of appearance.
+
+xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
+  func_param_usage_in_body.xi;
+  merge_sort.xi;
+  multi_decl_assign_not_decl_error.xi;
+  returntypes0.xi;
+  returntypes0error.xi (Semantic, ".* return values expected, but got .*");
+  returntypes1.xi;
+  returntypes1error.xi (Semantic, ".* return values expected, but got .*");
+  returntypes2.xi;
+  returntypes2error.xi (Semantic, ".* return values expected, but got .*");
+  returntypeserror3.xi (Semantic, ".* return values expected, but got .*");
+  returntypeserror4.xi (Semantic, ".* return values expected, but got .*");
+  scope0.xi;
+  scopeerror0.xi (Semantic, "Name .* cannot be resolved");
+  scopeerror1.xi (Semantic, "Name .* cannot be resolved");
+  scopeerror2.xi (Semantic, "Name .* cannot be resolved");
+  import0.xi;
+  import1.xi (Semantic, "Existing function with name .* has different signature");
+  import2.xi;
+  import3.xi (Semantic, "Existing function with name .* has different signature");
+  import4.xi (Semantic, "Existing function with name .* has different signature");
+  multidef.xi (Semantic, "Function with name .* has already been defined");
+  shadowing_func_name_by_a_func_param_error.xi;
+  shadowing_func_param_by_body_error.xi;
+  shadowing_func_param_by_other_param_error.xi;
+  shadowing_var_another_var_error.xi;
+  shadowing_var_another_var_multi_decl_error.xi;
+  use_empty_interface.xi;
+  underscore_procedure_assign.xi;
+  if_else_missing_return_error.xi;
+  if_else_return.xi;
+  if_else_return_incorrect_type_error.xi;
+  empty_array1.xi;
+  empty_array2.xi;
+  mutual_recursion.xi;
+  multi_decl_multi_underscore_array.xi;
+  shadowing_multi_decl_error.xi;
+  multi_decl_wrong_num_lhs_error.xi;
+  multi_decl_all_underscore.xi;
+  return_function_call_one_arg.xi;
+  return_function_call_error1.xi;
+  return_function_call_error2.xi;
+}

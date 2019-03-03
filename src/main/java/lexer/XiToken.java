@@ -7,46 +7,25 @@ import org.apache.commons.lang3.StringEscapeUtils;
 public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
 
     private String name;
-    private XiTokenLocation tLeft;
-    private XiTokenLocation tRight;
+    private XiTokenLocation location;
     public int parse_state;
 
     XiToken(String name, int id, Symbol left, Symbol right, Object value) {
         super(name, id, left, right, value);
         this.name = name;
-        tLeft = ((XiToken) left).tLeft;
-        tRight = ((XiToken) right).tRight;
+        location = ((XiToken) left).location;
     }
 
     XiToken(String name, int id, Symbol left, Object value) {
-        super(name, id, left, value);
+        super(name, id, left, left, value);
         this.name = name;
-        tLeft = ((XiToken) left).tLeft;
-        tRight = ((XiToken) left).tLeft;
+        location = ((XiToken) left).location;
     }
 
-    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right,
-            Object value) {
-        // left and right to super constructor doesn't matter here
-        super(name, id, value);
+    XiToken(String name, int id, XiTokenLocation location, Object value) {
+        super(name, id, location, location, value);
         this.name = name;
-        tLeft = left;
-        tRight = right;
-    }
-
-    XiToken(String name, int id, XiTokenLocation left, Object value) {
-        // left and right to super constructor doesn't matter here
-        super(name, id, value);
-        this.name = name;
-        tLeft = left;
-        tRight = left;
-    }
-
-    XiToken(String name, int id, XiTokenLocation left, XiTokenLocation right) {
-        super(name, id, left, right);
-        this.name = name;
-        this.tLeft = left;
-        this.tRight = right;
+        this.location = location;
     }
 
     XiToken(String name, int id) {
@@ -65,12 +44,8 @@ public class XiToken extends ComplexSymbolFactory.ComplexSymbol {
         this.parse_state = state;
     }
 
-    public XiTokenLocation getLeft() {
-        return tLeft;
-    }
-
-    public XiTokenLocation getRight() {
-        return tRight;
+    public XiTokenLocation getLocation() {
+        return location;
     }
 
     public Object getValue() {

@@ -1,0 +1,4 @@
+//HELLO THIS IS A TEST COMMENT
+test(n:int):int
+//HELLO
+test2(n:int):int

@@ -3,6 +3,7 @@
 vm/.vagrant
 src/main/java/lexer/XiLexer.java
 src/main/java/xi_parser/XiParser.java
+src/main/java/xi_parser/IxiParser.java
 src/main/java/xi_parser/sym.java
 *.java~
 *.results
@@ -107,3 +108,4 @@ hs_err_pid*
 xic
 *.lexed
 *.parsed
+*.typed
