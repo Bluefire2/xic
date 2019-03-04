@@ -24,6 +24,10 @@ fi
 cat make_jar_executable.sh build/libs/all-in-one-jar-1.0-SNAPSHOT.jar > xic && chmod +x xic
 
 # Link the xic binary in ~/bin
-xic_path=$(readlink -f xic)
+case "$OSTYPE" in
+  darwin*)  xic_path=$(greadlink -f xic) ;;
+  linux*)   xic_path=$(readlink -f xic) ;;
+  *)        echo "unknown: $OSTYPE"; exit 1 ;;
+esac
 mkdir -p ~/bin && cd ~/bin
 ln -s -f $xic_path xic && cd - > /dev/null
