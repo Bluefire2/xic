@@ -11,9 +11,8 @@ import java.io.FileReader;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class VisitorTypeCheck implements VisitorAST {
+public class VisitorTypeCheck implements VisitorAST<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private String libpath;
     private String RETURN_KEY = "__return__";
@@ -60,7 +59,7 @@ public class VisitorTypeCheck implements VisitorAST {
     }
 
     @Override
-    public void visit(ExprBinop node) {
+    public Void visit(ExprBinop node) {
         TypeT lType = node.getLeftExpr().getTypeCheckType();
         TypeT rType = node.getRightExpr().getTypeCheckType();
 
@@ -130,15 +129,17 @@ public class VisitorTypeCheck implements VisitorAST {
                 throw new IllegalArgumentException("Operation Type of " +
                         "Binop node is invalid");
         }
+        return null;
     }
 
     @Override
-    public void visit(ExprBoolLiteral node) {
+    public Void visit(ExprBoolLiteral node) {
         node.setTypeCheckType(new TypeTTauBool());
+        return null;
     }
 
     @Override
-    public void visit(ExprFunctionCall node) {
+    public Void visit(ExprFunctionCall node) {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -200,10 +201,11 @@ public class VisitorTypeCheck implements VisitorAST {
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(ExprId node) {
+    public Void visit(ExprId node) {
         String name = node.getName();
         try {
             TypeSymTable t = symTable.lookup(name);
@@ -217,10 +219,11 @@ public class VisitorTypeCheck implements VisitorAST {
         } catch (NotFoundException e){
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(ExprIndex node) {
+    public Void visit(ExprIndex node) {
         Expr array = node.getArray();
         Expr idx = node.getIndex();
         TypeT at = array.getTypeCheckType();
@@ -235,24 +238,27 @@ public class VisitorTypeCheck implements VisitorAST {
                     idx.getLocation());
         // else
         node.setTypeCheckType(((TypeTTauArray) at).getTypeTTau());
+        return null;
     }
 
     @Override
-    public void visit(ExprIntLiteral node) {
+    public Void visit(ExprIntLiteral node) {
         node.setTypeCheckType(new TypeTTauInt());
+        return null;
     }
 
     @Override
-    public void visit(ExprLength node) {
+    public Void visit(ExprLength node) {
         if (!(node.getArray().getTypeCheckType() instanceof TypeTTauArray))
             throw new SemanticError("Cannot apply length on non-array " +
                     "type", node.getLocation());
         // else
         node.setTypeCheckType(new TypeTTauInt());
+        return null;
     }
 
     @Override
-    public void visit(ExprArrayLiteral node) {
+    public Void visit(ExprArrayLiteral node) {
         List<Expr> contents = node.getContents();
         int length = node.getLength();
         if (length == 0) {
@@ -275,10 +281,11 @@ public class VisitorTypeCheck implements VisitorAST {
             // all taus are equal
             node.setTypeCheckType(new TypeTTauArray(initTau));
         }
+        return null;
     }
 
     @Override
-    public void visit(ExprUnop node) {
+    public Void visit(ExprUnop node) {
         TypeT et = node.getExpr().getTypeCheckType();
         switch (node.getOp()) {
             case NOT:
@@ -296,19 +303,26 @@ public class VisitorTypeCheck implements VisitorAST {
                 throw new SemanticTypeCheckError(new TypeTTauBool(), et,
                         node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(AssignableIndex node) { }
+    public Void visit(AssignableIndex node) {
+        return null;
+    }
 
     @Override
-    public void visit(AssignableUnderscore node) { }
+    public Void visit(AssignableUnderscore node) {
+        return null;
+    }
 
     @Override
-    public void visit(AssignableExpr node) { }
+    public Void visit(AssignableExpr node) {
+        return null;
+    }
 
     @Override
-    public void visit(StmtReturn node) {
+    public Void visit(StmtReturn node) {
         try {
             TypeSymTableReturn t = (TypeSymTableReturn) symTable.lookup(RETURN_KEY);
             TypeT expectedReturnType = t.getReturnType();
@@ -355,10 +369,11 @@ public class VisitorTypeCheck implements VisitorAST {
         } catch (NotFoundException | ClassCastException e) {
             // Illegal state
         }
+        return null;
     }
 
     @Override
-    public void visit(StmtAssign node) {
+    public Void visit(StmtAssign node) {
         Assignable lhs = node.getLhs();
         Expr rhs = node.getRhs();
         TypeT givenType = rhs.getTypeCheckType();
@@ -410,10 +425,11 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
         node.setTypeCheckType(TypeR.Unit);
+        return null;
     }
 
     @Override
-    public void visit(StmtDecl node) {
+    public Void visit(StmtDecl node) {
         TypeDeclVar d = node.getDecl();
         TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
         for (String did : d.varsOf()) {
@@ -426,6 +442,7 @@ public class VisitorTypeCheck implements VisitorAST {
             }
         }
         node.setTypeCheckType(TypeR.Unit);
+        return null;
     }
 
     /**
@@ -436,7 +453,7 @@ public class VisitorTypeCheck implements VisitorAST {
      * @param decl declaration.
      * @param givenType type of the corresponding RHS function call.
      */
-    private void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
+    private Void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
         if (!givenType.subtypeOf(varType)) {
@@ -458,10 +475,11 @@ public class VisitorTypeCheck implements VisitorAST {
                 // put in the symTable
             }
         }
+        return null;
     }
 
     @Override
-    public void visit(StmtDeclAssign node) {
+    public Void visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
         Expr rhs = node.getRhs();
 
@@ -499,10 +517,11 @@ public class VisitorTypeCheck implements VisitorAST {
             checkDeclaration(node, decls.get(0), rhs.getTypeCheckType());
         }
         node.setTypeCheckType(TypeR.Unit);
+        return null;
     }
 
     @Override
-    public void visit(StmtProcedureCall node) {
+    public Void visit(StmtProcedureCall node) {
         try {
             TypeSymTable prType = symTable.lookup(node.getName());
             if (prType instanceof TypeSymTableFunc) {
@@ -563,11 +582,11 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new SemanticError(node.getName()
                     + " is not a procedure", node.getLocation());
         }
-
+        return null;
     }
 
     @Override
-    public void visit(StmtIf node) {
+    public Void visit(StmtIf node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
@@ -578,10 +597,11 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new SemanticError("Guard of if statement must be a " +
                     "bool", node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(StmtIfElse node) {
+    public Void visit(StmtIfElse node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
@@ -601,10 +621,11 @@ public class VisitorTypeCheck implements VisitorAST {
                     "Guard of if-else statement must be a bool",
                     node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(StmtWhile node) {
+    public Void visit(StmtWhile node) {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
@@ -616,10 +637,11 @@ public class VisitorTypeCheck implements VisitorAST {
                     "Guard of while statement must be a bool",
                     node.getLocation());
         }
+        return null;
     }
 
     @Override
-    public void visit(StmtBlock node) {
+    public Void visit(StmtBlock node) {
         symTable.enterScope();
         List<Stmt> statements = node.getStatments();
         for (Stmt s : statements) {
@@ -643,10 +665,11 @@ public class VisitorTypeCheck implements VisitorAST {
             node.setTypeCheckType(lst);
         }
         symTable.exitScope();
+        return null;
     }
 
     @Override
-    public void visit(FileProgram node) {
+    public Void visit(FileProgram node) {
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
         for (UseInterface import_node : imports) {
@@ -677,10 +700,11 @@ public class VisitorTypeCheck implements VisitorAST {
                 symTable.add(signature.part1(), func_sig);
             }
         }
+        return null;
     }
 
     @Override
-    public void visit(FileInterface node) {
+    public Void visit(FileInterface node) {
         //note: visitor will only visit program file or interface file
         List<FuncDecl> decls = node.getFuncDecls();
         for (FuncDecl decl : decls) {
@@ -703,10 +727,11 @@ public class VisitorTypeCheck implements VisitorAST {
                 symTable.add(signature.part1(), signature.part2());
             }
         }
+        return null;
     }
 
     @Override
-    public void visit(FuncDefn node) {
+    public Void visit(FuncDefn node) {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
         symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
@@ -727,13 +752,16 @@ public class VisitorTypeCheck implements VisitorAST {
             throw new SemanticError("Missing return",
                     body.getLocation());
         symTable.exitScope();
+        return null;
     }
 
     @Override
-    public void visit(FuncDecl node) { }
+    public Void visit(FuncDecl node) {
+        return null;
+    }
 
     @Override
-    public void visit(UseInterface node) {
+    public Void visit(UseInterface node) {
         String filename = node.getName() + ".ixi";
         String inputFilePath = Paths.get(libpath, filename).toString();
         try (FileReader fileReader = new FileReader(inputFilePath)) {
@@ -757,6 +785,6 @@ public class VisitorTypeCheck implements VisitorAST {
                     "Could not find interface "+node.getName(),
                     node.getLocation());
         }
-
+        return null;
     }
 }

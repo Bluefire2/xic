@@ -1,33 +1,33 @@
 package ast;
 
-interface VisitorAST {
-    void visit(ExprBinop node);
-    void visit(ExprBoolLiteral node);
-    void visit(ExprFunctionCall node);
-    void visit(ExprId node);
-    void visit(ExprIndex node);
-    void visit(ExprIntLiteral node);
-    void visit(ExprLength node);
-    void visit(ExprArrayLiteral node);
-    void visit(ExprUnop node);
+interface VisitorAST<T> {
+    T visit(ExprBinop node);
+    T visit(ExprBoolLiteral node);
+    T visit(ExprFunctionCall node);
+    T visit(ExprId node);
+    T visit(ExprIndex node);
+    T visit(ExprIntLiteral node);
+    T visit(ExprLength node);
+    T visit(ExprArrayLiteral node);
+    T visit(ExprUnop node);
 
-    void visit(AssignableIndex node);
-    void visit(AssignableUnderscore node);
-    void visit(AssignableExpr node);
+    T visit(AssignableIndex node);
+    T visit(AssignableUnderscore node);
+    T visit(AssignableExpr node);
 
-    void visit(StmtReturn node);
-    void visit(StmtAssign node);
-    void visit(StmtDecl node);
-    void visit(StmtDeclAssign node);
-    void visit(StmtProcedureCall node);
-    void visit(StmtIf node);
-    void visit(StmtIfElse node);
-    void visit(StmtWhile node);
-    void visit(StmtBlock node);
+    T visit(StmtReturn node);
+    T visit(StmtAssign node);
+    T visit(StmtDecl node);
+    T visit(StmtDeclAssign node);
+    T visit(StmtProcedureCall node);
+    T visit(StmtIf node);
+    T visit(StmtIfElse node);
+    T visit(StmtWhile node);
+    T visit(StmtBlock node);
 
-    void visit(FileProgram node);
-    void visit(FileInterface node);
-    void visit(FuncDefn node);
-    void visit(FuncDecl node);
-    void visit(UseInterface node);
+    T visit(FileProgram node);
+    T visit(FileInterface node);
+    T visit(FuncDefn node);
+    T visit(FuncDecl node);
+    T visit(UseInterface node);
 }
