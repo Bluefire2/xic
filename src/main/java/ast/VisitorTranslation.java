@@ -3,8 +3,12 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
-    int labelcounter;
-    IRTemp RV;
+    private int labelcounter;
+    private IRTemp RV;
+
+    private String newLabel() {
+        return String.format("l%d", (labelcounter++));
+    }
 
     public VisitorTranslation() {
         this.labelcounter = 0;
@@ -139,8 +143,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRNode visit(StmtIf node) {
         IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
-        IRLabel lt = new IRLabel(""); //TODO: Figure out how to name labels
-        IRLabel lf = new IRLabel("");
+        IRLabel lt = new IRLabel(newLabel());
+        IRLabel lf = new IRLabel(newLabel());
         IRCJump jmp = new IRCJump(condition, lt.name(), lf.name());
         return new IRSeq(jmp, lt, stmt, lf);
     }
@@ -149,9 +153,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRNode visit(StmtIfElse node) {
         IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
-        IRLabel lt = new IRLabel(""); //TODO: Figure out how to name labels
-        IRLabel lf = new IRLabel("");
-        IRLabel lfin = new IRLabel("");
+        IRLabel lt = new IRLabel(newLabel());
+        IRLabel lf = new IRLabel(newLabel());
+        IRLabel lfin = new IRLabel(newLabel());
         IRCJump cjmp = new IRCJump(condition, lt.name(), lf.name());
         IRJump jmp = new IRJump(new IRName(lfin.name()));
         return new IRSeq(cjmp, lt, stmt, jmp, lf, lfin);
@@ -161,9 +165,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRNode visit(StmtWhile node) {
         IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
-        IRLabel lh = new IRLabel(""); //TODO: Figure out how to name labels
-        IRLabel lt = new IRLabel("");
-        IRLabel le = new IRLabel("");
+        IRLabel lh = new IRLabel(newLabel());
+        IRLabel lt = new IRLabel(newLabel());
+        IRLabel le = new IRLabel(newLabel());
         IRCJump cjmp = new IRCJump(condition, le.name(), lt.name());
         IRJump jmp = new IRJump(new IRName(lh.name()));
         return new IRSeq(lh, cjmp, lt, stmt, jmp, le);
