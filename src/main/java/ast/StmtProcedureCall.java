@@ -2,12 +2,15 @@ package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import java_cup.runtime.ComplexSymbolFactory;
+import symboltable.TypeSymTableFunc;
 
 import java.util.List;
 
 public class StmtProcedureCall extends Stmt {
     private String name;
     private List<Expr> args;
+    private TypeSymTableFunc signature;
+
 
     public StmtProcedureCall(String name, List<Expr> args,
                              ComplexSymbolFactory.Location location) {
@@ -38,5 +41,13 @@ public class StmtProcedureCall extends Stmt {
             e.accept(visitor);
         }
         visitor.visit(this);
+    }
+
+    public TypeSymTableFunc getSignature() {
+        return signature;
+    }
+
+    public void setSignature(TypeSymTableFunc signature) {
+        this.signature = signature;
     }
 }

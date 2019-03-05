@@ -149,8 +149,10 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                         node.getLocation()
                 );
             // else
-            TypeT inTypes = ((TypeSymTableFunc) t).getInput();
-            TypeT outTypes = ((TypeSymTableFunc) t).getOutput();
+            TypeSymTableFunc funcSig = (TypeSymTableFunc) t;
+            node.setSignature(funcSig);
+            TypeT inTypes = funcSig.getInput();
+            TypeT outTypes = funcSig.getOutput();
             if (outTypes instanceof TypeTUnit) {
                 throw new SemanticError(
                         String.format("%s is not a function", name),
@@ -526,6 +528,7 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
             TypeSymTable prType = symTable.lookup(node.getName());
             if (prType instanceof TypeSymTableFunc) {
                 TypeSymTableFunc prFunc = (TypeSymTableFunc) prType;
+                node.setSignature(prFunc);
                 TypeT prInputs = prFunc.getInput();
                 TypeT prOutput = prFunc.getOutput();
                 List<Expr> args = node.getArgs();
