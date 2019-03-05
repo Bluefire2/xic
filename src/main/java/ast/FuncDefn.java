@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import polyglot.util.Pair;
 import symboltable.TypeSymTable;
@@ -97,9 +98,14 @@ public class FuncDefn extends ASTNode implements Printable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorTypeCheck visitor) {
         //cannot visit body here because of scoping
         visitor.visit(this);
+    }
+
+    @Override
+    public IRNode accept(VisitorTranslation visitor) {
+        return visitor.visit(this);
     }
 
     public Pair<String, TypeSymTable> getSignature() {
