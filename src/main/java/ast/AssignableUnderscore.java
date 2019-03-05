@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
 public class AssignableUnderscore extends Assignable {
@@ -15,5 +16,10 @@ public class AssignableUnderscore extends Assignable {
     }
 
     @Override
-    public void accept(VisitorAST visitor) { }
+    public void accept(VisitorTypeCheck visitor) { }
+
+    @Override
+    public IRNode accept(VisitorTranslation visitor) {
+        return visitor.visit(this);
+    }
 }
