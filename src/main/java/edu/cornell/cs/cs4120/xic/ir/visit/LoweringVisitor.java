@@ -8,6 +8,11 @@ public class LoweringVisitor extends IRVisitor {
         super(inf);
     }
 
+    private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
+        //TODO
+        return false;
+    }
+
     public IRNode visit(IRBinOp irnode) {
         //TODO
         return irnode;
@@ -30,20 +35,26 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode visit(IRConst irnode) {
-        //TODO
+        //Constants are already canonical
         return irnode;
     }
 
     public IRNode visit(IRESeq irnode) {
-        irnode.visitChildren(this);
-        IRStmt stmt = irnode.stmt();
-        IRExp exp = new IRExp(irnode.expr());
-        return new IRSeq(stmt, exp);
+        IRNode visited = irnode.visitChildren(this);
+        if (visited instanceof IRESeq) {
+            IRESeq newEseq = (IRESeq) visited;
+            IRStmt stmt = newEseq.stmt();
+            IRExp exp = new IRExp(newEseq.expr());
+            return new IRSeq(stmt, exp);
+        }
+        else {
+            return visited;
+        }
     }
 
     public IRNode visit(IRExp irnode) {
-        //TODO
-        return irnode;
+        IRNode visited = irnode.visitChildren(this);
+        return visited;
     }
 
     public IRNode visit(IRFuncDecl irnode) {
@@ -57,13 +68,12 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode visit(IRLabel irnode) {
-        //TODO
         return irnode;
     }
 
     public IRNode visit(IRMem irnode) {
-        //TODO
-        return irnode;
+        IRNode visited = irnode.visitChildren(this);
+        return visited;
     }
 
     public IRNode visit(IRMove irnode) {
@@ -72,7 +82,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode visit(IRName irnode) {
-        //TODO
+        //Names are already canonical
         return irnode;
     }
 
@@ -87,7 +97,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode visit(IRTemp irnode) {
-        //TODO
+        //Temps are already canonical
         return irnode;
     }
 
