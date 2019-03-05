@@ -4,9 +4,11 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
     int labelcounter;
+    IRTemp RV;
 
     public VisitorTranslation() {
         this.labelcounter = 0;
+        RV = new IRTemp("RV");
     }
 
     @Override
@@ -101,7 +103,16 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtReturn node) {
-        return null;
+        if (node.getReturnVals().isEmpty()) {
+            return new IRReturn();
+        } else if (node.getReturnVals().size() == 1) {
+            IRExpr returnValue = (IRExpr) node.getReturnVals().get(0).accept(this);
+            IRMove mov = new IRMove(RV, returnValue);
+            return new IRSeq(mov, new IRReturn());
+        } else {
+            //TODO: handle multiple return values
+            return null;
+        }
     }
 
     @Override
