@@ -35,6 +35,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode visit(IRESeq irnode) {
+        irnode.visitChildren(this);
         IRStmt stmt = irnode.stmt();
         IRExp exp = new IRExp(irnode.expr());
         return new IRSeq(stmt, exp);
