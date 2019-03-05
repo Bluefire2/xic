@@ -136,7 +136,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtIfElse node) {
-        return null;
+        IRExpr condition = (IRExpr) node.getGuard().accept(this);
+        IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
+        IRLabel lt = new IRLabel(""); //TODO: Figure out how to name labels
+        IRLabel lf = new IRLabel("");
+        IRLabel lfin = new IRLabel("");
+        IRCJump cjmp = new IRCJump(condition, lt.name(), lf.name());
+        IRJump jmp = new IRJump(new IRName(lfin.name()));
+        return new IRSeq(cjmp, lt, stmt, jmp, lf, lfin);
     }
 
     @Override
