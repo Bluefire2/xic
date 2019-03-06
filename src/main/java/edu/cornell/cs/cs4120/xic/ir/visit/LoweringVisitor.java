@@ -6,6 +6,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
 
@@ -56,14 +57,34 @@ public class LoweringVisitor extends IRVisitor {
         }
     }
 
-    private Collection<String> getTemps(IRExpr e) {
-        //TODO
-        return null;
+    private ArrayList<String> getTemps(List<IRNode> l) {
+        ArrayList<String> temps = new ArrayList<String>();
+        for (IRNode n : l) {
+            if (n instanceof IRTemp) {
+                temps.add(((IRTemp) n).name());
+            }
+        }
+        return temps;
     }
 
     private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
-        //TODO
-        return false;
+        List<IRNode> e1Children = e1.aggregateChildren(new ListChildrenVisitor());
+        e1Children.add(e1);
+        List<IRNode> e2Children = e1.aggregateChildren(new ListChildrenVisitor());
+        e1Children.add(e2);
+        //Check MEM
+        for (IRNode n : e2Children) {
+            if (n instanceof IRMem) return false;
+        }
+        //Check TEMPs
+        ArrayList<String> temps = new ArrayList<String>();
+        temps.addAll(getTemps(e1Children));
+        temps.addAll(getTemps(e2Children));
+        List<String> uniqList = temps.stream()
+                .distinct()
+                .collect(Collectors.toList());
+        if(uniqList.size() < temps.size()) return false;
+        return true;
     }
 
     @Override
