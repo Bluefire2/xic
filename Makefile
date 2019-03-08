@@ -7,7 +7,8 @@ SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-t
 PA1_OTHER_TEST_DIRS=xth/tests/pa1
 PA2_OTHER_TEST_DIRS=xth/tests/pa2
 PA3_OTHER_TEST_DIRS=xth/tests/pa3 tests/pa3-staff-examples-tests
-XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS)
+PA4_OTHER_TEST_DIRS=xth/tests/pa4
+XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS) $(PA4_OTHER_TEST_DIRS)
 
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
 
