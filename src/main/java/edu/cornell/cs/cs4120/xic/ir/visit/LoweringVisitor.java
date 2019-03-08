@@ -201,7 +201,7 @@ public class LoweringVisitor extends IRVisitor {
                 ArrayList<IRStmt> stmtlist = new ArrayList<>();
                 stmtlist.add(stmt);
                 stmtlist.add((IRStmt) replaceChildExpr(newParent, curr, expr));
-                newParent = new IRSeq(true, stmts);
+                newParent = new IRSeq(true, stmtlist);
             } else if (parent instanceof IRFuncDecl) {
                 //TODO: illegal?
             }
