@@ -22,6 +22,9 @@ public class TypeTTauArray extends TypeTTau {
 
     @Override
     public String toString() {
+        if (typeTTau == null) {
+            return "'a[]";// alpha list if the type is unknown....
+        }
         return typeTTau.toString() + "[]";
     }
 

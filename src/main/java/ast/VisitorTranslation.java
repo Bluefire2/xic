@@ -1,6 +1,9 @@
 package ast;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import edu.cornell.cs.cs4120.xic.ir.IRMem.MemType;
+import symboltable.TypeSymTableFunc;
+import java.util.ArrayList;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
     private int labelcounter;
@@ -13,6 +16,44 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public VisitorTranslation() {
         this.labelcounter = 0;
         RV = new IRTemp("RV");
+    }
+
+    public String returnTypeName(TypeT type){
+        if (type instanceof TypeTList){
+            TypeTList tuple = (TypeTList) type;
+            ArrayList<String> types = new ArrayList();
+            tuple.getTTauList().forEach((t) -> types.add(returnTypeName(t)));
+            return "t" + tuple.getLength() + String.join("",types);
+        } else if (type instanceof TypeTUnit) { //TypeTUnit
+            return "p";
+        } else {
+            return typeName(type);
+        }
+    }
+
+    public String typeName(TypeT type){
+        if (type instanceof TypeTList){
+            TypeTList tuple = (TypeTList) type;
+            ArrayList<String> types = new ArrayList();
+            tuple.getTTauList().forEach((t) -> types.add(typeName(t)));
+            return String.join("",types);
+        } else if (type instanceof TypeTTauArray) {
+            TypeTTauArray a = (TypeTTauArray) type;
+            return "a"+typeName(a.getTypeTTau());
+        } else if (type instanceof TypeTTauInt) {
+            return "i";
+        } else if (type instanceof TypeTTauBool) {
+            return "b";
+        } else { //TypeTUnit
+            return "";
+        }
+    }
+
+    public String functionName(String name, TypeSymTableFunc signature){
+        String newName = name.replaceAll("_","__");
+        String returnType = returnTypeName(signature.getOutput());
+        String inputType = typeName(signature.getInput());
+        return "_I" + newName + "_" + returnType + inputType;
     }
 
     @Override
@@ -48,17 +89,31 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprFunctionCall node) {
-        return null;
+        String funcName = functionName(node.getName(), node.getSignature());
+        ArrayList<IRExpr> args = new ArrayList();
+        for (Expr e : node.getArgs()){
+            args.add((IRExpr) e.accept(this));
+        }
+        return new IRCall(new IRName(funcName), args);
     }
 
     @Override
     public IRNode visit(ExprId node) {
-        return null;
+        return new IRTemp(node.getName());
     }
 
     @Override
     public IRNode visit(ExprIndex node) {
-        return null;
+        IRExpr idx = new IRBinOp(
+                OpType.MUL,
+                new IRConst(8),
+                (IRExpr) node.getIndex().accept(this)
+        );
+        return new IRMem(new IRBinOp(
+                OpType.ADD,
+                (IRExpr) node.getArray().accept(this),
+                idx
+        ));
     }
 
     @Override
@@ -68,12 +123,16 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprLength node) {
-        return null;
+        return new IRMem(new IRBinOp(
+                OpType.ADD,
+                (IRExpr) node.getArray().accept(this),
+                new IRConst(-8)
+        ));
     }
 
     @Override
     public IRNode visit(ExprArrayLiteral node) {
-        return null;
+        return null;//TODO
     }
 
     @Override
@@ -81,8 +140,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRExpr e = (IRExpr) node.getExpr().accept(this);
         Unop op = node.getOp();
         switch (op) {
-            //NOT(e)  -> AND(False, e)
-            case NOT: return new IRBinOp(OpType.AND, new IRConst(0), e);
+            //NOT(e)  -> XOR(1,e)
+            case NOT: return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
             case UMINUS: return new IRBinOp(OpType.SUB, new IRConst(0), e);
             default: throw new IllegalArgumentException("Operation Type of " +
@@ -92,17 +151,17 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(AssignableIndex node) {
-        return null;
+        return null;//TODO
     }
 
     @Override
     public IRNode visit(AssignableUnderscore node) {
-        return null;
+        return null;//TODO
     }
 
     @Override
     public IRNode visit(AssignableExpr node) {
-        return null;
+        return null;//TODO
     }
 
     @Override
