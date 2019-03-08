@@ -11,6 +11,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 public class IRMove extends IRStmt {
     private IRExpr target;
     private IRExpr src;
+    public boolean istrash;
 
     /**
      *
@@ -20,6 +21,13 @@ public class IRMove extends IRStmt {
     public IRMove(IRExpr target, IRExpr src) {
         this.target = target;
         this.src = src;
+        this.istrash = false;
+    }
+
+    public IRMove(IRExpr target, IRExpr src, boolean trash) {
+        this.target = target;
+        this.src = src;
+        this.istrash = trash;
     }
 
     public IRExpr target() {
@@ -28,6 +36,10 @@ public class IRMove extends IRStmt {
 
     public IRExpr source() {
         return src;
+    }
+
+    public boolean isIstrash() {
+        return istrash;
     }
 
     @Override

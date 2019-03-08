@@ -153,12 +153,23 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(AssignableIndex node) {
-        return null;//TODO
+        //same as ExprIndex without the MEM because we just want the location
+        ExprIndex idx_expr = (ExprIndex) node.getIndex();
+        IRExpr idx = new IRBinOp(
+                OpType.MUL,
+                new IRConst(8),
+                (IRExpr) idx_expr.getIndex().accept(this)
+        );
+        return new IRBinOp(
+                OpType.ADD,
+                (IRExpr) idx_expr.getArray().accept(this),
+                idx
+        );
     }
 
     @Override
     public IRNode visit(AssignableUnderscore node) {
-        return null;//TODO
+        return TEMP
     }
 
     @Override
