@@ -1,11 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
+import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
@@ -88,13 +89,25 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     @Override
+    public IRNode override(IRNode parent, IRNode n) {
+        if (n instanceof IRESeq) {
+            if (((IRESeq) n).isReplaceParent()) return n;
+        }
+        else if (n instanceof IRSeq) {
+            if (((IRSeq) n).isReplaceParent()) return n;
+        }
+        return null;
+    }
+
+
+    @Override
     public IRNode leave(IRNode parent, IRNode n, IRNode n_, IRVisitor v_) {
         if (n_ instanceof IRBinOp) return lower((IRBinOp) n_);
         if (n_ instanceof IRCall) return lower((IRCall) n_);
         if (n_ instanceof IRCJump) return lower((IRCJump) n_);
         if (n_ instanceof IRCompUnit) return lower((IRCompUnit) n_);
         if (n_ instanceof IRConst) return lower((IRConst) n_);
-        if (n_ instanceof IRESeq) return lower((IRESeq) n_);
+        if (n_ instanceof IRESeq) return lower(parent, (IRESeq) n_);
         if (n_ instanceof IRExp) return lower((IRExp) n_);
         if (n_ instanceof IRFuncDecl) return lower((IRFuncDecl) n_);
         if (n_ instanceof IRJump) return lower((IRJump) n_);
@@ -106,6 +119,96 @@ public class LoweringVisitor extends IRVisitor {
         if (n_ instanceof IRSeq) return lower((IRSeq) n_);
         if (n_ instanceof IRTemp) return lower((IRTemp) n_);
         else return null; //Illegal state
+    }
+
+    public  IRNode replaceChildExpr(IRNode parent, IRExpr child, IRExpr newChild) {
+        if (parent instanceof IRBinOp) {
+            IRBinOp p = (IRBinOp) parent;
+            if (child.equals(p.left())) {
+                return new IRBinOp(p.opType(), newChild, p.right());
+            }
+            else if (child.equals(p.right())) {
+                return new IRBinOp(p.opType(), p.left(), (IRExpr) newChild);
+            }
+        }
+        else if (parent instanceof IRCall) {
+            IRCall p = (IRCall) parent;
+            if (child.equals(p.target())) return new IRCall(newChild, p.args());
+            else {
+                List<IRExpr> args = p.args();
+                ListIterator<IRExpr> iterator = args.listIterator();
+                while (iterator.hasNext()) {
+                    IRExpr next = iterator.next();
+                    if (next.equals(child)) {
+                        iterator.set((IRExpr) newChild);
+                    }
+                }
+                return new IRCall(p.target(), args);
+            }
+        }
+        else if (parent instanceof IRCJump) {
+            IRCJump p = (IRCJump) parent;
+            if (child.equals(p.cond())) return new IRCJump(newChild, p.trueLabel(), p.falseLabel());
+        }
+        else if (parent instanceof IRESeq) {
+            IRESeq p = (IRESeq) parent;
+            if (child.equals(p.stmt())) return new IRESeq((IRStmt) newChild, p.expr());
+            else if (child.equals(p.expr())) return new IRESeq(p.stmt(), (IRExpr) newChild);
+        }
+        else if (parent instanceof IRExp) {
+            IRExp p = (IRExp) parent;
+            if (child.equals(p.expr())) return new IRExp((IRExpr) newChild);
+        }
+        else if (parent instanceof IRJump) {
+            IRJump p = (IRJump) parent;
+            if (child.equals(p.target())) return new IRMem((IRExpr) newChild);
+        }
+        else if (parent instanceof IRMem) {
+            IRMem p = (IRMem) parent;
+            if (child.equals(p.expr())) return new IRMem((IRExpr) newChild, p.memType());
+        }
+        else if (parent instanceof IRMove) {
+            IRMove p = (IRMove) parent;
+            if (child.equals(p.target())) {
+                return new IRMove((IRExpr) newChild, p.source());
+            }
+            else if (child.equals(p.source())) {
+                return new IRMove(p.target(), (IRExpr) newChild);
+            }
+        }
+        else if (parent instanceof IRReturn) {
+            IRReturn p = (IRReturn) parent;
+            List<IRExpr> exprs = p.rets();
+            ListIterator<IRExpr> iterator = exprs.listIterator();
+            while (iterator.hasNext()) {
+                IRExpr next = iterator.next();
+                if (next.equals(child)) {
+                    iterator.set((IRExpr) newChild);
+                }
+            }
+            return new IRReturn(exprs);
+        }
+        return null; //TODO: resolve?
+    }
+
+    public IRNode rotate(IRNode parent, IRNode child, IRStmt stmt, IRExpr expr) {
+        IRNode newParent;
+        IRExpr curr = (IRExpr) child;
+        if (parent instanceof IRExpr) {
+            IRESeq ret = new IRESeq(stmt, (IRExpr) replaceChildExpr(parent, curr, expr));
+            ret.setReplaceParent(true);
+            return ret;
+        }
+        else if (parent instanceof IRStmt) {
+            IRSeq ret = new IRSeq(stmt, (IRStmt) replaceChildExpr(parent, curr, expr));
+            ret.setReplaceParent(true);
+            return ret;
+        }
+        else if (parent instanceof IRFuncDecl) {
+            //TODO: illegal?
+            return null;
+        }
+        return null;
     }
 
     public IRNode lower(IRBinOp irnode) {
@@ -134,23 +237,15 @@ public class LoweringVisitor extends IRVisitor {
         return irnode;
     }
 
-    public IRNode lower(IRESeq irnode) {
-        IRNode visited = irnode.visitChildren(this);
-        addNodeToBlock(visited);
-        if (visited instanceof IRESeq) {
-            IRESeq newEseq = (IRESeq) visited;
-            IRStmt stmt = newEseq.stmt();
-            IRExp exp = new IRExp(newEseq.expr());
-            return new IRSeq(stmt, exp);
-        }
-        else {
-            return visited;
-        }
+    public IRNode lower(IRNode parent, IRESeq irnode) {
+        IRESeq visited = (IRESeq) irnode.visitChildren(this);
+        IRStmt stmt = visited.stmt();
+        return rotate(parent, irnode, stmt, visited.expr());
     }
 
     public IRNode lower(IRExp irnode) {
-        IRNode visited = irnode.visitChildren(this);
-        return visited;
+        //TODO
+        return irnode;
     }
 
     public IRNode lower(IRFuncDecl irnode) {
@@ -164,16 +259,30 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRLabel irnode) {
+        //Labels are already canonical
         return irnode;
     }
 
     public IRNode lower(IRMem irnode) {
-        IRNode visited = irnode.visitChildren(this);
-        return visited;
+        return irnode.visitChildren(this);
     }
 
     public IRNode lower(IRMove irnode) {
-        //TODO
+        /*if(ifExprsCommute(irnode.source(), irnode.target())) {
+            return irnode.visitChildren(this);
+        }
+        else {
+            IRNode n1 = irnode.source().visitChildren(this);
+            if (n1 instanceof IRESeq) {
+
+            }
+            IRTemp tmp = new IRTemp("tmp");
+            IRMove mv1 = new IRMove(tmp, e1);
+            IRNode n2 = irnode.target().visitChildren(this);
+            IRMem mem = new IRMem(tmp);
+            IRMove mv2 = new IRMove(mem, e2);
+            return new IRSeq(mv1, mv2);
+        }*/
         return irnode;
     }
 
@@ -183,13 +292,11 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRReturn irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode lower(IRSeq irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode lower(IRTemp irnode) {

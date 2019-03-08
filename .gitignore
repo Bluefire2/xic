@@ -109,3 +109,4 @@ xic
 *.lexed
 *.parsed
 *.typed
+!/src/main/java/edu/cornell/cs/cs4120/xic/ir/

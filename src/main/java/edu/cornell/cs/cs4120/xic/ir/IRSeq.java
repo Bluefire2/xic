@@ -15,6 +15,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
  */
 public class IRSeq extends IRStmt {
     private List<IRStmt> stmts;
+    private boolean replaceParent;
 
     /**
      * @param stmts the statements
@@ -30,6 +31,7 @@ public class IRSeq extends IRStmt {
      */
     public IRSeq(List<IRStmt> stmts) {
         this.stmts = stmts;
+        this.replaceParent = false;
     }
 
     public List<IRStmt> stmts() {
@@ -83,5 +85,13 @@ public class IRSeq extends IRStmt {
         for (IRStmt stmt : stmts)
             stmt.printSExp(p);
         p.endList();
+    }
+
+    public boolean isReplaceParent() {
+        return replaceParent;
+    }
+
+    public void setReplaceParent(boolean replaceParent) {
+        this.replaceParent = replaceParent;
     }
 }
