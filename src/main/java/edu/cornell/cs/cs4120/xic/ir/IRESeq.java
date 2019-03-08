@@ -12,6 +12,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 public class IRESeq extends IRExpr_c {
     private IRStmt stmt;
     private IRExpr expr;
+    private boolean replaceParent;
 
     /**
      *
@@ -21,6 +22,7 @@ public class IRESeq extends IRExpr_c {
     public IRESeq(IRStmt stmt, IRExpr expr) {
         this.stmt = stmt;
         this.expr = expr;
+        this.replaceParent = false;
     }
 
     public IRStmt stmt() {
@@ -67,5 +69,13 @@ public class IRESeq extends IRExpr_c {
         stmt.printSExp(p);
         expr.printSExp(p);
         p.endList();
+    }
+
+    public boolean isReplaceParent() {
+        return replaceParent;
+    }
+
+    public void setReplaceParent(boolean replaceParent) {
+        this.replaceParent = replaceParent;
     }
 }
