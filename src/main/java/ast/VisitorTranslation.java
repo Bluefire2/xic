@@ -44,8 +44,10 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             return "i";
         } else if (type instanceof TypeTTauBool) {
             return "b";
-        } else { //TypeTUnit
+        } else if  (type instanceof TypeTUnit){
             return "";
+        } else {
+            throw new IllegalArgumentException("invalid type");
         }
     }
 
