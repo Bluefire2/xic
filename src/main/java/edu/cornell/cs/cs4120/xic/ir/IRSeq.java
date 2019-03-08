@@ -34,7 +34,7 @@ public class IRSeq extends IRStmt {
         this.replaceParent = false;
     }
 
-    public IRSeq( boolean replaceParent, List<IRStmt> stmts) {
+    public IRSeq(List<IRStmt> stmts, boolean replaceParent) {
         this.stmts = stmts;
         this.replaceParent = replaceParent;
     }
