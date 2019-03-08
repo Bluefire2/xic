@@ -1,0 +1,62 @@
+# xth test script
+#
+# This file is a test script for xth (xic Test Harness).  It
+# conforms to the following grammar:
+#
+#   ScriptFile      ::= Commands+
+#   Command         ::= build
+#                     | CompilerTest
+#   CompilerTest    ::= TestKind (\(TestName\))? ([TestPath])? ("CmdLineArgs")?
+#                           { (FileTest;)* }
+#   TestKind        ::= xic
+#   TestName        ::= LitString
+#   FileTest        ::= Filenames Description? FailureSet?
+#   Filenames       ::= Filename+
+#   Description     ::= LitString
+#   FailureSet      ::= Failure (, Failure)*
+#   Failure         ::= \( ErrorKind \)
+#                     | \( ErrorKind, LitString \)
+#
+#   TestPath        :   the path to the test files, enclosed in quotes,
+#                       relative to the path given in xth's -testpath flag.
+#   CmdLineArgs     :   command-line arguments for xic
+#   Filename        :   the name of a file, interpreted from TestPath.
+#   LitString       :   a literal string, enclosed in quotes.
+#   ErrorKind       :   one of, or a unique prefix of one of the following
+#                       strings: "Lexical Error", "Syntax Error", or
+#                       "Semantic Error".
+#
+# xth runs the commands in order of appearance.
+
+xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
+  basic-expr-error-test-arracc06.xi;
+  basic-expr-error-test-call07.xi;
+  basic-expr-error-test-call08.xi;
+  basic-expr-error-test-lit03.xi;
+  basic-expr-error-test-lit05.xi;
+  basic-expr-error-test-op13.xi;
+  basic-expr-error-test-op14.xi;
+  basic-expr-error-test-op19.xi;
+  basic-expr-error-test-op33.xi;
+  basic-expr-error-test-op34.xi;
+  basic-expr-error-test-op39.xi;
+  basic-expr-error-test-op45.xi;
+  basic-expr-error-test-op46.xi;
+  basic-stmt-error-test-assign02.xi;
+  basic-stmt-error-test-assign25.xi;
+  basic-stmt-error-test-call08.xi;
+  basic-stmt-error-test-return06.xi;
+  basic-stmt-error-test-return09.xi;
+  basic-stmt-error-test-var08.xi;
+  basic-test-length02.xi;
+  basic-test-lit06.xi;
+  basic-test-op09.xi;
+  basic-test-op10.xi;
+  basic-test-op11.xi;
+  basic-test-op12.xi;
+  basic-test-var02.xi;
+  basic-test-var05.xi;
+  use-test-use02.xi;
+  use-test-use04.xi;
+  use-test-use05.xi;
+}

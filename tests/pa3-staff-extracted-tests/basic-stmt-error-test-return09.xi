@@ -1,0 +1,4 @@
+f(): bool {
+  return ""
+}
+
