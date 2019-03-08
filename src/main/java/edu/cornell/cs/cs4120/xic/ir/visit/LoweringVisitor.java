@@ -192,15 +192,15 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode rotate(IRNode parent, IRNode child, List<IRStmt> stmts, IRExpr expr) {
-        IRNode newParent = null;
+        IRNode newParent = parent;
         IRExpr curr = (IRExpr) child;
         for (IRStmt stmt : stmts) {
-            if (parent instanceof IRExpr) {
-                newParent = new IRESeq(stmt, (IRExpr) replaceChildExpr(parent, curr, expr), true);
-            } else if (parent instanceof IRStmt) {
+            if (newParent instanceof IRExpr) {
+                newParent = new IRESeq(stmt, (IRExpr) replaceChildExpr(newParent, curr, expr), true);
+            } else if (newParent instanceof IRStmt) {
                 ArrayList<IRStmt> stmtlist = new ArrayList<>();
                 stmtlist.add(stmt);
-                stmtlist.add((IRStmt) replaceChildExpr(parent, curr, expr));
+                stmtlist.add((IRStmt) replaceChildExpr(newParent, curr, expr));
                 newParent = new IRSeq(true, stmts);
             } else if (parent instanceof IRFuncDecl) {
                 //TODO: illegal?
