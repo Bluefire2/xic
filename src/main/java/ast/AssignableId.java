@@ -4,26 +4,26 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
-public class AssignableExpr extends Assignable {
-    private Expr e;
+public class AssignableId extends Assignable {
+    private ExprId i;
 
-    public AssignableExpr(Expr e, ComplexSymbolFactory.Location location) {
+    public AssignableId(ExprId i, ComplexSymbolFactory.Location location) {
         super(location);
-        this.e = e;
+        this.i = i;
     }
 
-    public Expr getExpr() {
-        return e;
+    public ExprId getExprId() {
+        return i;
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        e.prettyPrint(w);
+        i.prettyPrint(w);
     }
 
     @Override
     public void accept(VisitorTypeCheck visitor) {
-        e.accept(visitor);
+        i.accept(visitor);
         visitor.visit(this);
     }
 

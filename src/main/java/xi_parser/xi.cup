@@ -98,7 +98,7 @@ nonterminal TypeTTau type, basic_type, init_list_type, list_type;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
 
-nonterminal Expr expr, assignable_expr;
+nonterminal Expr expr, assignable_indexable_expr;
 nonterminal ExprFunctionCall func_expr;
 nonterminal Assignable assignable;
 
@@ -264,7 +264,7 @@ func_expr ::=
 ;
 
 // Exprs without ( or { on LHS
-assignable_expr ::=
+assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
@@ -272,7 +272,7 @@ assignable_expr ::=
 ;
 
 expr ::=
-  assignable_expr:e {: RESULT = e; :}
+  assignable_indexable_expr:e {: RESULT = e; :}
 // Array literals
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft) ; :}
@@ -312,8 +312,8 @@ expr ::=
 // STATEMENTS
 
 assignable ::=
-  assignable_expr:e {: RESULT = new AssignableExpr(e, e.getLocation()); :}
-| assignable_expr:e1 indices:l {:
+  ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
+| assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
         idx = new ExprIndex(idx, e, e.getLocation());

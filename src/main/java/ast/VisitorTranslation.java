@@ -1,7 +1,6 @@
 package ast;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
-import edu.cornell.cs.cs4120.xic.ir.IRMem.MemType;
 import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
 import java.util.List;
@@ -288,6 +287,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         for (Expr e : contents) {
             IRExpr e_trans = (IRExpr) e.accept(this);
             if (offset == 0) {
+                // TODO: offset never changes? it's always 0?
                 seq.add(new IRMove(t, e_trans));
             } else {
                 seq.add(new IRMove(
@@ -346,8 +346,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(AssignableExpr node) {
-        ExprId id = (ExprId) node.getExpr();
+    public IRNode visit(AssignableId node) {
+        ExprId id = node.getExprId();
         return id.accept(this);
     }
 

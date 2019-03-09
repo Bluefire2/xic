@@ -314,7 +314,7 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
     }
 
     @Override
-    public Void visit(AssignableExpr node) {
+    public Void visit(AssignableId node) {
         return null;
     }
 
@@ -376,41 +376,20 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
         TypeT givenType = rhs.getTypeCheckType();
         TypeT expectedType;
 
-        if (lhs instanceof AssignableExpr) {
-            AssignableExpr aid = (AssignableExpr) lhs;
-            Expr e = aid.getExpr();
-            if (!(e instanceof ExprId)) {
-                throw new SemanticError(
-                        "Expected assignable", node.getLocation());
-            }
-            expectedType = e.getTypeCheckType();
+        if (lhs instanceof AssignableId) {
+            AssignableId aid = (AssignableId) lhs;
+            Expr i = aid.getExprId();
+            expectedType = i.getTypeCheckType();
         } else if (lhs instanceof AssignableIndex) {
             AssignableIndex ai = (AssignableIndex) lhs;
             ExprIndex index = (ExprIndex) ai.getIndex();
             // type of LHS index is already pre-calculated
             expectedType = index.getTypeCheckType();
-        } else { //underscore
-            //if LHS is underscore, RHS must be function call
-            if (rhs instanceof ExprFunctionCall) {
-                ExprFunctionCall fc = (ExprFunctionCall) rhs;
-                try {
-                    TypeSymTable f = symTable.lookup(fc.getName());
-                    TypeT returns = ((TypeSymTableFunc) f).getOutput();
-                    if (!(returns.equals(TypeR.Unit))) {
-                           throw new SemanticError(
-                                   "Expected function call", node.getLocation());
-                    }
-                }
-                catch (NotFoundException e) {
-                    throw new SemanticError(
-                            "Expected function call", node.getLocation());
-                }
-            }
-            else {
-                throw new SemanticError(
-                        "Expected function call", node.getLocation());
-            }
-            expectedType = new TypeTUnit();
+        } else {
+            throw new SemanticError(
+                    "Expression can't be assigned to",
+                    node.getLocation()
+            );
         }
         if (givenType instanceof TypeTList){
             throw new SemanticError(

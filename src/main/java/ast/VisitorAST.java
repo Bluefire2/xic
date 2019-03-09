@@ -12,7 +12,7 @@ interface VisitorAST<T> {
     T visit(ExprUnop node);
 
     T visit(AssignableIndex node);
-    T visit(AssignableExpr node);
+    T visit(AssignableId node);
 
     T visit(StmtReturn node);
     T visit(StmtAssign node);
