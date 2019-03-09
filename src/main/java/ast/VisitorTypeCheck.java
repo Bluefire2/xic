@@ -314,11 +314,6 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
     }
 
     @Override
-    public Void visit(AssignableUnderscore node) {
-        return null;
-    }
-
-    @Override
     public Void visit(AssignableExpr node) {
         return null;
     }

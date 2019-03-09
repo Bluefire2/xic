@@ -12,7 +12,6 @@ interface VisitorAST<T> {
     T visit(ExprUnop node);
 
     T visit(AssignableIndex node);
-    T visit(AssignableUnderscore node);
     T visit(AssignableExpr node);
 
     T visit(StmtReturn node);

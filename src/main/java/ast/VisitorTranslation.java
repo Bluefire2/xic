@@ -4,6 +4,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import edu.cornell.cs.cs4120.xic.ir.IRMem.MemType;
 import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
+import java.util.List;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
     private int labelcounter;
@@ -18,10 +19,10 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         RV = new IRTemp("RV");
     }
 
-    public String returnTypeName(TypeT type){
+    private String returnTypeName(TypeT type){
         if (type instanceof TypeTList){
             TypeTList tuple = (TypeTList) type;
-            ArrayList<String> types = new ArrayList();
+            ArrayList<String> types = new ArrayList<>();
             tuple.getTTauList().forEach((t) -> types.add(returnTypeName(t)));
             return "t" + tuple.getLength() + String.join("",types);
         } else if (type instanceof TypeTUnit) { //TypeTUnit
@@ -31,10 +32,10 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    public String typeName(TypeT type){
+    private String typeName(TypeT type){
         if (type instanceof TypeTList){
             TypeTList tuple = (TypeTList) type;
-            ArrayList<String> types = new ArrayList();
+            ArrayList<String> types = new ArrayList<>();
             tuple.getTTauList().forEach((t) -> types.add(typeName(t)));
             return String.join("",types);
         } else if (type instanceof TypeTTauArray) {
@@ -51,7 +52,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    public String functionName(String name, TypeSymTableFunc signature){
+    private String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
@@ -64,22 +65,22 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
         switch (op) {
-            case PLUS: return new IRBinOp(OpType.ADD, l, r);
+            case PLUS:  return new IRBinOp(OpType.ADD, l, r);
             case MINUS: return new IRBinOp(OpType.SUB, l, r);
-            case MULT: return new IRBinOp(OpType.MUL, l, r);
+            case MULT:  return new IRBinOp(OpType.MUL, l, r);
             case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
-            case DIV: return new IRBinOp(OpType.DIV, l, r);
-            case MOD: return new IRBinOp(OpType.MOD, l, r);
-            case EQEQ: return new IRBinOp(OpType.EQ, l, r);
-            case NEQ: return new IRBinOp(OpType.NEQ, l, r);
-            case GT: return new IRBinOp(OpType.GT, l, r);
-            case LT: return new IRBinOp(OpType.LT, l, r);
-            case GTEQ: return new IRBinOp(OpType.GEQ, l, r);
-            case LTEQ: return new IRBinOp(OpType.LEQ, l, r);
-            //need to translate if/while guards specially
-            case AND: return new IRBinOp(OpType.AND, l, r);
-            case OR: return new IRBinOp(OpType.OR, l, r);
-            default: throw new IllegalArgumentException("Operation Type of " +
+            case DIV:   return new IRBinOp(OpType.DIV, l, r);
+            case MOD:   return new IRBinOp(OpType.MOD, l, r);
+            case EQEQ:  return new IRBinOp(OpType.EQ, l, r);
+            case NEQ:   return new IRBinOp(OpType.NEQ, l, r);
+            case GT:    return new IRBinOp(OpType.GT, l, r);
+            case LT:    return new IRBinOp(OpType.LT, l, r);
+            case GTEQ:  return new IRBinOp(OpType.GEQ, l, r);
+            case LTEQ:  return new IRBinOp(OpType.LEQ, l, r);
+            // TODO: need to translate if/while guards specially
+            case AND:   return new IRBinOp(OpType.AND, l, r);
+            case OR:    return new IRBinOp(OpType.OR, l, r);
+            default:    throw new IllegalArgumentException("Operation Type of " +
                     "Binop node is invalid");
         }
     }
@@ -92,7 +93,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     @Override
     public IRNode visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
-        ArrayList<IRExpr> args = new ArrayList();
+        ArrayList<IRExpr> args = new ArrayList<>();
         for (Expr e : node.getArgs()){
             args.add((IRExpr) e.accept(this));
         }
@@ -168,26 +169,25 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(AssignableUnderscore node) {
-        return TEMP
-    }
-
-    @Override
     public IRNode visit(AssignableExpr node) {
         return null;//TODO
     }
 
     @Override
     public IRNode visit(StmtReturn node) {
-        if (node.getReturnVals().isEmpty()) {
-            return new IRReturn();
-        } else if (node.getReturnVals().size() == 1) {
-            IRExpr returnValue = (IRExpr) node.getReturnVals().get(0).accept(this);
-            IRMove mov = new IRMove(RV, returnValue);
-            return new IRSeq(mov, new IRReturn());
-        } else {
-            //TODO: handle multiple return values
-            return null;
+        List<Expr> returnVals = node.getReturnVals();
+        switch (returnVals.size()) {
+            case 0: return new IRReturn();
+            case 1:
+                IRExpr irReturnVal = (IRExpr) returnVals.get(0).accept(this);
+                return new IRSeq(
+                        new IRMove(RV, irReturnVal),
+                        new IRReturn()
+                );
+            default:
+                // Handle multiple return values
+                // TODO: handle multiple return values
+                return null;
         }
     }
 
