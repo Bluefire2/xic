@@ -70,27 +70,50 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
-        switch (op) {
-            case PLUS:  return new IRBinOp(OpType.ADD, l, r);
-            case MINUS: return new IRBinOp(OpType.SUB, l, r);
-            case MULT:  return new IRBinOp(OpType.MUL, l, r);
-            case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
-            case DIV: return new IRBinOp(OpType.DIV, l, r);
-            case MOD: return new IRBinOp(OpType.MOD, l, r);
-            case EQEQ: return new IRBinOp(OpType.EQ, l, r);
-            case NEQ: return new IRBinOp(OpType.NEQ, l, r);
-            case GT: return new IRBinOp(OpType.GT, l, r);
-            case LT: return new IRBinOp(OpType.LT, l, r);
-            case GTEQ: return new IRBinOp(OpType.GEQ, l, r);
-            case LTEQ: return new IRBinOp(OpType.LEQ, l, r);
-            case AND:
-            case OR:
-                String l1 = newLabel();
-                String l2 = newLabel();
-                String l3 = newLabel();
-                String x = newTemp();
-                if (op == Binop.AND){
-                    return new IRESeq(new IRSeq(
+        //constant folding the booleans before they get screwed up
+        if (l instanceof IRConst && r instanceof IRConst) {
+            long lval = ((IRConst)l).value();
+            long rval = ((IRConst)l).value();
+            switch (op) {
+                case PLUS: return new IRConst(lval + rval);
+                case MINUS: return new IRConst(lval - rval);
+                case MULT:  return new IRConst(lval * rval);
+                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r); //TODO
+                case DIV: return new IRConst(lval / rval);
+                case MOD: return new IRConst(lval % rval);
+                case EQEQ: return new IRConst((lval == rval) ? 1 : 0);
+                case NEQ: return new IRConst((lval != rval) ? 1 : 0);
+                case GT: return new IRConst((lval > rval) ? 1 : 0);
+                case LT: return new IRConst((lval < rval) ? 1 : 0);
+                case GTEQ: return new IRConst((lval >= rval) ? 1 : 0);
+                case LTEQ: return new IRConst((lval <= rval) ? 1 : 0);
+                case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
+                case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+                default: throw new IllegalArgumentException("Operation Type of " +
+                        "Binop node is invalid");
+            }
+        } else {
+            switch (op) {
+                case PLUS: return new IRBinOp(OpType.ADD, l, r);
+                case MINUS: return new IRBinOp(OpType.SUB, l, r);
+                case MULT:  return new IRBinOp(OpType.MUL, l, r);
+                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
+                case DIV: return new IRBinOp(OpType.DIV, l, r);
+                case MOD: return new IRBinOp(OpType.MOD, l, r);
+                case EQEQ: return new IRBinOp(OpType.EQ, l, r);
+                case NEQ: return new IRBinOp(OpType.NEQ, l, r);
+                case GT: return new IRBinOp(OpType.GT, l, r);
+                case LT: return new IRBinOp(OpType.LT, l, r);
+                case GTEQ: return new IRBinOp(OpType.GEQ, l, r);
+                case LTEQ: return new IRBinOp(OpType.LEQ, l, r);
+                case AND:
+                case OR:
+                    String l1 = newLabel();
+                    String l2 = newLabel();
+                    String l3 = newLabel();
+                    String x = newTemp();
+                    if (op == Binop.AND){
+                        return new IRESeq(new IRSeq(
                                 new IRMove(new IRTemp(x), new IRConst(0)),
                                 new IRCJump(l, l1, l3),
                                 new IRLabel(l1),
@@ -98,10 +121,10 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                                 new IRLabel(l2),
                                 new IRMove(new IRTemp(x), new IRConst(1)),
                                 new IRLabel(l3)),
-                            new IRTemp(x)
-                    );
-                } else {
-                    return new IRESeq(new IRSeq(
+                                new IRTemp(x)
+                        );
+                    } else {
+                        return new IRESeq(new IRSeq(
                                 new IRMove(new IRTemp(x), new IRConst(1)),
                                 new IRCJump(l, l3, l1),
                                 new IRLabel(l1),
@@ -109,12 +132,13 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                                 new IRLabel(l2),
                                 new IRMove(new IRTemp(x), new IRConst(0)),
                                 new IRLabel(l3)),
-                            new IRTemp(x)
-                    );
-                }
+                                new IRTemp(x)
+                        );
+                    }
 
-            default: throw new IllegalArgumentException("Operation Type of " +
-                    "Binop node is invalid");
+                default: throw new IllegalArgumentException("Operation Type of " +
+                        "Binop node is invalid");
+            }
         }
     }
 
@@ -245,9 +269,19 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         Unop op = node.getOp();
         switch (op) {
             //NOT(e)  -> XOR(1,e)
-            case NOT: return new IRBinOp(OpType.XOR, new IRConst(1), e);
+            case NOT:
+                if (e instanceof IRConst){
+                    long e_val = ((IRConst) e).value();
+                    return new IRConst((e_val == 0) ? 1 : 0);
+                }
+                return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
-            case UMINUS: return new IRBinOp(OpType.SUB, new IRConst(0), e);
+            case UMINUS:
+                if (e instanceof IRConst){
+                    long e_val = ((IRConst) e).value();
+                    return new IRConst(0 - e_val);
+                }
+                return new IRBinOp(OpType.SUB, new IRConst(0), e);
             default: throw new IllegalArgumentException("Operation Type of " +
                     "Unop node is invalid");
         }
