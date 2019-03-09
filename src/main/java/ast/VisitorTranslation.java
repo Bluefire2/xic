@@ -1,12 +1,15 @@
 package ast;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import polyglot.util.Pair;
 import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
+    private static final int WORD_NUM_BYTES = 8;
     private int labelcounter;
     private int tempcounter;
     private IRTemp RV;
@@ -97,18 +100,19 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     //return stmt that checks array bounds, is used in ESeq for indexing
-    public IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array, IRExpr temp_index) {
+    private IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array,
+                        IRExpr temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
-        List<IRStmt> seq = new ArrayList();
+        List<IRStmt> seq = new ArrayList<>();
         IRExpr test = new IRBinOp(OpType.OR,
                 new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
                 new IRBinOp(OpType.GT, temp_index, new IRMem(
                         new IRBinOp(
                                 OpType.ADD,
                                 temp_array,
-                                new IRConst(-8)
+                                new IRConst(-WORD_NUM_BYTES)
                         )
                 ))
         );
@@ -131,19 +135,20 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRBinOp(
                         OpType.MUL,
                         new IRConst(length + 1), //extra mem to store length
-                        new IRConst(8)
+                        new IRConst(WORD_NUM_BYTES)
                 )
         );
-        IRExpr idx_0 = new IRBinOp(OpType.ADD, new IRConst(8), alloc);
+        IRExpr idx_0 = new IRBinOp(
+                OpType.ADD, new IRConst(WORD_NUM_BYTES), alloc
+        );
 
-        List<IRStmt> seq = Arrays.asList(
+        return Arrays.asList(
                 new IRMove(t, idx_0), //assign 0-index to temp
                 new IRMove( //store length
                         new IRBinOp(OpType.ADD, t, new IRConst(-8)),
                         new IRConst(length)
                 )
         );
-        return seq;
     }
 
     @Override
@@ -251,7 +256,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRTemp t_i = new IRTemp(newTemp());
         IRExpr offset = new IRBinOp(
                 OpType.MUL,
-                new IRConst(8),
+                new IRConst(WORD_NUM_BYTES),
                 t_i
         );
         IRMem access =  new IRMem(new IRBinOp(
@@ -272,7 +277,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return new IRMem(new IRBinOp(
                 OpType.ADD,
                 (IRExpr) node.getArray().accept(this),
-                new IRConst(-8)
+                new IRConst(-WORD_NUM_BYTES)
         ));
     }
 
@@ -291,7 +296,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 seq.add(new IRMove(t, e_trans));
             } else {
                 seq.add(new IRMove(
-                        new IRBinOp(OpType.ADD, t, new IRConst(8 * offset)),
+                        new IRBinOp(
+                                OpType.ADD,
+                                t,
+                                new IRConst(WORD_NUM_BYTES * offset)
+                        ),
                         e_trans
                 ));
             }
@@ -334,7 +343,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRTemp t_i = new IRTemp(newTemp());
         IRExpr offset = new IRBinOp(
                 OpType.MUL,
-                new IRConst(8),
+                new IRConst(WORD_NUM_BYTES),
                 t_i
         );
         IRExpr location =  new IRBinOp(
@@ -371,12 +380,30 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtAssign node) {
-        return null;
+        return new IRMove(
+                (IRExpr) node.getLhs().accept(this),
+                (IRExpr) node.getRhs().accept(this)
+        );
     }
 
     @Override
     public IRNode visit(StmtDecl node) {
-        return null;
+        Pair<String, TypeTTau> decl = node.getDecl().getPair();
+        String declName = decl.part1();
+        TypeTTau declType = decl.part2();
+        if (declType instanceof TypeTTauArray) {
+            // TODO: need to allocate memory for the array
+            return null;
+        } else {
+            // declType either an int or bool, allocate one word
+            return new IRMove(
+                    new IRTemp(declName),
+                    new IRCall(
+                            new IRName("_xi_alloc"),
+                            new IRConst(WORD_NUM_BYTES)
+                    )
+            );
+        }
     }
 
     @Override
@@ -421,8 +448,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtBlock node) {
-        return null;
+    public IRStmt visit(StmtBlock node) {
+        return new IRSeq(node.getStatments().stream()
+                .map(s -> (IRStmt) s.accept(this))
+                .collect(Collectors.toList())
+        );
     }
 
     @Override
