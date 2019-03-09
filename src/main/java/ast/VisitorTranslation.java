@@ -66,6 +66,87 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return "_I" + newName + "_" + returnType + inputType;
     }
 
+    public IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f){
+        if (e instanceof ExprBoolLiteral){ // C[true/false, t, f]
+            boolean val = ((ExprBoolLiteral) e).getValue();
+            return new IRJump(new IRName(val ? t.name() : f.name()));
+        } else if (e instanceof ExprBinop){
+            ExprBinop eb = (ExprBinop) e;
+            if (eb.getOp() == Binop.AND){// C[e1 & e2, t, f]
+                IRLabel t_ = new IRLabel(newLabel());
+                return new IRSeq(
+                        conditionalTranslate(eb.getLeftExpr(), t_, f),
+                        t_,
+                        conditionalTranslate(eb.getRightExpr(), t, f)
+                );
+            } else if (eb.getOp() == Binop.OR) {// C[e1 | e2, t, f]
+                IRLabel f_ = new IRLabel(newLabel());
+                return new IRSeq(
+                        conditionalTranslate(eb.getLeftExpr(), t, f_),
+                        f_,
+                        conditionalTranslate(eb.getRightExpr(), t, f)
+                );
+            }
+        } else if (e instanceof ExprUnop) {
+            ExprUnop eu = (ExprUnop) e;
+            if (eu.getOp() == Unop.NOT) { // C[!e , t, f]
+                return conditionalTranslate(eu.getExpr(), f, t);
+            }
+        }
+        // C[e, t, f] default rule
+        return new IRCJump((IRExpr) e.accept(this),t.name(), f.name());
+    }
+
+    //return stmt that checks array bounds, is used in ESeq for indexing
+    public IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array, IRExpr temp_index) {
+        String lt = newLabel();
+        String lf = newLabel();
+        //array bounds checking - True if invalid
+        List<IRStmt> seq = new ArrayList();
+        IRExpr test = new IRBinOp(OpType.OR,
+                new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
+                new IRBinOp(OpType.GT, temp_index, new IRMem(
+                        new IRBinOp(
+                                OpType.ADD,
+                                temp_array,
+                                new IRConst(-8)
+                        )
+                ))
+        );
+        return new IRSeq(
+                new IRMove(temp_array, array),
+                new IRMove(temp_index, index),
+                new IRCJump(test, lt, lf),
+                new IRLabel(lt),
+                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
+                new IRLabel(lf)
+        );
+    }
+
+    //returns IRSeq that allocates for array of specified length
+    //stores array's 0th index in the provided temp
+    private List<IRStmt> allocateArray(IRTemp t, int length){
+        //allocate memory and get 0th index of array
+        IRExpr alloc = new IRCall(
+                new IRName("_xi_alloc"),
+                new IRBinOp(
+                        OpType.MUL,
+                        new IRConst(length + 1), //extra mem to store length
+                        new IRConst(8)
+                )
+        );
+        IRExpr idx_0 = new IRBinOp(OpType.ADD, new IRConst(8), alloc);
+
+        List<IRStmt> seq = Arrays.asList(
+                new IRMove(t, idx_0), //assign 0-index to temp
+                new IRMove( //store length
+                        new IRBinOp(OpType.ADD, t, new IRConst(-8)),
+                        new IRConst(length)
+                )
+        );
+        return seq;
+    }
+
     @Override
     public IRExpr visit(ExprBinop node) {
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
@@ -163,32 +244,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return new IRTemp(node.getName());
     }
 
-    //return stmt that checks array bounds, is used in ESeq for indexing
-    public IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array, IRExpr temp_index) {
-        String lt = newLabel();
-        String lf = newLabel();
-        //array bounds checking - True if invalid
-        List<IRStmt> seq = new ArrayList();
-        IRExpr test = new IRBinOp(OpType.OR,
-                new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
-                new IRBinOp(OpType.GT, temp_index, new IRMem(
-                        new IRBinOp(
-                                OpType.ADD,
-                                temp_array,
-                                new IRConst(-8)
-                        )
-                ))
-        );
-        return new IRSeq(
-                new IRMove(temp_array, array),
-                new IRMove(temp_index, index),
-                new IRCJump(test, lt, lf),
-                new IRLabel(lt),
-                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
-                new IRLabel(lf)
-        );
-    }
-
     @Override
     public IRNode visit(ExprIndex node) {
         IRExpr idx = (IRExpr) node.getIndex().accept(this);
@@ -220,30 +275,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 (IRExpr) node.getArray().accept(this),
                 new IRConst(-8)
         ));
-    }
-
-    //returns IRSeq that allocates for array of specified length
-    //stores array's 0th index in the provided temp
-    private List<IRStmt> allocateArray(IRTemp t, int length){
-        //allocate memory and get 0th index of array
-        IRExpr alloc = new IRCall(
-                new IRName("_xi_alloc"),
-                new IRBinOp(
-                        OpType.MUL,
-                        new IRConst(length + 1), //extra mem to store length
-                        new IRConst(8)
-                )
-        );
-        IRExpr idx_0 = new IRBinOp(OpType.ADD, new IRConst(8), alloc);
-
-        List<IRStmt> seq = Arrays.asList(
-                new IRMove(t, idx_0), //assign 0-index to temp
-                new IRMove( //store length
-                        new IRBinOp(OpType.ADD, t, new IRConst(-8)),
-                        new IRConst(length)
-                )
-        );
-        return seq;
     }
 
     @Override
@@ -316,7 +347,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(AssignableExpr node) {
-        return null;//TODO
+        ExprId id = (ExprId) node.getExpr();
+        return id.accept(this);
     }
 
     @Override
@@ -359,36 +391,33 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtIf node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
-        IRCJump jmp = new IRCJump(condition, lt.name(), lf.name());
-        return new IRSeq(jmp, lt, stmt, lf);
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, lf);
+        return new IRSeq(condition, lt, stmt, lf);
     }
 
     @Override
     public IRNode visit(StmtIfElse node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
         IRLabel lfin = new IRLabel(newLabel());
-        IRCJump cjmp = new IRCJump(condition, lt.name(), lf.name());
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, lf);
         IRJump jmp = new IRJump(new IRName(lfin.name()));
-        return new IRSeq(cjmp, lt, stmt, jmp, lf, lfin);
+        return new IRSeq(condition, lt, stmt, jmp, lf, lfin);
     }
 
     @Override
     public IRNode visit(StmtWhile node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
         IRLabel lh = new IRLabel(newLabel());
         IRLabel lt = new IRLabel(newLabel());
         IRLabel le = new IRLabel(newLabel());
-        IRCJump cjmp = new IRCJump(condition, le.name(), lt.name());
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, le);
         IRJump jmp = new IRJump(new IRName(lh.name()));
-        return new IRSeq(lh, cjmp, lt, stmt, jmp, le);
+        return new IRSeq(lh, condition, lt, stmt, jmp, le);
     }
 
     @Override
