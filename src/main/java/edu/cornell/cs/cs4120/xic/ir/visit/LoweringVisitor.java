@@ -210,8 +210,10 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRBinOp irnode) {
+        irnode.visitChildren(this);
         IRExpr left = irnode.left();
         IRExpr right = irnode.right();
+
         if (ifExprsCommute(left, right)) {
 
         } else {
