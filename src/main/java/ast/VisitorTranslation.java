@@ -5,17 +5,24 @@ import edu.cornell.cs.cs4120.xic.ir.IRMem.MemType;
 import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
     private int labelcounter;
+    private int tempcounter;
     private IRTemp RV;
 
     private String newLabel() {
         return String.format("l%d", (labelcounter++));
     }
 
+    private String newTemp() {
+        return String.format("_t%d", (tempcounter++));
+    }
+
     public VisitorTranslation() {
         this.labelcounter = 0;
+        this.tempcounter = 0;
         RV = new IRTemp("RV");
     }
 
@@ -52,46 +59,178 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    private String functionName(String name, TypeSymTableFunc signature){
+    public String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
     }
 
+    public IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f){
+        if (e instanceof ExprBoolLiteral){ // C[true/false, t, f]
+            boolean val = ((ExprBoolLiteral) e).getValue();
+            return new IRJump(new IRName(val ? t.name() : f.name()));
+        } else if (e instanceof ExprBinop){
+            ExprBinop eb = (ExprBinop) e;
+            if (eb.getOp() == Binop.AND){// C[e1 & e2, t, f]
+                IRLabel t_ = new IRLabel(newLabel());
+                return new IRSeq(
+                        conditionalTranslate(eb.getLeftExpr(), t_, f),
+                        t_,
+                        conditionalTranslate(eb.getRightExpr(), t, f)
+                );
+            } else if (eb.getOp() == Binop.OR) {// C[e1 | e2, t, f]
+                IRLabel f_ = new IRLabel(newLabel());
+                return new IRSeq(
+                        conditionalTranslate(eb.getLeftExpr(), t, f_),
+                        f_,
+                        conditionalTranslate(eb.getRightExpr(), t, f)
+                );
+            }
+        } else if (e instanceof ExprUnop) {
+            ExprUnop eu = (ExprUnop) e;
+            if (eu.getOp() == Unop.NOT) { // C[!e , t, f]
+                return conditionalTranslate(eu.getExpr(), f, t);
+            }
+        }
+        // C[e, t, f] default rule
+        return new IRCJump((IRExpr) e.accept(this),t.name(), f.name());
+    }
+
+    //return stmt that checks array bounds, is used in ESeq for indexing
+    public IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array, IRExpr temp_index) {
+        String lt = newLabel();
+        String lf = newLabel();
+        //array bounds checking - True if invalid
+        List<IRStmt> seq = new ArrayList();
+        IRExpr test = new IRBinOp(OpType.OR,
+                new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
+                new IRBinOp(OpType.GT, temp_index, new IRMem(
+                        new IRBinOp(
+                                OpType.ADD,
+                                temp_array,
+                                new IRConst(-8)
+                        )
+                ))
+        );
+        return new IRSeq(
+                new IRMove(temp_array, array),
+                new IRMove(temp_index, index),
+                new IRCJump(test, lt, lf),
+                new IRLabel(lt),
+                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
+                new IRLabel(lf)
+        );
+    }
+
+    //returns IRSeq that allocates for array of specified length
+    //stores array's 0th index in the provided temp
+    private List<IRStmt> allocateArray(IRTemp t, int length){
+        //allocate memory and get 0th index of array
+        IRExpr alloc = new IRCall(
+                new IRName("_xi_alloc"),
+                new IRBinOp(
+                        OpType.MUL,
+                        new IRConst(length + 1), //extra mem to store length
+                        new IRConst(8)
+                )
+        );
+        IRExpr idx_0 = new IRBinOp(OpType.ADD, new IRConst(8), alloc);
+
+        List<IRStmt> seq = Arrays.asList(
+                new IRMove(t, idx_0), //assign 0-index to temp
+                new IRMove( //store length
+                        new IRBinOp(OpType.ADD, t, new IRConst(-8)),
+                        new IRConst(length)
+                )
+        );
+        return seq;
+    }
+
     @Override
-    public IRNode visit(ExprBinop node) {
+    public IRExpr visit(ExprBinop node) {
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
-        switch (op) {
-            case PLUS:  return new IRBinOp(OpType.ADD, l, r);
-            case MINUS: return new IRBinOp(OpType.SUB, l, r);
-            case MULT:  return new IRBinOp(OpType.MUL, l, r);
-            case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
-            case DIV:   return new IRBinOp(OpType.DIV, l, r);
-            case MOD:   return new IRBinOp(OpType.MOD, l, r);
-            case EQEQ:  return new IRBinOp(OpType.EQ, l, r);
-            case NEQ:   return new IRBinOp(OpType.NEQ, l, r);
-            case GT:    return new IRBinOp(OpType.GT, l, r);
-            case LT:    return new IRBinOp(OpType.LT, l, r);
-            case GTEQ:  return new IRBinOp(OpType.GEQ, l, r);
-            case LTEQ:  return new IRBinOp(OpType.LEQ, l, r);
-            // TODO: need to translate if/while guards specially
-            case AND:   return new IRBinOp(OpType.AND, l, r);
-            case OR:    return new IRBinOp(OpType.OR, l, r);
-            default:    throw new IllegalArgumentException("Operation Type of " +
-                    "Binop node is invalid");
+        //constant folding the booleans before they get screwed up
+        if (l instanceof IRConst && r instanceof IRConst) {
+            long lval = ((IRConst)l).value();
+            long rval = ((IRConst)l).value();
+            switch (op) {
+                case PLUS: return new IRConst(lval + rval);
+                case MINUS: return new IRConst(lval - rval);
+                case MULT:  return new IRConst(lval * rval);
+                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r); //TODO
+                case DIV: return new IRConst(lval / rval);
+                case MOD: return new IRConst(lval % rval);
+                case EQEQ: return new IRConst((lval == rval) ? 1 : 0);
+                case NEQ: return new IRConst((lval != rval) ? 1 : 0);
+                case GT: return new IRConst((lval > rval) ? 1 : 0);
+                case LT: return new IRConst((lval < rval) ? 1 : 0);
+                case GTEQ: return new IRConst((lval >= rval) ? 1 : 0);
+                case LTEQ: return new IRConst((lval <= rval) ? 1 : 0);
+                case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
+                case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+                default: throw new IllegalArgumentException("Operation Type of " +
+                        "Binop node is invalid");
+            }
+        } else {
+            switch (op) {
+                case PLUS: return new IRBinOp(OpType.ADD, l, r);
+                case MINUS: return new IRBinOp(OpType.SUB, l, r);
+                case MULT:  return new IRBinOp(OpType.MUL, l, r);
+                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
+                case DIV: return new IRBinOp(OpType.DIV, l, r);
+                case MOD: return new IRBinOp(OpType.MOD, l, r);
+                case EQEQ: return new IRBinOp(OpType.EQ, l, r);
+                case NEQ: return new IRBinOp(OpType.NEQ, l, r);
+                case GT: return new IRBinOp(OpType.GT, l, r);
+                case LT: return new IRBinOp(OpType.LT, l, r);
+                case GTEQ: return new IRBinOp(OpType.GEQ, l, r);
+                case LTEQ: return new IRBinOp(OpType.LEQ, l, r);
+                case AND:
+                case OR:
+                    String l1 = newLabel();
+                    String l2 = newLabel();
+                    String l3 = newLabel();
+                    String x = newTemp();
+                    if (op == Binop.AND){
+                        return new IRESeq(new IRSeq(
+                                new IRMove(new IRTemp(x), new IRConst(0)),
+                                new IRCJump(l, l1, l3),
+                                new IRLabel(l1),
+                                new IRCJump(r, l2, l3),
+                                new IRLabel(l2),
+                                new IRMove(new IRTemp(x), new IRConst(1)),
+                                new IRLabel(l3)),
+                                new IRTemp(x)
+                        );
+                    } else {
+                        return new IRESeq(new IRSeq(
+                                new IRMove(new IRTemp(x), new IRConst(1)),
+                                new IRCJump(l, l3, l1),
+                                new IRLabel(l1),
+                                new IRCJump(r, l3, l2),
+                                new IRLabel(l2),
+                                new IRMove(new IRTemp(x), new IRConst(0)),
+                                new IRLabel(l3)),
+                                new IRTemp(x)
+                        );
+                    }
+
+                default: throw new IllegalArgumentException("Operation Type of " +
+                        "Binop node is invalid");
+            }
         }
     }
 
     @Override
-    public IRNode visit(ExprBoolLiteral node) {
+    public IRExpr visit(ExprBoolLiteral node) {
         return new IRConst(node.getValue() ? 1 : 0);
     }
 
     @Override
-    public IRNode visit(ExprFunctionCall node) {
+    public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
         ArrayList<IRExpr> args = new ArrayList<>();
         for (Expr e : node.getArgs()){
@@ -101,31 +240,36 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprId node) {
+    public IRExpr visit(ExprId node) {
         return new IRTemp(node.getName());
     }
 
     @Override
     public IRNode visit(ExprIndex node) {
-        IRExpr idx = new IRBinOp(
+        IRExpr idx = (IRExpr) node.getIndex().accept(this);
+        IRExpr array = (IRExpr) node.getArray().accept(this);
+        IRTemp t_a = new IRTemp(newTemp());
+        IRTemp t_i = new IRTemp(newTemp());
+        IRExpr offset = new IRBinOp(
                 OpType.MUL,
                 new IRConst(8),
-                (IRExpr) node.getIndex().accept(this)
+                t_i
         );
-        return new IRMem(new IRBinOp(
+        IRMem access =  new IRMem(new IRBinOp(
                 OpType.ADD,
-                (IRExpr) node.getArray().accept(this),
-                idx
+                t_a,
+                offset
         ));
+        return new IRESeq(checkIndex(array, idx, t_a, t_i), access);
     }
 
     @Override
-    public IRNode visit(ExprIntLiteral node) {
+    public IRExpr visit(ExprIntLiteral node) {
         return new IRConst(node.getValue());
     }
 
     @Override
-    public IRNode visit(ExprLength node) {
+    public IRExpr visit(ExprLength node) {
         return new IRMem(new IRBinOp(
                 OpType.ADD,
                 (IRExpr) node.getArray().accept(this),
@@ -134,43 +278,77 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprArrayLiteral node) {
-        return null;//TODO
+    public IRExpr visit(ExprArrayLiteral node) {
+        IRTemp t = new IRTemp(newTemp());
+        List<Expr> contents = node.getContents();
+        int length = contents.size();
+        List<IRStmt> seq = allocateArray(t, length);
+        //store contents
+        int offset = 0;
+        for (Expr e : contents) {
+            IRExpr e_trans = (IRExpr) e.accept(this);
+            if (offset == 0) {
+                seq.add(new IRMove(t, e_trans));
+            } else {
+                seq.add(new IRMove(
+                        new IRBinOp(OpType.ADD, t, new IRConst(8 * offset)),
+                        e_trans
+                ));
+            }
+        }
+        return new IRESeq(new IRSeq(seq), t);
     }
 
     @Override
-    public IRNode visit(ExprUnop node) {
+    public IRExpr visit(ExprUnop node) {
         IRExpr e = (IRExpr) node.getExpr().accept(this);
         Unop op = node.getOp();
         switch (op) {
             //NOT(e)  -> XOR(1,e)
-            case NOT: return new IRBinOp(OpType.XOR, new IRConst(1), e);
+            case NOT:
+                if (e instanceof IRConst){
+                    long e_val = ((IRConst) e).value();
+                    return new IRConst((e_val == 0) ? 1 : 0);
+                }
+                return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
-            case UMINUS: return new IRBinOp(OpType.SUB, new IRConst(0), e);
+            case UMINUS:
+                if (e instanceof IRConst){
+                    long e_val = ((IRConst) e).value();
+                    return new IRConst(0 - e_val);
+                }
+                return new IRBinOp(OpType.SUB, new IRConst(0), e);
             default: throw new IllegalArgumentException("Operation Type of " +
                     "Unop node is invalid");
         }
     }
 
     @Override
-    public IRNode visit(AssignableIndex node) {
+    public IRExpr visit(AssignableIndex node) {
         //same as ExprIndex without the MEM because we just want the location
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-        IRExpr idx = new IRBinOp(
+        
+        IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
+        IRExpr array = (IRExpr) idx_expr.accept(this);
+        IRTemp t_a = new IRTemp(newTemp());
+        IRTemp t_i = new IRTemp(newTemp());
+        IRExpr offset = new IRBinOp(
                 OpType.MUL,
                 new IRConst(8),
-                (IRExpr) idx_expr.getIndex().accept(this)
+                t_i
         );
-        return new IRBinOp(
+        IRExpr location =  new IRBinOp(
                 OpType.ADD,
-                (IRExpr) idx_expr.getArray().accept(this),
-                idx
+                t_a,
+                offset
         );
+        return new IRESeq(checkIndex(array, idx, t_a, t_i), location);
     }
 
     @Override
     public IRNode visit(AssignableExpr node) {
-        return null;//TODO
+        ExprId id = (ExprId) node.getExpr();
+        return id.accept(this);
     }
 
     @Override
@@ -213,36 +391,33 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtIf node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
-        IRCJump jmp = new IRCJump(condition, lt.name(), lf.name());
-        return new IRSeq(jmp, lt, stmt, lf);
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, lf);
+        return new IRSeq(condition, lt, stmt, lf);
     }
 
     @Override
     public IRNode visit(StmtIfElse node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
         IRLabel lfin = new IRLabel(newLabel());
-        IRCJump cjmp = new IRCJump(condition, lt.name(), lf.name());
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, lf);
         IRJump jmp = new IRJump(new IRName(lfin.name()));
-        return new IRSeq(cjmp, lt, stmt, jmp, lf, lfin);
+        return new IRSeq(condition, lt, stmt, jmp, lf, lfin);
     }
 
     @Override
     public IRNode visit(StmtWhile node) {
-        IRExpr condition = (IRExpr) node.getGuard().accept(this);
         IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
         IRLabel lh = new IRLabel(newLabel());
         IRLabel lt = new IRLabel(newLabel());
         IRLabel le = new IRLabel(newLabel());
-        IRCJump cjmp = new IRCJump(condition, le.name(), lt.name());
+        IRStmt condition = conditionalTranslate(node.getGuard(), lt, le);
         IRJump jmp = new IRJump(new IRName(lh.name()));
-        return new IRSeq(lh, cjmp, lt, stmt, jmp, le);
+        return new IRSeq(lh, condition, lt, stmt, jmp, le);
     }
 
     @Override
