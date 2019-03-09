@@ -5,6 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRMem.MemType;
 import symboltable.TypeSymTableFunc;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 public class VisitorTranslation implements VisitorAST<IRNode> {
     private int labelcounter;
@@ -58,7 +59,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    private String functionName(String name, TypeSymTableFunc signature){
+    public String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
@@ -221,12 +222,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         ));
     }
 
-    @Override
-    public IRExpr visit(ExprArrayLiteral node) {
-        IRTemp t = new IRTemp(newTemp());
-        List<Expr> contents = node.getContents();
-        int length = contents.size();
-
+    //returns IRSeq that allocates for array of specified length
+    //stores array's 0th index in the provided temp
+    private List<IRStmt> allocateArray(IRTemp t, int length){
         //allocate memory and get 0th index of array
         IRExpr alloc = new IRCall(
                 new IRName("_xi_alloc"),
@@ -238,21 +236,28 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         );
         IRExpr idx_0 = new IRBinOp(OpType.ADD, new IRConst(8), alloc);
 
-        List<IRStmt> seq = new ArrayList();
-        //assign 0-index to temp
-        seq.add(new IRMove(t, idx_0));
-        //store length
-        seq.add(new IRMove(
-                new IRBinOp(OpType.SUB, t, new IRConst(8)),
-                new IRConst(length)
-                ));
+        List<IRStmt> seq = Arrays.asList(
+                new IRMove(t, idx_0), //assign 0-index to temp
+                new IRMove( //store length
+                        new IRBinOp(OpType.ADD, t, new IRConst(-8)),
+                        new IRConst(length)
+                )
+        );
+        return seq;
+    }
 
+    @Override
+    public IRExpr visit(ExprArrayLiteral node) {
+        IRTemp t = new IRTemp(newTemp());
+        List<Expr> contents = node.getContents();
+        int length = contents.size();
+        List<IRStmt> seq = allocateArray(t, length);
         //store contents
         int offset = 0;
         for (Expr e : contents) {
             IRExpr e_trans = (IRExpr) e.accept(this);
             if (offset == 0) {
-                seq.add(new IRMove(idx_0, e_trans));
+                seq.add(new IRMove(t, e_trans));
             } else {
                 seq.add(new IRMove(
                         new IRBinOp(OpType.ADD, t, new IRConst(8 * offset)),
