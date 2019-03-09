@@ -98,7 +98,7 @@ nonterminal TypeTTau type, basic_type, list_type;
 nonterminal FuncDecl func_decl;
 
 nonterminal ArrayList<TypeTTau> type_list;
-nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list;
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
 
 precedence left COMMA;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
@@ -147,24 +147,22 @@ annotated_var ::=
 
 // FUNCTION DECLARATIONS
 
+func_args ::=
+  LPAREN RPAREN {: RESULT = new ArrayList<Pair<String, TypeTTau>>(); :}
+| LPAREN annotated_var_list:a RPAREN {: RESULT = a; :}
+;
+
 func_decl ::=
-  ID:n LPAREN RPAREN {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, t, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t1 COMMA type_list:t2 {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, l, new TypeTList(t2), nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN {:
-    RESULT = new FuncDecl(n, p, nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN COLON type:t {:
-    RESULT = new FuncDecl(n, p, t, nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN COLON type:t1 COMMA type_list:t2 {:
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, p, new TypeTList(t2), nxleft); :}
+  ID:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
+| ID:n func_args:p COLON type_list:r {:
+    // r.size() >= 1
+    TypeT rt;
+    if (r.size() == 1) {
+        rt = r.get(0);
+    } else {
+        rt = new TypeTList(r);
+    }
+    RESULT = new FuncDecl(n, p, rt, nxleft); :}
 ;
 
 // HIGHEST LEVEL

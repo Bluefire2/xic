@@ -105,7 +105,7 @@ nonterminal Assignable assignable;
 nonterminal Stmt stmt, matched_stmt, unmatched_stmt, return, block;
 nonterminal StmtDeclAssign decl_assign_stmt;
 
-nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list;
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
 nonterminal ArrayList<TypeDecl> type_decl_list;
 nonterminal ArrayList<Expr> expr_list, indices;
 nonterminal ArrayList<Stmt> stmt_list;
@@ -219,24 +219,22 @@ type_decl_list ::=
 
 // FUNCTION DEFINITIONS
 
+func_args ::=
+  LPAREN RPAREN {: RESULT = new ArrayList<Pair<String, TypeTTau>>(); :}
+| LPAREN annotated_var_list:a RPAREN {: RESULT = a; :}
+;
+
 func_defn ::=
-  ID:n LPAREN RPAREN block:b {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, b, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t block:b {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, t, b, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t1 COMMA type_list:t2 block:b {:
-    t2.add(0, t1);
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDefn(n, l, new TypeTList(t2), b, nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN block:b {:
-    RESULT = new FuncDefn(n, p, b, nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN COLON type:t block:b {:
-    RESULT = new FuncDefn(n, p, t, b, nxleft); :}
-| ID:n LPAREN annotated_var_list:p RPAREN COLON type:t1 COMMA type_list:t2 block:b {:
-    t2.add(0, t1);
-    RESULT = new FuncDefn(n, p, new TypeTList(t2), b, nxleft); :}
+  ID:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
+| ID:n func_args:p COLON type_list:r block:b {:
+    // r.size() >= 1
+    TypeT rt;
+    if (r.size() == 1) {
+        rt = r.get(0);
+    } else {
+        rt = new TypeTList(r);
+    }
+    RESULT = new FuncDefn(n, p, rt, b, nxleft); :}
 ;
 
 func_defn_list ::=
