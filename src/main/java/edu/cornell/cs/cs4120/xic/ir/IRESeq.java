@@ -25,6 +25,12 @@ public class IRESeq extends IRExpr_c {
         this.replaceParent = false;
     }
 
+    public IRESeq(IRStmt stmt, IRExpr expr, boolean replaceParent) {
+        this.stmt = stmt;
+        this.expr = expr;
+        this.replaceParent = replaceParent;
+    }
+
     public IRStmt stmt() {
         return stmt;
     }
