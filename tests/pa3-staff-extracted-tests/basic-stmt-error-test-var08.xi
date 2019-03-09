@@ -1,4 +1,3 @@
 foo() {
   x: int[true]
 }
-

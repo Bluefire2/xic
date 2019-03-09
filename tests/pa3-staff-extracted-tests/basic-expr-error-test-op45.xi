@@ -1,4 +1,3 @@
 f() {
   x: bool = true & ""
 }
-

@@ -3,4 +3,3 @@ f() {
   x02: bool[] = {true} + {false}
   x03: int[] = "" + "hello"
 }
-

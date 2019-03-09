@@ -28,4 +28,3 @@ f2(): int, bool {
 f3(): int, bool, int[] {
   return 0, true, {1}
 }
-

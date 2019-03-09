@@ -7,4 +7,3 @@ f() {
   x05: int = length({x})
   x06: int = length({{{""}}, {{{0}}}})
 }
-

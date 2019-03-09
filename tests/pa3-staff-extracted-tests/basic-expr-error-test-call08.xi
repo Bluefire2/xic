@@ -5,4 +5,3 @@ foo() {
 f(x: int): int {
   return 0
 }
-

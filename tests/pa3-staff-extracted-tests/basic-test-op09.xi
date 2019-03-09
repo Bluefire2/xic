@@ -6,4 +6,3 @@ f() {
   x05: bool = "" == "hello"
   x06: bool = "" != "hello"
 }
-
