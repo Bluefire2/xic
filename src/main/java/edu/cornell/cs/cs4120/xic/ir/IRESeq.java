@@ -77,6 +77,18 @@ public class IRESeq extends IRExpr_c {
         p.endList();
     }
 
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRESeq) {
+            IRESeq ireSeq = (IRESeq) node;
+            return expr.equals(ireSeq.expr)
+                    && stmt.equals(ireSeq.stmt)
+                    && replaceParent == ireSeq.replaceParent;
+        } else {
+            return false;
+        }
+    }
+
     public boolean isReplaceParent() {
         return replaceParent;
     }

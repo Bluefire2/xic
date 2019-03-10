@@ -12,6 +12,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private static final int WORD_NUM_BYTES = 8;
     private int labelcounter;
     private int tempcounter;
+    private int argcounter;
     private IRTemp RV;
 
     private String newLabel() {
@@ -19,7 +20,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     private String newTemp() {
-        return String.format("_t%d", (tempcounter++));
+        return String.format("_mir_t%d", (tempcounter++));
     }
 
     public VisitorTranslation() {
@@ -61,14 +62,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    public String functionName(String name, TypeSymTableFunc signature){
+    private String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
     }
 
-    public IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f){
+    private IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f){
         if (e instanceof ExprBoolLiteral){ // C[true/false, t, f]
             boolean val = ((ExprBoolLiteral) e).getValue();
             return new IRJump(new IRName(val ? t.name() : f.name()));
@@ -126,29 +127,70 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         );
     }
 
-    //returns IRSeq that allocates for array of specified length
-    //stores array's 0th index in the provided temp
-    private List<IRStmt> allocateArray(IRTemp t, int length){
-        //allocate memory and get 0th index of array
-        IRExpr alloc = new IRCall(
-                new IRName("_xi_alloc"),
+    /**
+     * Allocates memory of size.
+     * @param size size of the memory.
+     * @return A function call expression.
+     */
+    private IRCall allocateMem(IRExpr size) {
+        return new IRCall(new IRName("_xi_alloc"), size);
+    }
+
+    /**
+     * Allocates array of size (length+1), of which the address is stored in
+     * temporary t. The extra byte, i.e., MEM(t) - 8, is used for storing
+     * the length. This means that only length bytes are actually available
+     * for array t.
+     * temporary t.
+     * @param t temporary.
+     * @param length length of array to be allocated.
+     * @return a list of IR statements for performing this array allocation.
+     */
+    private List<IRStmt> allocateArray(IRTemp t, IRExpr length) {
+        IRBinOp numBytesForArray = new IRBinOp(
+                OpType.ADD,
+                new IRConst(1), // extra byte for storing length
                 new IRBinOp(
                         OpType.MUL,
-                        new IRConst(length + 1), //extra mem to store length
+                        length,
                         new IRConst(WORD_NUM_BYTES)
                 )
         );
-        IRExpr idx_0 = new IRBinOp(
-                OpType.ADD, new IRConst(WORD_NUM_BYTES), alloc
+
+        // Allocate memory, create y
+        IRTemp arrayBaseAddress = new IRTemp(newTemp());
+        IRMove baseAllocAddress = new IRMove(
+                arrayBaseAddress,
+                allocateMem(numBytesForArray)
         );
 
-        return Arrays.asList(
-                new IRMove(t, idx_0), //assign 0-index to temp
-                new IRMove( //store length
-                        new IRBinOp(OpType.ADD, t, new IRConst(-8)),
-                        new IRConst(length)
+        // MEM(y) <- length
+        IRMove storeLength = new IRMove(new IRMem(arrayBaseAddress), length);
+
+        // t <- y + 8
+        IRMove zeroIdxAddress = new IRMove(
+                t,
+                new IRBinOp(
+                        OpType.ADD,
+                        arrayBaseAddress,
+                        new IRConst(WORD_NUM_BYTES)
                 )
         );
+
+        return Arrays.asList(baseAllocAddress, storeLength, zeroIdxAddress);
+    }
+
+    /**
+     * Allocates array `x:t[eIR]` with name x and size e.
+     * @param x temporary for the array.
+     * @param eIR IR expression evaluated to size.
+     * @return A list of IR stmts that perform array allocation.
+     */
+    private List<IRStmt> allocateArrayExprLength(IRTemp x, IRExpr eIR) {
+        IRTemp n = new IRTemp(newTemp());
+        List<IRStmt> result = allocateArray(x, n);
+        result.add(0, new IRMove(n, eIR));
+        return result;
     }
 
     @Override
@@ -286,7 +328,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRTemp t = new IRTemp(newTemp());
         List<Expr> contents = node.getContents();
         int length = contents.size();
-        List<IRStmt> seq = allocateArray(t, length);
+        List<IRStmt> seq = allocateArray(t, new IRConst(length));
         //store contents
         int offset = 0;
         for (Expr e : contents) {
@@ -386,22 +428,46 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         );
     }
 
+    private List<IRStmt> allocateMultiDimArray(IRTemp t, TypeTTauArray arr) {
+        TypeTTau innerType = arr.getTypeTTau();
+        Expr size = arr.getSize();
+        if (size != null) {
+            IRExpr sizeIR = (IRExpr) size.accept(this);
+            if (innerType instanceof TypeTTauArray) {
+                // TODO: Recurse on inner type
+                allocateArrayExprLength(t, sizeIR);
+                return null;
+            } else {
+                return Arrays.asList(new IRMove(
+                        t,
+                        allocateMem((IRExpr) size.accept(this))
+                ));
+            }
+        } else {
+            // size == null ==> the inner arrays, if any, are also
+            // uninitialized. So just move a 1-word memory location to this temp
+            return Arrays.asList(new IRMove(
+                    t,
+                    allocateMem(new IRConst(WORD_NUM_BYTES))
+            ));
+        }
+    }
+
     @Override
-    public IRNode visit(StmtDecl node) {
+    public IRStmt visit(StmtDecl node) {
         Pair<String, TypeTTau> decl = node.getDecl().getPair();
         String declName = decl.part1();
         TypeTTau declType = decl.part2();
         if (declType instanceof TypeTTauArray) {
-            // TODO: need to allocate memory for the array
-            return null;
+            TypeTTauArray declArray = (TypeTTauArray) declType;
+            return new IRSeq(
+                    allocateMultiDimArray(new IRTemp(declName), declArray)
+            );
         } else {
             // declType either an int or bool, allocate one word
             return new IRMove(
                     new IRTemp(declName),
-                    new IRCall(
-                            new IRName("_xi_alloc"),
-                            new IRConst(WORD_NUM_BYTES)
-                    )
+                    allocateMem(new IRConst(WORD_NUM_BYTES))
             );
         }
     }
@@ -422,7 +488,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtIf node) {
+    public IRStmt visit(StmtIf node) {
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
@@ -431,7 +497,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtIfElse node) {
+    public IRStmt visit(StmtIfElse node) {
         IRStmt stmt = (IRStmt) node.getThenStmt().accept(this);
         IRLabel lt = new IRLabel(newLabel());
         IRLabel lf = new IRLabel(newLabel());
@@ -442,7 +508,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtWhile node) {
+    public IRStmt visit(StmtWhile node) {
         IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
         IRLabel lh = new IRLabel(newLabel());
         IRLabel lt = new IRLabel(newLabel());
@@ -462,17 +528,29 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(FileProgram node) {
-        return null;
+        List<IRStmt> result = node.getImports().stream()
+                .map(u -> (IRStmt) u.accept(this))
+                .collect(Collectors.toList());
+        result.addAll(node.getFuncDefns().stream()
+                .map(f -> (IRStmt) f.accept(this))
+                .collect(Collectors.toList()));
+        return new IRSeq(result);
     }
 
     @Override
     public IRNode visit(FileInterface node) {
-        return null;
+        return new IRSeq(node.getFuncDecls().stream()
+                .map(f -> (IRStmt) f.accept(this))
+                .collect(Collectors.toList())
+        );
     }
 
     @Override
-    public IRNode visit(FuncDefn node) {
-        return null;
+    public IRStmt visit(FuncDefn node) {
+        // TODO: where do the arguments go?
+        IRStmt funcLabel = new IRLabel(node.getName());
+        IRStmt bodyIR = (IRStmt) node.getBody().accept(this);
+        return new IRSeq(funcLabel, bodyIR);
     }
 
     @Override
@@ -481,7 +559,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(UseInterface node) {
+    public IRStmt visit(UseInterface node) {
         return null;
     }
 }

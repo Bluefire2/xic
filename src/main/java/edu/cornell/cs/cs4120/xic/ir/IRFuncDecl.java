@@ -64,4 +64,15 @@ public class IRFuncDecl extends IRNode_c {
         body.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRFuncDecl) {
+            IRFuncDecl irFuncDecl = (IRFuncDecl) node;
+            return name.equals(irFuncDecl.name)
+                    && body.equals(irFuncDecl.body);
+        } else {
+            return false;
+        }
+    }
 }

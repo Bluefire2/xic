@@ -78,4 +78,15 @@ public class IRCompUnit extends IRNode_c {
             func.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRCompUnit) {
+            IRCompUnit irCompUnit = (IRCompUnit) node;
+            return name.equals(irCompUnit.name)
+                    && functions.equals(irCompUnit.functions);
+        } else {
+            return false;
+        }
+    }
 }

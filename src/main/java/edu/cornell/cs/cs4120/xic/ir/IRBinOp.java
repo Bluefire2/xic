@@ -136,4 +136,16 @@ public class IRBinOp extends IRExpr_c {
         p.endList();
     }
 
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRBinOp) {
+            IRBinOp binOp = (IRBinOp) node;
+            return binOp.opType().equals(type)
+                    && this.left.equals(binOp.left)
+                    && this.right.equals(binOp.right);
+        } else {
+            return false;
+        }
+    }
+
 }

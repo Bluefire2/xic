@@ -59,4 +59,13 @@ public class IRExp extends IRStmt {
         expr.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRExp) {
+            return expr.equals(((IRExp) node).expr);
+        } else {
+            return false;
+        }
+    }
 }

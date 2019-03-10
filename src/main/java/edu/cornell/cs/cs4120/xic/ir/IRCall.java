@@ -91,4 +91,15 @@ public class IRCall extends IRExpr_c {
             arg.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRCall) {
+            IRCall irCall = (IRCall) node;
+            return target.equals(irCall.target)
+                    && args.equals(irCall.args);
+        } else {
+            return false;
+        }
+    }
 }

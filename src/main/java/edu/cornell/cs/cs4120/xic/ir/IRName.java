@@ -33,4 +33,9 @@ public class IRName extends IRExpr_c {
         p.printAtom(name);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        return node instanceof IRName;
+    }
 }
