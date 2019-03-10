@@ -300,6 +300,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCall irnode) {
+        irnode.visitChildren(this);
         List<String> tis = new ArrayList<>();
         List<IRStmt> stmts = new ArrayList<>();
         for (IRExpr ei : irnode.args()) {
