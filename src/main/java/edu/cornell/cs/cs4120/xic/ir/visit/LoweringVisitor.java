@@ -300,8 +300,38 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCall irnode) {
-        //TODO
-        return irnode;
+        List<String> tis = new ArrayList<>();
+        List<IRStmt> stmts = new ArrayList<>();
+        for (IRExpr ei : irnode.args()) {
+            String ti = newTemp();
+            tis.add(ti);
+
+            if (ei instanceof IRESeq) {
+                IRESeq ireSeq = (IRESeq) ei;
+                stmts.add(ireSeq.stmt());
+                stmts.add(new IRMove(
+                        new IRTemp(ti), ireSeq.expr()
+                ));
+            } else {
+                stmts.add(new IRMove(
+                        new IRTemp(ti), ei
+                ));
+            }
+        }
+
+        String t = newTemp();
+        List<IRExpr> temps = tis.stream().map(IRTemp::new).collect(Collectors.toList());
+        IRStmt moveCall = new IRMove(
+                new IRTemp(t),
+                new IRCall(irnode.target(), temps)
+        );
+
+        stmts.add(moveCall);
+
+        return new IRESeq(
+                new IRSeq(stmts),
+                new IRTemp(t)
+        );
     }
 
     public IRNode lower(IRCJump irnode) {
