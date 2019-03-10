@@ -62,7 +62,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    private String functionName(String name, TypeSymTableFunc signature){
+    public String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
