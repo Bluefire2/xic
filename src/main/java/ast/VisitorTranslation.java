@@ -413,7 +413,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
-        return null;
+        String funcName = functionName(node.getName(), node.getSignature());
+        ArrayList<IRExpr> args = new ArrayList<>();
+        for (Expr e : node.getArgs()){
+            args.add((IRExpr) e.accept(this));
+        }
+        return new IRExp(new IRCall(new IRName(funcName), args));
     }
 
     @Override
