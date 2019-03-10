@@ -110,3 +110,4 @@ xic
 *.parsed
 *.typed
 !/src/main/java/edu/cornell/cs/cs4120/xic/ir/
+!/src/test/java/edu/cornell/cs/cs4120/xic/ir/visit/
