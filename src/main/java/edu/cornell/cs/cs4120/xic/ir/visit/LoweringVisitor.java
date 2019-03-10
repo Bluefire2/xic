@@ -43,6 +43,7 @@ public class LoweringVisitor extends IRVisitor {
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
+        tempcounter = 0;
         head = new BasicBlock();
         current = head;
     }
@@ -112,7 +113,7 @@ public class LoweringVisitor extends IRVisitor {
         if (n_ instanceof IRCJump) return lower((IRCJump) n_);
         if (n_ instanceof IRCompUnit) return lower((IRCompUnit) n_);
         if (n_ instanceof IRConst) return lower((IRConst) n_);
-        if (n_ instanceof IRESeq) return lower(parent, (IRESeq) n_);
+        if (n_ instanceof IRESeq) return lower((IRESeq) n_);
         if (n_ instanceof IRExp) return lower((IRExp) n_);
         if (n_ instanceof IRFuncDecl) return lower((IRFuncDecl) n_);
         if (n_ instanceof IRJump) return lower((IRJump) n_);
@@ -366,8 +367,8 @@ public class LoweringVisitor extends IRVisitor {
         return irnode;
     }
 
-    public IRNode lower(IRNode parent, IRESeq irnode) {
-        irnode= (IRESeq) irnode.visitChildren(this);
+    public IRNode lower(IRESeq irnode) {
+        irnode = (IRESeq) irnode.visitChildren(this);
         IRExpr expr = irnode.expr();
         if (expr instanceof IRESeq) {
             IRESeq es =(IRESeq) expr;
@@ -380,7 +381,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRExp irnode) {
-        irnode= (IRExp) irnode.visitChildren(this);
+        irnode = (IRExp) irnode.visitChildren(this);
         IRExpr e = irnode.expr();
         if (e instanceof IRESeq) {
             return ((IRESeq) e).stmt();
