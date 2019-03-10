@@ -435,20 +435,47 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRMove irnode) {
-       /* if(ifExprsCommute(irnode.source(), irnode.target())) {
-            return irnode.visitChildren(this);
+        irnode = (IRMove) irnode.visitChildren(this);
+        IRExpr dest = irnode.target();
+        IRExpr src = irnode.source();
+        if (!(dest instanceof IRESeq || src instanceof IRESeq)) {
+            return irnode;
+        } else if (ifExprsCommute(dest, src)) {
+            IRESeq destSeq;
+            IRESeq srcSeq;
+            IRExpr destprime;
+            IRExpr eprime;
+            IRStmt s1 = null;
+            IRStmt s2 = null;
+
+            if (dest instanceof IRESeq && src instanceof IRESeq) {
+                destSeq = (IRESeq) dest;
+                srcSeq = (IRESeq) src;
+                destprime = destSeq.expr();
+                eprime= srcSeq.expr();
+                s1 = destSeq.stmt();
+                s2 = srcSeq.stmt();
+            } else if (dest instanceof IRESeq) {
+                destSeq = (IRESeq) dest;
+                destprime = destSeq.expr();
+                eprime = src;
+                s1 = destSeq.stmt();
+            } else {
+                srcSeq = (IRESeq) src;
+                destprime = dest;
+                eprime = srcSeq.expr();
+                s2 = srcSeq.stmt();
+            }
+
+            List<IRStmt> stmts = new ArrayList<>();
+            stmts.add(s1);
+            stmts.add(s2);
+            stmts.add(new IRMove(destprime, eprime));
+            return new IRSeq(stmts);
+        } else {
+            //TODO: move-general case
+            return irnode;
         }
-        else {
-            IRSeq ret = new IRSeq();
-            IRNode n1 = irnode.source().visitChildren(this);
-            IRTemp tmp = new IRTemp("tmp");
-            IRMove mv1 = new IRMove(tmp, e1);
-            IRNode n2 = irnode.target().visitChildren(this);
-            IRMem mem = new IRMem(tmp);
-            IRMove mv2 = new IRMove(mem, e2);
-            return new IRSeq(mv1, mv2);
-        }*/
-        return irnode;
     }
 
     public IRNode lower(IRName irnode) {
