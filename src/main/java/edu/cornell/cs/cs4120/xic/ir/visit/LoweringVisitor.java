@@ -215,7 +215,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRBinOp irnode) {
-        irnode.visitChildren(this);
+        irnode = (IRBinOp) irnode.visitChildren(this);
         IRExpr left = irnode.left();
         IRExpr right = irnode.right();
 
@@ -224,8 +224,8 @@ public class LoweringVisitor extends IRVisitor {
         } else if (ifExprsCommute(left, right)) {
             IRESeq leftSeq;
             IRESeq rightSeq;
-            IRExpr e1 = null;
-            IRExpr e2 = null;
+            IRExpr e1;
+            IRExpr e2;
             IRStmt s1 = null;
             IRStmt s2 = null;
 
@@ -300,7 +300,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCall irnode) {
-        irnode.visitChildren(this);
+        irnode = (IRCall) irnode.visitChildren(this);
         List<String> tis = new ArrayList<>();
         List<IRStmt> stmts = new ArrayList<>();
         for (IRExpr ei : irnode.args()) {
@@ -337,7 +337,7 @@ public class LoweringVisitor extends IRVisitor {
 
     public IRNode lower(IRCJump irnode) {
         // TODO: put in basic blocks
-        irnode.visitChildren(this);
+        irnode = (IRCJump) irnode.visitChildren(this);
         IRExpr e = irnode.cond();
 
         if (e instanceof IRESeq) {
@@ -384,7 +384,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRJump irnode) {
-        irnode.visitChildren(this);
+        irnode = (IRJump) irnode.visitChildren(this);
         IRExpr e = irnode.target();
 
         if (e instanceof IRESeq) {
@@ -407,7 +407,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRMem irnode) {
-        irnode.visitChildren(this);
+        irnode = (IRMem) irnode.visitChildren(this);
         IRExpr e = irnode.expr();
 
         if (e instanceof IRESeq) {
