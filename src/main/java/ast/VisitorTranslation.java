@@ -334,7 +334,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         for (Expr e : contents) {
             IRExpr e_trans = (IRExpr) e.accept(this);
             if (offset == 0) {
-                // TODO: offset never changes? it's always 0?
                 seq.add(new IRMove(t, e_trans));
             } else {
                 seq.add(new IRMove(
@@ -346,6 +345,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                         e_trans
                 ));
             }
+            offset++;
         }
         return new IRESeq(new IRSeq(seq), t);
     }

@@ -107,6 +107,66 @@ public class VisitorTranslationTest {
         assertTrue(r instanceof IRConst);
         assertEquals(((IRConst) r).value(), 0);
     }
+
+    @Test
+    public void testFolding2() {
+        XiTokenLocation l = new XiTokenLocation(0,0);
+        Expr e = new ExprUnop(Unop.NOT,
+                new ExprBinop(Binop.GT,
+                        new ExprIntLiteral(10L, l),
+                        new ExprIntLiteral(10L, l),
+                        l),
+                l);
+        IRNode r = e.accept(visitor);
+        assertTrue(r instanceof IRConst);
+        assertEquals(((IRConst) r).value(), 1);
+    }
+
+    @Test
+    public void testFolding3() {
+        XiTokenLocation l = new XiTokenLocation(0,0);
+        Expr e = new ExprUnop(Unop.NOT,
+                new ExprBinop(Binop.GTEQ,
+                        new ExprIntLiteral(10L, l),
+                        new ExprIntLiteral(10L, l),
+                        l),
+                l);
+        IRNode r = e.accept(visitor);
+        assertTrue(r instanceof IRConst);
+        assertEquals(((IRConst) r).value(), 0);
+    }
+
+    @Test
+    public void testFolding4() {
+        XiTokenLocation l = new XiTokenLocation(0,0);
+        Expr e = new ExprBinop(Binop.PLUS,
+                new ExprBinop(Binop.PLUS,
+                        new ExprIntLiteral(1L, l),
+                        new ExprIntLiteral(2L, l),
+                        l),
+                new ExprBinop(Binop.PLUS,
+                        new ExprIntLiteral(10L, l),
+                        new ExprIntLiteral(10L, l),
+                        l),
+                l);
+        IRNode r = e.accept(visitor);
+        assertTrue(r instanceof IRConst);
+        assertEquals(((IRConst) r).value(), 23L);
+    }
+
+    @Test
+    public void testFolding5() {
+        XiTokenLocation l = new XiTokenLocation(0,0);
+        Expr e = new ExprUnop(Unop.UMINUS,
+                new ExprBinop(Binop.MULT,
+                        new ExprIntLiteral(2L, l),
+                        new ExprIntLiteral(2L, l),
+                        l),
+                l);
+        IRNode r = e.accept(visitor);
+        assertTrue(r instanceof IRConst);
+        assertEquals(((IRConst) r).value(), -4L);
+    }
 }
 
 
