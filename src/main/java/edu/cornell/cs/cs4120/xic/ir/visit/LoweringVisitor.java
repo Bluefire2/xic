@@ -380,8 +380,12 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRExp irnode) {
-        //TODO
-        return irnode;
+        irnode= (IRExp) irnode.visitChildren(this);
+        IRExpr e = irnode.expr();
+        if (e instanceof IRESeq) {
+            return ((IRESeq) e).stmt();
+        }
+        else return null;
     }
 
     public IRNode lower(IRFuncDecl irnode) {
