@@ -74,4 +74,16 @@ public class IRMove extends IRStmt {
         src.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRMove) {
+            IRMove irMove = (IRMove) node;
+            return target.equals(irMove.target)
+                    && src.equals(irMove.src)
+                    && istrash == irMove.istrash;
+        } else {
+            return false;
+        }
+    }
 }

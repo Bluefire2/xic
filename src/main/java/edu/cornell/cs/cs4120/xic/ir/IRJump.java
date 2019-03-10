@@ -50,4 +50,13 @@ public class IRJump extends IRStmt {
         target.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRJump) {
+            return target.equals(((IRJump) node).target);
+        } else {
+            return false;
+        }
+    }
 }

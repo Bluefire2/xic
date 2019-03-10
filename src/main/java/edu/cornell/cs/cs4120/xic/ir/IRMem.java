@@ -77,4 +77,15 @@ public class IRMem extends IRExpr_c {
         expr.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRMem) {
+            IRMem irMem = (IRMem) node;
+            return expr.equals(irMem.expr)
+                    && memType.equals(irMem.memType);
+        } else {
+            return false;
+        }
+    }
 }

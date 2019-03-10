@@ -68,4 +68,13 @@ public class IRReturn extends IRStmt {
             ret.printSExp(p);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRReturn) {
+            return rets.equals(((IRReturn) node).rets);
+        } else {
+            return false;
+        }
+    }
 }
