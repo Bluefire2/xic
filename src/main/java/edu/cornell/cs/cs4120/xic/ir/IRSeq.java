@@ -3,6 +3,8 @@ package edu.cornell.cs.cs4120.xic.ir;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
@@ -24,18 +26,25 @@ public class IRSeq extends IRStmt {
         this(Arrays.asList(stmts));
     }
 
+    private <T> List<T> filterNulls(List<T> list) {
+        return list
+                .stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
     /**
      * Create a SEQ from a list of statements.
      * The list should not be modified subsequently.
      * @param stmts the sequence of statements
      */
     public IRSeq(List<IRStmt> stmts) {
-        this.stmts = stmts;
+        // filter out nulls
+        this.stmts = filterNulls(stmts);
         this.replaceParent = false;
     }
 
     public IRSeq(List<IRStmt> stmts, boolean replaceParent) {
-        this.stmts = stmts;
+        this.stmts = filterNulls(stmts);;
         this.replaceParent = replaceParent;
     }
 
