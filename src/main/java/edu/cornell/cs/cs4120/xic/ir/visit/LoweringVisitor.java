@@ -384,8 +384,21 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRJump irnode) {
-        //TODO
-        return irnode;
+        irnode.visitChildren(this);
+        IRExpr e = irnode.target();
+
+        if (e instanceof IRESeq) {
+            IRESeq ireSeq = (IRESeq) e;
+            IRExpr eprime = ireSeq.expr();
+            IRStmt s = ireSeq.stmt();
+
+            return new IRSeq(
+                    s,
+                    new IRJump(eprime)
+            );
+        } else {
+            return irnode;
+        }
     }
 
     public IRNode lower(IRLabel irnode) {
@@ -394,7 +407,21 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRMem irnode) {
-        return irnode.visitChildren(this);
+        irnode.visitChildren(this);
+        IRExpr e = irnode.expr();
+
+        if (e instanceof IRESeq) {
+            IRESeq ireSeq = (IRESeq) e;
+            IRExpr eprime = ireSeq.expr();
+            IRStmt s = ireSeq.stmt();
+
+            return new IRESeq(
+                    s,
+                    new IRMem(eprime)
+            );
+        } else {
+            return irnode;
+        }
     }
 
     public IRNode lower(IRMove irnode) {
