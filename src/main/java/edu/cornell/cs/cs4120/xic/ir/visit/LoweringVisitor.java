@@ -367,10 +367,16 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRNode parent, IRESeq irnode) {
-        IRESeq visited = (IRESeq) irnode.visitChildren(this);
-        List<IRStmt> stmts = new ArrayList<>();
-        stmts.add(visited.stmt());
-        return rotate(parent, irnode, stmts, visited.expr());
+        irnode= (IRESeq) irnode.visitChildren(this);
+        IRExpr expr = irnode.expr();
+        if (expr instanceof IRESeq) {
+            IRESeq es =(IRESeq) expr;
+            IRStmt s1 = irnode.stmt();
+            IRStmt s2 = es.stmt();
+            IRExpr e = es.expr();
+            return new IRESeq(new IRSeq(s1, s2), e);
+        }
+        else return irnode;
     }
 
     public IRNode lower(IRExp irnode) {
