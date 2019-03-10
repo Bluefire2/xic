@@ -39,4 +39,9 @@ public class IRLabel extends IRStmt {
         p.printAtom(name);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        return node instanceof IRLabel;
+    }
 }

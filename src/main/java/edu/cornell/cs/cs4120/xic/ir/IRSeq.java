@@ -101,6 +101,17 @@ public class IRSeq extends IRStmt {
         p.endList();
     }
 
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRSeq) {
+            IRSeq irSeq = (IRSeq) node;
+            return stmts.equals(irSeq.stmts)
+                    && replaceParent == irSeq.replaceParent;
+        } else {
+            return false;
+        }
+    }
+
     public boolean isReplaceParent() {
         return replaceParent;
     }

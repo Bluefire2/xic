@@ -43,4 +43,13 @@ public class IRConst extends IRExpr_c {
         p.printAtom(String.valueOf(value));
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRConst) {
+            return value == ((IRConst) node).value;
+        } else {
+            return false;
+        }
+    }
 }

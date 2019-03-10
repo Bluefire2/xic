@@ -89,4 +89,14 @@ public class IRCJump extends IRStmt {
         if (hasFalseLabel()) p.printAtom(falseLabel);
         p.endList();
     }
+
+    @Override
+    public boolean equals(Object node) {
+        if (node instanceof IRCJump) {
+            IRCJump ircJump = (IRCJump) node;
+            return cond.equals(ircJump.cond);
+        } else {
+            return false;
+        }
+    }
 }
