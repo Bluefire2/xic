@@ -97,7 +97,7 @@ public class ConstantFoldVisitor extends IRVisitor {
                     return irnode;
             }
         }
-        else return irnode;
+        return irnode;
     }
 
     public IRNode fold(IRCall irnode) {
