@@ -36,77 +36,73 @@ public class ConstantFoldVisitor extends IRVisitor {
     }
 
     public IRNode fold(IRCall irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRCJump irnode) {
-        //TODO
+        irnode = (IRCJump) irnode;
+        IRExpr cond = irnode.cond();
+        if (cond instanceof IRConst) {
+            long condval = ((IRConst) cond).value();
+            if (condval == 1) return new IRJump(new IRName(irnode.trueLabel()));
+            else if (condval == 0) {
+                if (irnode.hasFalseLabel())
+                    return new IRJump(new IRName(irnode.falseLabel()));
+                else return new IRSeq();
+            }
+        }
         return irnode;
     }
 
     public IRNode fold(IRCompUnit irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRConst irnode) {
-        //TODO
         return irnode;
     }
 
     public IRNode fold(IRESeq irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRExp irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRFuncDecl irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRJump irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRLabel irnode) {
-        //TODO
         return irnode;
     }
 
     public IRNode fold(IRMem irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRMove irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRName irnode) {
-        //TODO
         return irnode;
     }
 
     public IRNode fold(IRReturn irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRSeq irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode fold(IRTemp irnode) {
-        //TODO
         return irnode;
     }
 }
