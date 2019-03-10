@@ -336,8 +336,24 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCJump irnode) {
-        //TODO
-        return irnode;
+        // TODO: put in basic blocks
+        irnode.visitChildren(this);
+        IRExpr e = irnode.cond();
+
+        if (e instanceof IRESeq) {
+            IRESeq ireSeq = ((IRESeq) e);
+            IRExpr eprime = ireSeq.expr();
+            IRStmt s = ireSeq.stmt();
+
+            return new IRSeq(
+                    s,
+                    new IRCJump(
+                            eprime, irnode.trueLabel(), irnode.falseLabel()
+                    )
+            );
+        } else {
+            return irnode;
+        }
     }
 
     public IRNode lower(IRCompUnit irnode) {
