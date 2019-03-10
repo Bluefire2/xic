@@ -10,6 +10,11 @@ import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
+    private int tempcounter;
+
+    private String newTemp() {
+        return String.format("_lir_t%d", (tempcounter++));
+    }
 
     private class BasicBlock {
         List<IRNode> statements;
@@ -214,13 +219,84 @@ public class LoweringVisitor extends IRVisitor {
         IRExpr left = irnode.left();
         IRExpr right = irnode.right();
 
-        if (ifExprsCommute(left, right)) {
+        if (!(left instanceof IRESeq || right instanceof IRESeq)) {
+            return irnode;
+        } else if (ifExprsCommute(left, right)) {
+            IRESeq leftSeq;
+            IRESeq rightSeq;
+            IRExpr e1 = null;
+            IRExpr e2 = null;
+            IRStmt s1 = null;
+            IRStmt s2 = null;
 
+            if (left instanceof IRESeq && right instanceof IRESeq) {
+                leftSeq = (IRESeq) left;
+                rightSeq = (IRESeq) right;
+                e1 = leftSeq.expr();
+                e2 = rightSeq.expr();
+                s1 = leftSeq.stmt();
+                s2 = rightSeq.stmt();
+            } else if (left instanceof IRESeq) {
+                leftSeq = (IRESeq) left;
+                e1 = leftSeq.expr();
+                e2 = right;
+                s1 = leftSeq.stmt();
+            } else {
+                rightSeq = (IRESeq) right;
+                e1 = left;
+                e2 = rightSeq.expr();
+                s2 = rightSeq.stmt();
+            }
+
+            // IRSeq allows nulls!
+            return new IRESeq(
+                    new IRSeq(s1, s2),
+                    new IRBinOp(
+                            irnode.opType(), e1, e2
+                    )
+            );
         } else {
+            IRESeq leftSeq;
+            IRESeq rightSeq;
+            IRExpr e1;
+            IRExpr e2;
+            IRStmt s1 = null;
+            IRStmt s2 = null;
 
+            String t1 = newTemp();
+            if (left instanceof IRESeq && right instanceof IRESeq) {
+                leftSeq = (IRESeq) left;
+                rightSeq = (IRESeq) right;
+                e1 = leftSeq.expr();
+                e2 = rightSeq.expr();
+                s1 = leftSeq.stmt();
+                s2 = rightSeq.stmt();
+            } else if (left instanceof IRESeq) {
+                leftSeq = (IRESeq) left;
+                e1 = leftSeq.expr();
+                e2 = right;
+                s1 = leftSeq.stmt();
+            } else {
+                rightSeq = (IRESeq) right;
+                e1 = left;
+                e2 = rightSeq.expr();
+                s2 = rightSeq.stmt();
+            }
+
+            // IRSeq allows nulls!
+            return new IRESeq(
+                    new IRSeq(
+                            s1,
+                            new IRMove(
+                                    new IRTemp(t1), e1
+                            ),
+                            s2
+                    ),
+                    new IRBinOp(
+                            irnode.opType(), new IRTemp(t1), e2
+                    )
+            );
         }
-        return irnode;
-
     }
 
     public IRNode lower(IRCall irnode) {
