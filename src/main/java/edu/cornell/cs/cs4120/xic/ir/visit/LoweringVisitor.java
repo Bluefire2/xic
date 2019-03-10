@@ -468,7 +468,7 @@ public class LoweringVisitor extends IRVisitor {
             }
             else newRets.add(e);
         }
-        IRReturn retNode = new IRReturn(newRets)
+        IRReturn retNode = new IRReturn(newRets);
         if (stmts.size() > 0) {
             stmts.add(retNode);
             return new IRSeq(stmts);
@@ -477,8 +477,15 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRSeq irnode) {
-        //TODO
-        return irnode;
+        irnode = (IRSeq) irnode.visitChildren(this);
+        List<IRStmt> newStmts = new ArrayList<>();
+        for (IRStmt s : irnode.stmts()) {
+            if (s instanceof IRSeq) {
+                newStmts.addAll(((IRSeq) s).stmts());
+            }
+            else newStmts.add(s);
+        }
+        return new IRSeq(newStmts);
     }
 
     public IRNode lower(IRTemp irnode) {
