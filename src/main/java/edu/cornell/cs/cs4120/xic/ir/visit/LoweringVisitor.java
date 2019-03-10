@@ -457,11 +457,28 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRReturn irnode) {
-        return irnode.visitChildren(this);
+        irnode = (IRReturn) irnode.visitChildren(this);
+        List<IRStmt> stmts = new ArrayList<>();
+        List<IRExpr> newRets = new ArrayList<>();
+        for (IRExpr e : irnode.rets()) {
+            if (e instanceof IRESeq) {
+                IRESeq es = (IRESeq) e;
+                stmts.add(es.stmt());
+                newRets.add(es.expr());
+            }
+            else newRets.add(e);
+        }
+        IRReturn retNode = new IRReturn(newRets)
+        if (stmts.size() > 0) {
+            stmts.add(retNode);
+            return new IRSeq(stmts);
+        }
+        else return retNode;
     }
 
     public IRNode lower(IRSeq irnode) {
-        return irnode.visitChildren(this);
+        //TODO
+        return irnode;
     }
 
     public IRNode lower(IRTemp irnode) {
