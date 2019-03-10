@@ -358,8 +358,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCompUnit irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode lower(IRConst irnode) {
@@ -390,8 +389,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRFuncDecl irnode) {
-        //TODO
-        return irnode;
+        return irnode.visitChildren(this);
     }
 
     public IRNode lower(IRJump irnode) {
