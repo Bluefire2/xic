@@ -32,14 +32,20 @@ public class LoweringVisitor extends IRVisitor {
         void mark() { marked = true; }
     }
 
-    ArrayList<BasicBlock> basicBlocks = new ArrayList<>();
+    ArrayList<BasicBlock> basicBlocks;
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
         tempcounter = 0;
+        basicBlocks = new ArrayList<>();
         basicBlocks.add(new BasicBlock());
     }
 
+    /**
+     * Add a node to the basic block. If node is a label, return, or jump,
+     * create a new block.
+     * @param node node to be added to basic block
+     */
     private void addNodeToBlock(IRStmt node) {
         int last = basicBlocks.size() - 1;
         if (basicBlocks.size() > 1 && node instanceof IRLabel) {
@@ -55,6 +61,11 @@ public class LoweringVisitor extends IRVisitor {
         }
     }
 
+    /**
+     * Return all temps accessed by a list of nodes.
+     * @param l list of IRNodes
+     * @return list of IRTemps
+     */
     private ArrayList<String> getTemps(List<IRNode> l) {
         ArrayList<String> temps = new ArrayList<String>();
         for (IRNode n : l) {
@@ -65,6 +76,14 @@ public class LoweringVisitor extends IRVisitor {
         return temps;
     }
 
+    /**
+     * Determine whether two expressions commute according to the following
+     * rules: they do not access the same temps, and neither expression contains
+     * a memory instruction.
+     * @param e1 first expression
+     * @param e2 second expression
+     * @return true if e1 and e2 commute, false otherwise
+     */
     private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
         List<IRNode> e1Children = e1.aggregateChildren(new ListChildrenVisitor());
         e1Children.add(e1);
@@ -85,6 +104,11 @@ public class LoweringVisitor extends IRVisitor {
         return true;
     }
 
+    /**
+     * Given a label name, return its containing basic block.
+     * @param lname the name of the label
+     * @return the basic block containing the corresponding IRLabel node
+     */
     private BasicBlock getBlockWithLabel(String lname) {
         for (BasicBlock b : basicBlocks) {
             IRStmt fst = b.statements.get(0);
@@ -96,6 +120,12 @@ public class LoweringVisitor extends IRVisitor {
         return null; //TODO: Illegal state, throw error?
     }
 
+    /**
+     * Reorder basic blocks so that jumps fall through whenever possible.
+     * Called when lowering IRSeq nodes.
+     * @param root current root of the IRNode tree
+     * @return new root of IRNode tree, with basic blocks reordered
+     */
     private IRNode reorderBasicBlocks(IRNode root) {
         for (int i = 0; i < basicBlocks.size(); i++) {
             BasicBlock b = basicBlocks.get(i);
