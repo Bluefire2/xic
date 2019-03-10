@@ -8,7 +8,6 @@ public class ConstantFoldVisitor extends IRVisitor {
         super(inf);
     }
 
-
     @Override
     public IRNode leave(IRNode parent, IRNode n, IRNode n_, IRVisitor v_) {
         if (n_ instanceof IRBinOp) return fold((IRBinOp) n_);
@@ -31,8 +30,74 @@ public class ConstantFoldVisitor extends IRVisitor {
     }
 
     public IRNode fold(IRBinOp irnode) {
-        //TODO
-        return irnode;
+        //TODO: reassociation, strength reduction, other algebraic identities(?)
+        irnode = (IRBinOp) irnode.visitChildren(this);
+        IRExpr l = irnode.left();
+        IRExpr r = irnode.right();
+        IRBinOp.OpType op = irnode.opType();
+        if (l instanceof IRConst && r instanceof IRConst) {
+            long lval = ((IRConst) l).value();
+            long rval = ((IRConst) r).value();
+            switch (op) {
+                case ADD: return new IRConst(lval + rval);
+                case SUB: return new IRConst(lval - rval);
+                case MUL:  return new IRConst(lval * rval);
+                case HMUL: return new IRBinOp(IRBinOp.OpType.HMUL, l, r); //TODO
+                case DIV: return new IRConst(lval / rval);
+                case MOD: return new IRConst(lval % rval);
+                case EQ: return new IRConst((lval == rval) ? 1 : 0);
+                case NEQ: return new IRConst((lval != rval) ? 1 : 0);
+                case GT: return new IRConst((lval > rval) ? 1 : 0);
+                case LT: return new IRConst((lval < rval) ? 1 : 0);
+                case GEQ: return new IRConst((lval >= rval) ? 1 : 0);
+                case LEQ: return new IRConst((lval <= rval) ? 1 : 0);
+                case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
+                case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+            }
+        } else if (l instanceof IRConst && (r instanceof IRName || r instanceof IRLabel)) {
+            long lval = ((IRConst) l).value();
+            switch (op) {
+                case ADD:
+                case SUB:
+                    if (lval == 0) return r; else return irnode;
+                case MUL:
+                    if (lval == 1) return r;
+                    else if (lval == 0) return new IRConst(0);
+                    else return irnode;
+                case DIV:
+                    if (lval == 1) return r; else return irnode;
+                case AND:
+                    if (lval == 1) return r;
+                    else if (lval == 0) return new IRConst(0);
+                    else return irnode;
+                case OR:
+                    if (lval == 0) return r; else return irnode;
+                 default:
+                     return irnode;
+            }
+        } else if (r instanceof IRConst && (l instanceof IRName || l instanceof IRLabel)) {
+            long rval = ((IRConst) r).value();
+            switch (op) {
+                case ADD:
+                case SUB:
+                    if (rval == 0) return l; else return irnode;
+                case MUL:
+                    if (rval == 1) return l;
+                    else if (rval == 0) return new IRConst(0);
+                    else return irnode;
+                case DIV:
+                    if (rval == 1) return l; else return irnode;
+                case AND:
+                    if (rval == 1) return l;
+                    else if (rval == 0) return new IRConst(0);
+                    else return irnode;
+                case OR:
+                    if (rval == 0) return l; else return irnode;
+                default:
+                    return irnode;
+            }
+        }
+        else return irnode;
     }
 
     public IRNode fold(IRCall irnode) {
@@ -40,7 +105,7 @@ public class ConstantFoldVisitor extends IRVisitor {
     }
 
     public IRNode fold(IRCJump irnode) {
-        irnode = (IRCJump) irnode;
+        irnode = (IRCJump) irnode.visitChildren(this);
         IRExpr cond = irnode.cond();
         if (cond instanceof IRConst) {
             long condval = ((IRConst) cond).value();
