@@ -1,6 +1,7 @@
 # Custom ignores
 *.swp
 vm/.vagrant
+vm/shared/xic
 src/main/java/lexer/XiLexer.java
 src/main/java/xi_parser/XiParser.java
 src/main/java/xi_parser/IxiParser.java
