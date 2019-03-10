@@ -43,6 +43,7 @@ public class LoweringVisitor extends IRVisitor {
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
+        tempcounter = 0;
         head = new BasicBlock();
         current = head;
     }
