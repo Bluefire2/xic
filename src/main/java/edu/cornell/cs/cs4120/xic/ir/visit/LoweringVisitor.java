@@ -14,9 +14,11 @@ public class LoweringVisitor extends IRVisitor {
 
     private class BasicBlock {
         List<IRStmt> statements;
+        boolean marked;
 
         BasicBlock () {
             statements = new ArrayList<>();
+            marked = false;
         }
 
         void addStmt(IRStmt stmt) {
@@ -27,13 +29,7 @@ public class LoweringVisitor extends IRVisitor {
             return statements.get(statements.size()-1);
         }
 
-        // must do null check
-        IRLabel getAssociatedLabel() {
-            for (IRNode n : statements) {
-                if (n instanceof IRLabel) return (IRLabel) n;
-            }
-            return null;
-        }
+        void mark() { marked = true; }
     }
 
     ArrayList<BasicBlock> basicBlocks = new ArrayList<>();
@@ -89,19 +85,46 @@ public class LoweringVisitor extends IRVisitor {
         return true;
     }
 
-    private BasicBlock getBlockWithLabel(IRLabel l) {
-        //TODO
-        return null;
-    }
-
-    private void swapBlocks(ArrayList<BasicBlock> lst, BasicBlock a, BasicBlock b) {
-        //TODO
-        return;
+    private BasicBlock getBlockWithLabel(String lname) {
+        for (BasicBlock b : basicBlocks) {
+            IRStmt fst = b.statements.get(0);
+            if (fst instanceof IRLabel) {
+                IRLabel lbl = (IRLabel) fst;
+                if (lname.equals(lbl.name())) return b;
+            }
+        }
+        return null; //TODO: Illegal state, throw error?
     }
 
     private IRNode reorderBasicBlocks(IRNode root) {
-        //TODO: implement this
-        return root;
+        for (int i = 0; i < basicBlocks.size(); i++) {
+            BasicBlock b = basicBlocks.get(i);
+            b.mark();
+            if (b.getLastStmt() instanceof IRJump) {
+                IRJump jmp = (IRJump) b.getLastStmt();
+                IRExpr target = jmp.target();
+                if (target instanceof IRName) {
+                    IRName lname = (IRName) target;
+                    BasicBlock fallThrough = getBlockWithLabel(lname.name());
+                    if (i+1 < basicBlocks.size()) {
+                        BasicBlock temp = basicBlocks.get(i+1);
+                        if (!fallThrough.marked && !temp.marked) {
+                            fallThrough.mark();
+                            temp.mark();
+                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
+                            basicBlocks.set(i + 1, fallThrough);
+                            b.statements.remove(basicBlocks.size() - 1);
+                        }
+                    }
+
+                }
+            }
+        }
+        List<IRStmt> stmts = new ArrayList<>();
+        for (BasicBlock b : basicBlocks) {
+            stmts.addAll(b.statements);
+        }
+        return new IRSeq(stmts);
     }
 
     @Override
@@ -269,9 +292,8 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCompUnit irnode) {
-        //IRCompUnit will be root of IR tree, so basic block reordering can be handled here?
         irnode = (IRCompUnit) irnode.visitChildren(this);
-        return reorderBasicBlocks(irnode);
+        return irnode;
     }
 
     public IRNode lower(IRConst irnode) {
@@ -477,7 +499,7 @@ public class LoweringVisitor extends IRVisitor {
         }
         IRSeq ret = new IRSeq(newStmts);
         addNodeToBlock(ret);
-        return ret;
+        return reorderBasicBlocks(ret);
     }
 
     public IRNode lower(IRTemp irnode) {
