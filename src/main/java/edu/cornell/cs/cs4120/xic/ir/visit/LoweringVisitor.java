@@ -473,8 +473,39 @@ public class LoweringVisitor extends IRVisitor {
             stmts.add(new IRMove(destprime, eprime));
             return new IRSeq(stmts);
         } else {
-            //TODO: move-general case
-            return irnode;
+            IRESeq destSeq;
+            IRESeq srcSeq;
+            IRExpr destprime;
+            IRExpr eprime;
+            IRStmt s1 = null;
+            IRStmt s2 = null;
+
+            String t1 = newTemp();
+            if (dest instanceof IRESeq && src instanceof IRESeq) {
+                destSeq = (IRESeq) dest;
+                srcSeq = (IRESeq) src;
+                destprime = destSeq.expr();
+                eprime = srcSeq.expr();
+                s1 = destSeq.stmt();
+                s2 = srcSeq.stmt();
+            } else if (dest instanceof IRESeq) {
+                destSeq = (IRESeq) dest;
+                destprime = destSeq.expr();
+                eprime = src;
+                s1 = destSeq.stmt();
+            } else {
+                srcSeq = (IRESeq) src;
+                destprime = dest;
+                eprime = srcSeq.expr();
+                s2 = srcSeq.stmt();
+            }
+
+            List<IRStmt> stmts = new ArrayList<>();
+            stmts.add(s1);
+            stmts.add(new IRMove(new IRTemp(t1), destprime));
+            stmts.add(s2);
+            stmts.add(new IRMove(new IRMem(new IRTemp(t1)), eprime));
+            return new IRSeq(stmts);
         }
     }
 
