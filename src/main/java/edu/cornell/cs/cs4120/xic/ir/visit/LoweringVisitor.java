@@ -1,12 +1,8 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.*;
-import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
@@ -94,17 +90,6 @@ public class LoweringVisitor extends IRVisitor {
         return true;
     }
 
-    @Override
-    public IRNode override(IRNode parent, IRNode n) {
-        if (n instanceof IRESeq) {
-            if (((IRESeq) n).isReplaceParent()) return n;
-        }
-        else if (n instanceof IRSeq) {
-            if (((IRSeq) n).isReplaceParent()) return n;
-        }
-        return null;
-    }
-
 
     @Override
     public IRNode leave(IRNode parent, IRNode n, IRNode n_, IRVisitor v_) {
@@ -127,93 +112,6 @@ public class LoweringVisitor extends IRVisitor {
         else return null; //Illegal state
     }
 
-    public  IRNode replaceChildExpr(IRNode parent, IRExpr child, IRExpr newChild) {
-        if (parent instanceof IRBinOp) {
-            IRBinOp p = (IRBinOp) parent;
-            if (child.equals(p.left())) {
-                return new IRBinOp(p.opType(), newChild, p.right());
-            }
-            else if (child.equals(p.right())) {
-                return new IRBinOp(p.opType(), p.left(), (IRExpr) newChild);
-            }
-        }
-        else if (parent instanceof IRCall) {
-            IRCall p = (IRCall) parent;
-            if (child.equals(p.target())) return new IRCall(newChild, p.args());
-            else {
-                List<IRExpr> args = p.args();
-                ListIterator<IRExpr> iterator = args.listIterator();
-                while (iterator.hasNext()) {
-                    IRExpr next = iterator.next();
-                    if (next.equals(child)) {
-                        iterator.set((IRExpr) newChild);
-                    }
-                }
-                return new IRCall(p.target(), args);
-            }
-        }
-        else if (parent instanceof IRCJump) {
-            IRCJump p = (IRCJump) parent;
-            if (child.equals(p.cond())) return new IRCJump(newChild, p.trueLabel(), p.falseLabel());
-        }
-        else if (parent instanceof IRESeq) {
-            IRESeq p = (IRESeq) parent;
-            if (child.equals(p.stmt())) return new IRESeq((IRStmt) newChild, p.expr());
-            else if (child.equals(p.expr())) return new IRESeq(p.stmt(), (IRExpr) newChild);
-        }
-        else if (parent instanceof IRExp) {
-            IRExp p = (IRExp) parent;
-            if (child.equals(p.expr())) return new IRExp((IRExpr) newChild);
-        }
-        else if (parent instanceof IRJump) {
-            IRJump p = (IRJump) parent;
-            if (child.equals(p.target())) return new IRMem((IRExpr) newChild);
-        }
-        else if (parent instanceof IRMem) {
-            IRMem p = (IRMem) parent;
-            if (child.equals(p.expr())) return new IRMem((IRExpr) newChild, p.memType());
-        }
-        else if (parent instanceof IRMove) {
-            IRMove p = (IRMove) parent;
-            if (child.equals(p.target())) {
-                return new IRMove((IRExpr) newChild, p.source());
-            }
-            else if (child.equals(p.source())) {
-                return new IRMove(p.target(), (IRExpr) newChild);
-            }
-        }
-        else if (parent instanceof IRReturn) {
-            IRReturn p = (IRReturn) parent;
-            List<IRExpr> exprs = p.rets();
-            ListIterator<IRExpr> iterator = exprs.listIterator();
-            while (iterator.hasNext()) {
-                IRExpr next = iterator.next();
-                if (next.equals(child)) {
-                    iterator.set((IRExpr) newChild);
-                }
-            }
-            return new IRReturn(exprs);
-        }
-        return null; //TODO: resolve?
-    }
-
-    public IRNode rotate(IRNode parent, IRNode child, List<IRStmt> stmts, IRExpr expr) {
-        IRNode newParent = parent;
-        IRExpr curr = (IRExpr) child;
-        for (IRStmt stmt : stmts) {
-            if (newParent instanceof IRExpr) {
-                newParent = new IRESeq(stmt, (IRExpr) replaceChildExpr(newParent, curr, expr), true);
-            } else if (newParent instanceof IRStmt) {
-                ArrayList<IRStmt> stmtlist = new ArrayList<>();
-                stmtlist.add(stmt);
-                stmtlist.add((IRStmt) replaceChildExpr(newParent, curr, expr));
-                newParent = new IRSeq(stmtlist, true);
-            } else if (parent instanceof IRFuncDecl) {
-                //TODO: illegal?
-            }
-        }
-        return newParent;
-    }
 
     public IRNode lower(IRBinOp irnode) {
         irnode = (IRBinOp) irnode.visitChildren(this);
