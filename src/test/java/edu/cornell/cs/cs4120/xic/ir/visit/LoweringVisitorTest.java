@@ -52,6 +52,37 @@ public class LoweringVisitorTest {
         assertEquals(lirMovSeq, visitor.lower(movMir));
     }
 
+    @Test
+    public void testExp() {
+        IRExp exp = new IRExp(new IRESeq(new IRReturn(), new IRConst(2)));
+        IRReturn ret = new IRReturn();
+        assertEquals(ret, visitor.lower(exp));
+    }
+
+    @Test
+    public void testCall() {
+        IRCall call = new IRCall(new IRName("f"),
+                new IRESeq(new IRMove(new IRTemp("x"),
+                        new IRTemp("y")),
+                        new IRConst(1)),
+                new IRConst(2));
+        IRESeq lcall = new IRESeq(
+                new IRSeq(new IRMove(new IRTemp("x"), new IRTemp("y")),
+                         new IRMove(new IRTemp("_lir_t0"), new IRConst(1)),
+                         new IRMove(new IRTemp("_lir_t1"), new IRConst(2)),
+                         new IRMove(new IRTemp("_lir_t2"),
+                                new IRCall(new IRName("f"),
+                                        new IRTemp("_lir_t0"),
+                                        new IRTemp("_lir_t1"))))
+                        , new IRTemp("_lir_t2"));
+        assertEquals(lcall, visitor.lower(call));
+    }
+
+    //TODO:
+    //test move commute and move general
+    //test binop commute and binop general
+    //test cjumps, jumps
+
     @Before
     public void setUp() throws Exception {
         visitor = new LoweringVisitor(new IRNodeFactory_c());
