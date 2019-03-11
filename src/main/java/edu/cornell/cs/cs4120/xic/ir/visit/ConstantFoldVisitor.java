@@ -29,6 +29,11 @@ public class ConstantFoldVisitor extends IRVisitor {
         else return null; //Illegal state
     }
 
+    public IRNode strengthReduce(IRBinOp.OpType op, IRName n, IRConst c, IRNode node) {
+        //TODO:
+        return node;
+    }
+
     public IRNode fold(IRBinOp irnode) {
         //TODO: reassociation, strength reduction, other algebraic identities(?)
         irnode = (IRBinOp) irnode.visitChildren(this);
@@ -54,7 +59,7 @@ public class ConstantFoldVisitor extends IRVisitor {
                 case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
                 case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
             }
-        } else if (l instanceof IRConst && (r instanceof IRName || r instanceof IRLabel)) {
+        } else if (l instanceof IRConst && r instanceof IRName) {
             long lval = ((IRConst) l).value();
             switch (op) {
                 case ADD:
@@ -63,9 +68,10 @@ public class ConstantFoldVisitor extends IRVisitor {
                 case MUL:
                     if (lval == 1) return r;
                     else if (lval == 0) return new IRConst(0);
-                    else return irnode;
+                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case DIV:
-                    if (lval == 1) return r; else return irnode;
+                    if (lval == 1) return r;
+                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case AND:
                     if (lval == 1) return r;
                     else if (lval == 0) return new IRConst(0);
@@ -75,7 +81,7 @@ public class ConstantFoldVisitor extends IRVisitor {
                  default:
                      return irnode;
             }
-        } else if (r instanceof IRConst && (l instanceof IRName || l instanceof IRLabel)) {
+        } else if (r instanceof IRConst && l instanceof IRName) {
             long rval = ((IRConst) r).value();
             switch (op) {
                 case ADD:
@@ -84,9 +90,10 @@ public class ConstantFoldVisitor extends IRVisitor {
                 case MUL:
                     if (rval == 1) return l;
                     else if (rval == 0) return new IRConst(0);
-                    else return irnode;
+                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case DIV:
-                    if (rval == 1) return l; else return irnode;
+                    if (rval == 1) return l;
+                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case AND:
                     if (rval == 1) return l;
                     else if (rval == 0) return new IRConst(0);

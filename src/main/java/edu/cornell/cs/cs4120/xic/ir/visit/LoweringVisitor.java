@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
@@ -106,6 +107,7 @@ public class LoweringVisitor extends IRVisitor {
 
     /**
      * Given a label name, return its containing basic block.
+     * @throws IllegalStateException if given nonexistent label.
      * @param lname the name of the label
      * @return the basic block containing the corresponding IRLabel node
      */
@@ -117,7 +119,7 @@ public class LoweringVisitor extends IRVisitor {
                 if (lname.equals(lbl.name())) return b;
             }
         }
-        return null; //TODO: Illegal state, throw error?
+        throw new IllegalStateException(lname + " is not a valid label");
     }
 
     /**
@@ -355,7 +357,7 @@ public class LoweringVisitor extends IRVisitor {
             addNodeToBlock(ret);
             return ret;
         }
-        else return null;
+        else return new IRSeq();
     }
 
     public IRNode lower(IRFuncDecl irnode) {
