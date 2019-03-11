@@ -531,7 +531,8 @@ public class LoweringVisitor extends IRVisitor {
         }
         IRSeq ret = new IRSeq(newStmts);
         addNodeToBlock(ret);
-        return reorderBasicBlocks(ret);
+        return ret;
+       // return reorderBasicBlocks(ret);
     }
 
     public IRNode lower(IRTemp irnode) {

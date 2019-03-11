@@ -23,6 +23,17 @@ public class LoweringVisitorTest {
         assertEquals(node, nodep);
     }
 
+    @Test
+    public void testNestedSeq() {
+        IRStmt stmt = new IRLabel("l1");
+        IRStmt stmt2 = new IRLabel("l2");
+        IRStmt stmt3 = new IRLabel("l3");
+        IRSeq s = new IRSeq(stmt, stmt2);
+        IRSeq ns = new IRSeq(s, stmt3);
+        IRSeq flattened = new IRSeq(stmt, stmt2, stmt3);
+        assertEquals(flattened, visitor.lower(ns));
+    }
+
     @Before
     public void setUp() throws Exception {
         visitor = new LoweringVisitor(new IRNodeFactory_c());
