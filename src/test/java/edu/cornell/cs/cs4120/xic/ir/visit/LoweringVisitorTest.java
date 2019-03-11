@@ -34,6 +34,24 @@ public class LoweringVisitorTest {
         assertEquals(flattened, visitor.lower(ns));
     }
 
+    @Test
+    public void testMoveEseq() {
+        IRMove movMir = new IRMove(new IRMem(new IRTemp("y")),
+                            new IRESeq(new IRMove(new IRTemp("x"),
+                                new IRTemp("y")),
+                            new IRBinOp(IRBinOp.OpType.ADD,
+                                    new IRTemp("x"),
+                                    new IRConst(1))
+                ));
+        IRSeq lirMovSeq = new IRSeq(new IRMove(new IRTemp("x"),
+                                                new IRTemp("y")),
+                                    new IRMove(new IRMem(new IRTemp("y")),
+                                        new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("x"),
+                                        new IRConst(1))));
+        assertEquals(lirMovSeq, visitor.lower(movMir));
+    }
+
     @Before
     public void setUp() throws Exception {
         visitor = new LoweringVisitor(new IRNodeFactory_c());
