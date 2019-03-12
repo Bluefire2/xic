@@ -19,7 +19,7 @@ public class VisitorTranslationTest {
 
     @Before
     public void setUp() {
-        visitor = new VisitorTranslation();
+        visitor = new VisitorTranslation(true);
     }
 
     @After
@@ -75,7 +75,7 @@ public class VisitorTranslationTest {
                 new TypeTUnit(),
                 new TypeTUnit());
         assertEquals(visitor.functionName("multiple__underscores", t),
-                "_Imultiple____underScores_p");
+                "_Imultiple____underscores_p");
     }
 
     @Test
