@@ -18,7 +18,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private boolean optimize;
 
     private String newLabel() {
-        return String.format("l%d", (labelcounter++));
+        return String.format("_mir_l%d", (labelcounter++));
     }
 
     private String newTemp() {
@@ -227,35 +227,31 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 IRLabel whileEnd = new IRLabel(newLabel());
                 IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, i, sizeIR);
 
-                return Arrays.asList(
-                        new IRMove(i, new IRConst(0)),  // i <- 0
-                        whileStart, // while loop starts
-                        // Go to end if i >= sizeIR
-                        new IRCJump(whileGuardExit, whileEnd.name()),
-                        // Allocate multi dim array at t + i*8
-                        new IRSeq(allocateMultiDimArray(
-                                new IRMem(new IRBinOp(
-                                        OpType.ADD,
-                                        t,
-                                        new IRBinOp(
-                                                OpType.MUL,
-                                                i,
-                                                new IRConst(WORD_NUM_BYTES)
-                                        )
-                                )),
-                                itArray)),
-                        // i++
-                        new IRMove(
-                                i,
-                                new IRBinOp(OpType.ADD, i, new IRConst(1))
-                        ),
-                        new IRJump(new IRName(whileStart.name())),
-                        whileEnd    // while loop ends
-                );
-            } else {
-                // innerType not an array, just return the uninitialized array
-                return arrIR;
+                arrIR.add(new IRMove(i, new IRConst(0)));   // i <- 0
+                arrIR.add(whileStart);  // while loop starts
+                // Go to end if i >= sizeIR
+                arrIR.add(new IRCJump(whileGuardExit, whileEnd.name()));
+                // Allocate multi dim array at t + i*8
+                arrIR.add(new IRSeq(allocateMultiDimArray(
+                        new IRMem(new IRBinOp(
+                                OpType.ADD,
+                                t,
+                                new IRBinOp(
+                                        OpType.MUL,
+                                        i,
+                                        new IRConst(WORD_NUM_BYTES)
+                                )
+                        )),
+                        itArray)));
+                // i++
+                arrIR.add(new IRMove(
+                        i,
+                        new IRBinOp(OpType.ADD, i, new IRConst(1))
+                ));
+                arrIR.add(new IRJump(new IRName(whileStart.name())));
+                arrIR.add(whileEnd);    // while loop ends
             }
+            return arrIR;
         } else {
             // size == null ==> the inner arrays, if any, are also
             // uninitialized. So just return an empty list of IRStmts
