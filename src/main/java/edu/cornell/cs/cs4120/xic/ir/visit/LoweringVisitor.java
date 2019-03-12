@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
@@ -13,53 +14,59 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     private class BasicBlock {
-        List<IRNode> statements;
-        BasicBlock next;  //TODO: possibly make list
+        List<IRStmt> statements;
+        boolean marked;
 
         BasicBlock () {
             statements = new ArrayList<>();
-            next = null;
+            marked = false;
         }
 
-        void addStmt(IRNode stmt) {
+        void addStmt(IRStmt stmt) {
             statements.add(stmt);
         }
 
-        BasicBlock getNext() {
-            return next;
+        IRNode getLastStmt() {
+            return statements.get(statements.size()-1);
         }
 
-        void setNext(BasicBlock next) {
-            this.next = next;
-        }
+        void mark() { marked = true; }
     }
 
-    BasicBlock head;
-    BasicBlock current;
+    ArrayList<BasicBlock> basicBlocks;
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
         tempcounter = 0;
-        head = new BasicBlock();
-        current = head;
+        basicBlocks = new ArrayList<>();
+        basicBlocks.add(new BasicBlock());
     }
 
-    private void addNodeToBlock(IRNode node) {
-        if (node instanceof IRLabel && current != head) {
+    /**
+     * Add a node to the basic block. If node is a label, return, or jump,
+     * create a new block.
+     * @param node node to be added to basic block
+     */
+    private void addNodeToBlock(IRStmt node) {
+        int last = basicBlocks.size() - 1;
+        if (basicBlocks.size() > 1 && node instanceof IRLabel) {
             BasicBlock newblock = new BasicBlock();
             newblock.addStmt(node);
-            current.setNext(newblock);
-            current = newblock;
+            basicBlocks.add(newblock);
         } else if (node instanceof IRReturn || node instanceof IRJump || node instanceof IRCJump) {
-            current.addStmt(node);
+            basicBlocks.get(last).addStmt(node);
             BasicBlock newblock = new BasicBlock();
-            current.setNext(newblock);
-            current = newblock;
+            basicBlocks.add(newblock);
         } else {
-            current.addStmt(node);
+            basicBlocks.get(last).addStmt(node);
         }
     }
 
+    /**
+     * Return all temps accessed by a list of nodes.
+     * @param l list of IRNodes
+     * @return list of IRTemps
+     */
     private ArrayList<String> getTemps(List<IRNode> l) {
         ArrayList<String> temps = new ArrayList<String>();
         for (IRNode n : l) {
@@ -70,6 +77,14 @@ public class LoweringVisitor extends IRVisitor {
         return temps;
     }
 
+    /**
+     * Determine whether two expressions commute according to the following
+     * rules: they do not access the same temps, and neither expression contains
+     * a memory instruction.
+     * @param e1 first expression
+     * @param e2 second expression
+     * @return true if e1 and e2 commute, false otherwise
+     */
     private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
         List<IRNode> e1Children = e1.aggregateChildren(new ListChildrenVisitor());
         e1Children.add(e1);
@@ -90,6 +105,59 @@ public class LoweringVisitor extends IRVisitor {
         return true;
     }
 
+    /**
+     * Given a label name, return its containing basic block.
+     * @throws IllegalStateException if given nonexistent label.
+     * @param lname the name of the label
+     * @return the basic block containing the corresponding IRLabel node
+     */
+    private BasicBlock getBlockWithLabel(String lname) {
+        for (BasicBlock b : basicBlocks) {
+            IRStmt fst = b.statements.get(0);
+            if (fst instanceof IRLabel) {
+                IRLabel lbl = (IRLabel) fst;
+                if (lname.equals(lbl.name())) return b;
+            }
+        }
+        throw new IllegalStateException(lname + " is not a valid label");
+    }
+
+    /**
+     * Reorder basic blocks so that jumps fall through whenever possible.
+     * Called when lowering IRSeq nodes.
+     * @param root current root of the IRNode tree
+     * @return new root of IRNode tree, with basic blocks reordered
+     */
+    private IRNode reorderBasicBlocks(IRNode root) {
+        for (int i = 0; i < basicBlocks.size(); i++) {
+            BasicBlock b = basicBlocks.get(i);
+            b.mark();
+            if (b.getLastStmt() instanceof IRJump) {
+                IRJump jmp = (IRJump) b.getLastStmt();
+                IRExpr target = jmp.target();
+                if (target instanceof IRName) {
+                    IRName lname = (IRName) target;
+                    BasicBlock fallThrough = getBlockWithLabel(lname.name());
+                    if (i+1 < basicBlocks.size()) {
+                        BasicBlock temp = basicBlocks.get(i+1);
+                        if (!fallThrough.marked && !temp.marked) {
+                            fallThrough.mark();
+                            temp.mark();
+                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
+                            basicBlocks.set(i + 1, fallThrough);
+                            b.statements.remove(basicBlocks.size() - 1);
+                        }
+                    }
+
+                }
+            }
+        }
+        List<IRStmt> stmts = new ArrayList<>();
+        for (BasicBlock b : basicBlocks) {
+            stmts.addAll(b.statements);
+        }
+        return new IRSeq(stmts);
+    }
 
     @Override
     public IRNode leave(IRNode parent, IRNode n, IRNode n_, IRVisitor v_) {
@@ -119,7 +187,6 @@ public class LoweringVisitor extends IRVisitor {
         IRExpr right = irnode.right();
 
         if (!(left instanceof IRESeq || right instanceof IRESeq)) {
-            addNodeToBlock(irnode);
             return irnode;
         } else if (ifExprsCommute(left, right)) {
             IRESeq leftSeq;
@@ -153,7 +220,6 @@ public class LoweringVisitor extends IRVisitor {
                     new IRBinOp(
                             irnode.opType(), e1, e2
                     ));
-            addNodeToBlock(ret);
             return ret;
         } else {
             IRESeq leftSeq;
@@ -194,7 +260,6 @@ public class LoweringVisitor extends IRVisitor {
                     new IRBinOp(
                             irnode.opType(), new IRTemp(t1), e2
                     ));
-            addNodeToBlock(ret);
             return ret;
         }
     }
@@ -233,12 +298,10 @@ public class LoweringVisitor extends IRVisitor {
                 new IRSeq(stmts),
                 new IRTemp(t)
         );
-        addNodeToBlock(ret);
         return ret;
     }
 
     public IRNode lower(IRCJump irnode) {
-        // TODO: put in basic blocks
         irnode = (IRCJump) irnode.visitChildren(this);
         IRExpr e = irnode.cond();
 
@@ -248,9 +311,9 @@ public class LoweringVisitor extends IRVisitor {
             IRStmt s = ireSeq.stmt();
 
             IRSeq ret = new IRSeq(
-                    s,
-                    new IRCJump(
-                            eprime, irnode.trueLabel(), irnode.falseLabel()
+                    new IRSeq(s, new IRCJump(eprime, irnode.trueLabel()),
+                    new IRJump(new IRName(irnode.falseLabel())),
+                    new IRLabel(irnode.falseLabel())
                     ));
             addNodeToBlock(ret);
             return ret;
@@ -261,13 +324,12 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCompUnit irnode) {
-        //TODO: call method to reorder basic blocks here?
-        return irnode.visitChildren(this);
+        irnode = (IRCompUnit) irnode.visitChildren(this);
+        return irnode;
     }
 
     public IRNode lower(IRConst irnode) {
         //Constants are already canonical
-        addNodeToBlock(irnode);
         return irnode;
     }
 
@@ -280,11 +342,9 @@ public class LoweringVisitor extends IRVisitor {
             IRStmt s2 = es.stmt();
             IRExpr e = es.expr();
             IRESeq ret = new IRESeq(new IRSeq(s1, s2), e);
-            addNodeToBlock(ret);
             return ret;
         }
         else {
-            addNodeToBlock(irnode);
             return irnode;
         }
     }
@@ -297,7 +357,7 @@ public class LoweringVisitor extends IRVisitor {
             addNodeToBlock(ret);
             return ret;
         }
-        else return null;
+        else return new IRSeq();
     }
 
     public IRNode lower(IRFuncDecl irnode) {
@@ -344,10 +404,8 @@ public class LoweringVisitor extends IRVisitor {
                     s,
                     new IRMem(eprime)
             );
-            addNodeToBlock(ret);
             return ret;
         } else {
-            addNodeToBlock(irnode);
             return irnode;
         }
     }
@@ -434,7 +492,6 @@ public class LoweringVisitor extends IRVisitor {
 
     public IRNode lower(IRName irnode) {
         //Names are already canonical
-        addNodeToBlock(irnode);
         return irnode;
     }
 
@@ -475,11 +532,11 @@ public class LoweringVisitor extends IRVisitor {
         IRSeq ret = new IRSeq(newStmts);
         addNodeToBlock(ret);
         return ret;
+       // return reorderBasicBlocks(ret);
     }
 
     public IRNode lower(IRTemp irnode) {
         //Temps are already canonical
-        addNodeToBlock(irnode);
         return irnode;
     }
 

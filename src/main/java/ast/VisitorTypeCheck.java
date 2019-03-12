@@ -78,7 +78,7 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                 } else if (lTypeIsArray && rTypeIsArray) {
                     TypeTTauArray larr = (TypeTTauArray) lType;
                     TypeTTauArray rarr = (TypeTTauArray) rType;
-                    if (larr.getTypeTTau().equals(rarr.getTypeTTau())) {
+                    if (larr.equals(rarr)) {
                         node.setTypeCheckType(larr);
                         break;
                     }
@@ -103,7 +103,7 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                 if (lTypeIsArray && rTypeIsArray) {
                     TypeTTauArray lTau = (TypeTTauArray) lType;
                     TypeTTauArray rTau = (TypeTTauArray) rType;
-                    if (lTau.getTypeTTau().equals(rTau.getTypeTTau())) {
+                    if (lTau.equals(rTau)) {
                         node.setTypeCheckType(new TypeTTauBool());
                         break;
                     }
@@ -159,34 +159,39 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                         node.getLocation()
                 );
             }
+
+            List<Expr> args = node.getArgs();
             // outTypes being equal to TypeTUnit or not doesn't make a
             // difference in the resulting type of this function/procedure.
             // Function types are exactly the same, procedures just have
             // an extra context return
             if (inTypes instanceof TypeTUnit) {
-                // procedure with no args
+                // function with no args
                 node.setTypeCheckType(outTypes);
-            } else if (inTypes instanceof TypeTTau
-                    && node.getArgs().size() == 1
-                    && node.getArgs().get(0).getTypeCheckType().equals(inTypes)) {
-                // procedure with 1 arg
+            } else if (inTypes instanceof TypeTTau) {
+                if (args.size() != 1)
+                    throw new SemanticError(
+                            "Mismatched number of arguments", node.getLocation());
+                // function with 1 arg
+                Expr arg = args.get(0);
+                if (!arg.getTypeCheckType().equals(inTypes))
+                    throw new SemanticTypeCheckError(
+                            inTypes,
+                            arg.getTypeCheckType(),
+                            arg.getLocation()
+                    );
+                // arg and expected param type are equal
                 node.setTypeCheckType(outTypes);
             } else if (inTypes instanceof TypeTList) {
-                // procedure with >= 2 args
+                // function with >= 2 args
                 List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
-                List<Expr> funcArgs = node.getArgs();
-                if (inTauList.size() != funcArgs.size())
+                if (inTauList.size() != args.size())
                     // num arguments not equal
                     throw new SemanticError(
-                            String.format("%d arguments expected, but" +
-                                            " %d given", inTauList.size(),
-                                    funcArgs.size()
-                            ),
-                            node.getLocation()
-                    );
+                            "Mismatched number of arguments", node.getLocation());
                 // else
-                for (int i = 0; i < funcArgs.size(); ++i) {
-                    Expr ei = funcArgs.get(i);
+                for (int i = 0; i < args.size(); ++i) {
+                    Expr ei = args.get(i);
                     TypeTTau ti = inTauList.get(i);
                     if (!ei.getTypeCheckType().equals(ti)) {
                         // Gamma |- ei : tj and tj != ti
@@ -407,8 +412,31 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
     @Override
     public Void visit(StmtDecl node) {
         TypeDeclVar d = node.getDecl();
-        TypeSymTableVar dt = new TypeSymTableVar((TypeTTau) d.typeOf());
+        TypeTTau t = (TypeTTau) d.typeOf();
+        TypeSymTableVar dt = new TypeSymTableVar(t);
         for (String did : d.varsOf()) {
+            while (t instanceof TypeTTauArray) {
+                // Unwrap t to ensure the initializer lengths are ints
+                TypeTTauArray tArr = (TypeTTauArray) t;
+                Expr tArrSize = tArr.getSize();
+                if (tArrSize != null) {
+                    tArrSize.accept(this);
+                    if (!tArrSize.getTypeCheckType().equals(new TypeTTauInt()))
+                        // Initializer length is not int type
+                        throw new SemanticError(
+                                String.format("Expected int, but got %s",
+                                        tArrSize.getTypeCheckType()),
+                                tArrSize.getLocation()
+                        );
+                }
+                if (tArr.getTypeTTau() == null) {
+                    // Inner type not initialized, lengths will be
+                    // uninitialized hereafter too
+                    break;
+                } else {
+                    t = tArr.getTypeTTau();
+                }
+            }
             if (symTable.contains(did)) {
                 throw new SemanticError(
                         String.format("Duplicate variable %s", did),
@@ -429,7 +457,8 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
      * @param decl declaration.
      * @param givenType type of the corresponding RHS function call.
      */
-    private Void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
+    private void checkDeclaration(ASTNode node, TypeDecl decl,
+                                  TypeT givenType) {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
         if (!givenType.subtypeOf(varType)) {
@@ -451,7 +480,6 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                 // put in the symTable
             }
         }
-        return null;
     }
 
     @Override
@@ -506,56 +534,53 @@ public class VisitorTypeCheck implements VisitorAST<Void> {
                 TypeT prInputs = prFunc.getInput();
                 TypeT prOutput = prFunc.getOutput();
                 List<Expr> args = node.getArgs();
-                if(!(prOutput instanceof TypeTUnit)) {
+                if (!(prOutput instanceof TypeTUnit)) {
                     throw new SemanticError(node.getName()
                             + " is not a procedure", node.getLocation());
                 }
-                //no parameters
                 if (prInputs instanceof TypeTUnit) {
+                    //no parameters
                     if (args.size() > 0) {
                         throw new SemanticError(
                                 "Mismatched number of arguments", node.getLocation());
                     }
-                }
-                //one parameter
-                else if (prInputs instanceof TypeTTau) {
-                    TypeT given = args.get(0).getTypeCheckType();
-                    TypeT expected = prInputs;
-
+                } else if (prInputs instanceof TypeTTau) {
+                    //one parameter
                     if (!(args.size() == 1)) {
                         throw new SemanticError(
                                 "Mismatched number of arguments", node.getLocation());
                     }
-                    if (!(given.subtypeOf(expected))) {
-                        throw new SemanticTypeCheckError(expected, given, node.getLocation());
+
+                    TypeT given = args.get(0).getTypeCheckType();
+                    if (!(given.equals(prInputs))) {
+                        throw new SemanticTypeCheckError(prInputs, given,
+                                node.getLocation());
                     }
-                }
-                //multiple parameters
-                else if (prInputs instanceof TypeTList) {
+                } else if (prInputs instanceof TypeTList) {
+                    //multiple parameters
                     List<TypeTTau> inputList = ((TypeTList) prInputs).getTTauList();
                     if (args.size() != inputList.size()) {
                         throw new SemanticError(
                                 "Mismatched number of arguments", node.getLocation());
                     }
                     for (int i = 0; i < args.size(); i++) {
-                        TypeT given = args.get(i).getTypeCheckType();
+                        Expr ei = args.get(i);
                         TypeT expected = inputList.get(i);
-                        if (!given.subtypeOf(expected)) {
-                            throw new SemanticTypeCheckError(expected, given, node.getLocation());
+                        if (!ei.getTypeCheckType().equals(expected)) {
+                            throw new SemanticTypeCheckError(
+                                    expected,
+                                    ei.getTypeCheckType(),
+                                    ei.getLocation()
+                            );
                         }
                     }
                 }
-                else {
-                    // Illegal state
-                }
                 node.setTypeCheckType(TypeR.Unit);
-            }
-            else {
+            } else {
                 throw new SemanticError(node.getName()
                         + " is not a procedure", node.getLocation());
             }
-        }
-        catch (NotFoundException e) {
+        } catch (NotFoundException e) {
             throw new SemanticError(node.getName()
                     + " is not a procedure", node.getLocation());
         }

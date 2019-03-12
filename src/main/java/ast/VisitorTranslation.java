@@ -64,7 +64,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    public String functionName(String name, TypeSymTableFunc signature){
+    String functionName(String name, TypeSymTableFunc signature){
         String newName = name.replaceAll("_","__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
@@ -533,13 +533,13 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(FileProgram node) {
-        List<IRStmt> result = node.getImports().stream()
-                .map(u -> (IRStmt) u.accept(this))
-                .collect(Collectors.toList());
-        result.addAll(node.getFuncDefns().stream()
+        // TODO: are we sure that we must ignore the imports?
+//        List<IRStmt> result = node.getImports().stream()
+//                .map(u -> (IRStmt) u.accept(this))
+//                .collect(Collectors.toList());
+        return new IRSeq(node.getFuncDefns().stream()
                 .map(f -> (IRStmt) f.accept(this))
                 .collect(Collectors.toList()));
-        return new IRSeq(result);
     }
 
     @Override
