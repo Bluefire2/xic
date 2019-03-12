@@ -20,7 +20,7 @@ public class ExprIntLiteral extends Expr {
     public ExprIntLiteral(Character val,
                           ComplexSymbolFactory.Location location) {
         super(location);
-        this.value = (long) Character.getNumericValue(val);
+        this.value = (long) val;
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = true;
         this.raw = val;
