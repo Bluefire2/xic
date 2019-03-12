@@ -308,15 +308,18 @@ public class LoweringVisitor extends IRVisitor {
             IRStmt s = ireSeq.stmt();
 
             IRSeq ret = new IRSeq(
-                    new IRSeq(s, new IRCJump(eprime, irnode.trueLabel()),
-                    new IRJump(new IRName(irnode.falseLabel())),
-                    new IRLabel(irnode.falseLabel())
-                    ));
+                    s, new IRCJump(eprime, irnode.trueLabel()),
+                    new IRJump(new IRName(irnode.falseLabel()))
+                    );
             addNodeToBlock(ret);
             return ret;
         } else {
-            addNodeToBlock(irnode);
-            return irnode;
+            IRSeq ret = new IRSeq(
+                    new IRCJump(e, irnode.trueLabel()),
+                    new IRJump(new IRName(irnode.falseLabel()))
+                    );
+            addNodeToBlock(ret);
+            return ret;
         }
     }
 
@@ -514,7 +517,7 @@ public class LoweringVisitor extends IRVisitor {
         List<IRStmt> newStmts = new ArrayList<>();
         for (IRStmt s : irnode.stmts()) {
             if (s instanceof IRSeq) {
-                newStmts.addAll(((IRSeq) s).stmts());
+                newStmts.addAll(((IRSeq) lower((IRSeq) s)).stmts());
             }
             else newStmts.add(s);
         }

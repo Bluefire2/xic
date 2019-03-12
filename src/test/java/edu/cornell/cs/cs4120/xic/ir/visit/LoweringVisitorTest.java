@@ -10,8 +10,14 @@ import static org.junit.Assert.*;
 public class LoweringVisitorTest {
     private LoweringVisitor visitor;
 
+    int tempcounter = 0;
+    private String newTemp() {
+        return String.format("_lir_t%d", (tempcounter++));
+    }
+
     @Test
     public void testSimple() {
+        System.out.println(newTemp());
         IRStmt stmt = new IRExp(new IRConst(5));
         IRStmt stmt2 = new IRExp(new IRConst(10));
         IRNode node = new IRSeq(stmt, stmt2);
@@ -31,7 +37,7 @@ public class LoweringVisitorTest {
         IRSeq s = new IRSeq(stmt, stmt2);
         IRSeq ns = new IRSeq(s, stmt3);
         IRSeq flattened = new IRSeq(stmt, stmt2, stmt3);
-        assertEquals(flattened, visitor.lower(ns));
+        assertEquals(flattened, visitor.visit(ns));
     }
 
     @Test
@@ -78,10 +84,33 @@ public class LoweringVisitorTest {
         assertEquals(lcall, visitor.lower(call));
     }
 
+    @Test
+    public void manyNestedSeq() {
+        IRSeq ret = new IRSeq(new IRMove(new IRTemp("x"), new IRTemp("y")),
+                            new IRJump(new IRName("u")),
+                            new IRLabel("j"),
+                            new IRMove(new IRTemp("p"), new IRConst(7)));
+        IRSeq nested = new IRSeq(new IRSeq(new IRMove(new IRTemp("x"), new IRTemp("y")),
+                        new IRSeq(new IRJump(new IRName("u")),
+                        new IRSeq(new IRLabel("j"),
+                                new IRMove(new IRTemp("p"),
+                                new IRConst(7))))));
+        assertEquals(ret, visitor.lower(nested));
+    }
+
+    @Test
+    public void testCJumps() {
+        IRCJump cjmp = new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
+                "t", "f");
+        IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
+                "t"), new IRJump(new IRName("f")));
+        assertEquals(ret, visitor.lower(cjmp));
+    }
+
+
     //TODO:
     //test move commute and move general
     //test binop commute and binop general
-    //test cjumps, jumps
 
     @Before
     public void setUp() throws Exception {
