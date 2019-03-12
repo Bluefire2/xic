@@ -219,9 +219,8 @@ public class CLI implements Runnable {
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
                 IRNode mir = root.accept(tv);
-//                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-//                IRNode lir = lv.visit(mir);
-                //TODO lowering
+                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+                IRNode lir = lv.visit(mir);
                 //pretty-print IR
                 CodeWriterSExpPrinter printer;
                 if (optDebug) { //debug mode (print to stdout)
@@ -231,7 +230,7 @@ public class CLI implements Runnable {
                     OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
-                mir.printSExp(printer);
+                lir.printSExp(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -262,7 +261,13 @@ public class CLI implements Runnable {
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
                 IRNode lir = lv.visit(mir);
-                //TODO lowering
+                //for printing
+//                if (optDebug){
+//                    PrintWriter cw = new PrintWriter(System.out);
+//                    CodeWriterSExpPrinter printer = new CodeWriterSExpPrinter(cw);
+//                    mir.printSExp(printer);
+//                    printer.close();
+//                }
                 //Interpreting
                 IRSimulator sim = new IRSimulator((IRCompUnit) lir);
                 long result = sim.call("_Imain_paai", 0);
