@@ -378,24 +378,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     @Override
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
-
-        List<Expr> args = node.getArgs();
         ArrayList<IRExpr> argsIR = new ArrayList<>();
-        List<IRStmt> moveArgs = new ArrayList<>();
 
-        for (int i = 0; i < args.size(); ++i) {
-            String argi = funcArgName(i);
-            IRExpr argIR = (IRExpr) args.get(i).accept(this);
+        for (Expr arg : node.getArgs()) {
             // Add argIR to list of arguments to be passed to IRCall
-            argsIR.add(argIR);
-            // Add an IRMove that puts argIR into argi
-            moveArgs.add(new IRMove(new IRTemp(argi), argIR));
+            argsIR.add((IRExpr) arg.accept(this));
         }
 
-        return new IRESeq(
-                new IRSeq(moveArgs),
-                new IRCall(new IRName(funcName), argsIR)
-        );
+        return new IRCall(new IRName(funcName), argsIR);
     }
 
     @Override
@@ -548,11 +538,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                     allocateMultiDimArray(new IRTemp(declName), declArray)
             );
         } else {
-            // declType either an int or bool, allocate one word
-            return new IRMove(
-                    new IRTemp(declName),
-                    allocateMem(new IRConst(WORD_NUM_BYTES))
-            );
+            // declType either an int or bool, initialize arbitrarily
+            return new IRMove(new IRTemp(declName), new IRConst(0));
         }
     }
 
@@ -575,7 +562,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 Pair<String, TypeTTau> decl =
                         ((TypeDeclVar) decls.get(i)).getPair();
                 // Initialize the ith declaration
-                declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                if (decl.part2() instanceof TypeTTauArray) {
+                    declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                }
                 // Move return value i to this declaration
                 moveRetIR.add(new IRMove(
                         new IRTemp(decl.part1()),
@@ -583,48 +572,41 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 ));
             }
 
+            return new IRSeq(
+                    new IRExp(rhsIR),   // evaluate rhs
+                    new IRSeq(declsInitIR), // initialize declarations
+                    new IRSeq(moveRetIR)    // move return values of func to decls
+            );
         } else {
             // rhs not a function, decls must be size 1
             Pair<String, TypeTTau> decl =
                     ((TypeDeclVar) decls.get(0)).getPair();
-            declsInitIR.add(
-                    initDecl(decl.part1(), decl.part2())
-            );
-            moveRetIR.add(
-                    new IRMove(
-                            new IRTemp(decl.part1()),
-                            rhsIR
-                    )
+            if (decl.part2() instanceof TypeTTauArray) {
+                // Add initializing code if necessary
+                declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+            }
+            moveRetIR.add(new IRMove(
+                    new IRTemp(decl.part1()),
+                    rhsIR
+            ));
+
+            return new IRSeq(
+                    new IRSeq(declsInitIR), // initialize declarations
+                    new IRSeq(moveRetIR)    // move return values of func to decls
             );
         }
-        return new IRSeq(
-                new IRExp(rhsIR),   // evaluate rhs
-                new IRSeq(declsInitIR), // initialize declarations
-                new IRSeq(moveRetIR)    // move return values of func to decls
-        );
     }
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
+        List<IRExpr> argsIR = new ArrayList<>();
 
-        List<Expr> args = node.getArgs();
-        ArrayList<IRExpr> argsIR = new ArrayList<>();
-        List<IRStmt> moveArgs = new ArrayList<>();
-
-        for (int i = 0; i < args.size(); ++i) {
-            String argi = funcArgName(i);
-            IRExpr argIR = (IRExpr) args.get(i).accept(this);
-            // Add argIR to list of arguments to be passed to IRCall
-            argsIR.add(argIR);
-            // Add an IRMove that puts argIR into argi
-            moveArgs.add(new IRMove(new IRTemp(argi), argIR));
+        for (Expr arg : node.getArgs()) {
+            argsIR.add((IRExpr) arg.accept(this));
         }
 
-        return new IRSeq(
-                new IRSeq(moveArgs),
-                new IRExp(new IRCall(new IRName(funcName), argsIR))
-        );
+        return new IRSeq(new IRExp(new IRCall(new IRName(funcName), argsIR)));
     }
 
     @Override
@@ -684,6 +666,17 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRFuncDecl visit(FuncDefn node) {
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
+
+        List<Pair<String, TypeTTau>> params = node.getParams();
+        List<IRStmt> moveArgs = new ArrayList<>();
+        for (int i = 0; i < params.size(); ++i) {
+            // Move argi into params
+            moveArgs.add(new IRMove(
+                    new IRTemp(params.get(i).part1()),
+                    new IRTemp(funcArgName(i))
+            ));
+        }
+
         Stmt body = node.getBody();
         IRSeq bodyIR = (IRSeq) body.accept(this);
 
@@ -691,7 +684,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         if (body.getTypeCheckType().equals(TypeR.Unit)) {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
-        return new IRFuncDecl(funcName, bodyIR);
+
+        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
     }
 
     @Override
