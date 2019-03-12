@@ -570,20 +570,35 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         List<IRStmt> declsInitIR = new ArrayList<>();
         List<IRStmt> moveRetIR = new ArrayList<>();
 
-        for (int i = 0; i < decls.size(); ++i) {
-            Pair<String, TypeTTau> decl =
-                    ((TypeDeclVar) decls.get(i)).getPair();
-            // Initialize the ith declaration
-            declsInitIR.add(initDecl(decl.part1(), decl.part2()));
-            // Move return value i to this declaration
-            moveRetIR.add(new IRMove(
-                    new IRTemp(decl.part1()),
-                    new IRTemp(returnValueName(i))
-            ));
-        }
+        if (node.getRhs() instanceof ExprFunctionCall) {
+            for (int i = 0; i < decls.size(); ++i) {
+                Pair<String, TypeTTau> decl =
+                        ((TypeDeclVar) decls.get(i)).getPair();
+                // Initialize the ith declaration
+                declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                // Move return value i to this declaration
+                moveRetIR.add(new IRMove(
+                        new IRTemp(decl.part1()),
+                        new IRTemp(returnValueName(i))
+                ));
+            }
 
+        } else {
+            // rhs not a function, decls must be size 1
+            Pair<String, TypeTTau> decl =
+                    ((TypeDeclVar) decls.get(0)).getPair();
+            declsInitIR.add(
+                    initDecl(decl.part1(), decl.part2())
+            );
+            moveRetIR.add(
+                    new IRMove(
+                            new IRTemp(decl.part1()),
+                            rhsIR
+                    )
+            );
+        }
         return new IRSeq(
-                new IRExp(rhsIR),   // evaluate function
+                new IRExp(rhsIR),   // evaluate rhs
                 new IRSeq(declsInitIR), // initialize declarations
                 new IRSeq(moveRetIR)    // move return values of func to decls
         );
@@ -670,10 +685,10 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
         Stmt body = node.getBody();
-        //TODO hacky solution that forces a return statement for procedures
         IRSeq bodyIR = (IRSeq) body.accept(this);
-        if (((TypeSymTableFunc) node.getSignature().part2())
-                .getOutput() instanceof TypeTUnit) {
+
+        // Add a return statement if not already present
+        if (body.getTypeCheckType().equals(TypeR.Unit)) {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
         return new IRFuncDecl(funcName, bodyIR);

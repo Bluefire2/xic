@@ -1,18 +1,17 @@
 package ast;
 
+import edu.cornell.cs.cs4120.xic.ir.IRConst;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import lexer.XiTokenLocation;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import symboltable.TypeSymTableFunc;
 
 import java.util.Arrays;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import lexer.XiTokenLocation;
-import edu.cornell.cs.cs4120.xic.ir.*;
 
 public class VisitorTranslationTest {
     private VisitorTranslation visitor;
