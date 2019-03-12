@@ -74,8 +74,8 @@ public class VisitorTranslationTest {
         TypeSymTableFunc t = new TypeSymTableFunc(
                 new TypeTUnit(),
                 new TypeTUnit());
-        assertEquals(visitor.functionName("multiple__underscores", t),
-                "_Imultiple____underscores_p");
+        assertEquals(visitor.functionName("multiple__underScores", t),
+                "_Imultiple____underScores_p");
     }
 
     @Test
