@@ -514,7 +514,7 @@ public class LoweringVisitor extends IRVisitor {
         List<IRStmt> newStmts = new ArrayList<>();
         for (IRStmt s : irnode.stmts()) {
             if (s instanceof IRSeq) {
-                newStmts.addAll(((IRSeq) s).stmts());
+                newStmts.addAll(((IRSeq) lower((IRSeq) s)).stmts());
             }
             else newStmts.add(s);
         }
