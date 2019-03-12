@@ -144,11 +144,15 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
      * the length. This means that only length bytes are actually available
      * for array t.
      * temporary t.
-     * @param t temporary.
-     * @param length length of array to be allocated.
+     * @param t temporary or memory address.
+     * @param eIR length of array to be allocated.
      * @return a list of IR statements for performing this array allocation.
      */
-    private List<IRStmt> allocateArray(IRTemp t, IRExpr length) {
+    private List<IRStmt> allocateArray(IRExpr t, IRExpr eIR) {
+        // Copy eIR to a temporary
+        IRTemp length = new IRTemp(newTemp());
+        IRMove copyLenToTemp = new IRMove(length, eIR);
+
         IRBinOp numBytesForArray = new IRBinOp(
                 OpType.ADD,
                 new IRConst(1), // extra byte for storing length
@@ -179,22 +183,66 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 )
         );
 
-        return new ArrayList<>(
-                Arrays.asList(baseAllocAddress, storeLength, zeroIdxAddress)
-        );
+        return new ArrayList<>(Arrays.asList(
+                copyLenToTemp, baseAllocAddress, storeLength, zeroIdxAddress
+        ));
     }
 
-    /**
-     * Allocates array `x:t[eIR]` with name x and size e.
-     * @param x temporary for the array.
-     * @param eIR IR expression evaluated to size.
-     * @return A list of IR stmts that perform array allocation.
-     */
-    private List<IRStmt> allocateArrayExprLength(IRTemp x, IRExpr eIR) {
-        IRTemp n = new IRTemp(newTemp());
-        List<IRStmt> result = allocateArray(x, n);
-        result.add(0, new IRMove(n, eIR));
-        return result;
+    private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr) {
+        TypeTTau innerType = arr.getTypeTTau();
+        Expr size = arr.getSize();
+        if (size != null) {
+            IRExpr sizeIR = (IRExpr) size.accept(this);
+
+            // Create an array of size sizeIR
+            List<IRStmt> arrIR = allocateArray(t, sizeIR);
+
+            if (innerType instanceof TypeTTauArray) {
+                // innerType is an array, create a while loop to initialize
+                // each element of t
+                TypeTTauArray itArray = (TypeTTauArray) innerType;
+                IRTemp i = new IRTemp(newTemp());   // loop counter
+
+                IRLabel whileStart = new IRLabel(newLabel());
+                IRLabel whileEnd = new IRLabel(newLabel());
+                IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, i, sizeIR);
+
+                return Arrays.asList(
+                        new IRMove(i, new IRConst(0)),  // i <- 0
+                        whileStart, // while loop starts
+                        // Go to end if i >= sizeIR
+                        new IRCJump(whileGuardExit, whileEnd.name()),
+                        // Allocate multi dim array at t + i*8
+                        new IRSeq(allocateMultiDimArray(
+                                new IRMem(new IRBinOp(
+                                        OpType.ADD,
+                                        t,
+                                        new IRBinOp(
+                                                OpType.MUL,
+                                                i,
+                                                new IRConst(WORD_NUM_BYTES)
+                                        )
+                                )),
+                                itArray)),
+                        // i++
+                        new IRMove(
+                                i,
+                                new IRBinOp(OpType.ADD, i, new IRConst(1))
+                        ),
+                        new IRJump(new IRName(whileStart.name())),
+                        whileEnd    // while loop ends
+                );
+            } else {
+                return arrIR;
+            }
+        } else {
+            // size == null ==> the inner arrays, if any, are also
+            // uninitialized. So just move a 1-word memory location to this temp
+            return new ArrayList<>(Arrays.asList(new IRMove(
+                    t,
+                    allocateMem(new IRConst(WORD_NUM_BYTES))
+            )));
+        }
     }
 
     @Override
@@ -431,31 +479,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 (IRExpr) node.getLhs().accept(this),
                 (IRExpr) node.getRhs().accept(this)
         );
-    }
-
-    private List<IRStmt> allocateMultiDimArray(IRTemp t, TypeTTauArray arr) {
-        TypeTTau innerType = arr.getTypeTTau();
-        Expr size = arr.getSize();
-        if (size != null) {
-            IRExpr sizeIR = (IRExpr) size.accept(this);
-            if (innerType instanceof TypeTTauArray) {
-                // TODO: Recurse on inner type
-                allocateArrayExprLength(t, sizeIR);
-                return null;
-            } else {
-                return new ArrayList<>(Arrays.asList(new IRMove(
-                        t,
-                        allocateMem((IRExpr) size.accept(this))
-                )));
-            }
-        } else {
-            // size == null ==> the inner arrays, if any, are also
-            // uninitialized. So just move a 1-word memory location to this temp
-            return new ArrayList<>(Arrays.asList(new IRMove(
-                    t,
-                    allocateMem(new IRConst(WORD_NUM_BYTES))
-            )));
-        }
     }
 
     @Override
