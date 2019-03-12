@@ -3,7 +3,11 @@ package cli;
 import ast.ASTNode;
 import ast.Printable;
 import ast.VisitorTypeCheck;
+import ast.VisitorTranslation;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.interpret.*;
+import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
@@ -25,6 +29,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,13 +48,25 @@ public class CLI implements Runnable {
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
 
-    @Option (names = {"--debugparse"},
-            description = "Parse in debug mode and print AST to terminal.")
+    @Option (names = {"--debug"},
+            description = "Optional flag which prints to terminal instead of outputting files.")
     private boolean optDebug = false;
 
     @Option (names = {"--typecheck"},
             description = "Generate output from semantic analysis.")
     private boolean optTypeCheck = false;
+
+    @Option (names = {"--irgen"},
+            description = "Generate intermediate code.")
+    private boolean optIRGen = false;
+
+    @Option (names = {"--irrun"},
+            description = "Generate and interpret intermediate code.")
+    private boolean optIRRun = false;
+
+    @Option (names = {"-O"},
+            description = "Disable optimizations.")
+    private boolean optDisableOptimization = false;
 
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
@@ -64,9 +81,8 @@ public class CLI implements Runnable {
     private Path sourcepath;
 
     @Option (names = "-libpath", defaultValue = ".",
-            description = "Specify where to find library interface files.")
+            description = "Specify where to find input library/interface files.")
     private Path libpath;
-
 
     @Override
     public void run() {
@@ -80,6 +96,12 @@ public class CLI implements Runnable {
                 }
                 if(optTypeCheck) {
                     typeCheck();
+                }
+                if (optIRGen) {
+                    IRGen();
+                }
+                if (optIRRun) {
+                    IRRun();
                 }
             } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -171,6 +193,79 @@ public class CLI implements Runnable {
                 ASTNode root = (ASTNode) parser.parse().value;
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 fileWriter.write("Valid Xi Program");
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void IRGen(){
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".ir")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                XiTokenFactory xtf = new XiTokenFactory();
+                XiLexer lexer = new XiLexer(fileReader, xtf);
+                XiParser parser = new XiParser(lexer, xtf);
+                ASTNode root = (ASTNode) parser.parse().value;
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
+                IRNode mir = root.accept(tv);
+                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+                IRNode lir = lv.visit(mir);
+                //TODO lowering
+                //pretty-print IR
+                CodeWriterSExpPrinter printer;
+                if (optDebug) { //debug mode (print to stdout)
+                    PrintWriter cw = new PrintWriter(System.out);
+                    printer = new CodeWriterSExpPrinter(cw);
+                } else {
+                    OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
+                    printer = new CodeWriterSExpPrinter(cw);
+                }
+                lir.printSExp(printer);
+                printer.close();
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void IRRun(){
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".irsol.nml")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                XiTokenFactory xtf = new XiTokenFactory();
+                XiLexer lexer = new XiLexer(fileReader, xtf);
+                XiParser parser = new XiParser(lexer, xtf);
+                ASTNode root = (ASTNode) parser.parse().value;
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                //IR translation and lowering
+                VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
+                IRNode mir = root.accept(tv);
+                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+                IRNode lir = lv.visit(mir);
+                //TODO lowering
+                //Interpreting
+                IRSimulator sim = new IRSimulator((IRCompUnit) lir);
+                long result = sim.call("main", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());

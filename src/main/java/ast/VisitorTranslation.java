@@ -13,6 +13,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private int labelcounter;
     private int tempcounter;
     private int argcounter;
+    private boolean optimize;
     private IRTemp RV;
 
     private String newLabel() {
@@ -23,10 +24,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public VisitorTranslation() {
+    public VisitorTranslation(boolean opt) {
         this.labelcounter = 0;
         this.tempcounter = 0;
         RV = new IRTemp("RV");
+        this.optimize = opt;
     }
 
     private String returnTypeName(TypeT type){
@@ -177,7 +179,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 )
         );
 
-        return Arrays.asList(baseAllocAddress, storeLength, zeroIdxAddress);
+        return new ArrayList<>(
+                Arrays.asList(baseAllocAddress, storeLength, zeroIdxAddress)
+        );
     }
 
     /**
@@ -198,10 +202,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
+        //TODO handle errors
         //constant folding the booleans before they get screwed up
-        if (l instanceof IRConst && r instanceof IRConst) {
+        if (l instanceof IRConst && r instanceof IRConst && optimize) {
             long lval = ((IRConst)l).value();
-            long rval = ((IRConst)l).value();
+            long rval = ((IRConst)r).value();
             switch (op) {
                 case PLUS: return new IRConst(lval + rval);
                 case MINUS: return new IRConst(lval - rval);
@@ -357,14 +362,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         switch (op) {
             //NOT(e)  -> XOR(1,e)
             case NOT:
-                if (e instanceof IRConst){
+                if (e instanceof IRConst && optimize){
                     long e_val = ((IRConst) e).value();
                     return new IRConst((e_val == 0) ? 1 : 0);
                 }
                 return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
             case UMINUS:
-                if (e instanceof IRConst){
+                if (e instanceof IRConst && optimize){
                     long e_val = ((IRConst) e).value();
                     return new IRConst(0 - e_val);
                 }
@@ -438,18 +443,18 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 allocateArrayExprLength(t, sizeIR);
                 return null;
             } else {
-                return Arrays.asList(new IRMove(
+                return new ArrayList<>(Arrays.asList(new IRMove(
                         t,
                         allocateMem((IRExpr) size.accept(this))
-                ));
+                )));
             }
         } else {
             // size == null ==> the inner arrays, if any, are also
             // uninitialized. So just move a 1-word memory location to this temp
-            return Arrays.asList(new IRMove(
+            return new ArrayList<>(Arrays.asList(new IRMove(
                     t,
                     allocateMem(new IRConst(WORD_NUM_BYTES))
-            ));
+            )));
         }
     }
 
