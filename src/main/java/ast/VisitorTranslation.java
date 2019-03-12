@@ -532,30 +532,25 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(FileProgram node) {
-        // TODO: are we sure that we must ignore the imports?
-//        List<IRStmt> result = node.getImports().stream()
-//                .map(u -> (IRStmt) u.accept(this))
-//                .collect(Collectors.toList());
-        return new IRSeq(node.getFuncDefns().stream()
-                .map(f -> (IRStmt) f.accept(this))
-                .collect(Collectors.toList()));
+    public IRCompUnit visit(FileProgram node) {
+        IRCompUnit program = new IRCompUnit("test");//TODO set proper name must pass from AST
+        for (FuncDefn d : node.getFuncDefns()){
+            program.appendFunc((IRFuncDecl) d.accept(this));
+        }
+        return program;
     }
 
     @Override
     public IRNode visit(FileInterface node) {
-        return new IRSeq(node.getFuncDecls().stream()
-                .map(f -> (IRStmt) f.accept(this))
-                .collect(Collectors.toList())
-        );
+        return null;
     }
 
     @Override
-    public IRStmt visit(FuncDefn node) {
-        // TODO: where do the arguments go?
-        IRStmt funcLabel = new IRLabel(node.getName());
+    public IRFuncDecl visit(FuncDefn node) {
+        String funcName = functionName(
+                node.getName(), (TypeSymTableFunc) node.getSignature().part2());
         IRStmt bodyIR = (IRStmt) node.getBody().accept(this);
-        return new IRSeq(funcLabel, bodyIR);
+        return new IRFuncDecl(funcName, bodyIR);
     }
 
     @Override

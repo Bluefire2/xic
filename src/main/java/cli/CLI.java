@@ -219,8 +219,8 @@ public class CLI implements Runnable {
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
                 IRNode mir = root.accept(tv);
-                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                IRNode lir = lv.visit(mir);
+//                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+//                IRNode lir = lv.visit(mir);
                 //TODO lowering
                 //pretty-print IR
                 CodeWriterSExpPrinter printer;
@@ -231,7 +231,7 @@ public class CLI implements Runnable {
                     OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
-                lir.printSExp(printer);
+                mir.printSExp(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -265,7 +265,7 @@ public class CLI implements Runnable {
                 //TODO lowering
                 //Interpreting
                 IRSimulator sim = new IRSimulator((IRCompUnit) lir);
-                long result = sim.call("main", 0);
+                long result = sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());

@@ -19,7 +19,7 @@ public class VisitorTranslationTest {
 
     @Before
     public void setUp() {
-        visitor = new VisitorTranslation();
+        visitor = new VisitorTranslation(true);
     }
 
     @After
@@ -74,7 +74,7 @@ public class VisitorTranslationTest {
         TypeSymTableFunc t = new TypeSymTableFunc(
                 new TypeTUnit(),
                 new TypeTUnit());
-        assertEquals(visitor.functionName("multiple__underscores", t),
+        assertEquals(visitor.functionName("multiple__underScores", t),
                 "_Imultiple____underScores_p");
     }
 
