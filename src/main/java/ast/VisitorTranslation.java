@@ -16,7 +16,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private int tempcounter;
     private int argcounter;
     private boolean optimize;
-    private IRTemp RV;
 
     private String newLabel() {
         return String.format("l%d", (labelcounter++));
@@ -29,8 +28,15 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public VisitorTranslation(boolean opt) {
         this.labelcounter = 0;
         this.tempcounter = 0;
-        RV = new IRTemp("RV");
         this.optimize = opt;
+    }
+
+    private String returnValueName(int i) {
+        return "_RET" + i;
+    }
+
+    private String funcArgName(int i) {
+        return "_ARG" + i;
     }
 
     private String returnTypeName(TypeT type) {
@@ -110,7 +116,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
-        List<IRStmt> seq = new ArrayList<>();
         IRExpr test = new IRBinOp(OpType.OR,
                 new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
                 new IRBinOp(OpType.GT, temp_index, new IRMem(
@@ -146,20 +151,21 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
      * temporary t. The extra byte, i.e., MEM(t) - 8, is used for storing
      * the length. This means that only length bytes are actually available
      * for array t.
-     * temporary t.
      *
      * @param t temporary or memory address.
      * @param eIR length of array to be allocated.
      * @return a list of IR statements for performing this array allocation.
      */
     private List<IRStmt> allocateArray(IRExpr t, IRExpr eIR) {
+        assert t instanceof IRTemp || t instanceof IRMem;
+
         // Copy eIR to a temporary
         IRTemp length = new IRTemp(newTemp());
         IRMove copyLenToTemp = new IRMove(length, eIR);
 
         IRBinOp numBytesForArray = new IRBinOp(
                 OpType.ADD,
-                new IRConst(8), // extra byte for storing length
+                new IRConst(WORD_NUM_BYTES), // extra word for storing length
                 new IRBinOp(
                         OpType.MUL,
                         length,
@@ -192,7 +198,17 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         ));
     }
 
+    /**
+     * Allocates a multi dimensional array of type arr starting at
+     * temporary/memory location t.
+     *
+     * @param t temporary or memory address.
+     * @param arr type of multi dim array.
+     * @return a list of IR statements for performing this array allocation.
+     */
     private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr) {
+        assert t instanceof IRTemp || t instanceof IRMem;
+
         TypeTTau innerType = arr.getTypeTTau();
         Expr size = arr.getSize();
         if (size != null) {
@@ -237,15 +253,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                         whileEnd    // while loop ends
                 );
             } else {
+                // innerType not an array, just return the uninitialized array
                 return arrIR;
             }
         } else {
             // size == null ==> the inner arrays, if any, are also
-            // uninitialized. So just move a 1-word memory location to this temp
-            return new ArrayList<>(Arrays.asList(new IRMove(
-                    t,
-                    allocateMem(new IRConst(WORD_NUM_BYTES))
-            )));
+            // uninitialized. So just return an empty list of IRStmts
+            // (nothing to initialize)
+            return new ArrayList<>();
         }
     }
 
@@ -363,11 +378,24 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     @Override
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
-        ArrayList<IRExpr> args = new ArrayList<>();
-        for (Expr e : node.getArgs()) {
-            args.add((IRExpr) e.accept(this));
+
+        List<Expr> args = node.getArgs();
+        ArrayList<IRExpr> argsIR = new ArrayList<>();
+        List<IRStmt> moveArgs = new ArrayList<>();
+
+        for (int i = 0; i < args.size(); ++i) {
+            String argi = funcArgName(i);
+            IRExpr argIR = (IRExpr) args.get(i).accept(this);
+            // Add argIR to list of arguments to be passed to IRCall
+            argsIR.add(argIR);
+            // Add an IRMove that puts argIR into argi
+            moveArgs.add(new IRMove(new IRTemp(argi), argIR));
         }
-        return new IRCall(new IRName(funcName), args);
+
+        return new IRESeq(
+                new IRSeq(moveArgs),
+                new IRCall(new IRName(funcName), argsIR)
+        );
     }
 
     @Override
@@ -490,21 +518,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtReturn node) {
-        List<Expr> returnVals = node.getReturnVals();
-        switch (returnVals.size()) {
-            case 0:
-                return new IRReturn();
-            case 1:
-                IRExpr irReturnVal = (IRExpr) returnVals.get(0).accept(this);
-                return new IRSeq(
-                        new IRMove(RV, irReturnVal),
-                        new IRReturn()
-                );
-            default:
-                // Handle multiple return values
-                // TODO: handle multiple return values
-                return null;
-        }
+        // Translate each expr into IR and pass it into IRReturn
+        return new IRReturn(
+                node.getReturnVals().stream()
+                .map(e -> (IRExpr) e.accept(this))
+                .collect(Collectors.toList())
+        );
     }
 
     @Override
@@ -515,11 +534,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         );
     }
 
-    @Override
-    public IRStmt visit(StmtDecl node) {
-        Pair<String, TypeTTau> decl = node.getDecl().getPair();
-        String declName = decl.part1();
-        TypeTTau declType = decl.part2();
+    /**
+     * Initializes memory for type declType and assigns the memory to the the
+     * temporary variable given by declName.
+     * @param declName name of the temporary.
+     * @param declType type of the memory to be allocated.
+     * @return IR stmts to do this allocation.
+     */
+    private IRStmt initDecl(String declName, TypeTTau declType) {
         if (declType instanceof TypeTTauArray) {
             TypeTTauArray declArray = (TypeTTauArray) declType;
             return new IRSeq(
@@ -535,18 +557,59 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
+    public IRStmt visit(StmtDecl node) {
+        Pair<String, TypeTTau> decl = node.getDecl().getPair();
+        return initDecl(decl.part1(), decl.part2());
+    }
+
+    @Override
     public IRNode visit(StmtDeclAssign node) {
-        return null;
+        List<TypeDecl> decls = node.getDecls();
+        IRExpr rhsIR = (IRExpr) node.getRhs().accept(this);
+
+        List<IRStmt> declsInitIR = new ArrayList<>();
+        List<IRStmt> moveRetIR = new ArrayList<>();
+
+        for (int i = 0; i < decls.size(); ++i) {
+            Pair<String, TypeTTau> decl =
+                    ((TypeDeclVar) decls.get(i)).getPair();
+            // Initialize the ith declaration
+            declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+            // Move return value i to this declaration
+            moveRetIR.add(new IRMove(
+                    new IRTemp(decl.part1()),
+                    new IRTemp(returnValueName(i))
+            ));
+        }
+
+        return new IRSeq(
+                new IRExp(rhsIR),   // evaluate function
+                new IRSeq(declsInitIR), // initialize declarations
+                new IRSeq(moveRetIR)    // move return values of func to decls
+        );
     }
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
-        ArrayList<IRExpr> args = new ArrayList<>();
-        for (Expr e : node.getArgs()) {
-            args.add((IRExpr) e.accept(this));
+
+        List<Expr> args = node.getArgs();
+        ArrayList<IRExpr> argsIR = new ArrayList<>();
+        List<IRStmt> moveArgs = new ArrayList<>();
+
+        for (int i = 0; i < args.size(); ++i) {
+            String argi = funcArgName(i);
+            IRExpr argIR = (IRExpr) args.get(i).accept(this);
+            // Add argIR to list of arguments to be passed to IRCall
+            argsIR.add(argIR);
+            // Add an IRMove that puts argIR into argi
+            moveArgs.add(new IRMove(new IRTemp(argi), argIR));
         }
-        return new IRExp(new IRCall(new IRName(funcName), args));
+
+        return new IRSeq(
+                new IRSeq(moveArgs),
+                new IRExp(new IRCall(new IRName(funcName), argsIR))
+        );
     }
 
     @Override
