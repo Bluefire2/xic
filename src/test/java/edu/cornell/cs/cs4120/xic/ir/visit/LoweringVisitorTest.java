@@ -98,11 +98,19 @@ public class LoweringVisitorTest {
         assertEquals(ret, visitor.lower(nested));
     }
 
+    @Test
+    public void testCJumps() {
+        IRCJump cjmp = new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
+                "t", "f");
+        IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
+                "t"), new IRJump(new IRName("f")));
+        assertEquals(ret, visitor.lower(cjmp));
+    }
+
 
     //TODO:
     //test move commute and move general
     //test binop commute and binop general
-    //test cjumps, jumps
 
     @Before
     public void setUp() throws Exception {
