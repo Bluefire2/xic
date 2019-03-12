@@ -1,8 +1,10 @@
 package ast;
+
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
 import symboltable.TypeSymTableFunc;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
@@ -31,12 +33,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         this.optimize = opt;
     }
 
-    private String returnTypeName(TypeT type){
-        if (type instanceof TypeTList){
+    private String returnTypeName(TypeT type) {
+        if (type instanceof TypeTList) {
             TypeTList tuple = (TypeTList) type;
             ArrayList<String> types = new ArrayList<>();
             tuple.getTTauList().forEach((t) -> types.add(returnTypeName(t)));
-            return "t" + tuple.getLength() + String.join("",types);
+            return "t" + tuple.getLength() + String.join("", types);
         } else if (type instanceof TypeTUnit) { //TypeTUnit
             return "p";
         } else {
@@ -44,40 +46,40 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    private String typeName(TypeT type){
-        if (type instanceof TypeTList){
+    private String typeName(TypeT type) {
+        if (type instanceof TypeTList) {
             TypeTList tuple = (TypeTList) type;
             ArrayList<String> types = new ArrayList<>();
             tuple.getTTauList().forEach((t) -> types.add(typeName(t)));
-            return String.join("",types);
+            return String.join("", types);
         } else if (type instanceof TypeTTauArray) {
             TypeTTauArray a = (TypeTTauArray) type;
-            return "a"+typeName(a.getTypeTTau());
+            return "a" + typeName(a.getTypeTTau());
         } else if (type instanceof TypeTTauInt) {
             return "i";
         } else if (type instanceof TypeTTauBool) {
             return "b";
-        } else if  (type instanceof TypeTUnit){
+        } else if (type instanceof TypeTUnit) {
             return "";
         } else {
             throw new IllegalArgumentException("invalid type");
         }
     }
 
-    String functionName(String name, TypeSymTableFunc signature){
-        String newName = name.replaceAll("_","__");
+    String functionName(String name, TypeSymTableFunc signature) {
+        String newName = name.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
     }
 
-    private IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f){
-        if (e instanceof ExprBoolLiteral){ // C[true/false, t, f]
+    private IRStmt conditionalTranslate(Expr e, IRLabel t, IRLabel f) {
+        if (e instanceof ExprBoolLiteral) { // C[true/false, t, f]
             boolean val = ((ExprBoolLiteral) e).getValue();
             return new IRJump(new IRName(val ? t.name() : f.name()));
-        } else if (e instanceof ExprBinop){
+        } else if (e instanceof ExprBinop) {
             ExprBinop eb = (ExprBinop) e;
-            if (eb.getOp() == Binop.AND){// C[e1 & e2, t, f]
+            if (eb.getOp() == Binop.AND) {// C[e1 & e2, t, f]
                 IRLabel t_ = new IRLabel(newLabel());
                 return new IRSeq(
                         conditionalTranslate(eb.getLeftExpr(), t_, f),
@@ -99,12 +101,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             }
         }
         // C[e, t, f] default rule
-        return new IRCJump((IRExpr) e.accept(this),t.name(), f.name());
+        return new IRCJump((IRExpr) e.accept(this), t.name(), f.name());
     }
 
     //return stmt that checks array bounds, is used in ESeq for indexing
     private IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array,
-                        IRExpr temp_index) {
+                              IRExpr temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
@@ -131,6 +133,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     /**
      * Allocates memory of size.
+     *
      * @param size size of the memory.
      * @return A function call expression.
      */
@@ -144,6 +147,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
      * the length. This means that only length bytes are actually available
      * for array t.
      * temporary t.
+     *
      * @param t temporary or memory address.
      * @param eIR length of array to be allocated.
      * @return a list of IR statements for performing this array allocation.
@@ -155,7 +159,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
         IRBinOp numBytesForArray = new IRBinOp(
                 OpType.ADD,
-                new IRConst(1), // extra byte for storing length
+                new IRConst(8), // extra byte for storing length
                 new IRBinOp(
                         OpType.MUL,
                         length,
@@ -253,47 +257,74 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         //TODO handle errors
         //constant folding the booleans before they get screwed up
         if (l instanceof IRConst && r instanceof IRConst && optimize) {
-            long lval = ((IRConst)l).value();
-            long rval = ((IRConst)r).value();
+            long lval = ((IRConst) l).value();
+            long rval = ((IRConst) r).value();
             switch (op) {
-                case PLUS: return new IRConst(lval + rval);
-                case MINUS: return new IRConst(lval - rval);
-                case MULT:  return new IRConst(lval * rval);
-                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r); //TODO
-                case DIV: return new IRConst(lval / rval);
-                case MOD: return new IRConst(lval % rval);
-                case EQEQ: return new IRConst((lval == rval) ? 1 : 0);
-                case NEQ: return new IRConst((lval != rval) ? 1 : 0);
-                case GT: return new IRConst((lval > rval) ? 1 : 0);
-                case LT: return new IRConst((lval < rval) ? 1 : 0);
-                case GTEQ: return new IRConst((lval >= rval) ? 1 : 0);
-                case LTEQ: return new IRConst((lval <= rval) ? 1 : 0);
-                case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
-                case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
-                default: throw new IllegalArgumentException("Operation Type of " +
-                        "Binop node is invalid");
+                case PLUS:
+                    return new IRConst(lval + rval);
+                case MINUS:
+                    return new IRConst(lval - rval);
+                case MULT:
+                    return new IRConst(lval * rval);
+                case HI_MULT:
+                    return new IRBinOp(OpType.HMUL, l, r); //TODO
+                case DIV:
+                    return new IRConst(lval / rval);
+                case MOD:
+                    return new IRConst(lval % rval);
+                case EQEQ:
+                    return new IRConst((lval == rval) ? 1 : 0);
+                case NEQ:
+                    return new IRConst((lval != rval) ? 1 : 0);
+                case GT:
+                    return new IRConst((lval > rval) ? 1 : 0);
+                case LT:
+                    return new IRConst((lval < rval) ? 1 : 0);
+                case GTEQ:
+                    return new IRConst((lval >= rval) ? 1 : 0);
+                case LTEQ:
+                    return new IRConst((lval <= rval) ? 1 : 0);
+                case AND:
+                    return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
+                case OR:
+                    return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+                default:
+                    throw new IllegalArgumentException("Operation Type of " +
+                            "Binop node is invalid");
             }
         } else {
             switch (op) {
-                case PLUS: return new IRBinOp(OpType.ADD, l, r);
-                case MINUS: return new IRBinOp(OpType.SUB, l, r);
-                case MULT:  return new IRBinOp(OpType.MUL, l, r);
-                case HI_MULT: return new IRBinOp(OpType.HMUL, l, r);
-                case DIV: return new IRBinOp(OpType.DIV, l, r);
-                case MOD: return new IRBinOp(OpType.MOD, l, r);
-                case EQEQ: return new IRBinOp(OpType.EQ, l, r);
-                case NEQ: return new IRBinOp(OpType.NEQ, l, r);
-                case GT: return new IRBinOp(OpType.GT, l, r);
-                case LT: return new IRBinOp(OpType.LT, l, r);
-                case GTEQ: return new IRBinOp(OpType.GEQ, l, r);
-                case LTEQ: return new IRBinOp(OpType.LEQ, l, r);
+                case PLUS:
+                    return new IRBinOp(OpType.ADD, l, r);
+                case MINUS:
+                    return new IRBinOp(OpType.SUB, l, r);
+                case MULT:
+                    return new IRBinOp(OpType.MUL, l, r);
+                case HI_MULT:
+                    return new IRBinOp(OpType.HMUL, l, r);
+                case DIV:
+                    return new IRBinOp(OpType.DIV, l, r);
+                case MOD:
+                    return new IRBinOp(OpType.MOD, l, r);
+                case EQEQ:
+                    return new IRBinOp(OpType.EQ, l, r);
+                case NEQ:
+                    return new IRBinOp(OpType.NEQ, l, r);
+                case GT:
+                    return new IRBinOp(OpType.GT, l, r);
+                case LT:
+                    return new IRBinOp(OpType.LT, l, r);
+                case GTEQ:
+                    return new IRBinOp(OpType.GEQ, l, r);
+                case LTEQ:
+                    return new IRBinOp(OpType.LEQ, l, r);
                 case AND:
                 case OR:
                     String l1 = newLabel();
                     String l2 = newLabel();
                     String l3 = newLabel();
                     String x = newTemp();
-                    if (op == Binop.AND){
+                    if (op == Binop.AND) {
                         return new IRESeq(new IRSeq(
                                 new IRMove(new IRTemp(x), new IRConst(0)),
                                 new IRCJump(l, l1, l3),
@@ -317,8 +348,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                         );
                     }
 
-                default: throw new IllegalArgumentException("Operation Type of " +
-                        "Binop node is invalid");
+                default:
+                    throw new IllegalArgumentException("Operation Type of " +
+                            "Binop node is invalid");
             }
         }
     }
@@ -332,7 +364,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
         ArrayList<IRExpr> args = new ArrayList<>();
-        for (Expr e : node.getArgs()){
+        for (Expr e : node.getArgs()) {
             args.add((IRExpr) e.accept(this));
         }
         return new IRCall(new IRName(funcName), args);
@@ -354,7 +386,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRConst(WORD_NUM_BYTES),
                 t_i
         );
-        IRMem access =  new IRMem(new IRBinOp(
+        IRMem access = new IRMem(new IRBinOp(
                 OpType.ADD,
                 t_a,
                 offset
@@ -387,14 +419,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         for (Expr e : contents) {
             IRExpr e_trans = (IRExpr) e.accept(this);
             if (offset == 0) {
-                seq.add(new IRMove(t, e_trans));
+                seq.add(new IRMove(new IRMem(t), e_trans));
             } else {
                 seq.add(new IRMove(
-                        new IRBinOp(
+                        new IRMem(new IRBinOp(
                                 OpType.ADD,
                                 t,
                                 new IRConst(WORD_NUM_BYTES * offset)
-                        ),
+                        )),
                         e_trans
                 ));
             }
@@ -410,20 +442,21 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         switch (op) {
             //NOT(e)  -> XOR(1,e)
             case NOT:
-                if (e instanceof IRConst && optimize){
+                if (e instanceof IRConst && optimize) {
                     long e_val = ((IRConst) e).value();
                     return new IRConst((e_val == 0) ? 1 : 0);
                 }
                 return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
             case UMINUS:
-                if (e instanceof IRConst && optimize){
+                if (e instanceof IRConst && optimize) {
                     long e_val = ((IRConst) e).value();
                     return new IRConst(0 - e_val);
                 }
                 return new IRBinOp(OpType.SUB, new IRConst(0), e);
-            default: throw new IllegalArgumentException("Operation Type of " +
-                    "Unop node is invalid");
+            default:
+                throw new IllegalArgumentException("Operation Type of " +
+                        "Unop node is invalid");
         }
     }
 
@@ -431,7 +464,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRExpr visit(AssignableIndex node) {
         //same as ExprIndex without the MEM because we just want the location
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-        
+
         IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
         IRExpr array = (IRExpr) idx_expr.accept(this);
         IRTemp t_a = new IRTemp(newTemp());
@@ -441,7 +474,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRConst(WORD_NUM_BYTES),
                 t_i
         );
-        IRExpr location =  new IRBinOp(
+        IRExpr location = new IRBinOp(
                 OpType.ADD,
                 t_a,
                 offset
@@ -459,7 +492,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRNode visit(StmtReturn node) {
         List<Expr> returnVals = node.getReturnVals();
         switch (returnVals.size()) {
-            case 0: return new IRReturn();
+            case 0:
+                return new IRReturn();
             case 1:
                 IRExpr irReturnVal = (IRExpr) returnVals.get(0).accept(this);
                 return new IRSeq(
@@ -509,7 +543,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRNode visit(StmtProcedureCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
         ArrayList<IRExpr> args = new ArrayList<>();
-        for (Expr e : node.getArgs()){
+        for (Expr e : node.getArgs()) {
             args.add((IRExpr) e.accept(this));
         }
         return new IRExp(new IRCall(new IRName(funcName), args));
@@ -547,7 +581,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRStmt visit(StmtBlock node) {
+    public IRSeq visit(StmtBlock node) {
         return new IRSeq(node.getStatments().stream()
                 .map(s -> (IRStmt) s.accept(this))
                 .collect(Collectors.toList())
@@ -557,7 +591,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     @Override
     public IRCompUnit visit(FileProgram node) {
         IRCompUnit program = new IRCompUnit("test");//TODO set proper name must pass from AST
-        for (FuncDefn d : node.getFuncDefns()){
+        for (FuncDefn d : node.getFuncDefns()) {
             program.appendFunc((IRFuncDecl) d.accept(this));
         }
         return program;
@@ -572,7 +606,13 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     public IRFuncDecl visit(FuncDefn node) {
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
-        IRStmt bodyIR = (IRStmt) node.getBody().accept(this);
+        Stmt body = node.getBody();
+        //TODO hacky solution that forces a return statement for procedures
+        IRSeq bodyIR = (IRSeq) body.accept(this);
+        if (((TypeSymTableFunc) node.getSignature().part2())
+                .getOutput() instanceof TypeTUnit) {
+            bodyIR = new IRSeq(bodyIR, new IRReturn());
+        }
         return new IRFuncDecl(funcName, bodyIR);
     }
 

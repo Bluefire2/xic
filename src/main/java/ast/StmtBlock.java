@@ -33,6 +33,10 @@ public class StmtBlock extends Stmt {
         return statements.get(statements.size() - 1);
     }
 
+    public void addStatement(Stmt s){
+        statements.add(s);
+    }
+
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
         statements.forEach((s) -> s.prettyPrint(w));
