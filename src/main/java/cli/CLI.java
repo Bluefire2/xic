@@ -217,7 +217,9 @@ public class CLI implements Runnable {
                 XiParser parser = new XiParser(lexer, xtf);
                 ASTNode root = (ASTNode) parser.parse().value;
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
-                VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
+                VisitorTranslation tv = new VisitorTranslation(
+                        !optDisableOptimization,
+                        FilenameUtils.removeExtension(f.getName()));
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
                 IRNode lir = lv.visit(mir);
@@ -257,17 +259,12 @@ public class CLI implements Runnable {
                 ASTNode root = (ASTNode) parser.parse().value;
                 root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
                 //IR translation and lowering
-                VisitorTranslation tv = new VisitorTranslation(!optDisableOptimization);
+                VisitorTranslation tv = new VisitorTranslation(
+                        !optDisableOptimization,
+                        FilenameUtils.removeExtension(f.getName()));
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
                 IRNode lir = lv.visit(mir);
-                //for printing
-//                if (optDebug){
-//                    PrintWriter cw = new PrintWriter(System.out);
-//                    CodeWriterSExpPrinter printer = new CodeWriterSExpPrinter(cw);
-//                    mir.printSExp(printer);
-//                    printer.close();
-//                }
                 //Interpreting
                 IRSimulator sim = new IRSimulator((IRCompUnit) lir);
                 long result = sim.call("_Imain_paai", 0);

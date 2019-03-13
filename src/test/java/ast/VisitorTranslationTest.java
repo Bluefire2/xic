@@ -18,7 +18,7 @@ public class VisitorTranslationTest {
 
     @Before
     public void setUp() {
-        visitor = new VisitorTranslation(true);
+        visitor = new VisitorTranslation(true, "test");
     }
 
     @After
@@ -92,7 +92,7 @@ public class VisitorTranslationTest {
         assertEquals(((IRConst) r).value(), 1);
     }
 
-    @Test
+    @Test //and/or
     public void testFolding1() {
         XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.AND,
@@ -107,7 +107,7 @@ public class VisitorTranslationTest {
         assertEquals(((IRConst) r).value(), 0);
     }
 
-    @Test
+    @Test //unary not
     public void testFolding2() {
         XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.NOT,
@@ -121,7 +121,7 @@ public class VisitorTranslationTest {
         assertEquals(((IRConst) r).value(), 1);
     }
 
-    @Test
+    @Test //unary not #2
     public void testFolding3() {
         XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.NOT,
@@ -135,7 +135,7 @@ public class VisitorTranslationTest {
         assertEquals(((IRConst) r).value(), 0);
     }
 
-    @Test
+    @Test //arithmetic
     public void testFolding4() {
         XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.PLUS,
@@ -153,7 +153,7 @@ public class VisitorTranslationTest {
         assertEquals(((IRConst) r).value(), 23L);
     }
 
-    @Test
+    @Test //unary minus
     public void testFolding5() {
         XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.UMINUS,
