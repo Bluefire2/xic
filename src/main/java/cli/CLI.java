@@ -25,11 +25,7 @@ import xic_error.LexicalError;
 import xic_error.SemanticError;
 import xic_error.SyntaxError;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -202,7 +198,7 @@ public class CLI implements Runnable {
         }
     }
 
-    private void IRGen(){
+    private void IRGen() {
         for (File f : optInputFiles) {
             String outputFilePath = Paths.get(path.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".ir")
@@ -243,15 +239,15 @@ public class CLI implements Runnable {
         }
     }
 
-    private void IRRun(){
+    private void IRRun() {
         for (File f : optInputFiles) {
             String outputFilePath = Paths.get(path.toString(),
-                    FilenameUtils.removeExtension(f.getName()) + ".irsol.nml")
+                    FilenameUtils.removeExtension(f.getName()) + ".ir.nml")
                     .toString();
             String inputFilePath = Paths.get(sourcepath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
-                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+                 FileOutputStream fos = new FileOutputStream(outputFilePath)) {
 
                 XiTokenFactory xtf = new XiTokenFactory();
                 XiLexer lexer = new XiLexer(fileReader, xtf);
@@ -266,6 +262,9 @@ public class CLI implements Runnable {
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
                 IRNode lir = lv.visit(mir);
                 //Interpreting
+                if (!optDebug) {
+                    System.setOut(new PrintStream(fos)); // make stdout go to a file
+                }
                 IRSimulator sim = new IRSimulator((IRCompUnit) lir);
                 long result = sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
@@ -273,6 +272,9 @@ public class CLI implements Runnable {
                 fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                // reset the standard output stream
+                System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
             }
         }
     }
