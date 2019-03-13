@@ -114,24 +114,24 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     //return stmt that checks array bounds, is used in ESeq for indexing
-    private IRStmt checkIndex(IRExpr array, IRExpr index, IRTemp temp_array,
-                              IRTemp temp_index) {
+    private IRStmt checkIndex(IRExpr array, IRExpr index, String temp_array,
+                              String temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
         IRExpr test = new IRBinOp(OpType.OR,
-                new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
-                new IRBinOp(OpType.GEQ, temp_index, new IRMem(
+                new IRBinOp(OpType.LT, new IRTemp(temp_index), new IRConst(0)),
+                new IRBinOp(OpType.GEQ, new IRTemp(temp_index), new IRMem(
                         new IRBinOp(
-                                OpType.ADD,
-                                temp_array,
-                                new IRConst(-WORD_NUM_BYTES)
+                                OpType.SUB,
+                                new IRTemp(temp_array),
+                                new IRConst(WORD_NUM_BYTES)
                         )
                 ))
         );
         return new IRSeq(
-                new IRMove(temp_array, array),
-                new IRMove(temp_index, index),
+                new IRMove(new IRTemp(temp_array), array),
+                new IRMove(new IRTemp(temp_index), index),
                 new IRCJump(test, lt, lf),
                 new IRLabel(lt),
                 new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
@@ -533,8 +533,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 offset
         ));
         return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a),
-                        new IRTemp(t_i)),
+                checkIndex(array, idx, t_a, t_i),
                 access);
     }
 
@@ -617,13 +616,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRConst(WORD_NUM_BYTES),
                 new IRTemp(t_i)
         );
+        //TODO does this need to be a mem
         IRExpr location = new IRBinOp(
                 OpType.ADD,
                 new IRTemp(t_a),
                 offset
         );
         return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a), new IRTemp(t_i)),
+                checkIndex(array, idx, t_a, t_i),
                 location);
     }
 

@@ -66,6 +66,10 @@ public class CLI implements Runnable {
             description = "Disable optimizations.")
     private boolean optDisableOptimization = false;
 
+    @Option (names = {"--mir"},
+            description = "Do not lower the IR.")
+    private boolean optMIR = false;
+
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
@@ -220,7 +224,8 @@ public class CLI implements Runnable {
                         FilenameUtils.removeExtension(f.getName()));
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                IRNode lir = lv.visit(mir);
+                //IRNode lir = lv.visit(mir);
+                IRNode checked_ir = optMIR ? mir : lv.visit(mir);
                 //pretty-print IR
                 CodeWriterSExpPrinter printer;
                 if (optDebug) { //debug mode (print to stdout)
@@ -230,20 +235,20 @@ public class CLI implements Runnable {
                     {
                         CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
                         System.out.print("Canonical?: ");
-                        System.out.println(cv.visit(lir));
+                        System.out.println(cv.visit(checked_ir));
                     }
 
                     // IR constant-folding checker
                     {
                         CheckConstFoldedIRVisitor cv = new CheckConstFoldedIRVisitor();
                         System.out.print("Constant-folded?: ");
-                        System.out.println(cv.visit(lir));
+                        System.out.println(cv.visit(checked_ir));
                     }
                 } else {
                     OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
-                lir.printSExp(printer);
+                checked_ir.printSExp(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -275,12 +280,12 @@ public class CLI implements Runnable {
                         FilenameUtils.removeExtension(f.getName()));
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                IRNode lir = lv.visit(mir);
+                IRNode checked_ir = optMIR ? mir : lv.visit(mir);
                 //Interpreting
                 if (!optDebug) {
                     System.setOut(new PrintStream(fos)); // make stdout go to a file
                 }
-                IRSimulator sim = new IRSimulator((IRCompUnit) lir);
+                IRSimulator sim = new IRSimulator((IRCompUnit) checked_ir);
                 long result = sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
