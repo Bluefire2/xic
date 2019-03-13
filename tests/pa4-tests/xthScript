@@ -28,6 +28,30 @@
 #
 # xth runs the commands in order of appearance.
 
+xic ("Test --mir --irgen") "-libpath $(testpath) --irgen" {
+  array_assign.xi;
+  array_concat.xi;
+  array_index.xi;
+  multidim_alloc.xi;
+  multidim_literal.xi;
+  propagate_dbz.xi;
+  simple_inc_print.xi;
+  simulator_ex.xi;
+  sortstring.xi;
+}
+
+xic ("Test --mir --irgen -O") "-libpath $(testpath) --irgen -O" {
+  array_assign.xi;
+  array_concat.xi;
+  array_index.xi;
+  multidim_alloc.xi;
+  multidim_literal.xi;
+  propagate_dbz.xi;
+  simple_inc_print.xi;
+  simulator_ex.xi;
+  sortstring.xi;
+}
+
 xic ("Test --irgen") "-libpath $(testpath) --irgen" {
   array_assign.xi;
   array_concat.xi;
