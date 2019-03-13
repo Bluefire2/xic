@@ -1,6 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
+
+import java.math.BigInteger;
 
 public class ConstantFoldVisitor extends IRVisitor {
 
@@ -44,20 +47,45 @@ public class ConstantFoldVisitor extends IRVisitor {
             long lval = ((IRConst) l).value();
             long rval = ((IRConst) r).value();
             switch (op) {
-                case ADD: return new IRConst(lval + rval);
-                case SUB: return new IRConst(lval - rval);
-                case MUL:  return new IRConst(lval * rval);
-                case HMUL: return new IRBinOp(IRBinOp.OpType.HMUL, l, r); //TODO
-                case DIV: return new IRConst(lval / rval);
-                case MOD: return new IRConst(lval % rval);
-                case EQ: return new IRConst((lval == rval) ? 1 : 0);
-                case NEQ: return new IRConst((lval != rval) ? 1 : 0);
-                case GT: return new IRConst((lval > rval) ? 1 : 0);
-                case LT: return new IRConst((lval < rval) ? 1 : 0);
-                case GEQ: return new IRConst((lval >= rval) ? 1 : 0);
-                case LEQ: return new IRConst((lval <= rval) ? 1 : 0);
-                case AND: return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
-                case OR: return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+                case ADD:
+                    return new IRConst(lval + rval);
+                case SUB:
+                    return new IRConst(lval - rval);
+                case MUL:
+                    return new IRConst(lval * rval);
+                case HMUL:
+                    return new IRConst(BigInteger.valueOf(lval)
+                            .multiply(BigInteger.valueOf(rval))
+                            .shiftRight(64)
+                            .longValue());
+                case DIV:
+                    if (rval == 0L) {
+                        throw new InternalCompilerError("Divide by zero");
+                    }
+                    return new IRConst(lval / rval);
+                case MOD:
+                    if (rval == 0L) {
+                        throw new InternalCompilerError("Divide by zero");
+                    }
+                    return new IRConst(lval % rval);
+                case EQ:
+                    return new IRConst((lval == rval) ? 1 : 0);
+                case NEQ:
+                    return new IRConst((lval != rval) ? 1 : 0);
+                case GT:
+                    return new IRConst((lval > rval) ? 1 : 0);
+                case LT:
+                    return new IRConst((lval < rval) ? 1 : 0);
+                case GEQ:
+                    return new IRConst((lval >= rval) ? 1 : 0);
+                case LEQ:
+                    return new IRConst((lval <= rval) ? 1 : 0);
+                case AND:
+                    return new IRConst((lval == 1 && rval == 1) ? 1 : 0);
+                case OR:
+                    return new IRConst((lval == 1 || rval == 1) ? 1 : 0);
+                default:
+                    throw new InternalCompilerError("Invalid binary operation");
             }
         } else if (l instanceof IRConst && r instanceof IRName) {
             long lval = ((IRConst) l).value();
@@ -92,6 +120,9 @@ public class ConstantFoldVisitor extends IRVisitor {
                     else if (rval == 0) return new IRConst(0);
                     else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case DIV:
+                    if (rval == 0L) {
+                        throw new InternalCompilerError("Divide by zero");
+                    }
                     if (rval == 1) return l;
                     else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case AND:
