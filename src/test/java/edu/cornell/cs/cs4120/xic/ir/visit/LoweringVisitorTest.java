@@ -118,7 +118,9 @@ public class LoweringVisitorTest {
                 new IRConst(1),
                 new IRTemp("x")),
                 "t"), new IRMove(new IRTemp("x"), new IRTemp("y")));
-        assertEquals(ret, visitor.reorderBasicBlocks(visitor.lower(jmpseq)));
+        IRFuncDecl retfd = new IRFuncDecl("f", ret);
+        IRFuncDecl fd = new IRFuncDecl("f", jmpseq);
+        assertEquals(retfd, visitor.lower(fd));
     }
 
     //TODO:
