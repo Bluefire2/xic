@@ -20,7 +20,7 @@ sort(a: int[]) {
 
 main(args:int[][]) {
     //alphabetically sort strings
-    t:int[][]= {"DFGBAEC","BEAGCFDZ","FDBAEGCZZ"}
+    t:int[][]= {"DFGBAEC","BEAZGCFD","FDBAEGCZZ"}
     i:int = 0
     while i < length(t) {
         sort(t[i])
