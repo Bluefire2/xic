@@ -113,9 +113,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return new IRCJump((IRExpr) e.accept(this), labelt, labelf);
     }
 
-    //return stmt that checks array bounds, is used in ESeq for indexing
-    private IRStmt checkIndex(IRExpr array, IRExpr index, String temp_array,
-                              String temp_index) {
+    /**
+     * Check bounds of array access
+     *
+     * @param temp_array   name of temp that points to head of array
+     * @param temp_index   name of temp that points to index
+     * @return a list of IR statements for performing this check.
+     */
+    private IRStmt checkIndex(String temp_array, String temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
@@ -130,8 +135,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 ))
         );
         return new IRSeq(
-                new IRMove(new IRTemp(temp_array), array),
-                new IRMove(new IRTemp(temp_index), index),
                 new IRCJump(test, lt, lf),
                 new IRLabel(lt),
                 new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
@@ -546,7 +549,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 offset
         ));
         return new IRESeq(
-                checkIndex(array, idx, t_a, t_i),
+                new IRSeq(
+                        new IRMove(new IRTemp(t_a), array),
+                        new IRMove(new IRTemp(t_i), idx),
+                        checkIndex(t_a, t_i)
+                ),
                 access);
     }
 
@@ -616,28 +623,30 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     @Override
-    public IRExpr visit(AssignableIndex node) {
-        //same as ExprIndex without the MEM because we just want the location
+    public IRNode visit(AssignableIndex node) {
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-
-        IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
-        IRExpr array = (IRExpr) idx_expr.accept(this);
-        String t_a = newTemp();
-        String t_i = newTemp();
-        IRExpr offset = new IRBinOp(
-                OpType.MUL,
-                new IRConst(WORD_NUM_BYTES),
-                new IRTemp(t_i)
-        );
-        //TODO does this need to be a mem
-        IRExpr location = new IRBinOp(
-                OpType.ADD,
-                new IRTemp(t_a),
-                offset
-        );
-        return new IRESeq(
-                checkIndex(array, idx, t_a, t_i),
-                location);
+        return this.visit(idx_expr);
+//        IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
+//        IRExpr array = (IRExpr) idx_expr.getArray().accept(this);
+//        String t_a = newTemp();
+//        String t_i = newTemp();
+//        IRExpr offset = new IRBinOp(
+//                OpType.MUL,
+//                new IRConst(WORD_NUM_BYTES),
+//                new IRTemp(t_i)
+//        );
+//        IRMem access = new IRMem(new IRBinOp(
+//                OpType.ADD,
+//                new IRTemp(t_a),
+//                offset
+//        ));
+//        return new IRESeq(
+//                new IRSeq(
+//                        new IRMove(new IRTemp(t_a), array),
+//                        new IRMove(new IRTemp(t_i), idx),
+//                        checkIndex(t_a, t_i)
+//                ),
+//                access);
     }
 
     @Override
