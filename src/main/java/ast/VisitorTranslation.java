@@ -230,20 +230,20 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 String whileStart = newLabel();
                 String whileBody = newLabel();
                 String whileEnd = newLabel();
-                IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, new IRTemp(i), new IRTemp(sizeTemp));
+                IRBinOp whileGuard = new IRBinOp(OpType.LT, new IRTemp(i), new IRTemp(sizeTemp));
 
                 arrIR.add(new IRMove(
                         new IRTemp(sizeTemp),
                         new IRMem(new IRBinOp(
-                                OpType.ADD,
+                                OpType.SUB,
                                 t,
-                                new IRConst(-WORD_NUM_BYTES)
+                                new IRConst(WORD_NUM_BYTES)
                         ))
                 ));   // sizeTemp <- MEM(t - 8)
                 arrIR.add(new IRMove(new IRTemp(i), new IRConst(0)));   // i <- 0
                 arrIR.add(new IRLabel(whileStart));  // while loop starts
                 // Go to end if i >= sizeIR
-                arrIR.add(new IRCJump(whileGuardExit, whileEnd, whileBody));
+                arrIR.add(new IRCJump(whileGuard, whileBody, whileEnd));
                 arrIR.add(new IRLabel(whileBody));
                 // Allocate multi dim array at t + i*8
                 arrIR.add(new IRSeq(allocateMultiDimArray(
@@ -277,26 +277,25 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     /**
      * Moves contents of array arr to temporary/memory location newLoc.
      *
-     * @param newLoc   temporary or memory address.
-     * @param arr      location of array
+     * @param newLoc   expression representing location of new array
+     * @param arr      expression representing location of old array
      * @param sizeTemp a temp storing the size of the array
      * @return a list of IR statements for performing this array copying.
      */
-    private List<IRStmt> copyArray(IRExpr newLoc, IRExpr arr, IRExpr sizeTemp) {
+    private List<IRStmt> copyArray(IRExpr newLoc, IRExpr arr, String sizeTemp) {
 
         String i = newTemp();   // loop counter
         String l = newLabel();
 
         String whileStart = newLabel();
         String whileEnd = newLabel();
-        IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, new IRTemp(i), sizeTemp);
+        IRBinOp whileGuard = new IRBinOp(OpType.LT, new IRTemp(i), new IRTemp(sizeTemp));
         return new ArrayList<>(Arrays.asList(
                 new IRMove(new IRTemp(i), new IRConst(0)),  // i <- 0
                 new IRLabel(whileStart), // while loop starts
-                // Go to end if i >= sizeIR
-                new IRCJump(whileGuardExit, whileEnd, l),
+                // Enter loop if i < sizeTemp
+                new IRCJump(whileGuard, l, whileEnd),
                 new IRLabel(l),
-                // Allocate multi dim array at t + i*8
                 new IRMove(
                         //new location
                         new IRMem(new IRBinOp(
@@ -415,6 +414,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                             new IRConst(WORD_NUM_BYTES)
                     )));
             String tempNewArray = newTemp();
+            String newRStart = newTemp();
 
             //move lengths to temps
             List<IRStmt> stmts = new ArrayList<>(Arrays.asList(
@@ -431,15 +431,26 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                             new IRTemp(tempRLength))
             ));
             //copy left
-            stmts.addAll(copyArray(new IRTemp(tempNewArray),
-                    new IRTemp(tempL), new IRTemp(tempLLength)));
-            //copy right
             stmts.addAll(copyArray(
-                    new IRBinOp(OpType.ADD,
-                            new IRTemp(tempNewArray),
-                            new IRTemp(tempLLength)),
+                    new IRTemp(tempNewArray),
+                    new IRTemp(tempL), tempLLength));
+            //copy right
+            stmts.add(
+                    new IRMove(
+                            new IRTemp(newRStart),
+                            new IRBinOp(OpType.ADD,
+                                new IRTemp(tempNewArray),
+                                new IRBinOp(OpType.MUL,
+                                        new IRConst(WORD_NUM_BYTES),
+                                        new IRTemp(tempLLength)
+                                )
+                            )
+                    )
+            );
+            stmts.addAll(copyArray(
+                    new IRTemp(newRStart),
                     new IRTemp(tempR),
-                    new IRTemp(tempRLength)
+                    tempRLength
             ));
             IRSeq seq = new IRSeq(stmts);
             return new IRESeq(seq, new IRTemp(tempNewArray));

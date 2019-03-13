@@ -54,7 +54,7 @@ public class IRSimulator {
 
     private Set<String> libraryFunctions;
 
-    protected static int debugLevel = 1;
+    protected static int debugLevel = 0;
 
     public static final int DEFAULT_HEAP_SIZE = 10240;
 
