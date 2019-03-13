@@ -1,6 +1,10 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.*;
+
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -133,6 +137,24 @@ public class LoweringVisitor extends IRVisitor {
         throw new IllegalStateException(lname + " is not a valid label");
     }
 
+    private boolean canDeleteLabel(String lname) {
+        for (BasicBlock b : basicBlocks) {
+            for (IRStmt s : b.statements) {
+                if (s instanceof IRJump) {
+                    IRJump j = (IRJump) s;
+                    if (j.target() instanceof IRName) {
+                        if ((((IRName) j.target())).name().equals(lname)) return false;
+                        }
+                    }
+                if (s instanceof IRCJump) {
+                    IRCJump j = (IRCJump) s;
+                    if (j.trueLabel().equals(lname)) return false;
+                }
+                }
+            }
+        return true;
+    }
+
     /**
      * Reorder basic blocks so that jumps fall through whenever possible.
      * Called when lowering IRCJump nodes.
@@ -140,38 +162,32 @@ public class LoweringVisitor extends IRVisitor {
      * @return new root of IRNode tree, with basic blocks reordered
      */
     public IRNode reorderBasicBlocks(IRNode root) {
-        System.out.println("reordering");
         for (int i = 0; i < basicBlocks.size(); i++) {
-            System.out.println("On block " + (i+1) + " of " + basicBlocks.size());
             BasicBlock b = basicBlocks.get(i);
-            if (b.statements.size() > 0) {
-                System.out.println("b has more than 0 stmts");
-                if (b.getLastStmt() instanceof IRJump) {
-                    System.out.println("last is jump");
+                if (b.statements.size() > 0 && b.getLastStmt() instanceof IRJump) {
                     IRJump jmp = (IRJump) b.getLastStmt();
                     IRExpr target = jmp.target();
                     if (target instanceof IRName) {
                         IRName lname = (IRName) target;
-                        System.out.println("target is " + lname);
                         BasicBlock fallThrough = getBlockWithLabel(lname.name());
                         if (i + 1 >= basicBlocks.size()) {
                             basicBlocks.add(new BasicBlock());
                         }
                         BasicBlock temp = basicBlocks.get(i + 1);
                         if (!fallThrough.marked && !temp.marked) {
-                            System.out.println("unmarked");
                             b.mark();
                             fallThrough.mark();
-                            temp.mark();
-                            System.out.println("swapping " + basicBlocks.indexOf(fallThrough) + " and " + (i+1));
-                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
-                            basicBlocks.set(i + 1, fallThrough);
                             basicBlocks.set(i, new BasicBlock(b.statements.subList(0, b.statements.size()-1)));
+                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
+                            int ftl = fallThrough.statements.size();
+                            if (canDeleteLabel(lname.name())) {
+                                basicBlocks.set(i+1, new BasicBlock(fallThrough.statements.subList(1, ftl)));
+                            }
+                            else basicBlocks.set(i + 1, fallThrough);
                         }
                         }
 
                     }
-                }
             }
         List<IRStmt> stmts = new ArrayList<>();
         for (BasicBlock b : basicBlocks) {
