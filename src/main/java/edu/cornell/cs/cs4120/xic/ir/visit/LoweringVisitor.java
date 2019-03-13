@@ -68,7 +68,7 @@ public class LoweringVisitor extends IRVisitor {
      * @return list of IRTemps
      */
     private ArrayList<String> getTemps(List<IRNode> l) {
-        ArrayList<String> temps = new ArrayList<String>();
+        ArrayList<String> temps = new ArrayList<>();
         for (IRNode n : l) {
             if (n instanceof IRTemp) {
                 temps.add(((IRTemp) n).name());
@@ -316,6 +316,7 @@ public class LoweringVisitor extends IRVisitor {
         } else {
             ret = new IRSeq(
                     new IRCJump(e, irnode.trueLabel()),
+
                     new IRJump(new IRName(irnode.falseLabel()))
                     );
         }
@@ -533,7 +534,5 @@ public class LoweringVisitor extends IRVisitor {
         //Temps are already canonical
         return irnode;
     }
-
-
 
 }

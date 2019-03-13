@@ -114,8 +114,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     }
 
     //return stmt that checks array bounds, is used in ESeq for indexing
-    private IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array,
-                              IRExpr temp_index) {
+    private IRStmt checkIndex(IRExpr array, IRExpr index, IRTemp temp_array,
+                              IRTemp temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
@@ -217,6 +217,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         if (size != null) {
             IRExpr sizeIR = (IRExpr) size.accept(this);
             String sizeTemp = newTemp();
+            String l = newLabel();
 
             // Create an array of size sizeIR
             List<IRStmt> arrIR = allocateArray(t, sizeIR);
@@ -234,7 +235,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 arrIR.add(new IRMove(new IRTemp(i), new IRConst(0)));   // i <- 0
                 arrIR.add(new IRLabel(whileStart));  // while loop starts
                 // Go to end if i >= sizeIR
-                arrIR.add(new IRCJump(whileGuardExit, whileEnd));
+                arrIR.add(new IRCJump(whileGuardExit, whileEnd, l));
+                arrIR.add(new IRLabel(l));
                 // Allocate multi dim array at t + i*8
                 arrIR.add(new IRSeq(allocateMultiDimArray(
                         new IRMem(new IRBinOp(
@@ -275,6 +277,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private List<IRStmt> copyArray(IRExpr newLoc, IRExpr arr, IRExpr sizeTemp) {
 
         String i = newTemp();   // loop counter
+        String l = newLabel();
 
         String whileStart = newLabel();
         String whileEnd = newLabel();
@@ -283,11 +286,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRMove(new IRTemp(i), new IRConst(0)),  // i <- 0
                 new IRLabel(whileStart), // while loop starts
                 // Go to end if i >= sizeIR
-                new IRCJump(whileGuardExit, whileEnd),
+                new IRCJump(whileGuardExit, whileEnd, l),
+                new IRLabel(l),
                 // Allocate multi dim array at t + i*8
                 new IRMove(
                         //new location
-                        new IRBinOp(
+                        new IRMem(new IRBinOp(
                                 OpType.ADD,
                                 newLoc,
                                 new IRBinOp(
@@ -295,11 +299,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                                         new IRTemp(i),
                                         new IRConst(WORD_NUM_BYTES)
                                 )
-                        ),
+                        )),
                         //old element
                         new IRMem(new IRBinOp(
                                 OpType.ADD,
-                                newLoc,
+                                arr,
                                 new IRBinOp(
                                         OpType.MUL,
                                         new IRTemp(i),
@@ -395,14 +399,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             String tempRLength = newTemp();
             IRMove lengthL = new IRMove(new IRTemp(tempLLength), new IRMem(
                     new IRBinOp(OpType.SUB,
-                    new IRTemp(tempL),
-                    new IRConst(WORD_NUM_BYTES)
-            )));
+                            new IRTemp(tempL),
+                            new IRConst(WORD_NUM_BYTES)
+                    )));
             IRMove lengthR = new IRMove(new IRTemp(tempRLength), new IRMem(
                     new IRBinOp(OpType.SUB,
-                    new IRTemp(tempR),
-                    new IRConst(WORD_NUM_BYTES)
-            )));
+                            new IRTemp(tempR),
+                            new IRConst(WORD_NUM_BYTES)
+                    )));
             String tempNewArray = newTemp();
 
             //move lengths to temps
@@ -522,8 +526,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 offset
         ));
         return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a), 
-                new IRTemp(t_i)), 
+                checkIndex(array, idx, new IRTemp(t_a),
+                        new IRTemp(t_i)),
                 access);
     }
 
@@ -612,7 +616,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 offset
         );
         return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a), new IRTemp(t_i)), 
+                checkIndex(array, idx, new IRTemp(t_a), new IRTemp(t_i)),
                 location);
     }
 

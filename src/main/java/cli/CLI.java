@@ -7,6 +7,8 @@ import ast.VisitorTranslation;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.interpret.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
@@ -224,6 +226,19 @@ public class CLI implements Runnable {
                 if (optDebug) { //debug mode (print to stdout)
                     PrintWriter cw = new PrintWriter(System.out);
                     printer = new CodeWriterSExpPrinter(cw);
+                    // IR canonical checker
+                    {
+                        CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
+                        System.out.print("Canonical?: ");
+                        System.out.println(cv.visit(lir));
+                    }
+
+                    // IR constant-folding checker
+                    {
+                        CheckConstFoldedIRVisitor cv = new CheckConstFoldedIRVisitor();
+                        System.out.print("Constant-folded?: ");
+                        System.out.println(cv.visit(lir));
+                    }
                 } else {
                     OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
