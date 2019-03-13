@@ -508,7 +508,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             // Add argIR to list of arguments to be passed to IRCall
             argsIR.add((IRExpr) arg.accept(this));
         }
-        return new IRCall(new IRName(funcName), argsIR);
+        return new IRESeq(
+                new IRExp(new IRCall(new IRName(funcName), argsIR)),
+                new IRTemp(returnValueName(0)));
     }
 
     @Override

@@ -3,10 +3,12 @@ package edu.cornell.cs.cs4120.xic.ir.interpret;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.ArrayList;
 
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp;
 import edu.cornell.cs.cs4120.xic.ir.IRCJump;
@@ -52,7 +54,7 @@ public class IRSimulator {
 
     private Set<String> libraryFunctions;
 
-    protected static int debugLevel = 0;
+    protected static int debugLevel = 1;
 
     public static final int DEFAULT_HEAP_SIZE = 10240;
 
