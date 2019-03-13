@@ -620,7 +620,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
 
         IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
-        IRExpr array = (IRExpr) idx_expr.accept(this);
+        IRExpr array = (IRExpr) idx_expr.getArray().accept(this);
         String t_a = newTemp();
         String t_i = newTemp();
         IRExpr offset = new IRBinOp(
@@ -628,12 +628,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRConst(WORD_NUM_BYTES),
                 new IRTemp(t_i)
         );
-        //TODO does this need to be a mem
-        IRExpr location = new IRBinOp(
+        IRExpr location = new IRMem(new IRBinOp(
                 OpType.ADD,
                 new IRTemp(t_a),
                 offset
-        );
+        ));
         return new IRESeq(
                 checkIndex(array, idx, t_a, t_i),
                 location);
@@ -657,10 +656,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtAssign node) {
-        return new IRMove(
-                (IRExpr) node.getLhs().accept(this),
-                (IRExpr) node.getRhs().accept(this)
-        );
+        IRExpr l = (IRExpr) node.getLhs().accept(this);
+        IRExpr r = (IRExpr) node.getRhs().accept(this);
+        return new IRMove(l, r);
     }
 
     /**
