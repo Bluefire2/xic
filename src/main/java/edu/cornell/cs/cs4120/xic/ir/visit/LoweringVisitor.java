@@ -124,11 +124,11 @@ public class LoweringVisitor extends IRVisitor {
 
     /**
      * Reorder basic blocks so that jumps fall through whenever possible.
-     * Called when lowering IRSeq nodes.
+     * Called when lowering IRCJump nodes.
      * @param root current root of the IRNode tree
      * @return new root of IRNode tree, with basic blocks reordered
      */
-    private IRNode reorderBasicBlocks(IRNode root) {
+    public IRNode reorderBasicBlocks(IRNode root) {
         for (int i = 0; i < basicBlocks.size(); i++) {
             BasicBlock b = basicBlocks.get(i);
             b.mark();
@@ -301,26 +301,26 @@ public class LoweringVisitor extends IRVisitor {
 
     public IRNode lower(IRCJump irnode) {
         IRExpr e = irnode.cond();
+        IRSeq ret;
 
         if (e instanceof IRESeq) {
             IRESeq ireSeq = ((IRESeq) e);
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
 
-            IRSeq ret = new IRSeq(
+            ret = new IRSeq(
                     s, new IRCJump(eprime, irnode.trueLabel()),
                     new IRJump(new IRName(irnode.falseLabel()))
                     );
-            addNodeToBlock(ret);
-            return ret;
+
         } else {
-            IRSeq ret = new IRSeq(
+            ret = new IRSeq(
                     new IRCJump(e, irnode.trueLabel()),
                     new IRJump(new IRName(irnode.falseLabel()))
                     );
-            addNodeToBlock(ret);
-            return ret;
         }
+        addNodeToBlock(ret);
+        return ret;
     }
 
     public IRNode lower(IRCompUnit irnode) {
@@ -358,7 +358,7 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRFuncDecl irnode) {
-        return irnode;
+        return reorderBasicBlocks(irnode);
     }
 
     public IRNode lower(IRJump irnode) {
@@ -519,12 +519,14 @@ public class LoweringVisitor extends IRVisitor {
             if (s instanceof IRSeq) {
                 newStmts.addAll(((IRSeq) lower((IRSeq) s)).stmts());
             }
-            else newStmts.add(s);
+            else {
+                if (s instanceof IRCJump) newStmts.addAll(((IRSeq) lower((IRCJump) s)).stmts());
+                else newStmts.add(s);
+            }
         }
         IRSeq ret = new IRSeq(newStmts);
         addNodeToBlock(ret);
         return ret;
-        //return reorderBasicBlocks(ret);
     }
 
     public IRNode lower(IRTemp irnode) {
