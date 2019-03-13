@@ -121,7 +121,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         //array bounds checking - True if invalid
         IRExpr test = new IRBinOp(OpType.OR,
                 new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
-                new IRBinOp(OpType.GT, temp_index, new IRMem(
+                new IRBinOp(OpType.GEQ, temp_index, new IRMem(
                         new IRBinOp(
                                 OpType.ADD,
                                 temp_array,
@@ -217,7 +217,6 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         if (size != null) {
             IRExpr sizeIR = (IRExpr) size.accept(this);
             String sizeTemp = newTemp();
-            String l = newLabel();
 
             // Create an array of size sizeIR
             List<IRStmt> arrIR = allocateArray(t, sizeIR);
@@ -229,14 +228,23 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 String i = newTemp();   // loop counter
 
                 String whileStart = newLabel();
+                String whileBody = newLabel();
                 String whileEnd = newLabel();
                 IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, new IRTemp(i), new IRTemp(sizeTemp));
 
+                arrIR.add(new IRMove(
+                        new IRTemp(sizeTemp),
+                        new IRMem(new IRBinOp(
+                                OpType.ADD,
+                                t,
+                                new IRConst(-WORD_NUM_BYTES)
+                        ))
+                ));   // sizeTemp <- MEM(t - 8)
                 arrIR.add(new IRMove(new IRTemp(i), new IRConst(0)));   // i <- 0
                 arrIR.add(new IRLabel(whileStart));  // while loop starts
                 // Go to end if i >= sizeIR
-                arrIR.add(new IRCJump(whileGuardExit, whileEnd, l));
-                arrIR.add(new IRLabel(l));
+                arrIR.add(new IRCJump(whileGuardExit, whileEnd, whileBody));
+                arrIR.add(new IRLabel(whileBody));
                 // Allocate multi dim array at t + i*8
                 arrIR.add(new IRSeq(allocateMultiDimArray(
                         new IRMem(new IRBinOp(
