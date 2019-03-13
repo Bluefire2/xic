@@ -60,12 +60,12 @@ public class ConstantFoldVisitor extends IRVisitor {
                             .longValue());
                 case DIV:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return irnode;
                     }
                     return new IRConst(lval / rval);
                 case MOD:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return irnode;
                     }
                     return new IRConst(lval % rval);
                 case EQ:
@@ -120,9 +120,6 @@ public class ConstantFoldVisitor extends IRVisitor {
                     else if (rval == 0) return new IRConst(0);
                     else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case DIV:
-                    if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
-                    }
                     if (rval == 1) return l;
                     else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
                 case AND:

@@ -386,8 +386,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 }
 
             default:
-                throw new InternalCompilerError("Operation Type of " +
-                        "Binop node is invalid");
+                throw new InternalCompilerError("Invalid binary operation");
         }
     }
 
@@ -463,12 +462,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                             .longValue());
                 case DIV:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return translateBinop(l, r, op);
                     }
                     return new IRConst(lval / rval);
                 case MOD:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return translateBinop(l, r, op);
                     }
                     return new IRConst(lval % rval);
                 case EQEQ:
@@ -600,7 +599,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 }
                 return new IRBinOp(OpType.SUB, new IRConst(0), e);
             default:
-                throw new InternalCompilerError("Invalid binary operation");
+                throw new InternalCompilerError("Invalid unary operation");
         }
     }
 
