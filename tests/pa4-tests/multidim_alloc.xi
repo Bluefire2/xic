@@ -20,5 +20,12 @@ main(args:int[][]) {
     i: int = 0
     while (i < length(e)) {
         print(e[i] + "\n")
+        i = i + 1
     }
+
+    f: int[][] = {"aaaa", "bbbb", "cccc"}
+    c = f;
+    g: int[3][]
+    g[0] = f[0]; g[1] = f[1]; g[2] = f[2]
+    println(g[0]+ {g[0][0]} + g[1] + {g[1][0]} + g[2] + {g[2][0]})
 }
