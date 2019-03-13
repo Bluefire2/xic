@@ -218,35 +218,34 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             IRExpr sizeIR = (IRExpr) size.accept(this);
             String sizeTemp = newTemp();
 
-            // Create an array of size sizeIR
-            List<IRStmt> arrIR = allocateArray(t, sizeIR);
+            List<IRStmt> allocIR = new ArrayList<>();
+            // sizeTemp <- eval(size)
+            allocIR.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+            // Create an array of size sizeTemp
+            allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
 
             if (innerType instanceof TypeTTauArray) {
                 // innerType is an array, create a while loop to initialize
                 // each element of t
                 TypeTTauArray itArray = (TypeTTauArray) innerType;
-                String i = newTemp();   // loop counter
 
                 String whileStart = newLabel();
                 String whileBody = newLabel();
                 String whileEnd = newLabel();
-                IRBinOp whileGuard = new IRBinOp(OpType.LT, new IRTemp(i), new IRTemp(sizeTemp));
 
-                arrIR.add(new IRMove(
-                        new IRTemp(sizeTemp),
-                        new IRMem(new IRBinOp(
-                                OpType.SUB,
-                                t,
-                                new IRConst(WORD_NUM_BYTES)
-                        ))
-                ));   // sizeTemp <- MEM(t - 8)
-                arrIR.add(new IRMove(new IRTemp(i), new IRConst(0)));   // i <- 0
-                arrIR.add(new IRLabel(whileStart));  // while loop starts
-                // Go to end if i >= sizeIR
-                arrIR.add(new IRCJump(whileGuard, whileBody, whileEnd));
-                arrIR.add(new IRLabel(whileBody));
+                String i = newTemp();   // loop counter
+                IRBinOp whileGuard = new IRBinOp(
+                        OpType.LT, new IRTemp(i), new IRTemp(sizeTemp)
+                );
+
+                // i <- 0
+                allocIR.add(new IRMove(new IRTemp(i), new IRConst(0)));
+                allocIR.add(new IRLabel(whileStart));  // while loop starts
+                // Go to whileBody if i < sizeTemp else go to whileEnd
+                allocIR.add(new IRCJump(whileGuard, whileBody, whileEnd));
+                allocIR.add(new IRLabel(whileBody));
                 // Allocate multi dim array at t + i*8
-                arrIR.add(new IRSeq(allocateMultiDimArray(
+                allocIR.add(new IRSeq(allocateMultiDimArray(
                         new IRMem(new IRBinOp(
                                 OpType.ADD,
                                 t,
@@ -258,14 +257,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                         )),
                         itArray)));
                 // i++
-                arrIR.add(new IRMove(
+                allocIR.add(new IRMove(
                         new IRTemp(i),
                         new IRBinOp(OpType.ADD, new IRTemp(i), new IRConst(1))
                 ));
-                arrIR.add(new IRJump(new IRName(whileStart)));
-                arrIR.add(new IRLabel(whileEnd));    // while loop ends
+                allocIR.add(new IRJump(new IRName(whileStart)));
+                allocIR.add(new IRLabel(whileEnd));    // while loop ends
             }
-            return arrIR;
+            return allocIR;
         } else {
             // size == null ==> the inner arrays, if any, are also
             // uninitialized. So just return an empty list of IRStmts
