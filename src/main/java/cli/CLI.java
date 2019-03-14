@@ -273,7 +273,7 @@ public class CLI implements Runnable {
                 XiLexer lexer = new XiLexer(fileReader, xtf);
                 XiParser parser = new XiParser(lexer, xtf);
                 ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
                 //IR translation and lowering
                 VisitorTranslation tv = new VisitorTranslation(
                         !optDisableOptimization,

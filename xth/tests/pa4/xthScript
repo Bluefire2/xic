@@ -28,18 +28,6 @@
 #
 # xth runs the commands in order of appearance.
 
-xic ("Test --mir --irgen") "-libpath $(testpath) --irgen" {
-    ex01.xi;
-    ack.xi;
-    primes.xi;
-}
-
-xic ("Test --mir --irgen -O") "-libpath $(testpath) --irgen -O" {
-    ex01.xi;
-    ack.xi;
-    primes.xi;
-}
-
 xic ("Test --irgen") "-libpath $(testpath) --irgen" {
     ex01.xi;
     ack.xi;
