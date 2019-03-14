@@ -200,6 +200,9 @@ public class LoweringVisitor extends IRVisitor {
         List<IRNode> e2Children = e2.aggregateChildren(new ListChildrenVisitor());
         e2Children.add(e2);
         //Check MEM
+        for (IRNode n : e1Children) {
+            if (n instanceof IRMem) return false;
+        }
         for (IRNode n : e2Children) {
             if (n instanceof IRMem) return false;
         }
@@ -505,6 +508,11 @@ public class LoweringVisitor extends IRVisitor {
                 destprime = destSeq.expr();
                 eprime = src;
                 s1 = destSeq.stmt();
+            } else if (dest instanceof IRMem) {
+                destprime = ((IRMem) dest).expr();
+                srcSeq = (IRESeq) src;
+                eprime = srcSeq.expr();
+                s2 = srcSeq.stmt();
             } else {
                 srcSeq = (IRESeq) src;
                 destprime = dest;

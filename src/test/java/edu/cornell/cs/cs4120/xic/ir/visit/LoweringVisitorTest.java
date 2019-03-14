@@ -42,24 +42,6 @@ public class LoweringVisitorTest {
     }
 
     @Test
-    public void testMoveEseq() {
-        IRMove movMir = new IRMove(new IRMem(new IRTemp("y")),
-                            new IRESeq(new IRMove(new IRTemp("x"),
-                                new IRTemp("y")),
-                            new IRBinOp(IRBinOp.OpType.ADD,
-                                    new IRTemp("x"),
-                                    new IRConst(1))
-                ));
-        IRSeq lirMovSeq = new IRSeq(new IRMove(new IRTemp("x"),
-                                                new IRTemp("y")),
-                                    new IRMove(new IRMem(new IRTemp("y")),
-                                        new IRBinOp(IRBinOp.OpType.ADD,
-                                        new IRTemp("x"),
-                                        new IRConst(1))));
-        assertEquals(lirMovSeq, visitor.lower(movMir));
-    }
-
-    @Test
     public void testExp() {
         IRExp exp = new IRExp(new IRESeq(new IRReturn(), new IRConst(2)));
         IRReturn ret = new IRReturn();
@@ -99,41 +81,37 @@ public class LoweringVisitorTest {
         assertEquals(ret, visitor.lower(nested));
     }
 
-    @Test
-    public void testCJumps() {
-        IRSeq cjmp = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
-                "t", "f"));
-        IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
-                "t"), new IRJump(new IRName("f")));
-        assertEquals(ret, visitor.lower(cjmp));
-    }
-
-    @Test
-    public void testBasicBlocks() {
-        IRCJump cjmp = new IRCJump(new IRBinOp(IRBinOp.OpType.AND,
-                new IRConst(1),
-                new IRTemp("x")),
-                "t", "f");
-        IRSeq jmpseq = new IRSeq(cjmp, new IRLabel("f"), new IRReturn());
-        IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND,
-                new IRConst(1),
-                new IRTemp("x")),
-                "t"), new IRReturn());
-        IRFuncDecl retfd = new IRFuncDecl("f", ret);
-        IRFuncDecl fd = new IRFuncDecl("f", jmpseq);
-        assertEquals(retfd, visitor.lower(fd));
-    }
-
     //TODO:
 
     @Test
     public void testMoveCommute() {
-        fail();
+        IRMove mov = new IRMove(new IRTemp("y"),
+                new IRESeq(new IRLabel("l"),
+                        new IRBinOp(IRBinOp.OpType.ADD,
+                                new IRTemp("x"),
+                                new IRConst(1))
+                ));
+        IRSeq lowered = new IRSeq(new IRLabel("l"),
+                new IRMove(new IRTemp("y"), new IRBinOp(IRBinOp.OpType.ADD,
+                        new IRTemp("x"),
+                        new IRConst(1))));
+        assertEquals(lowered, visitor.lower(mov));
     }
 
     @Test
     public void testMoveGeneral() {
-        fail();
+        IRMove mov = new IRMove(new IRMem(new IRName("x")),
+                new IRESeq(new IRLabel("l"),
+                        new IRBinOp(IRBinOp.OpType.ADD,
+                                new IRTemp("y"),
+                                new IRConst(1))
+                ));
+        String t = newTemp();
+        IRSeq lowered = new IRSeq(new IRMove(new IRTemp(t), new IRName("x")),
+                        new IRLabel("l"),
+                        new IRMove(new IRMem(new IRTemp(t)),
+                                new IRBinOp(IRBinOp.OpType.ADD, new IRTemp("x"), new IRConst(1))));
+        assertEquals(lowered, visitor.lower(mov));
     }
 
     @Test
@@ -180,7 +158,33 @@ public class LoweringVisitorTest {
 
     @Test
     public void testBinopGeneral() {
-        fail(); // need to fix ifExprsCommute first
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRConst(5)
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRTemp("c")
+        );
+        IRBinOp binOp = new IRBinOp(
+                IRBinOp.OpType.ADD,
+                e1,
+                e2
+        );
+        String t = newTemp();
+        IRESeq ret = new IRESeq(
+                new IRSeq(
+                        new IRJump(new IRTemp("a")),
+                        new IRMove(new IRTemp(t), new IRConst(5)),
+                        new IRJump(new IRTemp("b"))
+                ),
+                new IRBinOp(
+                        IRBinOp.OpType.ADD,
+                        new IRTemp(t),
+                        new IRTemp("c")
+                )
+        );
+        assertEquals(ret, visitor.lower(binOp));
     }
 
 
