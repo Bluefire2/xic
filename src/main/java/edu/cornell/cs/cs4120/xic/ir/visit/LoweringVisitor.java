@@ -98,6 +98,11 @@ public class LoweringVisitor extends IRVisitor {
         //Statements Pass: build basic blocks
         for (int i = 0; i < stmts.size(); i++){
             IRStmt currStmt = stmts.get(i);
+            if (currentBlock == null && !(currStmt instanceof IRLabel)) {
+                //if block completed and next statement is not a label
+                //make a fake label so that every block has a label
+                currentBlock = new BasicBlock(new IRLabel(newLabel()));
+            }
             if (currStmt instanceof IRLabel){
                 IRLabel l = (IRLabel) currStmt;
                 if (currentBlock != null) {
@@ -137,11 +142,6 @@ public class LoweringVisitor extends IRVisitor {
                 lookup.put(currentBlock.label, currentBlock);
                 currentBlock = null;
             } else {
-                if (currentBlock == null) {
-                    //if block completed and next statement is not a label
-                    //make a fake label so that every block has a label
-                    currentBlock = new BasicBlock(new IRLabel(newLabel()));
-                }
                 currentBlock.addStmt(currStmt);
             }
         }
