@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 public class LoweringVisitorTest {
     private LoweringVisitor visitor;
 
-    int tempcounter = 0;
+    private int tempcounter = 0;
     private String newTemp() {
         return String.format("_lir_t%d", (tempcounter++));
     }
