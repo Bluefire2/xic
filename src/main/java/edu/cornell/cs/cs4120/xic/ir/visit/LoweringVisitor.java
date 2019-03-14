@@ -334,17 +334,23 @@ public class LoweringVisitor extends IRVisitor {
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
 
-            return new IRSeq(
-                    s, new IRCJump(eprime, irnode.trueLabel()),
-                    new IRJump(new IRName(irnode.falseLabel()))
-                    );
+            if (irnode.hasFalseLabel()) {
+                return new IRSeq(
+                        s, new IRCJump(eprime, irnode.trueLabel()),
+                        new IRJump(new IRName(irnode.falseLabel()))
+                );
+            }
+            else return new IRSeq(s, new IRCJump(eprime, irnode.trueLabel()));
 
         } else {
-            return new IRSeq(
-                    new IRCJump(e, irnode.trueLabel()),
+            if(irnode.hasFalseLabel()) {
+                return new IRSeq(
+                        new IRCJump(e, irnode.trueLabel()),
 
-                    new IRJump(new IRName(irnode.falseLabel()))
-                    );
+                        new IRJump(new IRName(irnode.falseLabel()))
+                );
+            }
+            else return new IRCJump(e, irnode.trueLabel());
         }
     }
 
