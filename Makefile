@@ -22,7 +22,7 @@ help:
 build:	## Build xic
 	$(XIC_BUILD)
 
-test: test-xth-build $(XTH_TEST_DIRS)	## Run xth quietly on all test directories
+test: test-xth-build $(XTH_TEST_DIRS) test-unit	## Run unit tests and xth quietly on all test directories
 
 test-xth-build:	## Run xth quietly on xic builder
 	$(eval SCRIPT:=$(addsuffix /xthScriptBuild, $(XTH_BUILD_TEST_DIR)))
@@ -39,6 +39,9 @@ test-verbose: test
 test-custom: build	## Run xth on a specific directory given by TESTPATH and with optional flags given by ARGS
 	$(eval SCRIPT:=$(addsuffix /xthScript, $(TESTPATH)))
 	$(XTH_BIN) $(ARGS) -testpath $(TESTPATH) $(SCRIPT)
+
+test-unit:	## Run unit tests in the project
+	./gradle_exec.sh --no-daemon test
 
 zip: clean	## Zip Xi Compiler source files into xic.zip
 	# netid of a random group member added to the zip file name
