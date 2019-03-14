@@ -194,7 +194,7 @@ public class LoweringVisitor extends IRVisitor {
      * @param e2 second expression
      * @return true if e1 and e2 commute, false otherwise
      */
-    private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
+    public boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
         List<IRNode> e1Children = e1.aggregateChildren(new ListChildrenVisitor());
         e1Children.add(e1);
         List<IRNode> e2Children = e2.aggregateChildren(new ListChildrenVisitor());

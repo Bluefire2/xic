@@ -20,4 +20,11 @@ public class ListChildrenVisitor extends AggregateVisitor<List<IRNode>> {
         ret.addAll(r2);
         return ret;
     }
+
+    @Override
+    protected List<IRNode> leave(IRNode parent, IRNode n, List<IRNode> r,
+                            AggregateVisitor<List<IRNode>> v_) {
+        r.add(n);
+        return r;
+    }
 }

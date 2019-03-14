@@ -6,8 +6,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class LoweringVisitorTest {
     private LoweringVisitor visitor;
@@ -164,6 +163,19 @@ public class LoweringVisitorTest {
                 )
         );
         assertEquals(ret, visitor.lower(binOp));
+    }
+
+    @Test
+    public void testExprsCommute() {
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRConst(5)
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRTemp("c")
+        );
+        assertFalse(visitor.ifExprsCommute(e1, e2));
     }
 
     @Test
