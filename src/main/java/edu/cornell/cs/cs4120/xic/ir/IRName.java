@@ -36,6 +36,10 @@ public class IRName extends IRExpr_c {
 
     @Override
     public boolean equals(Object node) {
-        return node instanceof IRName;
+        if (node instanceof IRName) {
+            return name.equals(((IRName) node).name);
+        } else {
+            return false;
+        }
     }
 }
