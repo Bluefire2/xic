@@ -95,6 +95,16 @@ public class ConstantFoldVisitor extends IRVisitor {
         return irnode;
     }
 
+    /**
+     * Fold a BinOp that consists of a const node and a name node.
+     *
+     * @param irnode The BinOp node.
+     * @param c The const node.
+     * @param e The name node.
+     * @param opType The type of the BinOp.
+     * @param constIsRight {@code true} if the const is on the right-hand side of the BinOp, {@code false} otherwise.
+     * @return A folded BinOp which evaluates to the same value as the original BinOp.
+     */
     private IRNode foldNameAndConstBinOp(IRBinOp irnode, IRConst c, IRName e, IRBinOp.OpType opType, boolean constIsRight) {
         long value = c.value();
         switch (opType) {
