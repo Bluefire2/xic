@@ -119,7 +119,9 @@ public class ConstantFoldVisitor extends IRVisitor {
                 else if (value == 0) return new IRConst(0);
                 else return irnode;
             case OR:
-                if (value == 0) return e; else return irnode;
+                if (value == 0) return e;
+                else if (value == 1) return new IRConst(1);
+                else return irnode;
              default:
                  return irnode;
         }
