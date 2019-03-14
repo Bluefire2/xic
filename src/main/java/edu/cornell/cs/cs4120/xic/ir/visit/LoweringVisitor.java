@@ -94,8 +94,8 @@ public class LoweringVisitor extends IRVisitor {
     private boolean ifExprsCommute(IRExpr e1, IRExpr e2) {
         List<IRNode> e1Children = e1.aggregateChildren(new ListChildrenVisitor());
         e1Children.add(e1);
-        List<IRNode> e2Children = e1.aggregateChildren(new ListChildrenVisitor());
-        e1Children.add(e2);
+        List<IRNode> e2Children = e2.aggregateChildren(new ListChildrenVisitor());
+        e2Children.add(e2);
         //Check MEM
         for (IRNode n : e2Children) {
             if (n instanceof IRMem) return false;
