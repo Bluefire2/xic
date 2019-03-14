@@ -115,6 +115,18 @@ public class LoweringVisitorTest {
     }
 
     @Test
+    public void testMoveGeneralTwoMem() {
+        IRMove mov = new IRMove(new IRMem(new IRName("y")),
+                new IRESeq(new IRLabel("l"),new IRMem(new IRName("x"))));
+        String t = newTemp();
+        IRSeq lowered = new IRSeq(new IRMove(new IRTemp(t), new IRName("y")),
+                new IRLabel("l"),
+                new IRMove(new IRMem(new IRTemp(t)),
+                        new IRMem(new IRName("x"))));
+        assertEquals(lowered, visitor.lower(mov));
+    }
+
+    @Test
     public void testBinOpCommute() {
         IRESeq e1 = new IRESeq(
                 new IRJump(new IRTemp("a")),
