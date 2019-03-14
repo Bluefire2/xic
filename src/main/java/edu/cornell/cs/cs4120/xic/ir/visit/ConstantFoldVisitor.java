@@ -88,51 +88,35 @@ public class ConstantFoldVisitor extends IRVisitor {
                     throw new InternalCompilerError("Invalid binary operation");
             }
         } else if (l instanceof IRConst && r instanceof IRName) {
-            long lval = ((IRConst) l).value();
-            switch (op) {
-                case ADD:
-                case SUB:
-                    if (lval == 0) return r; else return irnode;
-                case MUL:
-                    if (lval == 1) return r;
-                    else if (lval == 0) return new IRConst(0);
-                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
-                case DIV:
-                    if (lval == 1) return r;
-                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
-                case AND:
-                    if (lval == 1) return r;
-                    else if (lval == 0) return new IRConst(0);
-                    else return irnode;
-                case OR:
-                    if (lval == 0) return r; else return irnode;
-                 default:
-                     return irnode;
-            }
+            return foldNameAndConstBinOp(irnode, (IRConst) l, (IRName) r, op);
         } else if (r instanceof IRConst && l instanceof IRName) {
-            long rval = ((IRConst) r).value();
-            switch (op) {
-                case ADD:
-                case SUB:
-                    if (rval == 0) return l; else return irnode;
-                case MUL:
-                    if (rval == 1) return l;
-                    else if (rval == 0) return new IRConst(0);
-                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
-                case DIV:
-                    if (rval == 1) return l;
-                    else return strengthReduce(op, (IRName) r, (IRConst) l, irnode);
-                case AND:
-                    if (rval == 1) return l;
-                    else if (rval == 0) return new IRConst(0);
-                    else return irnode;
-                case OR:
-                    if (rval == 0) return l; else return irnode;
-                default:
-                    return irnode;
-            }
+            return foldNameAndConstBinOp(irnode, (IRConst) r, (IRName) l, op);
         }
         return irnode;
+    }
+
+    private IRNode foldNameAndConstBinOp(IRBinOp irnode, IRConst c, IRName e, IRBinOp.OpType opType) {
+        long value = c.value();
+        switch (opType) {
+            case ADD:
+            case SUB:
+                if (value == 0) return e; else return irnode;
+            case MUL:
+                if (value == 1) return e;
+                else if (value == 0) return new IRConst(0);
+                else return strengthReduce(opType, e, c, irnode);
+            case DIV:
+                if (value == 1) return e;
+                else return strengthReduce(opType, e, c, irnode);
+            case AND:
+                if (value == 1) return e;
+                else if (value == 0) return new IRConst(0);
+                else return irnode;
+            case OR:
+                if (value == 0) return e; else return irnode;
+             default:
+                 return irnode;
+        }
     }
 
     public IRNode fold(IRCall irnode) {
