@@ -1,12 +1,16 @@
 package ast;
 
+import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import lexer.XiToken;
 import lexer.XiTokenLocation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import symboltable.TypeSymTableFunc;
 
+import java.io.PrintWriter;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -14,10 +18,12 @@ import static org.junit.Assert.assertTrue;
 
 public class VisitorTranslationTest {
     private VisitorTranslation visitor;
+    private XiTokenLocation l;
 
     @Before
     public void setUp() {
         visitor = new VisitorTranslation(true, "test");
+        l = new XiTokenLocation(0,0);
     }
 
     @After
@@ -78,7 +84,6 @@ public class VisitorTranslationTest {
 
     @Test
     public void testFolding0() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.AND,
                 new ExprBoolLiteral(true,l),
                 new ExprBinop(Binop.OR,
@@ -93,7 +98,6 @@ public class VisitorTranslationTest {
 
     @Test //and/or
     public void testFolding1() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.AND,
                 new ExprBoolLiteral(true,l),
                 new ExprBinop(Binop.OR,
@@ -108,7 +112,6 @@ public class VisitorTranslationTest {
 
     @Test //unary not
     public void testFolding2() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.NOT,
                 new ExprBinop(Binop.GT,
                         new ExprIntLiteral(10L, l),
@@ -122,7 +125,6 @@ public class VisitorTranslationTest {
 
     @Test //unary not #2
     public void testFolding3() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.NOT,
                 new ExprBinop(Binop.GTEQ,
                         new ExprIntLiteral(10L, l),
@@ -136,7 +138,6 @@ public class VisitorTranslationTest {
 
     @Test //arithmetic
     public void testFolding4() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.PLUS,
                 new ExprBinop(Binop.PLUS,
                         new ExprIntLiteral(1L, l),
@@ -154,7 +155,6 @@ public class VisitorTranslationTest {
 
     @Test //unary minus
     public void testFolding5() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprUnop(Unop.UMINUS,
                 new ExprBinop(Binop.MULT,
                         new ExprIntLiteral(2L, l),
@@ -168,7 +168,6 @@ public class VisitorTranslationTest {
 
     @Test //DbZ not folded
     public void testFolding6() {
-        XiTokenLocation l = new XiTokenLocation(0,0);
         Expr e = new ExprBinop(Binop.DIV,
                         new ExprIntLiteral(1L, l),
                         new ExprIntLiteral(0L, l),
@@ -176,6 +175,32 @@ public class VisitorTranslationTest {
         IRNode r = e.accept(visitor);
         assertTrue(r instanceof IRBinOp);
     }
+
+//    @Test //and/or not folded, test translation
+//    public void testFolding7() {
+//        Expr e = new ExprBinop(Binop.AND,
+//                new ExprBoolLiteral(true,l),
+//                new ExprId("hello", l),
+//                l);
+//        IRNode expected = new IRESeq(new IRSeq(
+//                new IRMove(new IRTemp("x"), new IRConst(0L)),
+//                new IRCJump(new IRConst(1L), "l1", "l3"),
+//                new IRLabel("l1"),
+//                new IRCJump(new IRTemp("hello"), "l2", "l3"),
+//                new IRLabel("l2"),
+//                new IRMove(new IRTemp("x"), new IRConst(1L)),
+//                new IRLabel("l3")),
+//                new IRTemp("x")
+//        );
+//        IRNode r = e.accept(visitor);
+//        assertTrue(!(r instanceof IRConst));
+//        PrintWriter cw = new PrintWriter(System.out);
+//        CodeWriterSExpPrinter printer = new CodeWriterSExpPrinter(cw);
+//        r.printSExp(printer);
+//        expected.printSExp(printer);
+//        printer.close();
+//        assertEquals(r, expected);
+//    }
 }
 
 

@@ -105,8 +105,7 @@ public class IRSeq extends IRStmt {
     public boolean equals(Object node) {
         if (node instanceof IRSeq) {
             IRSeq irSeq = (IRSeq) node;
-            return stmts.equals(irSeq.stmts)
-                    && replaceParent == irSeq.replaceParent;
+            return stmts.equals(irSeq.stmts);
         } else {
             return false;
         }

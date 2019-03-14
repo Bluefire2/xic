@@ -80,8 +80,7 @@ public class IRMove extends IRStmt {
         if (node instanceof IRMove) {
             IRMove irMove = (IRMove) node;
             return target.equals(irMove.target)
-                    && src.equals(irMove.src)
-                    && istrash == irMove.istrash;
+                    && src.equals(irMove.src);
         } else {
             return false;
         }
