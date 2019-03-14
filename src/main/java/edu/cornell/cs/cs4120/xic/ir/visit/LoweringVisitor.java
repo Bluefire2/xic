@@ -25,11 +25,11 @@ public class LoweringVisitor extends IRVisitor {
 
     private class BasicBlock {
         List<IRStmt> statements;
-        boolean marked;
-        String label;
-        String jumpTo;
-        boolean canDeleteLabel;
-
+        String label; //the label this block starts with
+        String jumpTo; //the label we should attempt to place after this block
+        String jumpTrue; //if block ends with CJump, the true branch label
+        boolean canDeleteLabel; //flag for if we can delete the start label
+        boolean marked; //flag for if this block is in a trace
 
         BasicBlock (IRLabel l) {
             statements = new ArrayList<>();
@@ -67,6 +67,12 @@ public class LoweringVisitor extends IRVisitor {
             ordered.add(value);
 
             String jumpTo = value.jumpTo;
+            String jumpTrue = value.jumpTrue;
+            if (jumpTrue != null) {
+                // this is a jump we have to do, cannot delete label target
+                BasicBlock jumpTrueBlock = lookup.get(jumpTrue);
+                jumpTrueBlock.doNotDeleteLabel();
+            }
             if (jumpTo != null){ //check if we need to jump somewhere
                 BasicBlock jumpToBlock = lookup.get(jumpTo);
                 if (jumpToBlock.marked){
@@ -93,12 +99,16 @@ public class LoweringVisitor extends IRVisitor {
         for (int i = 0; i < stmts.size(); i++){
             IRStmt currStmt = stmts.get(i);
             if (currStmt instanceof IRLabel){
+                IRLabel l = (IRLabel) currStmt;
                 if (currentBlock != null) {
-                    //wrap up the current block
+                    //wrap up the current block (which did not end yet)
+                    //since no jump between last block and this one
+                    //we need to force them to be ordered adjacently
+                    currentBlock.jumpTo = l.name();
                     lookup.put(currentBlock.label, currentBlock);
                 }
                 //start a new block
-                currentBlock = new BasicBlock((IRLabel) currStmt);
+                currentBlock = new BasicBlock(l);
             } else if (currStmt instanceof IRJump){
                 IRJump j = (IRJump) currStmt;
                 //This needs to be changed later (pa7), currently we always jump to named locs
@@ -110,6 +120,7 @@ public class LoweringVisitor extends IRVisitor {
             } else if (currStmt instanceof IRCJump){
                 IRCJump cjump = (IRCJump) currStmt;
                 //if has a false label, get rid of it and add a jump target
+                currentBlock.jumpTrue = cjump.trueLabel();
                 if (cjump.hasFalseLabel()){
                     //add a new CJump that doesn't have the false branch
                     //record it should jumpTo the false branch
@@ -135,8 +146,9 @@ public class LoweringVisitor extends IRVisitor {
             }
         }
         //add the last block
-        lookup.put(currentBlock.label, currentBlock);
-
+        if (currentBlock != null) {
+            lookup.put(currentBlock.label, currentBlock);
+        }
         //none of the blocks have false CJump or Jumps now
         //we have to add these in if they can't be reordered nicely (see Trace)
 
@@ -391,8 +403,9 @@ public class LoweringVisitor extends IRVisitor {
         IRSeq body = (IRSeq) irnode.body();
         //lower the body
         body = (IRSeq) this.visit(body);
-        return new IRFuncDecl(irnode.name(),
-                (IRStmt) reorderBasicBlocks(body));
+        return irnode;
+//        return new IRFuncDecl(irnode.name(),
+//                (IRStmt) reorderBasicBlocks(body));
     }
 
     public IRNode lower(IRJump irnode) {
