@@ -81,7 +81,71 @@ public class LoweringVisitorTest {
         assertEquals(ret, visitor.lower(nested));
     }
 
-    //TODO:
+    @Test
+    public void testExprsDoNotCommute() {
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRConst(5)
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRTemp("c")
+        );
+        assertFalse(visitor.ifExprsCommute(e1, e2));
+    }
+
+    @Test
+    public void testExprsCommute() {
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRESeq(
+                        new IRJump(new IRTemp("b")),
+                        new IRESeq(
+                                new IRJump(new IRTemp("c")),
+                                new IRConst(10)
+                        )
+                )
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("d")),
+                new IRESeq(
+                        new IRJump(new IRTemp("e")),
+                        new IRESeq(
+                                new IRJump(new IRTemp("f")),
+                                new IRTemp("g")
+                        )
+                )
+        );
+        assertTrue(visitor.ifExprsCommute(e1, e2));
+    }
+
+    @Test
+    public void testExprsDoNotCommuteMem() {
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRESeq(
+                        new IRJump(new IRTemp("b")),
+                        new IRESeq(
+                                new IRJump(new IRTemp("c")),
+                                new IRConst(10)
+                        )
+                )
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("d")),
+                new IRESeq(
+                        new IRJump(new IRTemp("e")),
+                        new IRESeq(
+                                new IRMove(new IRTemp("f"), new IRConst(9)),
+                                new IRMem(new IRESeq(
+                                        new IRMove(new IRTemp("g"), new IRTemp("h")),
+                                        new IRConst(8)
+                                ))
+                        )
+                )
+        );
+        assertFalse(visitor.ifExprsCommute(e1, e2));
+    }
 
     @Test
     public void testMoveCommute() {
@@ -153,72 +217,6 @@ public class LoweringVisitorTest {
                 )
         );
         assertEquals(ret, visitor.lower(binOp));
-    }
-
-    @Test
-    public void testExprsDoNotCommute() {
-        IRESeq e1 = new IRESeq(
-                new IRJump(new IRTemp("a")),
-                new IRConst(5)
-        );
-        IRESeq e2 = new IRESeq(
-                new IRJump(new IRTemp("a")),
-                new IRTemp("c")
-        );
-        assertFalse(visitor.ifExprsCommute(e1, e2));
-    }
-
-    @Test
-    public void testExprsCommute() {
-        IRESeq e1 = new IRESeq(
-                new IRJump(new IRTemp("a")),
-                new IRESeq(
-                        new IRJump(new IRTemp("b")),
-                        new IRESeq(
-                                new IRJump(new IRTemp("c")),
-                                new IRConst(10)
-                        )
-                )
-        );
-        IRESeq e2 = new IRESeq(
-                new IRJump(new IRTemp("d")),
-                new IRESeq(
-                        new IRJump(new IRTemp("e")),
-                        new IRESeq(
-                                new IRJump(new IRTemp("f")),
-                                new IRTemp("g")
-                        )
-                )
-        );
-        assertTrue(visitor.ifExprsCommute(e1, e2));
-    }
-
-    @Test
-    public void testExprsDoNotCommuteMem() {
-        IRESeq e1 = new IRESeq(
-                new IRJump(new IRTemp("a")),
-                new IRESeq(
-                        new IRJump(new IRTemp("b")),
-                        new IRESeq(
-                                new IRJump(new IRTemp("c")),
-                                new IRConst(10)
-                        )
-                )
-        );
-        IRESeq e2 = new IRESeq(
-                new IRJump(new IRTemp("d")),
-                new IRESeq(
-                        new IRJump(new IRTemp("e")),
-                        new IRESeq(
-                                new IRMove(new IRTemp("f"), new IRConst(9)),
-                                new IRMem(new IRESeq(
-                                        new IRMove(new IRTemp("g"), new IRTemp("h")),
-                                        new IRConst(8)
-                                ))
-                        )
-                )
-        );
-        assertFalse(visitor.ifExprsCommute(e1, e2));
     }
 
     @Test
