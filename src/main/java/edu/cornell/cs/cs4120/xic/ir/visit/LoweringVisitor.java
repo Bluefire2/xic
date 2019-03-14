@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -100,13 +101,12 @@ public class LoweringVisitor extends IRVisitor {
             if (n instanceof IRMem) return false;
         }
         //Check TEMPs
-        ArrayList<String> temps = new ArrayList<String>();
-        temps.addAll(getTemps(e1Children));
-        temps.addAll(getTemps(e2Children));
-        List<String> uniqList = temps.stream()
-                .distinct()
-                .collect(Collectors.toList());
-        if(uniqList.size() < temps.size()) return false;
+        HashSet<String> tempsE1 = new HashSet<>(getTemps(e1Children));
+        for (String t : getTemps(e2Children)) {
+            if (tempsE1.contains(t)) {
+                return false;
+            }
+        }
         return true;
     }
 
