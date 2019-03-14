@@ -386,6 +386,8 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRFuncDecl irnode) {
+        basicBlocks = new ArrayList<>();
+        basicBlocks.add(new BasicBlock());
         IRStmt body = irnode.body();
         if (body instanceof IRSeq) {
             IRSeq seq = (IRSeq) body;
