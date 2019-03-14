@@ -82,8 +82,7 @@ public class IRESeq extends IRExpr_c {
         if (node instanceof IRESeq) {
             IRESeq ireSeq = (IRESeq) node;
             return expr.equals(ireSeq.expr)
-                    && stmt.equals(ireSeq.stmt)
-                    && replaceParent == ireSeq.replaceParent;
+                    && stmt.equals(ireSeq.stmt);
         } else {
             return false;
         }

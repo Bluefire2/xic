@@ -82,8 +82,7 @@ public class IRMem extends IRExpr_c {
     public boolean equals(Object node) {
         if (node instanceof IRMem) {
             IRMem irMem = (IRMem) node;
-            return expr.equals(irMem.expr)
-                    && memType.equals(irMem.memType);
+            return expr.equals(irMem.expr);
         } else {
             return false;
         }
