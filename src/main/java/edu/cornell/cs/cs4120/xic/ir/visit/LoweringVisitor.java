@@ -6,66 +6,156 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.LinkedList;
+import java.util.LinkedHashMap;
+import java.util.Iterator;
+import java.util.Iterator;
 
 public class LoweringVisitor extends IRVisitor {
     private int tempcounter;
+    private int labelcounter;
 
     private String newTemp() {
         return String.format("_lir_t%d", (tempcounter++));
     }
 
+    private String newLabel(){
+        return String.format("_lir_l%d", (labelcounter++));
+    }
+
     private class BasicBlock {
         List<IRStmt> statements;
         boolean marked;
+        String label;
+        String jumpTo;
+        boolean canDeleteLabel;
 
-        BasicBlock () {
+
+        BasicBlock (IRLabel l) {
             statements = new ArrayList<>();
+            statements.add(l);
+            label = l.name();
             marked = false;
-        }
-
-        BasicBlock (List<IRStmt> stmts) {
-            statements = stmts;
-            marked = false;
+            canDeleteLabel = true;
         }
 
         void addStmt(IRStmt stmt) {
             statements.add(stmt);
         }
 
-        IRNode getLastStmt() {
-            return statements.get(statements.size()-1);
-        }
-
         void mark() { marked = true; }
-    }
 
-    ArrayList<BasicBlock> basicBlocks;
+        void doNotDeleteLabel() { canDeleteLabel = false; }
+
+        void deleteLabel() { statements.remove(0); }
+
+    }
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
         tempcounter = 0;
-        basicBlocks = new ArrayList<>();
-        basicBlocks.add(new BasicBlock());
+    }
+
+    //helper function for traces (start with [value] and continue tracing
+    //modifies ordered
+    private void trace(BasicBlock value,
+                       LinkedHashMap<String, BasicBlock> lookup,
+                       List<BasicBlock> ordered) {
+        if (!value.marked){ //unmarked block
+            value.mark();
+            ordered.add(value);
+
+            String jumpTo = value.jumpTo;
+            if (jumpTo != null){ //check if we need to jump somewhere
+                BasicBlock jumpToBlock = lookup.get(jumpTo);
+                if (jumpToBlock.marked){
+                    //we need to explicitly jump there because the block is already in our list
+                    jumpToBlock.doNotDeleteLabel();
+                    value.addStmt(new IRJump(new IRName(jumpTo)));
+                } else { //continue the trace if jumpTo is unmarked
+                    trace(jumpToBlock, lookup, ordered);
+                }
+            }
+        }
     }
 
     /**
-     * Add a node to the basic block. If node is a label, return, or jump,
-     * create a new block.
-     * @param node node to be added to basic block
+     * Reorder basic blocks so that jumps fall through whenever possible.
+     * @param root Seq of statements
+     * @return new Seq with reordered statements
      */
-    private void addNodeToBlock(IRStmt node) {
-        int last = Math.max(basicBlocks.size() - 1, 0);
-        if (basicBlocks.get(last).statements.size() > 0 && node instanceof IRLabel) {
-            BasicBlock newblock = new BasicBlock();
-            newblock.addStmt(node);
-            basicBlocks.add(newblock);
-        } else if (node instanceof IRReturn || node instanceof IRJump || node instanceof IRCJump) {
-            basicBlocks.get(last).addStmt(node);
-            BasicBlock newblock = new BasicBlock();
-            basicBlocks.add(newblock);
-        } else {
-            basicBlocks.get(last).addStmt(node);
+    public IRSeq reorderBasicBlocks(IRSeq root) {
+        List<IRStmt> stmts = root.stmts();
+        LinkedHashMap<String, BasicBlock> lookup = new LinkedHashMap<>();
+        BasicBlock currentBlock = new BasicBlock(new IRLabel("_start"));
+        //Statements Pass: build basic blocks
+        for (int i = 0; i < stmts.size(); i++){
+            IRStmt currStmt = stmts.get(i);
+            if (currStmt instanceof IRLabel){
+                if (currentBlock != null) {
+                    //wrap up the current block
+                    lookup.put(currentBlock.label, currentBlock);
+                }
+                //start a new block
+                currentBlock = new BasicBlock((IRLabel) currStmt);
+            } else if (currStmt instanceof IRJump){
+                IRJump j = (IRJump) currStmt;
+                //This needs to be changed later (pa7), currently we always jump to named locs
+                String name = ((IRName) j.target()).name();
+                currentBlock.jumpTo = name;
+                //do not add to block, but record that it should jumpTo
+                lookup.put(currentBlock.label, currentBlock);
+                currentBlock = null;
+            } else if (currStmt instanceof IRCJump){
+                IRCJump cjump = (IRCJump) currStmt;
+                //if has a false label, get rid of it and add a jump target
+                if (cjump.hasFalseLabel()){
+                    //add a new CJump that doesn't have the false branch
+                    //record it should jumpTo the false branch
+                    IRCJump newcjump = new IRCJump(cjump.cond(), cjump.trueLabel());
+                    currentBlock.addStmt(newcjump);
+                    currentBlock.jumpTo = cjump.falseLabel();
+                    lookup.put(currentBlock.label, currentBlock);
+                    currentBlock = null;
+                } else {//already falls through
+                    currentBlock.addStmt(currStmt);
+                }
+            } else if (currStmt instanceof IRReturn){
+                currentBlock.addStmt(currStmt);
+                lookup.put(currentBlock.label, currentBlock);
+                currentBlock = null;
+            } else {
+                if (currentBlock == null) {
+                    //if block completed and next statement is not a label
+                    //make a fake label so that every block has a label
+                    currentBlock = new BasicBlock(new IRLabel(newLabel()));
+                }
+                currentBlock.addStmt(currStmt);
+            }
         }
+        //add the last block
+        lookup.put(currentBlock.label, currentBlock);
+
+        //none of the blocks have false CJump or Jumps now
+        //we have to add these in if they can't be reordered nicely (see Trace)
+
+        //Basic Blocks Pass 1: build ordering
+        List<BasicBlock> ordered = new ArrayList<>();
+        lookup.forEach((key, value) -> {
+            trace(value, lookup, ordered);
+        });
+
+        List<IRStmt> newSeqContents = new ArrayList<>();
+        //Basic Blocks Pass 2: delete labels and add to new seq
+        for (BasicBlock block : ordered) {
+            if (block.canDeleteLabel){
+                //we know every block starts with a label
+                block.deleteLabel();
+            }
+            newSeqContents.addAll(block.statements);
+        }
+        //return new Seq
+        return new IRSeq(newSeqContents);
     }
 
     /**
@@ -108,84 +198,6 @@ public class LoweringVisitor extends IRVisitor {
             }
         }
         return true;
-    }
-
-    /**
-     * Given a label name, return its containing basic block.
-     * @throws IllegalStateException if given nonexistent label.
-     * @param lname the name of the label
-     * @return the basic block containing the corresponding IRLabel node
-     */
-    private BasicBlock getBlockWithLabel(String lname) {
-        for (BasicBlock b : basicBlocks) {
-            if (b.statements.size() > 0) {
-                IRStmt fst = b.statements.get(0);
-                if (fst instanceof IRLabel) {
-                    IRLabel lbl = (IRLabel) fst;
-                    if (lname.equals(lbl.name())) return b;
-                }
-            }
-        }
-        throw new IllegalStateException(lname + " is not a valid label");
-    }
-
-    private boolean canDeleteLabel(String lname) {
-        for (BasicBlock b : basicBlocks) {
-            for (IRStmt s : b.statements) {
-                if (s instanceof IRJump) {
-                    IRJump j = (IRJump) s;
-                    if (j.target() instanceof IRName) {
-                        if ((((IRName) j.target())).name().equals(lname)) return false;
-                        }
-                    }
-                if (s instanceof IRCJump) {
-                    IRCJump j = (IRCJump) s;
-                    if (j.trueLabel().equals(lname)) return false;
-                }
-                }
-            }
-        return true;
-    }
-
-    /**
-     * Reorder basic blocks so that jumps fall through whenever possible.
-     * Called when lowering IRCJump nodes.
-     * @param root current root of the IRNode tree
-     * @return new root of IRNode tree, with basic blocks reordered
-     */
-    public IRNode reorderBasicBlocks(IRNode root) {
-        for (int i = 0; i < basicBlocks.size(); i++) {
-            BasicBlock b = basicBlocks.get(i);
-                if (b.statements.size() > 0 && b.getLastStmt() instanceof IRJump) {
-                    IRJump jmp = (IRJump) b.getLastStmt();
-                    IRExpr target = jmp.target();
-                    if (target instanceof IRName) {
-                        IRName lname = (IRName) target;
-                        BasicBlock fallThrough = getBlockWithLabel(lname.name());
-                        if (i + 1 >= basicBlocks.size()) {
-                            basicBlocks.add(new BasicBlock());
-                        }
-                        BasicBlock temp = basicBlocks.get(i + 1);
-                        if (!fallThrough.marked && !temp.marked) {
-                            b.mark();
-                            fallThrough.mark();
-                            basicBlocks.set(i, new BasicBlock(b.statements.subList(0, b.statements.size()-1)));
-                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
-                            int ftl = fallThrough.statements.size();
-                            if (canDeleteLabel(lname.name())) {
-                                basicBlocks.set(i+1, new BasicBlock(fallThrough.statements.subList(1, ftl)));
-                            }
-                            else basicBlocks.set(i + 1, fallThrough);
-                        }
-                        }
-
-                    }
-            }
-        List<IRStmt> stmts = new ArrayList<>();
-        for (BasicBlock b : basicBlocks) {
-            stmts.addAll(b.statements);
-        }
-        return new IRSeq(stmts);
     }
 
     @Override
@@ -326,31 +338,20 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRCJump irnode) {
+        //don't worry about fallthroughs here
         IRExpr e = irnode.cond();
-        IRSeq ret;
 
         if (e instanceof IRESeq) {
             IRESeq ireSeq = ((IRESeq) e);
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
-
-            if (irnode.hasFalseLabel()) {
-                return new IRSeq(
-                        s, new IRCJump(eprime, irnode.trueLabel()),
-                        new IRJump(new IRName(irnode.falseLabel()))
-                );
-            }
-            else return new IRSeq(s, new IRCJump(eprime, irnode.trueLabel()));
+            return new IRSeq(
+                    s,
+                    new IRCJump(eprime, irnode.trueLabel(), irnode.falseLabel())
+            );
 
         } else {
-            if(irnode.hasFalseLabel()) {
-                return new IRSeq(
-                        new IRCJump(e, irnode.trueLabel()),
-
-                        new IRJump(new IRName(irnode.falseLabel()))
-                );
-            }
-            else return new IRCJump(e, irnode.trueLabel());
+            return irnode;
         }
     }
 
@@ -386,21 +387,9 @@ public class LoweringVisitor extends IRVisitor {
     }
 
     public IRNode lower(IRFuncDecl irnode) {
-        basicBlocks = new ArrayList<>();
-        basicBlocks.add(new BasicBlock());
-        IRStmt body = irnode.body();
-        if (body instanceof IRSeq) {
-            IRSeq seq = (IRSeq) body;
-            for (IRStmt s : seq.stmts()) {
-                IRStmt ls = (IRStmt) lower(s);
-                if (ls instanceof IRSeq) {
-                    for (IRStmt sprime : ((IRSeq) ls).stmts()) {
-                        addNodeToBlock(sprime);
-                    }
-                }
-                else addNodeToBlock(ls);
-            }
-        }
+        IRSeq body = (IRSeq) irnode.body();
+        //lower the body
+        body = (IRSeq) this.visit(body);
         return new IRFuncDecl(irnode.name(),
                 (IRStmt) reorderBasicBlocks(body));
     }
@@ -448,7 +437,6 @@ public class LoweringVisitor extends IRVisitor {
         IRExpr dest = irnode.target();
         IRExpr src = irnode.source();
         if (!(dest instanceof IRESeq || src instanceof IRESeq)) {
-            addNodeToBlock(irnode);
             return irnode;
         } else if (ifExprsCommute(dest, src)) {
             IRESeq destSeq;
@@ -545,7 +533,7 @@ public class LoweringVisitor extends IRVisitor {
         }
     }
 
-    public IRNode lower(IRSeq irnode) {
+    public IRSeq lower(IRSeq irnode) {
         List<IRStmt> newStmts = new ArrayList<>();
         for (IRStmt s : irnode.stmts()) {
             IRStmt ls = (IRStmt) lower(s);

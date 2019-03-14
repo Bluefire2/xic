@@ -1,6 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -145,6 +146,33 @@ public class LoweringVisitorTest {
         fail();
     }
 
+
+    @Test
+    public void testReordering0() {
+        IRSeq original = new IRSeq(
+                new IRCJump(new IRConst(0), "L2", "L3"),
+                new IRLabel("L1"),
+                new IRMove(new IRTemp("x"), new IRTemp("y")),
+                new IRLabel("L2"),
+                new IRMove(
+                        new IRTemp("x"),
+                        new IRBinOp(
+                                OpType.ADD,
+                                new IRTemp("y"),
+                                new IRTemp("z")
+                        )
+                ),
+                new IRJump(new IRName("L1")),
+                new IRLabel("L3"),
+                new IRExp(new IRCall(new IRName("f"), new IRTemp("x")))
+        );
+        CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
+        assertEquals(cv.visit(original), false);
+
+        IRSeq reordered = visitor.reorderBasicBlocks(original);
+        CheckCanonicalIRVisitor cv2 = new CheckCanonicalIRVisitor();
+        assertEquals(cv2.visit(reordered), true);
+    }
 
     @Before
     public void setUp() throws Exception {
