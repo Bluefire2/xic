@@ -137,12 +137,36 @@ public class LoweringVisitorTest {
 
     @Test
     public void testBinOpCommute() {
-        fail();
+        IRESeq e1 = new IRESeq(
+                new IRJump(new IRTemp("a")),
+                new IRConst(5)
+        );
+        IRESeq e2 = new IRESeq(
+                new IRJump(new IRTemp("b")),
+                new IRTemp("c")
+        );
+        IRBinOp binOp = new IRBinOp(
+                IRBinOp.OpType.ADD,
+                e1,
+                e2
+        );
+        IRESeq ret = new IRESeq(
+                new IRSeq(
+                        new IRJump(new IRTemp("a")),
+                        new IRJump(new IRTemp("b"))
+                ),
+                new IRBinOp(
+                        IRBinOp.OpType.ADD,
+                        new IRConst(5),
+                        new IRTemp("c")
+                )
+        );
+        assertEquals(ret, visitor.lower(binOp));
     }
 
     @Test
     public void testBinopGeneral() {
-        fail();
+        fail(); // need to fix ifExprsCommute first
     }
 
 
