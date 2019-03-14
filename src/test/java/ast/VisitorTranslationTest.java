@@ -1,7 +1,6 @@
 package ast;
 
-import edu.cornell.cs.cs4120.xic.ir.IRConst;
-import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import edu.cornell.cs.cs4120.xic.ir.*;
 import lexer.XiTokenLocation;
 import org.junit.After;
 import org.junit.Before;
@@ -165,6 +164,17 @@ public class VisitorTranslationTest {
         IRNode r = e.accept(visitor);
         assertTrue(r instanceof IRConst);
         assertEquals(((IRConst) r).value(), -4L);
+    }
+
+    @Test //DbZ not folded
+    public void testFolding6() {
+        XiTokenLocation l = new XiTokenLocation(0,0);
+        Expr e = new ExprBinop(Binop.DIV,
+                        new ExprIntLiteral(1L, l),
+                        new ExprIntLiteral(0L, l),
+                        l);
+        IRNode r = e.accept(visitor);
+        assertTrue(r instanceof IRBinOp);
     }
 }
 

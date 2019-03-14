@@ -100,17 +100,51 @@ public class LoweringVisitorTest {
 
     @Test
     public void testCJumps() {
-        IRCJump cjmp = new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
-                "t", "f");
+        IRSeq cjmp = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
+                "t", "f"));
         IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND, new IRConst(1), new IRTemp("x")),
                 "t"), new IRJump(new IRName("f")));
         assertEquals(ret, visitor.lower(cjmp));
     }
 
+    @Test
+    public void testBasicBlocks() {
+        IRCJump cjmp = new IRCJump(new IRBinOp(IRBinOp.OpType.AND,
+                new IRConst(1),
+                new IRTemp("x")),
+                "t", "f");
+        IRSeq jmpseq = new IRSeq(cjmp, new IRLabel("f"), new IRReturn());
+        IRSeq ret = new IRSeq(new IRCJump(new IRBinOp(IRBinOp.OpType.AND,
+                new IRConst(1),
+                new IRTemp("x")),
+                "t"), new IRReturn());
+        IRFuncDecl retfd = new IRFuncDecl("f", ret);
+        IRFuncDecl fd = new IRFuncDecl("f", jmpseq);
+        assertEquals(retfd, visitor.lower(fd));
+    }
 
     //TODO:
-    //test move commute and move general
-    //test binop commute and binop general
+
+    @Test
+    public void testMoveCommute() {
+        fail();
+    }
+
+    @Test
+    public void testMoveGeneral() {
+        fail();
+    }
+
+    @Test
+    public void testBinOpCommute() {
+        fail();
+    }
+
+    @Test
+    public void testBinopGeneral() {
+        fail();
+    }
+
 
     @Before
     public void setUp() throws Exception {

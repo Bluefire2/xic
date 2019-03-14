@@ -1,9 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 public class LoweringVisitor extends IRVisitor {
@@ -19,6 +19,11 @@ public class LoweringVisitor extends IRVisitor {
 
         BasicBlock () {
             statements = new ArrayList<>();
+            marked = false;
+        }
+
+        BasicBlock (List<IRStmt> stmts) {
+            statements = stmts;
             marked = false;
         }
 
@@ -48,8 +53,8 @@ public class LoweringVisitor extends IRVisitor {
      * @param node node to be added to basic block
      */
     private void addNodeToBlock(IRStmt node) {
-        int last = basicBlocks.size() - 1;
-        if (basicBlocks.size() > 1 && node instanceof IRLabel) {
+        int last = Math.max(basicBlocks.size() - 1, 0);
+        if (basicBlocks.get(last).statements.size() > 0 && node instanceof IRLabel) {
             BasicBlock newblock = new BasicBlock();
             newblock.addStmt(node);
             basicBlocks.add(newblock);
@@ -68,7 +73,7 @@ public class LoweringVisitor extends IRVisitor {
      * @return list of IRTemps
      */
     private ArrayList<String> getTemps(List<IRNode> l) {
-        ArrayList<String> temps = new ArrayList<String>();
+        ArrayList<String> temps = new ArrayList<>();
         for (IRNode n : l) {
             if (n instanceof IRTemp) {
                 temps.add(((IRTemp) n).name());
@@ -113,45 +118,69 @@ public class LoweringVisitor extends IRVisitor {
      */
     private BasicBlock getBlockWithLabel(String lname) {
         for (BasicBlock b : basicBlocks) {
-            IRStmt fst = b.statements.get(0);
-            if (fst instanceof IRLabel) {
-                IRLabel lbl = (IRLabel) fst;
-                if (lname.equals(lbl.name())) return b;
+            if (b.statements.size() > 0) {
+                IRStmt fst = b.statements.get(0);
+                if (fst instanceof IRLabel) {
+                    IRLabel lbl = (IRLabel) fst;
+                    if (lname.equals(lbl.name())) return b;
+                }
             }
         }
         throw new IllegalStateException(lname + " is not a valid label");
     }
 
+    private boolean canDeleteLabel(String lname) {
+        for (BasicBlock b : basicBlocks) {
+            for (IRStmt s : b.statements) {
+                if (s instanceof IRJump) {
+                    IRJump j = (IRJump) s;
+                    if (j.target() instanceof IRName) {
+                        if ((((IRName) j.target())).name().equals(lname)) return false;
+                        }
+                    }
+                if (s instanceof IRCJump) {
+                    IRCJump j = (IRCJump) s;
+                    if (j.trueLabel().equals(lname)) return false;
+                }
+                }
+            }
+        return true;
+    }
+
     /**
      * Reorder basic blocks so that jumps fall through whenever possible.
-     * Called when lowering IRSeq nodes.
+     * Called when lowering IRCJump nodes.
      * @param root current root of the IRNode tree
      * @return new root of IRNode tree, with basic blocks reordered
      */
-    private IRNode reorderBasicBlocks(IRNode root) {
+    public IRNode reorderBasicBlocks(IRNode root) {
         for (int i = 0; i < basicBlocks.size(); i++) {
             BasicBlock b = basicBlocks.get(i);
-            b.mark();
-            if (b.getLastStmt() instanceof IRJump) {
-                IRJump jmp = (IRJump) b.getLastStmt();
-                IRExpr target = jmp.target();
-                if (target instanceof IRName) {
-                    IRName lname = (IRName) target;
-                    BasicBlock fallThrough = getBlockWithLabel(lname.name());
-                    if (i+1 < basicBlocks.size()) {
-                        BasicBlock temp = basicBlocks.get(i+1);
-                        if (!fallThrough.marked && !temp.marked) {
-                            fallThrough.mark();
-                            temp.mark();
-                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
-                            basicBlocks.set(i + 1, fallThrough);
-                            b.statements.remove(basicBlocks.size() - 1);
+                if (b.statements.size() > 0 && b.getLastStmt() instanceof IRJump) {
+                    IRJump jmp = (IRJump) b.getLastStmt();
+                    IRExpr target = jmp.target();
+                    if (target instanceof IRName) {
+                        IRName lname = (IRName) target;
+                        BasicBlock fallThrough = getBlockWithLabel(lname.name());
+                        if (i + 1 >= basicBlocks.size()) {
+                            basicBlocks.add(new BasicBlock());
                         }
-                    }
+                        BasicBlock temp = basicBlocks.get(i + 1);
+                        if (!fallThrough.marked && !temp.marked) {
+                            b.mark();
+                            fallThrough.mark();
+                            basicBlocks.set(i, new BasicBlock(b.statements.subList(0, b.statements.size()-1)));
+                            basicBlocks.set(basicBlocks.indexOf(fallThrough), temp);
+                            int ftl = fallThrough.statements.size();
+                            if (canDeleteLabel(lname.name())) {
+                                basicBlocks.set(i+1, new BasicBlock(fallThrough.statements.subList(1, ftl)));
+                            }
+                            else basicBlocks.set(i + 1, fallThrough);
+                        }
+                        }
 
-                }
+                    }
             }
-        }
         List<IRStmt> stmts = new ArrayList<>();
         for (BasicBlock b : basicBlocks) {
             stmts.addAll(b.statements);
@@ -214,12 +243,11 @@ public class LoweringVisitor extends IRVisitor {
                 s2 = rightSeq.stmt();
             }
 
-            IRESeq ret = new IRESeq(
+            return new IRESeq(
                     new IRSeq(s1, s2),
                     new IRBinOp(
                             irnode.opType(), e1, e2
                     ));
-            return ret;
         } else {
             IRESeq leftSeq;
             IRESeq rightSeq;
@@ -248,7 +276,7 @@ public class LoweringVisitor extends IRVisitor {
                 s2 = rightSeq.stmt();
             }
 
-            IRESeq ret = new IRESeq(
+            return new IRESeq(
                     new IRSeq(
                             s1,
                             new IRMove(
@@ -259,7 +287,6 @@ public class LoweringVisitor extends IRVisitor {
                     new IRBinOp(
                             irnode.opType(), new IRTemp(t1), e2
                     ));
-            return ret;
         }
     }
 
@@ -292,34 +319,38 @@ public class LoweringVisitor extends IRVisitor {
 
         stmts.add(moveCall);
 
-        IRESeq ret = new IRESeq(
+        return new IRESeq(
                 new IRSeq(stmts),
                 new IRTemp(t)
         );
-        return ret;
     }
 
     public IRNode lower(IRCJump irnode) {
         IRExpr e = irnode.cond();
+        IRSeq ret;
 
         if (e instanceof IRESeq) {
             IRESeq ireSeq = ((IRESeq) e);
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
 
-            IRSeq ret = new IRSeq(
-                    s, new IRCJump(eprime, irnode.trueLabel()),
-                    new IRJump(new IRName(irnode.falseLabel()))
-                    );
-            addNodeToBlock(ret);
-            return ret;
+            if (irnode.hasFalseLabel()) {
+                return new IRSeq(
+                        s, new IRCJump(eprime, irnode.trueLabel()),
+                        new IRJump(new IRName(irnode.falseLabel()))
+                );
+            }
+            else return new IRSeq(s, new IRCJump(eprime, irnode.trueLabel()));
+
         } else {
-            IRSeq ret = new IRSeq(
-                    new IRCJump(e, irnode.trueLabel()),
-                    new IRJump(new IRName(irnode.falseLabel()))
-                    );
-            addNodeToBlock(ret);
-            return ret;
+            if(irnode.hasFalseLabel()) {
+                return new IRSeq(
+                        new IRCJump(e, irnode.trueLabel()),
+
+                        new IRJump(new IRName(irnode.falseLabel()))
+                );
+            }
+            else return new IRCJump(e, irnode.trueLabel());
         }
     }
 
@@ -339,8 +370,7 @@ public class LoweringVisitor extends IRVisitor {
             IRStmt s1 = irnode.stmt();
             IRStmt s2 = es.stmt();
             IRExpr e = es.expr();
-            IRESeq ret = new IRESeq(new IRSeq(s1, s2), e);
-            return ret;
+            return new IRESeq(new IRSeq(s1, s2), e);
         }
         else {
             return irnode;
@@ -350,15 +380,29 @@ public class LoweringVisitor extends IRVisitor {
     public IRNode lower(IRExp irnode) {
         IRExpr e = irnode.expr();
         if (e instanceof IRESeq) {
-            IRStmt ret = ((IRESeq) e).stmt();
-            addNodeToBlock(ret);
-            return ret;
+            return ((IRESeq) e).stmt();
         }
         else return new IRSeq();
     }
 
     public IRNode lower(IRFuncDecl irnode) {
-        return irnode;
+        basicBlocks = new ArrayList<>();
+        basicBlocks.add(new BasicBlock());
+        IRStmt body = irnode.body();
+        if (body instanceof IRSeq) {
+            IRSeq seq = (IRSeq) body;
+            for (IRStmt s : seq.stmts()) {
+                IRStmt ls = (IRStmt) lower(s);
+                if (ls instanceof IRSeq) {
+                    for (IRStmt sprime : ((IRSeq) ls).stmts()) {
+                        addNodeToBlock(sprime);
+                    }
+                }
+                else addNodeToBlock(ls);
+            }
+        }
+        return new IRFuncDecl(irnode.name(),
+                (IRStmt) reorderBasicBlocks(body));
     }
 
     public IRNode lower(IRJump irnode) {
@@ -369,21 +413,17 @@ public class LoweringVisitor extends IRVisitor {
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
 
-            IRSeq ret = new IRSeq(
+            return new IRSeq(
                     s,
                     new IRJump(eprime)
             );
-            addNodeToBlock(ret);
-            return ret;
         } else {
-            addNodeToBlock(irnode);
             return irnode;
         }
     }
 
     public IRNode lower(IRLabel irnode) {
         //Labels are already canonical
-        addNodeToBlock(irnode);
         return irnode;
     }
 
@@ -395,11 +435,10 @@ public class LoweringVisitor extends IRVisitor {
             IRExpr eprime = ireSeq.expr();
             IRStmt s = ireSeq.stmt();
 
-            IRESeq ret = new IRESeq(
+            return new IRESeq(
                     s,
                     new IRMem(eprime)
             );
-            return ret;
         } else {
             return irnode;
         }
@@ -442,9 +481,7 @@ public class LoweringVisitor extends IRVisitor {
             stmts.add(s1);
             stmts.add(s2);
             stmts.add(new IRMove(destprime, eprime));
-            IRSeq ret = new IRSeq(stmts);
-            addNodeToBlock(ret);
-            return ret;
+            return new IRSeq(stmts);
         } else {
             IRESeq destSeq;
             IRESeq srcSeq;
@@ -478,9 +515,7 @@ public class LoweringVisitor extends IRVisitor {
             stmts.add(new IRMove(new IRTemp(t1), destprime));
             stmts.add(s2);
             stmts.add(new IRMove(new IRMem(new IRTemp(t1)), eprime));
-            IRSeq ret = new IRSeq(stmts);
-            addNodeToBlock(ret);
-            return ret;
+            return new IRSeq(stmts);
         }
     }
 
@@ -503,12 +538,9 @@ public class LoweringVisitor extends IRVisitor {
         IRReturn retNode = new IRReturn(newRets);
         if (stmts.size() > 0) {
             stmts.add(retNode);
-            IRSeq ret = new IRSeq(stmts);
-            addNodeToBlock(ret);
-            return ret;
+            return new IRSeq(stmts);
         }
         else {
-            addNodeToBlock(retNode);
             return retNode;
         }
     }
@@ -516,15 +548,15 @@ public class LoweringVisitor extends IRVisitor {
     public IRNode lower(IRSeq irnode) {
         List<IRStmt> newStmts = new ArrayList<>();
         for (IRStmt s : irnode.stmts()) {
-            if (s instanceof IRSeq) {
-                newStmts.addAll(((IRSeq) lower((IRSeq) s)).stmts());
+            IRStmt ls = (IRStmt) lower(s);
+            if (ls instanceof IRSeq) {
+                newStmts.addAll(((IRSeq) ls).stmts());
             }
-            else newStmts.add(s);
+            else {
+                newStmts.add(ls);
+            }
         }
-        IRSeq ret = new IRSeq(newStmts);
-        addNodeToBlock(ret);
-        return ret;
-        //return reorderBasicBlocks(ret);
+        return new IRSeq(newStmts);
     }
 
     public IRNode lower(IRTemp irnode) {
@@ -532,6 +564,14 @@ public class LoweringVisitor extends IRVisitor {
         return irnode;
     }
 
-
+    public IRNode lower (IRStmt stmt) {
+        if (stmt instanceof IRCJump) return lower((IRCJump) stmt);
+        if (stmt instanceof IRExp) return lower((IRExp) stmt);
+        if (stmt instanceof IRJump) return lower((IRJump) stmt);
+        if (stmt instanceof IRMove) return lower((IRMove) stmt);
+        if (stmt instanceof IRReturn) return lower((IRReturn) stmt);
+        if (stmt instanceof IRSeq) return lower((IRSeq) stmt);
+        return stmt;
+    }
 
 }

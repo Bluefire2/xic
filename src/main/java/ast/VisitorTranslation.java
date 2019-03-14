@@ -113,25 +113,28 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return new IRCJump((IRExpr) e.accept(this), labelt, labelf);
     }
 
-    //return stmt that checks array bounds, is used in ESeq for indexing
-    private IRStmt checkIndex(IRExpr array, IRExpr index, IRExpr temp_array,
-                              IRExpr temp_index) {
+    /**
+     * Check bounds of array access
+     *
+     * @param temp_array   name of temp that points to head of array
+     * @param temp_index   name of temp that points to index
+     * @return a list of IR statements for performing this check.
+     */
+    private IRStmt checkIndex(String temp_array, String temp_index) {
         String lt = newLabel();
         String lf = newLabel();
         //array bounds checking - True if invalid
         IRExpr test = new IRBinOp(OpType.OR,
-                new IRBinOp(OpType.LT, temp_index, new IRConst(0)),
-                new IRBinOp(OpType.GT, temp_index, new IRMem(
+                new IRBinOp(OpType.LT, new IRTemp(temp_index), new IRConst(0)),
+                new IRBinOp(OpType.GEQ, new IRTemp(temp_index), new IRMem(
                         new IRBinOp(
-                                OpType.ADD,
-                                temp_array,
-                                new IRConst(-WORD_NUM_BYTES)
+                                OpType.SUB,
+                                new IRTemp(temp_array),
+                                new IRConst(WORD_NUM_BYTES)
                         )
                 ))
         );
         return new IRSeq(
-                new IRMove(temp_array, array),
-                new IRMove(temp_index, index),
                 new IRCJump(test, lt, lf),
                 new IRLabel(lt),
                 new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
@@ -218,25 +221,34 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             IRExpr sizeIR = (IRExpr) size.accept(this);
             String sizeTemp = newTemp();
 
-            // Create an array of size sizeIR
-            List<IRStmt> arrIR = allocateArray(t, sizeIR);
+            List<IRStmt> allocIR = new ArrayList<>();
+            // sizeTemp <- eval(size)
+            allocIR.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+            // Create an array of size sizeTemp
+            allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
 
             if (innerType instanceof TypeTTauArray) {
                 // innerType is an array, create a while loop to initialize
                 // each element of t
                 TypeTTauArray itArray = (TypeTTauArray) innerType;
-                String i = newTemp();   // loop counter
 
                 String whileStart = newLabel();
+                String whileBody = newLabel();
                 String whileEnd = newLabel();
-                IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, new IRTemp(i), new IRTemp(sizeTemp));
 
-                arrIR.add(new IRMove(new IRTemp(i), new IRConst(0)));   // i <- 0
-                arrIR.add(new IRLabel(whileStart));  // while loop starts
-                // Go to end if i >= sizeIR
-                arrIR.add(new IRCJump(whileGuardExit, whileEnd));
+                String i = newTemp();   // loop counter
+                IRBinOp whileGuard = new IRBinOp(
+                        OpType.LT, new IRTemp(i), new IRTemp(sizeTemp)
+                );
+
+                // i <- 0
+                allocIR.add(new IRMove(new IRTemp(i), new IRConst(0)));
+                allocIR.add(new IRLabel(whileStart));  // while loop starts
+                // Go to whileBody if i < sizeTemp else go to whileEnd
+                allocIR.add(new IRCJump(whileGuard, whileBody, whileEnd));
+                allocIR.add(new IRLabel(whileBody));
                 // Allocate multi dim array at t + i*8
-                arrIR.add(new IRSeq(allocateMultiDimArray(
+                allocIR.add(new IRSeq(allocateMultiDimArray(
                         new IRMem(new IRBinOp(
                                 OpType.ADD,
                                 t,
@@ -248,14 +260,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                         )),
                         itArray)));
                 // i++
-                arrIR.add(new IRMove(
+                allocIR.add(new IRMove(
                         new IRTemp(i),
                         new IRBinOp(OpType.ADD, new IRTemp(i), new IRConst(1))
                 ));
-                arrIR.add(new IRJump(new IRName(whileStart)));
-                arrIR.add(new IRLabel(whileEnd));    // while loop ends
+                allocIR.add(new IRJump(new IRName(whileStart)));
+                allocIR.add(new IRLabel(whileEnd));    // while loop ends
             }
-            return arrIR;
+            return allocIR;
         } else {
             // size == null ==> the inner arrays, if any, are also
             // uninitialized. So just return an empty list of IRStmts
@@ -267,27 +279,28 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     /**
      * Moves contents of array arr to temporary/memory location newLoc.
      *
-     * @param newLoc   temporary or memory address.
-     * @param arr      location of array
+     * @param newLoc   expression representing location of new array
+     * @param arr      expression representing location of old array
      * @param sizeTemp a temp storing the size of the array
      * @return a list of IR statements for performing this array copying.
      */
-    private List<IRStmt> copyArray(IRExpr newLoc, IRExpr arr, IRExpr sizeTemp) {
+    private List<IRStmt> copyArray(IRExpr newLoc, IRExpr arr, String sizeTemp) {
 
         String i = newTemp();   // loop counter
+        String l = newLabel();
 
         String whileStart = newLabel();
         String whileEnd = newLabel();
-        IRBinOp whileGuardExit = new IRBinOp(OpType.GEQ, new IRTemp(i), sizeTemp);
+        IRBinOp whileGuard = new IRBinOp(OpType.LT, new IRTemp(i), new IRTemp(sizeTemp));
         return new ArrayList<>(Arrays.asList(
                 new IRMove(new IRTemp(i), new IRConst(0)),  // i <- 0
                 new IRLabel(whileStart), // while loop starts
-                // Go to end if i >= sizeIR
-                new IRCJump(whileGuardExit, whileEnd),
-                // Allocate multi dim array at t + i*8
+                // Enter loop if i < sizeTemp
+                new IRCJump(whileGuard, l, whileEnd),
+                new IRLabel(l),
                 new IRMove(
                         //new location
-                        new IRBinOp(
+                        new IRMem(new IRBinOp(
                                 OpType.ADD,
                                 newLoc,
                                 new IRBinOp(
@@ -295,11 +308,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                                         new IRTemp(i),
                                         new IRConst(WORD_NUM_BYTES)
                                 )
-                        ),
+                        )),
                         //old element
                         new IRMem(new IRBinOp(
                                 OpType.ADD,
-                                newLoc,
+                                arr,
                                 new IRBinOp(
                                         OpType.MUL,
                                         new IRTemp(i),
@@ -374,8 +387,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 }
 
             default:
-                throw new InternalCompilerError("Operation Type of " +
-                        "Binop node is invalid");
+                throw new InternalCompilerError("Invalid binary operation");
         }
     }
 
@@ -395,15 +407,16 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             String tempRLength = newTemp();
             IRMove lengthL = new IRMove(new IRTemp(tempLLength), new IRMem(
                     new IRBinOp(OpType.SUB,
-                    new IRTemp(tempL),
-                    new IRConst(WORD_NUM_BYTES)
-            )));
+                            new IRTemp(tempL),
+                            new IRConst(WORD_NUM_BYTES)
+                    )));
             IRMove lengthR = new IRMove(new IRTemp(tempRLength), new IRMem(
                     new IRBinOp(OpType.SUB,
-                    new IRTemp(tempR),
-                    new IRConst(WORD_NUM_BYTES)
-            )));
+                            new IRTemp(tempR),
+                            new IRConst(WORD_NUM_BYTES)
+                    )));
             String tempNewArray = newTemp();
+            String newRStart = newTemp();
 
             //move lengths to temps
             List<IRStmt> stmts = new ArrayList<>(Arrays.asList(
@@ -420,15 +433,26 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                             new IRTemp(tempRLength))
             ));
             //copy left
-            stmts.addAll(copyArray(new IRTemp(tempNewArray),
-                    new IRTemp(tempL), new IRTemp(tempLLength)));
-            //copy right
             stmts.addAll(copyArray(
-                    new IRBinOp(OpType.ADD,
-                            new IRTemp(tempNewArray),
-                            new IRTemp(tempLLength)),
+                    new IRTemp(tempNewArray),
+                    new IRTemp(tempL), tempLLength));
+            //copy right
+            stmts.add(
+                    new IRMove(
+                            new IRTemp(newRStart),
+                            new IRBinOp(OpType.ADD,
+                                new IRTemp(tempNewArray),
+                                new IRBinOp(OpType.MUL,
+                                        new IRConst(WORD_NUM_BYTES),
+                                        new IRTemp(tempLLength)
+                                )
+                            )
+                    )
+            );
+            stmts.addAll(copyArray(
+                    new IRTemp(newRStart),
                     new IRTemp(tempR),
-                    new IRTemp(tempRLength)
+                    tempRLength
             ));
             IRSeq seq = new IRSeq(stmts);
             return new IRESeq(seq, new IRTemp(tempNewArray));
@@ -451,12 +475,12 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                             .longValue());
                 case DIV:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return translateBinop(l, r, op);
                     }
                     return new IRConst(lval / rval);
                 case MOD:
                     if (rval == 0L) {
-                        throw new InternalCompilerError("Divide by zero");
+                        return translateBinop(l, r, op);
                     }
                     return new IRConst(lval % rval);
                 case EQEQ:
@@ -497,7 +521,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             // Add argIR to list of arguments to be passed to IRCall
             argsIR.add((IRExpr) arg.accept(this));
         }
-        return new IRCall(new IRName(funcName), argsIR);
+        return new IRESeq(
+                new IRExp(new IRCall(new IRName(funcName), argsIR)),
+                new IRTemp(returnValueName(0)));
     }
 
     @Override
@@ -522,8 +548,11 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 offset
         ));
         return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a), 
-                new IRTemp(t_i)), 
+                new IRSeq(
+                        new IRMove(new IRTemp(t_a), array),
+                        new IRMove(new IRTemp(t_i), idx),
+                        checkIndex(t_a, t_i)
+                ),
                 access);
     }
 
@@ -588,32 +617,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 }
                 return new IRBinOp(OpType.SUB, new IRConst(0), e);
             default:
-                throw new InternalCompilerError("Invalid binary operation");
+                throw new InternalCompilerError("Invalid unary operation");
         }
     }
 
     @Override
-    public IRExpr visit(AssignableIndex node) {
-        //same as ExprIndex without the MEM because we just want the location
+    public IRNode visit(AssignableIndex node) {
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-
-        IRExpr idx = (IRExpr) idx_expr.getIndex().accept(this);
-        IRExpr array = (IRExpr) idx_expr.accept(this);
-        String t_a = newTemp();
-        String t_i = newTemp();
-        IRExpr offset = new IRBinOp(
-                OpType.MUL,
-                new IRConst(WORD_NUM_BYTES),
-                new IRTemp(t_i)
-        );
-        IRExpr location = new IRBinOp(
-                OpType.ADD,
-                new IRTemp(t_a),
-                offset
-        );
-        return new IRESeq(
-                checkIndex(array, idx, new IRTemp(t_a), new IRTemp(t_i)), 
-                location);
+        return this.visit(idx_expr);
     }
 
     @Override
@@ -634,10 +645,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(StmtAssign node) {
-        return new IRMove(
-                (IRExpr) node.getLhs().accept(this),
-                (IRExpr) node.getRhs().accept(this)
-        );
+        IRExpr l = (IRExpr) node.getLhs().accept(this);
+        IRExpr r = (IRExpr) node.getRhs().accept(this);
+        return new IRMove(l, r);
     }
 
     /**
