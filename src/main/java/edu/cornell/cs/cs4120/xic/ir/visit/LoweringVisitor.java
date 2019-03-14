@@ -53,7 +53,8 @@ public class LoweringVisitor extends IRVisitor {
 
     public LoweringVisitor(IRNodeFactory inf) {
         super(inf);
-        tempcounter = 0;
+        this.labelcounter = 0;
+        this.tempcounter = 0;
     }
 
     //helper function for traces (start with [value] and continue tracing
