@@ -32,7 +32,7 @@ public class ConstantFoldVisitor extends IRVisitor {
         else return null; //Illegal state
     }
 
-    public IRNode strengthReduce(IRBinOp.OpType op, IRName n, IRConst c, IRNode node) {
+    public IRNode strengthReduce(IRBinOp.OpType op, IRName n, IRConst c, IRNode node, boolean constIsRight) {
         //TODO:
         return node;
     }
@@ -88,26 +88,32 @@ public class ConstantFoldVisitor extends IRVisitor {
                     throw new InternalCompilerError("Invalid binary operation");
             }
         } else if (l instanceof IRConst && r instanceof IRName) {
-            return foldNameAndConstBinOp(irnode, (IRConst) l, (IRName) r, op);
+            return foldNameAndConstBinOp(irnode, (IRConst) l, (IRName) r, op, false);
         } else if (r instanceof IRConst && l instanceof IRName) {
-            return foldNameAndConstBinOp(irnode, (IRConst) r, (IRName) l, op);
+            return foldNameAndConstBinOp(irnode, (IRConst) r, (IRName) l, op, true);
         }
         return irnode;
     }
 
-    private IRNode foldNameAndConstBinOp(IRBinOp irnode, IRConst c, IRName e, IRBinOp.OpType opType) {
+    private IRNode foldNameAndConstBinOp(IRBinOp irnode, IRConst c, IRName e, IRBinOp.OpType opType, boolean constIsRight) {
         long value = c.value();
         switch (opType) {
             case ADD:
-            case SUB:
+                // if we have x + 0 or 0 + x, that's just x
                 if (value == 0) return e; else return irnode;
+            case SUB:
+                // if we have x - 0, that's just x
+                if (value == 0 && constIsRight) return e; else return irnode;
             case MUL:
+                // if we have x * 1 or 1 * x, that's just x
                 if (value == 1) return e;
+                // if we have x * 0 or 0 * x, that's just 0
                 else if (value == 0) return new IRConst(0);
-                else return strengthReduce(opType, e, c, irnode);
+                else return strengthReduce(opType, e, c, irnode, constIsRight);
             case DIV:
-                if (value == 1) return e;
-                else return strengthReduce(opType, e, c, irnode);
+                // if we have x / 1, that's just x
+                if (value == 1 && constIsRight) return e;
+                else return strengthReduce(opType, e, c, irnode, constIsRight);
             case AND:
                 if (value == 1) return e;
                 else if (value == 0) return new IRConst(0);
