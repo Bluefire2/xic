@@ -22,7 +22,6 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import symboltable.HashMapSymbolTable;
-import symboltable.TypeSymTable;
 import xi_parser.IxiParser;
 import xi_parser.XiParser;
 import xi_parser.sym;
@@ -192,11 +191,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                XiTokenFactory xtf = new XiTokenFactory();
-                XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
-                ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                ASTNode root = buildAST(fileReader);
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -217,20 +212,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                XiTokenFactory xtf = new XiTokenFactory();
-                XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
-                ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
-                VisitorTranslation tv = new VisitorTranslation(
-                        !optDisableOptimization,
-                        FilenameUtils.removeExtension(f.getName()));
-                IRNode mir = root.accept(tv);
-                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                //IRNode lir = lv.visit(mir);
-                IRNode checkedIR = optMIR ? mir : lv.visit(mir);
-                ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
-                IRNode foldedIR = optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+                IRNode foldedIR = buildIR(f, fileReader);
                 //pretty-print IR
                 CodeWriterSExpPrinter printer;
                 if (optDebug) { //debug mode (print to stdout)
@@ -274,20 +256,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileOutputStream fos = new FileOutputStream(outputFilePath)) {
 
-                XiTokenFactory xtf = new XiTokenFactory();
-                XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
-                ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
-                //IR translation and lowering
-                VisitorTranslation tv = new VisitorTranslation(
-                        !optDisableOptimization,
-                        FilenameUtils.removeExtension(f.getName()));
-                IRNode mir = root.accept(tv);
-                LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                IRNode checkedIR = optMIR ? mir : lv.visit(mir);
-                ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
-                IRNode foldedIR = optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+                IRNode foldedIR = buildIR(f, fileReader);
                 //Interpreting
                 if (!optDebug) {
                     System.setOut(new PrintStream(fos)); // make stdout go to a file
@@ -304,6 +273,28 @@ public class CLI implements Runnable {
                 System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
             }
         }
+    }
+
+    private IRNode buildIR(File f, FileReader fileReader) throws Exception {
+        ASTNode root = buildAST(fileReader);
+        //IR translation and lowering
+        VisitorTranslation tv = new VisitorTranslation(
+                !optDisableOptimization,
+                FilenameUtils.removeExtension(f.getName()));
+        IRNode mir = root.accept(tv);
+        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+        IRNode checkedIR = optMIR ? mir : lv.visit(mir);
+        ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
+        return optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+    }
+
+    private ASTNode buildAST(FileReader fileReader) throws Exception {
+        XiTokenFactory xtf = new XiTokenFactory();
+        XiLexer lexer = new XiLexer(fileReader, xtf);
+        XiParser parser = new XiParser(lexer, xtf);
+        ASTNode root = (ASTNode) parser.parse().value;
+        root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
+        return root;
     }
 
     /**
