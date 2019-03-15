@@ -10,7 +10,7 @@ PA3_OTHER_TEST_DIRS=xth/tests/pa3 tests/pa3-staff-examples-tests
 PA4_OTHER_TEST_DIRS=xth/tests/pa4
 XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS) $(PA4_OTHER_TEST_DIRS)
 
-GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle
+GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle gradle_exec.sh
 
 .DEFAULT_GOAL := help
 
@@ -56,3 +56,5 @@ clean:	## Clean temporary build files from the directory
 	find . -name "*.lexed" -type f -delete
 	find . -name "*.parsed" -type f -delete
 	find . -name "*.typed" -type f -delete
+	find . -name "*.ir.nml" -type f -delete
+	find . -name "*.ir" -type f -delete
