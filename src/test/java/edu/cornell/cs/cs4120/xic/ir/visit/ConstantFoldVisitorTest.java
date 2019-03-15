@@ -126,6 +126,27 @@ public class ConstantFoldVisitorTest {
         assertEquals(folded, expected);
     }
 
+    @Test
+    public void cjumpTrueTest() {
+        IRCJump cjump = new IRCJump(new IRConst(1), "t");
+        IRJump folded = new IRJump(new IRName("t"));
+        assertEquals(folded, visitor.fold(cjump));
+    }
+
+    @Test
+    public void cjumpFalseTest() {
+        IRCJump cjump = new IRCJump(new IRConst(0), "t", "f");
+        IRJump folded = new IRJump(new IRName("f"));
+        assertEquals(folded, visitor.fold(cjump));
+    }
+
+    @Test
+    public void cjumpFalseNoLabelTest() {
+        IRCJump cjump = new IRCJump(new IRConst(0), "t");
+        IRSeq folded = new IRSeq();
+        assertEquals(folded, visitor.fold(cjump));
+    }
+
     @Before
     public void setUp() throws Exception {
         visitor = new ConstantFoldVisitor(new IRNodeFactory_c());
