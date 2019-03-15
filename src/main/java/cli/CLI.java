@@ -9,6 +9,7 @@ import edu.cornell.cs.cs4120.xic.ir.interpret.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.ConstantFoldVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
@@ -225,7 +226,9 @@ public class CLI implements Runnable {
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
                 //IRNode lir = lv.visit(mir);
-                IRNode checked_ir = optMIR ? mir : lv.visit(mir);
+                IRNode checkedIR = optMIR ? mir : lv.visit(mir);
+                ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
+                IRNode foldedIR = optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
                 //pretty-print IR
                 CodeWriterSExpPrinter printer;
                 if (optDebug) { //debug mode (print to stdout)
@@ -235,20 +238,20 @@ public class CLI implements Runnable {
                     {
                         CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
                         System.out.print("Canonical?: ");
-                        System.out.println(cv.visit(checked_ir));
+                        System.out.println(cv.visit(foldedIR));
                     }
 
                     // IR constant-folding checker
                     {
                         CheckConstFoldedIRVisitor cv = new CheckConstFoldedIRVisitor();
                         System.out.print("Constant-folded?: ");
-                        System.out.println(cv.visit(checked_ir));
+                        System.out.println(cv.visit(foldedIR));
                     }
                 } else {
                     OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
-                checked_ir.printSExp(printer);
+                foldedIR.printSExp(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -280,12 +283,14 @@ public class CLI implements Runnable {
                         FilenameUtils.removeExtension(f.getName()));
                 IRNode mir = root.accept(tv);
                 LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-                IRNode checked_ir = optMIR ? mir : lv.visit(mir);
+                IRNode checkedIR = optMIR ? mir : lv.visit(mir);
+                ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
+                IRNode foldedIR = optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
                 //Interpreting
                 if (!optDebug) {
                     System.setOut(new PrintStream(fos)); // make stdout go to a file
                 }
-                IRSimulator sim = new IRSimulator((IRCompUnit) checked_ir);
+                IRSimulator sim = new IRSimulator((IRCompUnit) foldedIR);
                 long result = sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
