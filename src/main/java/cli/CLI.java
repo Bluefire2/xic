@@ -2,11 +2,13 @@ package cli;
 
 import ast.ASTNode;
 import ast.Printable;
-import ast.VisitorTypeCheck;
 import ast.VisitorTranslation;
+import ast.VisitorTypeCheck;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
-import edu.cornell.cs.cs4120.xic.ir.interpret.*;
-import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
+import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.ConstantFoldVisitor;
