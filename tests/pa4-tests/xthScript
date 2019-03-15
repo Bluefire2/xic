@@ -32,6 +32,8 @@ xic ("Test --irgen") "-libpath $(testpath) --irgen" {
   array_assign.xi;
   array_concat.xi;
   array_index.xi;
+  deepcopy.xi;
+  difflen_assign.xi;
   multidim_alloc.xi;
   multidim_literal.xi;
   propagate_dbz.xi;
@@ -44,6 +46,8 @@ xic ("Test --irgen -O") "-libpath $(testpath) --irgen -O" {
   array_assign.xi;
   array_concat.xi;
   array_index.xi;
+  deepcopy.xi;
+  difflen_assign.xi;
   multidim_alloc.xi;
   multidim_literal.xi;
   propagate_dbz.xi;

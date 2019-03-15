@@ -175,32 +175,6 @@ public class VisitorTranslationTest {
         IRNode r = e.accept(visitor);
         assertTrue(r instanceof IRBinOp);
     }
-
-//    @Test //and/or not folded, test translation
-//    public void testFolding7() {
-//        Expr e = new ExprBinop(Binop.AND,
-//                new ExprBoolLiteral(true,l),
-//                new ExprId("hello", l),
-//                l);
-//        IRNode expected = new IRESeq(new IRSeq(
-//                new IRMove(new IRTemp("x"), new IRConst(0L)),
-//                new IRCJump(new IRConst(1L), "l1", "l3"),
-//                new IRLabel("l1"),
-//                new IRCJump(new IRTemp("hello"), "l2", "l3"),
-//                new IRLabel("l2"),
-//                new IRMove(new IRTemp("x"), new IRConst(1L)),
-//                new IRLabel("l3")),
-//                new IRTemp("x")
-//        );
-//        IRNode r = e.accept(visitor);
-//        assertTrue(!(r instanceof IRConst));
-//        PrintWriter cw = new PrintWriter(System.out);
-//        CodeWriterSExpPrinter printer = new CodeWriterSExpPrinter(cw);
-//        r.printSExp(printer);
-//        expected.printSExp(printer);
-//        printer.close();
-//        assertEquals(r, expected);
-//    }
 }
 
 
