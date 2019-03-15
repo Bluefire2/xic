@@ -123,6 +123,8 @@ public class ConstantFoldVisitor extends IRVisitor {
             case DIV:
                 // if we have x / 1, that's just x
                 if (value == 1 && constIsRight) return e;
+                // if we have 0 / x, that's just 0
+                else if (value == 0 && !constIsRight) return new IRConst(0);
                 else return strengthReduce(opType, e, c, irnode, constIsRight);
             case AND:
                 if (value == 1) return e;
