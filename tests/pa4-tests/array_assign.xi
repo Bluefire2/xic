@@ -5,7 +5,7 @@ main(args:int[][]) {
     //assigning to indexes
     x:int[] = "jello"
     println(x)
-    x[0] = "h"[0]
+    x[0] = 'h'
     println(x)
     y:int[] = {1,2,3}
     y[0] = 0

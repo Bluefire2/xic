@@ -19,19 +19,19 @@ shallowcopy(arr:int[]):int[]{
 main(args:int[][]) {
     x:int[] = "hello"
     y:int[] = deepcopy(x)
-    x[0] = "j"[0]
+    x[0] = 'j'
     println(x)
     println(y)
 
     a:int[], b:int[] = deepcopy2("hello")
-    a[0] = "j"[0]
+    a[0] = 'j'
     println(a)
     println(b)
 
     c:int[] = "hello"
     d:int[] = c
     e:int[] = shallowcopy(c)
-    c[0] = "j"[0]
+    c[0] = 'j'
     println(c)
     println(d)
     println(e)
