@@ -2,8 +2,17 @@ package cli;
 
 import ast.ASTNode;
 import ast.Printable;
+import ast.VisitorTranslation;
 import ast.VisitorTypeCheck;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
+import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.ConstantFoldVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
@@ -13,7 +22,6 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
 import symboltable.HashMapSymbolTable;
-import symboltable.TypeSymTable;
 import xi_parser.IxiParser;
 import xi_parser.XiParser;
 import xi_parser.sym;
@@ -21,10 +29,7 @@ import xic_error.LexicalError;
 import xic_error.SemanticError;
 import xic_error.SyntaxError;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,13 +48,29 @@ public class CLI implements Runnable {
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
 
-    @Option (names = {"--debugparse"},
-            description = "Parse in debug mode and print AST to terminal.")
+    @Option (names = {"--debug"},
+            description = "Optional flag which prints to terminal instead of outputting files.")
     private boolean optDebug = false;
 
     @Option (names = {"--typecheck"},
             description = "Generate output from semantic analysis.")
     private boolean optTypeCheck = false;
+
+    @Option (names = {"--irgen"},
+            description = "Generate intermediate code.")
+    private boolean optIRGen = false;
+
+    @Option (names = {"--irrun"},
+            description = "Generate and interpret intermediate code.")
+    private boolean optIRRun = false;
+
+    @Option (names = {"-O"},
+            description = "Disable optimizations.")
+    private boolean optDisableOptimization = false;
+
+    @Option (names = {"--mir"},
+            description = "Do not lower the IR.")
+    private boolean optMIR = false;
 
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
@@ -64,9 +85,8 @@ public class CLI implements Runnable {
     private Path sourcepath;
 
     @Option (names = "-libpath", defaultValue = ".",
-            description = "Specify where to find library interface files.")
+            description = "Specify where to find input library/interface files.")
     private Path libpath;
-
 
     @Override
     public void run() {
@@ -80,6 +100,12 @@ public class CLI implements Runnable {
                 }
                 if(optTypeCheck) {
                     typeCheck();
+                }
+                if (optIRGen) {
+                    IRGen();
+                }
+                if (optIRRun) {
+                    IRRun();
                 }
             } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -165,11 +191,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                XiTokenFactory xtf = new XiTokenFactory();
-                XiLexer lexer = new XiLexer(fileReader, xtf);
-                XiParser parser = new XiParser(lexer, xtf);
-                ASTNode root = (ASTNode) parser.parse().value;
-                root.accept(new VisitorTypeCheck(new HashMapSymbolTable<TypeSymTable>(), libpath.toString()));
+                ASTNode root = buildAST(fileReader);
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -178,6 +200,101 @@ public class CLI implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void IRGen() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".ir")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                IRNode foldedIR = buildIR(f, fileReader);
+                //pretty-print IR
+                CodeWriterSExpPrinter printer;
+                if (optDebug) { //debug mode (print to stdout)
+                    PrintWriter cw = new PrintWriter(System.out);
+                    printer = new CodeWriterSExpPrinter(cw);
+                    // IR canonical checker
+                    {
+                        CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
+                        System.out.print("Canonical?: ");
+                        System.out.println(cv.visit(foldedIR));
+                    }
+
+                    // IR constant-folding checker
+                    {
+                        CheckConstFoldedIRVisitor cv = new CheckConstFoldedIRVisitor();
+                        System.out.print("Constant-folded?: ");
+                        System.out.println(cv.visit(foldedIR));
+                    }
+                } else {
+                    OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
+                    printer = new CodeWriterSExpPrinter(cw);
+                }
+                foldedIR.printSExp(printer);
+                printer.close();
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void IRRun() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(path.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".ir.nml")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileOutputStream fos = new FileOutputStream(outputFilePath)) {
+
+                IRNode foldedIR = buildIR(f, fileReader);
+                //Interpreting
+                if (!optDebug) {
+                    System.setOut(new PrintStream(fos)); // make stdout go to a file
+                }
+                IRSimulator sim = new IRSimulator((IRCompUnit) foldedIR);
+                long result = sim.call("_Imain_paai", 0);
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                // reset the standard output stream
+                System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+            }
+        }
+    }
+
+    private IRNode buildIR(File f, FileReader fileReader) throws Exception {
+        ASTNode root = buildAST(fileReader);
+        //IR translation and lowering
+        VisitorTranslation tv = new VisitorTranslation(
+                !optDisableOptimization,
+                FilenameUtils.removeExtension(f.getName()));
+        IRNode mir = root.accept(tv);
+        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+        IRNode checkedIR = optMIR ? mir : lv.visit(mir);
+        ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
+        return optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+    }
+
+    private ASTNode buildAST(FileReader fileReader) throws Exception {
+        XiTokenFactory xtf = new XiTokenFactory();
+        XiLexer lexer = new XiLexer(fileReader, xtf);
+        XiParser parser = new XiParser(lexer, xtf);
+        ASTNode root = (ASTNode) parser.parse().value;
+        root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
+        return root;
     }
 
     /**

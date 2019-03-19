@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import org.apache.commons.lang3.StringEscapeUtils;
 
@@ -19,7 +20,7 @@ public class ExprIntLiteral extends Expr {
     public ExprIntLiteral(Character val,
                           ComplexSymbolFactory.Location location) {
         super(location);
-        this.value = (long) Character.getNumericValue(val);
+        this.value = (long) val;
         this.e_type = ExprType.IntLiteralExpr;
         this.isChar = true;
         this.raw = val;
@@ -43,7 +44,12 @@ public class ExprIntLiteral extends Expr {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorTypeCheck visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public IRNode accept(VisitorTranslation visitor) {
+        return visitor.visit(this);
     }
 }

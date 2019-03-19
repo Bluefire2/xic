@@ -91,30 +91,30 @@ terminal
     ERROR;
 
 nonterminal FileInterface interface;
-nonterminal interfacefile;
+nonterminal interface_file;
 
 nonterminal Pair annotated_var;
 nonterminal TypeTTau type, basic_type, list_type;
 nonterminal FuncDecl func_decl;
 
-nonterminal ArrayList<TypeTTau> typelist;
-nonterminal ArrayList<Pair<String, TypeTTau>> annotated_varlist;
+nonterminal ArrayList<TypeTTau> type_list;
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
 
 precedence left COMMA;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
+start with interface_file;
 
-start with interfacefile;
+// TYPES
 
-//TYPES
 basic_type ::=
   BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
 | INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
 ;
 
-//types legal for use everywhere
-//does not allow list types with initialized length
-//no need to unwrap
+// Types legal for use everywhere
+// Does not allow list types with initialized length
+// No need to unwrap
 type ::=
   basic_type:b {: RESULT = b; :}
 | list_type:t {: RESULT = t; :}
@@ -125,52 +125,48 @@ list_type ::=
 | list_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
 ;
 
-
-typelist ::=
+type_list ::=
   type:t {:
     ArrayList<TypeTTau> l = new ArrayList<>();
     l.add(t);
     RESULT = l; :}
-  | typelist:l COMMA type:t {: l.add(t); RESULT = l; :}
+| type_list:l COMMA type:t {: l.add(t); RESULT = l; :}
 ;
 
-annotated_varlist ::=
+annotated_var_list ::=
   annotated_var:a {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
     l.add(a);
     RESULT = l; :}
-| annotated_varlist:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+| annotated_var_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
 annotated_var ::=
   ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
+// FUNCTION DECLARATIONS
 
-//FUNCTION DECLARATIONS AND DEFINITIONS
-// Need to differentiate type and typelist with COMMA, otherwise possible
-// shift-shift conflict
-func_decl ::=
-  ID:n LPAREN RPAREN {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    RESULT = new FuncDecl(n, l, t, nxleft); :}
-| ID:n LPAREN RPAREN COLON type:t1 COMMA typelist:t2 {:
-    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, l, new TypeTList(t2), nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN {:
-    RESULT = new FuncDecl(n, p, nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t {:
-    RESULT = new FuncDecl(n, p, t, nxleft); :}
-| ID:n LPAREN annotated_varlist:p RPAREN COLON type:t1 COMMA typelist:t2 {:
-    t2.add(0, t1);
-    RESULT = new FuncDecl(n, p, new TypeTList(t2), nxleft); :}
+func_args ::=
+  LPAREN RPAREN {: RESULT = new ArrayList<Pair<String, TypeTTau>>(); :}
+| LPAREN annotated_var_list:a RPAREN {: RESULT = a; :}
 ;
 
-//HIGHEST LEVEL
+func_decl ::=
+  ID:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
+| ID:n func_args:p COLON type_list:r {:
+    // r.size() >= 1
+    TypeT rt;
+    if (r.size() == 1) {
+        rt = r.get(0);
+    } else {
+        rt = new TypeTList(r);
+    }
+    RESULT = new FuncDecl(n, p, rt, nxleft); :}
+;
+
+// HIGHEST LEVEL
+
 interface ::=
   func_decl:d {:
       ArrayList<FuncDecl> l = new ArrayList<>();
@@ -179,15 +175,6 @@ interface ::=
 | interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
 ;
 
-interfacefile ::= {: //do nothing :}
-| interface:i {: RESULT=i; :};
-
-
-
-
-
-
-
-
-
-
+interface_file ::=
+  {: // do nothing, empty interface file :}
+| interface:i {: RESULT = i; :};

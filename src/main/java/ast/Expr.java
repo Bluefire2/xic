@@ -1,5 +1,6 @@
 package ast;
 
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
 public abstract class Expr extends ASTNode implements Printable {

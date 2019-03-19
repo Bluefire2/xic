@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
 import java.util.ArrayList;
@@ -32,6 +33,10 @@ public class StmtBlock extends Stmt {
         return statements.get(statements.size() - 1);
     }
 
+    public void addStatement(Stmt s){
+        statements.add(s);
+    }
+
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
         statements.forEach((s) -> s.prettyPrint(w));
@@ -40,7 +45,12 @@ public class StmtBlock extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorTypeCheck visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public IRNode accept(VisitorTranslation visitor) {
+        return visitor.visit(this);
     }
 }

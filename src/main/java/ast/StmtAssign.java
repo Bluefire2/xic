@@ -1,6 +1,7 @@
 package ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
 public class StmtAssign extends Stmt {
@@ -32,10 +33,15 @@ public class StmtAssign extends Stmt {
     }
 
     @Override
-    public void accept(VisitorAST visitor) {
+    public void accept(VisitorTypeCheck visitor) {
         lhs.accept(visitor);
         rhs.accept(visitor);
         visitor.visit(this);
+    }
+
+    @Override
+    public IRNode accept(VisitorTranslation visitor) {
+        return visitor.visit(this);
     }
 
 }

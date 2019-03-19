@@ -22,6 +22,9 @@ public class TypeTTauArray extends TypeTTau {
 
     @Override
     public String toString() {
+        if (typeTTau == null) {
+            return "'a[]";// alpha list if the type is unknown....
+        }
         return typeTTau.toString() + "[]";
     }
 
@@ -47,18 +50,6 @@ public class TypeTTauArray extends TypeTTau {
         w.endList();
     }
 
-    // TODO: complete this function
-    /*
-    public boolean sameType(TypeT t) {
-        if (t instanceof TypeTauArray){
-            TypeTauArray other = (TypeTauArray) t;
-            if typeTau == null || other.getTypeTau() == null ||
-                    typeTau.sameType(other.getTypeTau());
-        }
-        return false;
-    }
-    */
-
     @Override
     public boolean subtypeOf(TypeT t) {
         if (t instanceof TypeTUnit) {
@@ -79,6 +70,8 @@ public class TypeTTauArray extends TypeTTau {
         if (!(obj instanceof TypeTTauArray)) {
             return false;
         }
-        return this.typeTTau.equals(((TypeTTauArray) obj).typeTTau);
+        TypeTTauArray t = (TypeTTauArray) obj;
+        return this.typeTTau == null || t.typeTTau == null
+                || this.typeTTau.equals(((TypeTTauArray) obj).typeTTau);
     }
 }
