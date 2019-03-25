@@ -1,15 +1,8 @@
 package asm;
 
-public class ASMInstrJump extends ASMInstr {
-    String name;
+public class ASMInstrJump extends ASMInstrOneArg {
 
-    public ASMInstrJump(ASMOpCode opCode, String name) {
-        this.name = name;
-        this.opCode = opCode;
-    }
-
-    @Override
-    public String toString() {
-        return formatOpCode() + " " + name;
+    public ASMInstrJump(ASMOpCode opCode, ASMExprLabel label) {
+        super(opCode, label);
     }
 }

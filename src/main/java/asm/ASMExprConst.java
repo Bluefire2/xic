@@ -1,10 +1,10 @@
 package asm;
 
-public class ASMConst extends ASMExpr {
+public class ASMExprConst extends ASMExpr {
     private Long val;
 
-    ASMConst(long l) {
-        this.val = l;
+    public ASMExprConst(long val) {
+        this.val = val;
     }
 
     public Long getVal() {
@@ -12,7 +12,7 @@ public class ASMConst extends ASMExpr {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return val.toString();
     }
 }

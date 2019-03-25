@@ -1,3 +1,3 @@
 package asm;
 
-abstract class ASMExpr { }
+abstract class ASMExpr {}

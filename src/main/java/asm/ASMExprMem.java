@@ -1,9 +1,9 @@
 package asm;
 
-public class ASMMem {
-    ASMExpr addr;
+public class ASMExprMem extends ASMExpr {
+    private ASMExpr addr;
 
-    ASMMem(ASMExpr addr) {
+    public ASMExprMem(ASMExpr addr) {
         this.addr = addr;
     }
 
@@ -13,6 +13,6 @@ public class ASMMem {
 
     @Override
     public String toString() {
-        return "[ " + addr.toString() + "]";
+        return "[" + addr.toString() + "]";
     }
 }
