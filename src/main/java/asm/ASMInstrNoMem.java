@@ -1,4 +1,4 @@
-package codegen;
+package asm;
 
 public class ASMInstrNoMem extends ASMInstr {
     ASMExpr dest;

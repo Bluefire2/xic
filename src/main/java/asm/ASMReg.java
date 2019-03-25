@@ -1,4 +1,4 @@
-package codegen;
+package asm;
 
 public class ASMReg extends ASMExpr {
     String name;

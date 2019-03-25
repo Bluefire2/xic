@@ -1,4 +1,4 @@
-package codegen;
+package asm;
 
 public class ASMLabel extends ASMInstr {
     String name;

@@ -1,4 +1,4 @@
-package codegen;
+package asm;
 
 abstract class ASMInstr {
     ASMOpCode opCode;

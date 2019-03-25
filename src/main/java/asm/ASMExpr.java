@@ -1,3 +1,3 @@
-package codegen;
+package asm;
 
 abstract class ASMExpr { }

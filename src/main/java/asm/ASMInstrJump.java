@@ -1,4 +1,4 @@
-package codegen;
+package asm;
 
 public class ASMInstrJump extends ASMInstr {
     String name;
