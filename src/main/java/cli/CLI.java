@@ -2,8 +2,8 @@ package cli;
 
 import ast.ASTNode;
 import ast.Printable;
-import ast.VisitorTranslation;
-import ast.VisitorTypeCheck;
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
@@ -278,7 +278,7 @@ public class CLI implements Runnable {
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
         ASTNode root = buildAST(fileReader);
         //IR translation and lowering
-        VisitorTranslation tv = new VisitorTranslation(
+        IRTranslationVisitor tv = new IRTranslationVisitor(
                 !optDisableOptimization,
                 FilenameUtils.removeExtension(f.getName()));
         IRNode mir = root.accept(tv);
@@ -293,7 +293,7 @@ public class CLI implements Runnable {
         XiLexer lexer = new XiLexer(fileReader, xtf);
         XiParser parser = new XiParser(lexer, xtf);
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
+        root.accept(new TypeCheckVisitor(new HashMapSymbolTable<>(), libpath.toString()));
         return root;
     }
 

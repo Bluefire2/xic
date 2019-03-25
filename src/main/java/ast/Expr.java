@@ -1,6 +1,5 @@
 package ast;
 
-import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 
 public abstract class Expr extends ASTNode implements Printable {
@@ -15,11 +14,11 @@ public abstract class Expr extends ASTNode implements Printable {
         return e_type;
     }
 
-    TypeT getTypeCheckType() {
+    public TypeT getTypeCheckType() {
         return typeCheckType;
     }
 
-    void setTypeCheckType(TypeT typeCheckType) {
+    public void setTypeCheckType(TypeT typeCheckType) {
         this.typeCheckType = typeCheckType;
     }
 }

@@ -18,10 +18,6 @@ public class TypeTTauInt extends TypeTTau {
         w.printAtom("int");
     }
 
-    public boolean sameType(TypeT t) {
-        return t instanceof TypeTTauInt || t instanceof TypeTUnit;
-    }
-
     @Override
     public boolean subtypeOf(TypeT t) {
         return t instanceof TypeTTauInt || t instanceof TypeTUnit;

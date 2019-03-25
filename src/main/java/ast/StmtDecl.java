@@ -1,10 +1,10 @@
 package ast;
 
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
-
-import java.util.List;
 
 public class StmtDecl extends Stmt {
     private TypeDeclVar decl;
@@ -25,12 +25,12 @@ public class StmtDecl extends Stmt {
     }
 
     @Override
-    public void accept(VisitorTypeCheck visitor) {
+    public void accept(TypeCheckVisitor visitor) {
         visitor.visit(this);
     }
 
     @Override
-    public IRNode accept(VisitorTranslation visitor) {
+    public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
     }
 }

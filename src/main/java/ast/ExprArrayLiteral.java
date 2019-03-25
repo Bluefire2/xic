@@ -1,5 +1,7 @@
 package ast;
 
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
@@ -10,7 +12,7 @@ import java.util.List;
 
 public class ExprArrayLiteral extends Expr {
     private List<Expr> contents;
-    public boolean isString;
+    private boolean isString;
     private String raw;
 
     public ExprArrayLiteral(List<Expr> contents,
@@ -51,7 +53,7 @@ public class ExprArrayLiteral extends Expr {
     }
 
     @Override
-    public void accept(VisitorTypeCheck visitor) {
+    public void accept(TypeCheckVisitor visitor) {
         for (Expr e : contents) {
             e.accept(visitor);
         }
@@ -59,7 +61,7 @@ public class ExprArrayLiteral extends Expr {
     }
 
     @Override
-    public IRNode accept(VisitorTranslation visitor) {
+    public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
     }
 }

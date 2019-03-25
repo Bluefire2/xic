@@ -1,5 +1,6 @@
-package ast;
+package ast.visit;
 
+import ast.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public class VisitorTranslation implements VisitorAST<IRNode> {
+public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private static final int WORD_NUM_BYTES = 8;
     private int labelcounter;
     private int tempcounter;
@@ -27,7 +28,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public VisitorTranslation(boolean opt, String name) {
+    public IRTranslationVisitor(boolean opt, String name) {
         this.labelcounter = 0;
         this.tempcounter = 0;
         this.optimize = opt;
@@ -75,7 +76,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    String functionName(String name, TypeSymTableFunc signature) {
+    public String functionName(String name, TypeSymTableFunc signature) {
         String newName = name.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());

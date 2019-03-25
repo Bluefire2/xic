@@ -1,5 +1,7 @@
 package ast;
 
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
@@ -36,7 +38,7 @@ public class ExprFunctionCall extends Expr {
     }
 
     @Override
-    public void accept(VisitorTypeCheck visitor) {
+    public void accept(TypeCheckVisitor visitor) {
         for (Expr e : args) {
             e.accept(visitor);
         }
@@ -44,7 +46,7 @@ public class ExprFunctionCall extends Expr {
     }
 
     @Override
-    public IRNode accept(VisitorTranslation visitor) {
+    public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
     }
 

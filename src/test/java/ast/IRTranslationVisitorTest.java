@@ -1,28 +1,25 @@
 package ast;
 
-import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import ast.visit.IRTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.*;
-import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
-import lexer.XiToken;
 import lexer.XiTokenLocation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import symboltable.TypeSymTableFunc;
 
-import java.io.PrintWriter;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class VisitorTranslationTest {
-    private VisitorTranslation visitor;
+public class IRTranslationVisitorTest {
+    private IRTranslationVisitor visitor;
     private XiTokenLocation l;
 
     @Before
     public void setUp() {
-        visitor = new VisitorTranslation(true, "test");
+        visitor = new IRTranslationVisitor(true, "test");
         l = new XiTokenLocation(0,0);
     }
 

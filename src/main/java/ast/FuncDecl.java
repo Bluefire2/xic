@@ -1,5 +1,7 @@
 package ast;
 
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
@@ -56,7 +58,7 @@ public class FuncDecl extends ASTNode implements Printable {
         return output;
     }
 
-    public boolean isProcedure() {
+    private boolean isProcedure() {
         return output instanceof TypeTUnit;
     }
 
@@ -81,12 +83,12 @@ public class FuncDecl extends ASTNode implements Printable {
     }
 
     @Override
-    public void accept(VisitorTypeCheck visitor) {
+    public void accept(TypeCheckVisitor visitor) {
         //do nothing
     }
 
     @Override
-    public IRNode accept(VisitorTranslation visitor) {
+    public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
     }
 

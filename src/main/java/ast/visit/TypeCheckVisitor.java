@@ -1,5 +1,6 @@
-package ast;
+package ast.visit;
 
+import ast.*;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
 import polyglot.util.Pair;
@@ -12,12 +13,12 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 
-public class VisitorTypeCheck implements VisitorAST<Void> {
+public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private String libpath;
     private String RETURN_KEY = "__return__";
 
-    public VisitorTypeCheck(SymbolTable<TypeSymTable> symTable, String libpath){
+    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath){
         this.symTable = symTable;
         this.libpath = libpath;
         symTable.enterScope();
