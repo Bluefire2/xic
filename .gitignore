@@ -1,13 +1,15 @@
-# Custom ignores
-*.swp
-vm/.vagrant
-vm/shared/xic
-src/main/java/lexer/XiLexer.java
-src/main/java/xi_parser/XiParser.java
-src/main/java/xi_parser/IxiParser.java
-src/main/java/xi_parser/sym.java
-*.java~
-*.results
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+### Above combination will ignore all files without extension ###
+
+### Java ignores
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Gradle template
@@ -104,10 +106,87 @@ fabric.properties
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-.DS_Store
+### C ignores
 
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+### Custom ignores
+
+# VM ignores
+vm/.vagrant
+vm/shared/xic
+
+# Xi ignores
 /xic
+*.results
 *.lexed
 *.parsed
 *.typed
 *.ir
+
+## Misc ignores
+# Platform-specific and editor temporaries
+.DS_Store
+*.swp
+
+# Auto-generated xic files
+src/main/java/lexer/XiLexer.java
+src/main/java/xi_parser/XiParser.java
+src/main/java/xi_parser/IxiParser.java
+src/main/java/xi_parser/sym.java
+*.java~
+
+# Auto-generated runtime files
+*.sx
+runtime/gc-7.6.4
