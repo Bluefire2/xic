@@ -1,6 +1,10 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
+
+import java.util.List;
 
 /**
  * An intermediate representation for a temporary register
@@ -19,6 +23,11 @@ public class IRTemp extends IRExpr_c {
 
     public String name() {
         return name;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        return v.visit(this);
     }
 
     @Override

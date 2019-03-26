@@ -1,9 +1,13 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
+import java.util.List;
 
 /**
  * An intermediate representation for an expression evaluated under side effects
@@ -66,6 +70,12 @@ public class IRESeq extends IRExpr_c {
     @Override
     public boolean isCanonical(CheckCanonicalIRVisitor v) {
         return false;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        throw new IllegalAccessError("IRESeq should not be visited by ASM " +
+                "Translator");
     }
 
     @Override
