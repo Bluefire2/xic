@@ -90,6 +90,12 @@ public enum ASMOpCode {
     HLT,
     LOCK,
     NOP,
-    WAIT
+    WAIT;
+
+    public String formatOpCode(ASMOpCode op) {
+        return op.name().toLowerCase();
+    }
 
 }
+
+
