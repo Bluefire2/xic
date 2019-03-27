@@ -1,8 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import asm.ASMInstr;
+import asm.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
@@ -37,7 +38,27 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRFuncDecl node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        String fname = node.name();
+
+        //Prologue
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("ebp")));
+        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("ebp"),
+                new ASMExprReg("esp")));
+        //set up stack frame for local vars?
+
+        //Body
+        //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
+        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
+        //First return in rax, second in rdx
+
+        //Epilogue
+        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("esp"),
+                new ASMExprReg("ebp")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("ebp")));
+        instrs.add(new ASMInstrNoArgs(ASMOpCode.RET));
+
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRJump node) {
