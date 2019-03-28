@@ -18,7 +18,6 @@ interface IRBareVisitor<T> {
     T visit(IRLabel node);
     T visit(IRMem node);
     T visit(IRMove node);
-    T visit(IRName node);
     T visit(IRReturn node);
     T visit(IRSeq node);
     T visit(IRTemp node);

@@ -62,11 +62,24 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRJump node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        if (node.target() instanceof IRName) {
+            instrs.add(new ASMInstrJump(
+                    ASMOpCode.JMP,
+                    ((IRName) node.target()).name()
+            ));
+            return instrs;
+        } else {
+            throw new IllegalAccessError();
+        }
     }
 
     public List<ASMInstr> visit(IRLabel node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        instrs.add(new ASMInstrLabel(
+                node.name()
+        ));
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRMem node) {
@@ -74,10 +87,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRMove node) {
-        throw new IllegalAccessError();
-    }
-
-    public List<ASMInstr> visit(IRName node) {
         throw new IllegalAccessError();
     }
 

@@ -3,8 +3,8 @@ package asm;
 public class ASMInstrLabel extends ASMInstr {
     private String name;
 
-    public ASMInstrLabel(ASMOpCode opCode, String name) {
-        super(opCode);
+    public ASMInstrLabel(String name) {
+        super(null); //TODO get rid of this null
         this.name = name;
     }
 
