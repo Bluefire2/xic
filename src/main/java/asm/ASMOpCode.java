@@ -14,6 +14,7 @@ public enum ASMOpCode {
     SBB,
     INC,
     DEC,
+    PMULHW, //for hi-mult
 
     //Logical
     AND,

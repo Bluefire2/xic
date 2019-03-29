@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprTemp;
 import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
@@ -75,8 +76,8 @@ public class IRMem extends IRExpr_c {
     }
 
     @Override
-    public List<ASMInstr> accept(ASMTranslationVisitor v) {
-        return v.visit(this);
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprTemp t) {
+        return v.visit(this, t);
     }
 
     @Override

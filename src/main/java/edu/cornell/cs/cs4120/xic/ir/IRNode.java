@@ -30,8 +30,6 @@ public interface IRNode {
 
     boolean isConstFolded(CheckConstFoldedIRVisitor v);
 
-    List<ASMInstr> accept(ASMTranslationVisitor v);
-
     String label();
 
     /**

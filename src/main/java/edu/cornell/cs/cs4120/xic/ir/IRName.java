@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprTemp;
 import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
@@ -26,8 +27,9 @@ public class IRName extends IRExpr_c {
     }
 
     @Override
-    public List<ASMInstr> accept(ASMTranslationVisitor v) {
-        return v.visit(this);
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprTemp t) {
+        throw new IllegalAccessError("IRName should not be visited by ASM " +
+                "Translator");
     }
 
     @Override
