@@ -54,4 +54,29 @@
             </AsmMove>
         </out>
     </tile>
+    <tile name="TODO">
+        <in>
+            <Move>
+                <Temp bind="t1"/>
+                <BinOp type="PLUS">
+                    <Temp bind="t1"/>
+                    <Mem>
+                        <BinOp type="PLUS">
+                            <Temp bind="fp"/>
+                            <Const bind="c"/>
+                        </BinOp>
+                    </Mem>
+                </BinOp>
+            </Move>
+        </in>
+        <out>
+            <AsmAdd>
+                <Register name="t1"/>
+                <Memory type="PLUS-EXPR">
+                    <Register name="fp"/>
+                    <Imm val="c"/>
+                </Memory>
+            </AsmAdd>
+        </out>
+    </tile>
 </tiles>
