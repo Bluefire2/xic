@@ -1,9 +1,9 @@
 package asm;
 
-public class ASMInstrOneArg extends ASMInstr {
+public class ASMInstr_1Arg extends ASMInstr {
     private ASMExpr arg;
 
-    public ASMInstrOneArg(ASMOpCode opCode, ASMExpr arg) {
+    public ASMInstr_1Arg(ASMOpCode opCode, ASMExpr arg) {
         super(opCode);
         this.arg = arg;
     }

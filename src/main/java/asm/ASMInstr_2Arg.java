@@ -1,10 +1,10 @@
 package asm;
 
-public class ASMInstrTwoArg extends ASMInstr {
+public class ASMInstr_2Arg extends ASMInstr {
     private ASMExpr dest;
     private ASMExpr src;
 
-    public ASMInstrTwoArg(ASMOpCode opCode, ASMExpr dest, ASMExpr src) {
+    public ASMInstr_2Arg(ASMOpCode opCode, ASMExpr dest, ASMExpr src) {
         super(opCode);
         this.dest = dest;
         this.src = src;
