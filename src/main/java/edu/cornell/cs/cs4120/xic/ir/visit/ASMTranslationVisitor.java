@@ -183,139 +183,110 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
-
     public List<ASMInstr> visit(IRBinOp node, ASMExprTemp dest) {
         switch (node.opType()) {
             case ADD:
+            case SUB:
+            case MUL:
                 List<ASMInstr> instrs = new ArrayList<>();
-                if (node.left() instanceof IRConst && node.right() instanceof IRConst){
-                    //const op const SIZE 3
-                    instrs.add(new ASMInstrTwoArg(
-                            ASMOpCode.MOV,
-                            dest,
-                            new ASMExprConst(((IRConst)node.left()).value())
-                    ));
-                    instrs.add(new ASMInstrTwoArg(
-                            translateBinOpCode(node),
-                            dest,
-                            new ASMExprConst(((IRConst)node.right()).value())
-                    ));
-                    return instrs;
-                } else if (node.left() instanceof IRMem) {
-                    //TODO
-                } else if (node.right() instanceof IRMem) {
-                    //TODO
-                } else if (node.right() instanceof IRConst){
-                    //something op
-                    if (node.left() instanceof IRMem && validExprMem((IRMem) node.left())){
-                        //[a * b + c] op const //up to SIZE 8
-                        IRMem m = (IRMem) node.left();
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                tileInsideMem(m.expr()),
-                                new ASMExprConst(((IRConst) node.right()).value())
-                        ));
-                        return instrs;
-                    } else {//anything else pretty much SIZE 2
-                        instrs.addAll(node.left().accept(this, dest));
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                dest,
-                                new ASMExprConst(((IRConst) node.right()).value())
-                        ));
-                    }
-                } else if (node.right() instanceof IRTemp){
-                        //something op d
-                        if (node.left() instanceof IRMem && validExprMem((IRMem) node.left())){
-                            //[a * b + c] op d //up to SIZE 8
-                            IRMem m = (IRMem) node.left();
+                Void lhs = node.left().matchLow(
+                        (IRBinOp l) -> {
+                            instrs.addAll(l.accept(this, dest));
+                            return null;
+                        },
+                        (IRCall l) -> {
+                            instrs.addAll(l.accept(this, dest));
+                            return null;
+                        },
+                        (IRConst l) -> { //ASSOCIATIVITY doesn't particularly matter
                             instrs.add(new ASMInstrTwoArg(
-                                    translateBinOpCode(node),
-                                    tileInsideMem(m.expr()),
-                                    new ASMExprTemp(((IRTemp) node.right()).name())
+                                    ASMOpCode.MOV,
+                                    dest,
+                                    new ASMExprConst(l.value())
                             ));
-                            return instrs;
-                        } else {//anything else pretty much SIZE 2
-                            instrs.addAll(node.left().accept(this, dest));
+                            return null;
+                            },
+                        (IRMem l) -> {
+                            if (validExprMem(l)){
+                                instrs.add(new ASMInstrTwoArg(
+                                        ASMOpCode.MOV,
+                                        dest,
+                                        tileInsideMem(l.expr())
+                                ));
+                            } else {
+                                instrs.addAll(l.accept(this, dest));
+                            }
+                            return null;
+                        },
+                        (IRName l) -> {throw new IllegalAccessError();},
+                        (IRTemp l) -> {
+                            instrs.add(new ASMInstrTwoArg(
+                                    ASMOpCode.MOV,
+                                    dest,
+                                    new ASMExprTemp(l.name())
+                            ));
+                            return null;
+                        });
+                Void rhs = node.right().matchLow(
+                        (IRBinOp r) -> { //??? op BINOP
+                            String t1 = newTemp();
+                            instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
                             instrs.add(new ASMInstrTwoArg(
                                     translateBinOpCode(node),
                                     dest,
-                                    new ASMExprTemp(((IRTemp) node.right()).name())
+                                    new ASMExprTemp(t1)
                             ));
-                        }
-                } else if (node.left() instanceof IRTemp){//assumes associativity
-                    //d op something
-                    if (node.right() instanceof IRMem && validExprMem((IRMem) node.right())){
-                        //[a * b + c] op d //up to SIZE 8
-                        IRMem m = (IRMem) node.right();
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                tileInsideMem(m.expr()),
-                                new ASMExprTemp(((IRTemp) node.left()).name())
-                        ));
-                        return instrs;
-                    } else {//anything else pretty much SIZE 2
-                        instrs.addAll(node.right().accept(this, dest));
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                dest,
-                                new ASMExprTemp(((IRTemp) node.left()).name())
-                        ));
-                    }
-                } else if (node.left() instanceof IRConst) {// assumes associativity
-                    //const op something
-                    if (node.right() instanceof IRMem && validExprMem((IRMem) node.right())) {
-                        //[a * b + c] op const //up to SIZE 8
-                        IRMem m = (IRMem) node.right();
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                tileInsideMem(m.expr()),
-                                new ASMExprConst(((IRConst) node.left()).value())
-                        ));
-                        return instrs;
-                    } else {//anything else pretty much SIZE 2
-                        instrs.addAll(node.right().accept(this, dest));
-                        instrs.add(new ASMInstrTwoArg(
-                                translateBinOpCode(node),
-                                dest,
-                                new ASMExprConst(((IRConst) node.left()).value())
-                        ));
-                    }
-                }
-                    //c + node
-//                } else if (node.opType() == OpType.ADD && node.right().equals(new IRConst(1))){
-//                    //node + 1 => INC SIZE 2
-//                    instrs.addAll(node.left().accept(this, dest));
-//                    instrs.add(new ASMInstrOneArg(ASMOpCode.INC, dest));
-//                    return instrs;
-//                } else if (node.opType() == OpType.SUB && node.right().equals(new IRConst(1))){
-//                    //node - 1 => DEC SIZE 2
-//                    instrs.addAll(node.left().accept(this, dest));
-//                    instrs.add(new ASMInstrOneArg(ASMOpCode.DEC, dest));
-//                    return instrs;
-//                } else if (node.opType() == OpType.ADD && node.left().equals(new IRConst(1))){
-//                    //1 + node => INC SIZE 2
-//                    instrs.addAll(node.right().accept(this, dest));
-//                    instrs.add(new ASMInstrOneArg(ASMOpCode.INC, dest));
-//                    return instrs;
-                else {//default case SIZE 1
-                    //TODO should we reuse instances of temps
-                    instrs.addAll(node.left().accept(this, dest));
-                    String t2 = newTemp();
-                    instrs.addAll(node.right().accept(this, new ASMExprTemp(t2)));
-                    instrs.add(new ASMInstrTwoArg(
-                            translateBinOpCode(node),
-                            dest,
-                            new ASMExprTemp(t2)));
-                    return instrs;
-                }
-            case MUL:
+                            return null;
+                        },
+                        (IRCall r) -> { //??? op CALL
+                            String t1 = newTemp();
+                            instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
+                            instrs.add(new ASMInstrTwoArg(
+                                    translateBinOpCode(node),
+                                    dest,
+                                    new ASMExprTemp(t1)
+                            ));
+                            return null;
+                        },
+                        (IRConst r) -> { //??? op CONST
+                            instrs.add(new ASMInstrTwoArg(
+                                    translateBinOpCode(node),
+                                    dest,
+                                    new ASMExprConst(r.value())
+                            ));
+                            return null;
+                        },
+                        (IRMem r) -> { //??? op [MEM]
+                            if (validExprMem(r)){
+                                instrs.add(new ASMInstrTwoArg(
+                                        translateBinOpCode(node),
+                                        dest,
+                                        tileInsideMem(r.expr())
+                                ));
+                            } else {
+                                String t1 = newTemp();
+                                instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
+                                instrs.add(new ASMInstrTwoArg(
+                                        translateBinOpCode(node),
+                                        dest,
+                                        new ASMExprTemp(t1)
+                                ));
+                            }
+                            return null;
+                        },
+                        (IRName r) -> {throw new IllegalAccessError();},
+                        (IRTemp r) -> {//??? op TEMP
+                            instrs.add(new ASMInstrTwoArg(
+                                    translateBinOpCode(node),
+                                    dest,
+                                    new ASMExprTemp(r.name())
+                            ));
+                            return null;
+                        });
+                return instrs;
             case HMUL:
                 break;
-            case SUB:
-                break;
             case DIV:
-                break;
             case MOD:
                 break;
             case AND:
@@ -411,7 +382,25 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRMem node, ASMExprTemp dest) {
-        throw new IllegalAccessError();
+        //translation of [e] will put actual contents of [e] into dest
+        //this CANNOT be used for writes
+        List<ASMInstr> instrs = new ArrayList<>();
+        if (validExprMem(node)){
+            instrs.add(new ASMInstrTwoArg(
+                    ASMOpCode.MOV,
+                    dest,
+                    tileInsideMem(node.expr())
+            ));
+        } else {
+            String t0 = newTemp();
+            instrs.addAll(node.expr().accept(this, new ASMExprTemp(t0)));
+            instrs.add(new ASMInstrTwoArg(
+                    ASMOpCode.MOV,
+                    dest,
+                    new ASMExprMem(new ASMExprTemp(t0))
+            ));
+        }
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRMove node) {
