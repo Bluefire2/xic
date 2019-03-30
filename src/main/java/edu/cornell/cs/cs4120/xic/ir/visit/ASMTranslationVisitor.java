@@ -194,9 +194,15 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // after both are computed. So, lhs and rhs computation can
                 // be separated.
                 List<ASMInstr> instrs = new ArrayList<>();
-                List<ASMInstr> lhsInstrs = node.left().matchLow(
-                        (IRBinOp l) -> l.accept(this, dest),
-                        (IRCall l) -> l.accept(this, dest),
+                Void lhs = node.left().matchLow(
+                        (IRBinOp l) -> {
+                            instrs.addAll(l.accept(this, dest));
+                            return null;
+                        },
+                        (IRCall l) -> {
+                            instrs.addAll(l.accept(this, dest));
+                            return null;
+                        },
                         (IRConst l) -> {
                             instrs.add(new ASMInstr_2Arg(
                                     ASMOpCode.MOV,
