@@ -412,7 +412,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRSeq node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> allInstrs = new ArrayList<>();
+        node.stmts().forEach(s -> allInstrs.addAll(s.accept(this)));
+        return allInstrs;
     }
 
     public List<ASMInstr> visit(IRTemp node, ASMExprTemp dest) {
