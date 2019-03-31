@@ -13,8 +13,8 @@ import java.util.function.Function;
 
 //               Functional programming died for this
 //                            |~~~~~~~|
-//                            |       |
-//                            |       |
+//                            | - . - |
+//                            |  \_/  |
 //                            |       |
 //                            |       |
 //                            |       |
@@ -149,7 +149,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //helper function for tiling inside of mem
     //input a MUL binop that is inside mem
     //output is list of instructions and an ASMExprMem
-    private Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
+    public Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
         IRExpr l = exp.left();
         IRExpr r = exp.right();
         if (l instanceof IRConst && validAddrScale((IRConst) l)) {
@@ -209,7 +209,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     // flatten add exprs
     // example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
-    private List<IRExpr> flattenAdds(IRBinOp b){
+    public List<IRExpr> flattenAdds(IRBinOp b){
         List<IRExpr> exps = new ArrayList<>();
         if (b.opType() == OpType.ADD) {
             if (b.left() instanceof IRBinOp && ((IRBinOp) b.left()).opType() == OpType.ADD) {
@@ -729,7 +729,41 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRMove node) {
-        throw new IllegalAccessError();
+        IRExpr dest = node.target();
+        IRExpr src = node.source();
+        if (dest instanceof IRTemp) {
+            throw new IllegalAccessError();
+            //RHS cases:
+            //call -> fresh temp
+            //mem -> tile mem as usual
+            //name -> error
+            //temp -> MOV if different temp otherwise NOP
+            //const -> MOV
+            //binop -> switch on op
+            //if op is not commutative:
+            // if LHS is same temp then use single instr
+            //if op is commutative:
+            // if LHS or RHS is same temp then use single instr
+            //otherwise fresh temp
+        }
+        else if (dest instanceof IRMem) {
+            throw new IllegalAccessError();
+            //RHS cases:
+            //call -> fresh temp
+            //mem -> tile mem as usual if not equivalent mem otherwise NOP
+            //name -> error
+            //temp -> MOV
+            //const -> MOV
+            //binop -> switch on op
+            //if op is not commutative:
+            // if LHS of binop is equivalent mem then use single instr
+            //if op is commutative:
+            // if LHS or RHS of binop is equivalent mem then use single instr
+            //otherwise fresh temp
+        }
+        else {
+            throw new IllegalAccessError("only Mem and Temp allowed as destination");
+        }
     }
 
     public List<ASMInstr> visit(IRReturn node) {
