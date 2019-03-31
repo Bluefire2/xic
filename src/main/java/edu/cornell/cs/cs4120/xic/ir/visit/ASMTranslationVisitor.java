@@ -4,11 +4,11 @@ import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import polyglot.util.Pair;
 import java.util.function.Function;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
