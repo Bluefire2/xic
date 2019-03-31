@@ -4,10 +4,11 @@ import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import polyglot.util.Pair;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import polyglot.util.Pair;
 import java.util.function.Function;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
@@ -25,7 +26,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     /**
      * Returns the ASMOpCode of input IR binary operation. Since logical
      * binops don't have a direct binop in assembly, the function throws an
-     * InternalCompilerError.
+     * InternalCompilerError for them.
      *
      * @param op to translate.
      * @return the corresponding assembly binop code.
@@ -57,6 +58,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 return ASMOpCode.SHR;
             case ARSHIFT:
                 return ASMOpCode.SAR;
+            default:
+                throw new InternalCompilerError("Cannot translate op type");
+        }
+    }
+
+    /**
+     * Returns the ASMOpCode for setcc of input IR logical operation. Since
+     * arith binops don't have a setcc in assembly, the function throws an
+     * InternalCompilerError for them.
+     *
+     * @param op to translate.
+     * @return the corresponding assembly setcc code.
+     */
+    private ASMOpCode setASMOpCodeOf(IRBinOp.OpType op) {
+        switch (op) {
+            case EQ:
+                return ASMOpCode.SETE;
+            case NEQ:
+                return ASMOpCode.SETNE;
+            case LT:
+                return ASMOpCode.SETL;
+            case GT:
+                return ASMOpCode.SETG;
+            case LEQ:
+                return ASMOpCode.SETLE;
+            case GEQ:
+                return ASMOpCode.SETGE;
             default:
                 throw new InternalCompilerError("Cannot translate op type");
         }
@@ -287,29 +315,46 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return res;
     }
 
-    private <T extends IRExpr> Function<T, Void> addAllAccept(ASMExprTemp dest,
-                                                List<ASMInstr> instrs) {
+    private <T extends IRExpr> Function<T, Void> binOpArithAddAllAccept(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return null;
         };
     }
 
-    private Function<IRMem, Void> addAllAcceptMem(ASMExprTemp dest,
-                                                  List<ASMInstr> instrs) {
-        return (IRMem m) -> {
-            Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(m);
-                instrs.addAll(memTile.part1());
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOV,
-                        dest,
-                        memTile.part2()
-                ));
+    private <T extends IRExpr> Function<T, ASMExpr> binOpLogicAddAllAccept(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
+        return (T e) -> {
+            instrs.addAll(e.accept(this, dest));
+            return dest;
+        };
+    }
+
+    private Function<IRMem, ASMExpr> binOpLogicAddAllAcceptMem(
+            List<ASMInstr> instrs) {
+        return (IRMem e) -> {
+            Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(e);
+            instrs.addAll(memTile.part1());
+            return memTile.part2();
+        };
+    }
+
+    private Function<IRMem, Void> binOpArithAddAllAcceptMem(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
+        return (IRMem e) -> {
+            Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr(e);
+            instrs.addAll(memTile.part1());
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV,
+                    dest,
+                    memTile.part2()
+            ));
             return null;
         };
     }
 
-    private <T extends IRExpr> Function<T, Void> illegalAccess() {
+    private <T extends IRExpr, U> Function<T, U> illegalAccessErrorLambda() {
         return (T e) -> {
             throw new IllegalAccessError();
         };
@@ -324,6 +369,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case LSHIFT:
             case RSHIFT:
             case ARSHIFT:
+                /*
+                 * Boolean binops can also be tiled this way: we can use x86
+                 * bitwise instructions because booleans are all 0/1 anyway.
+                 */
+            case AND:
+            case OR:
+            case XOR:
                 // For ADD and MUL, switching left and right children might
                 // seem to improve performance, but there is no point since
                 // one of the children will need to be moved to dest anyway
@@ -333,12 +385,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // Visit left child and add the relevant moving ASMs.
                 node.left().matchLow(
                         // no, this can't be extracted into a variable
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAcceptMem(dest, instrs),
-                        illegalAccess(),
-                        addAllAccept(dest, instrs)
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAcceptMem(dest, instrs),
+                        illegalAccessErrorLambda(),
+                        binOpArithAddAllAccept(dest, instrs)
                 );
 
                 // Visit right child and complete adding instructions
@@ -392,7 +444,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             ));
                             return null;
                         },
-                        illegalAccess(),
+                        illegalAccessErrorLambda(),
                         (IRTemp r) -> {
                             instrs.add(new ASMInstr_2Arg(
                                     // OP dest, r
@@ -408,17 +460,53 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case DIV:
             case MOD:
                 break;
-            case AND:
-            case OR:
-            case XOR:
-                break;
             case EQ:
             case NEQ:
             case LT:
             case GT:
             case LEQ:
             case GEQ:
-                break;
+                // Visit left child and add the relevant moving ASMs.
+                ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
+                ASMExpr leftDest = node.left().matchLow(
+                        // no, this can't be extracted into a variable
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAcceptMem(instrs),
+                        illegalAccessErrorLambda(),
+                        (IRTemp l) -> new ASMExprTemp(l.name())
+                );
+
+                ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
+                ASMExpr rightDest = node.left().matchLow(
+                        // no, this can't be extracted into a variable
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAcceptMem(instrs),
+                        illegalAccessErrorLambda(),
+                        (IRTemp l) -> new ASMExprTemp(l.name())
+                );
+
+                // CMP leftDest, rightDest
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.CMP, leftDest, rightDest
+                ));
+
+                // SETcc al
+                instrs.add(new ASMInstr_1Arg(
+                        setASMOpCodeOf(node.opType()),
+                        new ASMExprReg("al")
+                ));
+
+                // MOVZX dest, al
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOVZX,
+                        dest,
+                        new ASMExprReg("al")
+                ));
+                return instrs;
         }
         throw new IllegalAccessError();
     }
@@ -450,25 +538,114 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
+    private int getNumParams(IRFuncDecl node) {
+        String n = node.name();
+        String s = n.substring(n.lastIndexOf('_'));
+        if (s.startsWith("t")) {
+            int numrets = Integer.parseInt(s.substring(1, 2));
+            return s.length() - numrets - 1;
+        }
+        else return s.length() - 1;
+    }
+
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        String fname = node.name();
+        int numparams = getNumParams(node);
 
         //Prologue
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("ebp")));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("ebp"),
-                new ASMExprReg("esp")));
-        //set up stack frame for local vars?
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
+                new ASMExprReg("rsp")));
+        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
 
         //Body
-        //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
-        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        //First return in rax, second in rdx
+        HashMap<String, ASMExpr> argvars = new HashMap<>();
+        IRStmt body = node.body();
+        IRSeq stmts;
+        if (body instanceof IRSeq) stmts = (IRSeq) body;
+        else stmts = new IRSeq(body);
+            for (IRStmt s : stmts.stmts()) {
+
+                if (s instanceof IRReturn) {
+                    //First return in rax, second in rdx, rest saved to caller specified memory location
+                    IRReturn ret = (IRReturn) s;
+                    List<IRExpr> retvals = ret.rets();
+                    int numrets = 0;
+                    for (IRExpr e : retvals) {
+                      //  ASMInstr visited = visit(e);
+                        if (numrets == 0) {
+                            //TODO: visit IRExpr -> ASMExpr
+                            // instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rax"), visited));
+                        }
+                        else if (numrets == 1) {
+                            //  instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rdx"), visited));
+                        }
+                        else {} //Already handled in function body?
+                        numrets ++;
+                    }
+                    instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
+                }
+
+                else if (s instanceof IRMove) {
+                    IRMove mov = (IRMove) s;
+                    if (mov.target() instanceof IRTemp && mov.source() instanceof IRTemp) {
+                            String destname = ((IRTemp) mov.target()).name();
+                            String srcname = ((IRTemp) mov.target()).name();
+                            if (destname.startsWith("_ARG")) {
+                                //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
+                                int argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
+                                if (argnum == 0) argvars.put(srcname, new ASMExprReg("rdi"));
+                                else if (argnum == 1) argvars.put(srcname, new ASMExprReg("rsi"));
+                                else if (argnum == 2) argvars.put(srcname, new ASMExprReg("rdx"));
+                                else if (argnum == 3) argvars.put(srcname, new ASMExprReg("rcx"));
+                                else if (argnum == 4) argvars.put(srcname, new ASMExprReg("r8"));
+                                else if (argnum == 5) argvars.put(srcname, new ASMExprReg("r9"));
+                                else {
+                                    int stackloc = (numparams - argnum - 5)*8;
+                                    argvars.put(srcname, new ASMExprMem(new ASMExprBinOpAdd(new ASMExprReg("rbp"), new ASMExprConst(stackloc))));
+
+                                }
+                            }
+                            else {
+                                if (argvars.containsKey(destname) && argvars.containsKey(srcname))
+                                    instrs.add(new ASMInstr_2Arg(
+                                            ASMOpCode.MOV,
+                                            argvars.get(destname),
+                                            argvars.get(srcname)
+                                    ));
+                                //TODO: one or none are params
+
+                            }
+
+                        }
+                    else {
+                        //TODO: one is a temp
+                    }
+                    }
+                    //TODO: binop, anything else with temp
+                else {
+                    //TODO: generic visit function for statements
+                   // instrs.addAll(visit(s));
+                }
+                }
+
 
         //Epilogue
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("esp"),
-                new ASMExprReg("ebp")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("ebp")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
+
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
+        ));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
 
         return instrs;

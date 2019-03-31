@@ -1,18 +1,18 @@
 package asm;
 
 public class ASMExprReg extends ASMExpr {
-    private String name;
+    private String reg;
 
-    public ASMExprReg(String name) {
-        this.name = name;
+    public ASMExprReg(String reg) {
+        this.reg = reg;
     }
 
-    public String getName() {
-        return name;
+    public String getReg() {
+        return reg;
     }
 
     @Override
     public String toString() {
-        return name;
+        return reg;
     }
 }
