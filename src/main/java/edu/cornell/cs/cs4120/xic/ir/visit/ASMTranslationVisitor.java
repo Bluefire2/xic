@@ -7,6 +7,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 import java.util.ArrayList;
 import java.util.List;
+import polyglot.util.Pair;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     private int tempcounter;
@@ -49,6 +50,210 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 return ASMOpCode.SAR;
         }
         throw new InternalCompilerError("Cannot translate op type");
+    }
+
+    //return if IRConst has 1,2,4,8
+    private boolean validAddrScale(IRConst i) {
+        return i.value() == 1
+                || i.value() == 2
+                || i.value() == 4
+                || i.value() == 8;
+    }
+
+    //return if IRConst fits in 32 bits
+    private boolean validAddrDispl(IRConst i){
+        return i.value() == (long)((int)i.value());
+    }
+
+    private Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
+        IRExpr l = exp.left();
+        IRExpr r = exp.right();
+        if (l instanceof IRConst && validAddrScale((IRConst) l)) {
+            if (r instanceof IRTemp) { //[C * T] => [T * C]
+                return new Pair<>(
+                        new ArrayList<>(),
+                        new ASMExprMem(
+                                new ASMExprBinOpMult(
+                                        new ASMExprTemp(((IRTemp) r).name()),
+                                        new ASMExprConst(((IRConst) l).value())
+                                )
+                        )
+                );
+            } else {//[C * non-temp] => [t0 * C]
+                String t0 = newTemp();
+                return new Pair<>(
+                        r.accept(this, new ASMExprTemp(t0)),
+                        new ASMExprMem(
+                                new ASMExprBinOpMult(
+                                        new ASMExprTemp(t0),
+                                        new ASMExprConst(((IRConst) l).value())
+                                )
+                        )
+                );
+            }
+        } else if (r instanceof IRConst && validAddrScale((IRConst) r)) {
+            if (l instanceof IRTemp) { //[T * C]
+                return new Pair<>(
+                        new ArrayList<>(),
+                        new ASMExprMem(
+                                new ASMExprBinOpMult(
+                                        new ASMExprTemp(((IRTemp) l).name()),
+                                        new ASMExprConst(((IRConst) r).value())
+                                )
+                        )
+                );
+            } else {//[non-temp * C] => [t0 * C]
+                String t0 = newTemp();
+                return new Pair<>(
+                        l.accept(this, new ASMExprTemp(t0)),
+                        new ASMExprMem(
+                                new ASMExprBinOpMult(
+                                        new ASMExprTemp(t0),
+                                        new ASMExprConst(((IRConst) r).value())
+                                )
+                        )
+                );
+            }
+        } else { //[non-const * non-const]
+            String t0 = newTemp();
+            return new Pair<>(
+                    exp.accept(this, new ASMExprTemp(t0)),
+                    new ASMExprMem(new ASMExprTemp(t0))
+            );
+        }
+    }
+
+    private List<IRExpr> flattenAdds(IRBinOp b){
+        List<IRExpr> exps = new ArrayList<>();
+        if (b.opType() == OpType.ADD) {
+            if (b.left() instanceof IRBinOp && ((IRBinOp) b.left()).opType() == OpType.ADD) {
+                exps.addAll(flattenAdds((IRBinOp) b.left()));
+            } else {
+                exps.add(b.left());
+            }
+            if (b.right() instanceof IRBinOp && ((IRBinOp) b.right()).opType() == OpType.ADD) {
+                exps.addAll(flattenAdds((IRBinOp) b.right()));
+            } else {
+                exps.add(b.right());
+            }
+        } else {
+            exps.add(b);
+        }
+        return exps;
+    }
+
+
+    //tile inside a mem expr
+    //[base + index * scale + displacement]
+    //base and index are temps
+    //scale is 1/2/4/8, displacement is 32 bits
+    public Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
+        IRExpr e = m.expr();
+        Pair<List<ASMInstr>, ASMExprMem> res = e.matchLow(
+                (IRBinOp exp) -> {
+                    if (exp.opType() == OpType.ADD) {
+                        List<ASMInstr> instrs = new ArrayList<>();
+                        List<IRExpr> flattened = flattenAdds(exp);
+                        ASMExprTemp base = null;
+                        ASMExpr index_scale = null;
+                        ASMExprConst offset = null;
+                        //O
+                        for (int i = 0; i < flattened.size(); i ++) {
+                            IRExpr curr = flattened.get(i);
+                            if (curr instanceof IRConst && validAddrDispl((IRConst) curr)) {
+                                offset = new ASMExprConst(((IRConst) curr).value());
+                                flattened.remove(i);
+                                break;
+                            }
+                        }
+                        //I * S
+                        for (int i = 0; i < flattened.size(); i ++) {
+                            IRExpr curr = flattened.get(i);
+                            if (curr instanceof IRBinOp && ((IRBinOp) curr).opType() == OpType.MUL) {
+                                Pair<List<ASMInstr>, ASMExprMem> I_S = tileMemMult((IRBinOp) curr);
+                                instrs.addAll(I_S.part1());
+                                index_scale = I_S.part2().getAddr();
+                                flattened.remove(i);
+                                break;
+                            }
+                        }
+                        if (index_scale == null) {//I with no S
+                            for (int i = 0; i < flattened.size(); i ++) {
+                                IRExpr curr = flattened.get(i);
+                                if (curr instanceof IRTemp) {
+                                    index_scale = new ASMExprTemp(((IRTemp) curr).name());
+                                    flattened.remove(i);
+                                    break;
+                                }
+                            }
+                        }
+                        //B
+                        if (flattened.size() != 0){
+                            IRExpr remaining = flattened.stream()
+                                    .reduce((a, b)
+                                            -> new IRBinOp(OpType.ADD, a, b)).get();
+                            if (remaining instanceof IRTemp) {//only one temp left
+                                base = new ASMExprTemp(((IRTemp) remaining).name());
+                            } else { //bunch of temps left, need to calculate
+                                String t0 = newTemp();
+                                instrs.addAll(
+                                        remaining.accept(this, new ASMExprTemp(t0))
+                                );
+                                base = new ASMExprTemp(t0);
+                            }
+                        }
+                        ASMExpr memExpr = base;
+                        if (index_scale != null) {
+                            memExpr = (memExpr == null) ?
+                                    index_scale : new ASMExprBinOpAdd(memExpr, index_scale);
+                        }
+                        if (offset != null) {
+                            memExpr = (memExpr == null) ?
+                                    offset : new ASMExprBinOpAdd(memExpr, offset);
+                        }
+                        if (memExpr == null) {
+                            throw new IllegalAccessError("what the FUCK");
+                        }
+                        return new Pair<>(instrs, new ASMExprMem(memExpr));
+                    } else if (exp.opType() == OpType.MUL) {
+                        return tileMemMult(exp;
+                    } else {
+                        String t0 = newTemp();
+                        return new Pair<>(
+                                exp.accept(this, new ASMExprTemp(t0)),
+                                new ASMExprMem(new ASMExprTemp(t0))
+                        );
+                    }
+                },
+                (IRCall exp) -> {
+                    String t0 = newTemp();
+                    return new Pair<>(
+                            exp.accept(this, new ASMExprTemp(t0)),
+                            new ASMExprMem(new ASMExprTemp(t0))
+                    );
+                },
+                (IRConst exp) -> {
+                    String t0 = newTemp();
+                    return new Pair<>(
+                            exp.accept(this, new ASMExprTemp(t0)),
+                            new ASMExprMem(new ASMExprTemp(t0))
+                    );
+                },
+                (IRMem exp) -> {
+                    String t0 = newTemp();
+                    return new Pair<>(
+                            exp.accept(this, new ASMExprTemp(t0)),
+                            new ASMExprMem(new ASMExprTemp(t0))
+                    );
+                },
+                (IRName exp) -> {
+                    throw new IllegalAccessError();
+                },
+                (IRTemp exp) -> new Pair<>(
+                        new ArrayList<>(),
+                        new ASMExprMem(new ASMExprTemp(exp.name())))
+        );
+        return res;
     }
 
     //translating the inside of mem accesses into ASMExpr
