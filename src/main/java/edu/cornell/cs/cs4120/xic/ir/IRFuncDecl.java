@@ -60,7 +60,6 @@ public class IRFuncDecl extends IRNode_c {
         return this;
     }
 
-    @Override
     public List<ASMInstr> accept(ASMTranslationVisitor v) {
         return v.visit(this);
     }

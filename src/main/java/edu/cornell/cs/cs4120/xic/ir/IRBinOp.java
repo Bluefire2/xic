@@ -1,7 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
-import asm.ASMInstr;
 import asm.ASMExprTemp;
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
@@ -10,6 +10,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for a binary operation
@@ -22,51 +23,8 @@ public class IRBinOp extends IRExpr_c {
      */
     public enum OpType {
         ADD, SUB, MUL, HMUL, DIV, MOD, AND, OR, XOR, LSHIFT, RSHIFT, ARSHIFT,
-        EQ, NEQ, LT, GT, LEQ, GEQ;
-
-        @Override
-        public String toString() {
-            switch (this) {
-            case ADD:
-                return "ADD";
-            case SUB:
-                return "SUB";
-            case MUL:
-                return "MUL";
-            case HMUL:
-                return "HMUL";
-            case DIV:
-                return "DIV";
-            case MOD:
-                return "MOD";
-            case AND:
-                return "AND";
-            case OR:
-                return "OR";
-            case XOR:
-                return "XOR";
-            case LSHIFT:
-                return "LSHIFT";
-            case RSHIFT:
-                return "RSHIFT";
-            case ARSHIFT:
-                return "ARSHIFT";
-            case EQ:
-                return "EQ";
-            case NEQ:
-                return "NEQ";
-            case LT:
-                return "LT";
-            case GT:
-                return "GT";
-            case LEQ:
-                return "LEQ";
-            case GEQ:
-                return "GEQ";
-            }
-            throw new InternalCompilerError("Unknown op type");
-        }
-    };
+        EQ, NEQ, LT, GT, LEQ, GEQ
+    }
 
     private OpType type;
     private IRExpr left, right;
@@ -130,6 +88,16 @@ public class IRBinOp extends IRExpr_c {
     @Override
     public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprTemp t) {
         return v.visit(this, t);
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        return a.apply(this);
     }
 
     @Override

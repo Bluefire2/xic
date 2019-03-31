@@ -11,6 +11,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for a function call
@@ -88,6 +89,16 @@ public class IRCall extends IRExpr_c {
     @Override
     public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprTemp t) {
         return v.visit(this, t);
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        return b.apply(this);
     }
 
     @Override

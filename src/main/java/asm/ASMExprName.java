@@ -1,9 +1,12 @@
 package asm;
 
-public class ASMExprTemp extends ASMExpr {
+/**
+ * Wrapper for the name of the label. Used for control flow (jumping etc.)
+ */
+public class ASMExprName extends ASMExpr {
     private String name;
 
-    public ASMExprTemp(String name) {
+    public ASMExprName(String name) {
         this.name = name;
     }
 

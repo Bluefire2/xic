@@ -56,6 +56,7 @@ public enum ASMOpCode {
     OUT,
 
     //Control flow
+    LABEL,
     TEST,
     CMP,
     CALL,

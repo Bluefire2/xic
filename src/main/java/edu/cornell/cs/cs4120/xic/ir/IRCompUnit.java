@@ -72,7 +72,6 @@ public class IRCompUnit extends IRNode_c {
         return result;
     }
 
-    @Override
     public List<ASMInstr> accept(ASMTranslationVisitor v) {
         return v.visit(this);
     }
