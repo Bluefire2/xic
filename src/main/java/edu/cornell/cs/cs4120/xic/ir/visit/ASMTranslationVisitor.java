@@ -300,6 +300,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case ADD:
             case SUB:
             case MUL:
+            case LSHIFT:
+            case RSHIFT:
+            case ARSHIFT:
                 // For ADD and MUL, switching left and right children might
                 // seem to improve performance, but there is no point since
                 // one of the children will need to be moved to dest anyway
@@ -368,7 +371,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             ));
                             return null;
                         },
-                        (IRName r) -> {throw new IllegalAccessError();},
+                        illegalAccess(),
                         (IRTemp r) -> {
                             instrs.add(new ASMInstr_2Arg(
                                     // OP dest, r
@@ -387,10 +390,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case AND:
             case OR:
             case XOR:
-                break;
-            case LSHIFT:
-            case RSHIFT:
-            case ARSHIFT:
                 break;
             case EQ:
             case NEQ:
