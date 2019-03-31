@@ -814,7 +814,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             }
             numrets ++;
         }
-        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
         return instrs;
     }
 
