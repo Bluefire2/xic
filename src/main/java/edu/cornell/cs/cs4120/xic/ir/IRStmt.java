@@ -9,5 +9,5 @@ import java.util.List;
  * An intermediate representation for statements
  */
 public abstract class IRStmt extends IRNode_c {
-    abstract List<ASMInstr> accept(ASMTranslationVisitor v);
+    public abstract List<ASMInstr> accept(ASMTranslationVisitor v);
 }
