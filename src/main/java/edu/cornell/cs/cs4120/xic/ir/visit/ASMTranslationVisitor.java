@@ -229,6 +229,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case ADD:
             case SUB:
             case MUL:
+            case LSHIFT:
+            case RSHIFT:
+            case ARSHIFT:
                 // For ADD and MUL, switching left and right children might
                 // seem to improve performance, but there is no point since
                 // one of the children will need to be moved to dest anyway
@@ -329,91 +332,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case OR:
             case XOR:
                 break;
-            case LSHIFT:
-            case RSHIFT:
-            case ARSHIFT:
-                node.left().matchLow(
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAcceptMem(dest, instrs),
-                        illegalAccess(),
-                        addAllAccept(dest, instrs)
-                );
-                node.right().matchLow(
-                        (IRBinOp r) -> {
-                            // Store the asm for binop in a new destination
-                            // temp, compute operation on the dest (input to
-                            // this node) and the new temp
-                            String rDest = newTemp();
-                            instrs.addAll(
-                                    r.accept(this, new ASMExprTemp(rDest))
-                            );
-                            instrs.add(new ASMInstr_2Arg(
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(rDest)
-                            ));
-                            return null;
-                        },
-                        (IRCall r) -> {
-                            // Store the asm for the call in a new destination
-                            // temp, compute operation on the dest (input to
-                            // this node) and the new temp
-                            String rDest = newTemp();
-                            instrs.addAll(
-                                    r.accept(this, new ASMExprTemp(rDest))
-                            );
-                            instrs.add(new ASMInstr_2Arg(
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(rDest)
-                            ));
-                            return null;
-                        },
-                        (IRConst r) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // OP dest, r (r is a constant)
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprConst(r.value())
-                            ));
-                            return null;
-                        },
-                        (IRMem r) -> {
-                            if (validExprMem(r)) {
-                                // Can directly write the [...] expression as
-                                // the src of OP dest, src.
-                                instrs.add(new ASMInstr_2Arg(
-                                        asmOpCodeOf(node.opType()),
-                                        dest,
-                                        tileInsideMem(r.expr())
-                                ));
-                            } else {
-                                String rDest = newTemp();
-                                instrs.addAll(
-                                        r.accept(this, new ASMExprTemp(rDest))
-                                );
-                                instrs.add(new ASMInstr_2Arg(
-                                        asmOpCodeOf(node.opType()),
-                                        dest,
-                                        new ASMExprTemp(rDest)
-                                ));
-                            }
-                            return null;
-                        },
-                        illegalAccess(),
-                        (IRTemp r) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // OP dest, r
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(r.name())
-                            ));
-                            return null;
-                        }
-                );
-                return instrs;
             case EQ:
             case NEQ:
             case LT:
