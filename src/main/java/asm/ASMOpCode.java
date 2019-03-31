@@ -116,5 +116,3 @@ public enum ASMOpCode {
     }
 
 }
-
-

@@ -133,6 +133,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
+    /**
+     * Returns the ASMOpCode for jcc of input IR logical operation. Since
+     * arith binops don't have a jcc in assembly, the function throws an
+     * InternalCompilerError for them.
+     *
+     * @param op to translate.
+     * @return the corresponding assembly jcc code.
+     */
+    private ASMOpCode jmpASMOpCodeOf(IRBinOp.OpType op) {
+        switch (op) {
+            case EQ:
+                return ASMOpCode.JE;
+            case NEQ:
+                return ASMOpCode.JNE;
+            case LT:
+                return ASMOpCode.JL;
+            case GT:
+                return ASMOpCode.JG;
+            case LEQ:
+                return ASMOpCode.JLE;
+            case GEQ:
+                return ASMOpCode.JGE;
+            default:
+                throw new InternalCompilerError("Cannot translate op type");
+        }
+    }
+
     //return if IRConst has 1,2,4,8
     private boolean validAddrScale(IRConst i) {
         return i.value() == 1
@@ -149,7 +176,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //helper function for tiling inside of mem
     //input a MUL binop that is inside mem
     //output is list of instructions and an ASMExprMem
-    public Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
+    private Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
         IRExpr l = exp.left();
         IRExpr r = exp.right();
         if (l instanceof IRConst && validAddrScale((IRConst) l)) {
@@ -209,7 +236,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     // flatten add exprs
     // example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
-    public List<IRExpr> flattenAdds(IRBinOp b){
+    private List<IRExpr> flattenAdds(IRBinOp b){
         List<IRExpr> exps = new ArrayList<>();
         if (b.opType() == OpType.ADD) {
             if (b.left() instanceof IRBinOp && ((IRBinOp) b.left()).opType() == OpType.ADD) {
@@ -233,9 +260,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //[base + index * scale + displacement]
     //base and index are temps
     //scale is 1/2/4/8, displacement is 32 bits
-    public Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
+    private Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
         IRExpr e = m.expr();
-        Pair<List<ASMInstr>, ASMExprMem> res = e.matchLow(
+        return e.matchLow(
                 (IRBinOp exp) -> {
                     if (exp.opType() == OpType.ADD) {//[a + b]
                         List<ASMInstr> instrs = new ArrayList<>();
@@ -355,7 +382,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         new ArrayList<>(),
                         new ASMExprMem(new ASMExprTemp(exp.name())))
         );
-        return res;
     }
 
     private <T extends IRExpr> Function<T, Void> binOpArithAddAllAccept(
@@ -374,24 +400,26 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
-    private Function<IRMem, ASMExpr> binOpLogicAddAllAcceptMem(
-            List<ASMInstr> instrs) {
-        return (IRMem e) -> {
-            Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(e);
-            instrs.addAll(memTile.part1());
-            return memTile.part2();
-        };
+    /**
+     * Converts the IRMem into ASMExprMem by adding the necessary asm code to
+     * instrs and returning the resultant ASMExprMem.
+     *
+     * @param m node to tile.
+     * @param instrs instructions to add to.
+     */
+    private ASMExprMem asmMemTileOf(IRMem m, List<ASMInstr> instrs) {
+        Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr(m);
+        instrs.addAll(memTile.part1());
+        return memTile.part2();
     }
 
     private Function<IRMem, Void> binOpArithAddAllAcceptMem(
             ASMExprTemp dest, List<ASMInstr> instrs) {
         return (IRMem e) -> {
-            Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr(e);
-            instrs.addAll(memTile.part1());
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     dest,
-                    memTile.part2()
+                    asmMemTileOf(e, instrs)
             ));
             return null;
         };
@@ -478,12 +506,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             return null;
                         },
                         (IRMem r) -> {
-                            Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(r);
-                            instrs.addAll(memTile.part1());
                             instrs.add(new ASMInstr_2Arg(
                                     asmOpCodeOf(node.opType()),
                                     dest,
-                                    memTile.part2()
+                                    asmMemTileOf(r, instrs)
                             ));
                             return null;
                         },
@@ -516,7 +542,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         binOpLogicAddAllAccept(leftDestTemp, instrs),
                         binOpLogicAddAllAccept(leftDestTemp, instrs),
                         binOpLogicAddAllAccept(leftDestTemp, instrs),
-                        binOpLogicAddAllAcceptMem(instrs),
+                        (IRMem m) -> asmMemTileOf(m, instrs),
                         illegalAccessErrorLambda(),
                         (IRTemp l) -> new ASMExprTemp(l.name())
                 );
@@ -527,7 +553,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         binOpLogicAddAllAccept(rightDestTemp, instrs),
                         binOpLogicAddAllAccept(rightDestTemp, instrs),
                         binOpLogicAddAllAccept(rightDestTemp, instrs),
-                        binOpLogicAddAllAcceptMem(instrs),
+                        (IRMem m) -> asmMemTileOf(m, instrs),
                         illegalAccessErrorLambda(),
                         (IRTemp l) -> new ASMExprTemp(l.name())
                 );
@@ -558,8 +584,129 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
+    /**
+     * Adds asm instructions when the condition of the CJump node is a IRBinOp.
+     *
+     * @param node node.cond() must be IRBinOp instance.
+     * @param instrs instructions to add to.
+     */
+    private void cjumpBinOpToASMInstr(IRCJump node, List<ASMInstr> instrs) {
+        IRBinOp cond = (IRBinOp) node.cond();
+
+        // Visit left child and add the relevant moving ASMs.
+        ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
+        ASMExpr leftDest = cond.left().matchLow(
+                // no, this can't be extracted into a variable
+                binOpLogicAddAllAccept(leftDestTemp, instrs),
+                binOpLogicAddAllAccept(leftDestTemp, instrs),
+                binOpLogicAddAllAccept(leftDestTemp, instrs),
+                (IRMem m) -> asmMemTileOf(m, instrs),
+                illegalAccessErrorLambda(),
+                (IRTemp l) -> new ASMExprTemp(l.name())
+        );
+
+        ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
+        ASMExpr rightDest = cond.left().matchLow(
+                // no, this can't be extracted into a variable
+                binOpLogicAddAllAccept(rightDestTemp, instrs),
+                binOpLogicAddAllAccept(rightDestTemp, instrs),
+                binOpLogicAddAllAccept(rightDestTemp, instrs),
+                (IRMem m) -> asmMemTileOf(m, instrs),
+                illegalAccessErrorLambda(),
+                (IRTemp l) -> new ASMExprTemp(l.name())
+        );
+
+        switch (cond.opType()) {
+            case EQ:
+            case NEQ:
+            case LT:
+            case GT:
+            case LEQ:
+            case GEQ:
+                // CMP leftDest, rightDest
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.CMP, leftDest, rightDest
+                ));
+                break;
+            default:
+                // OP leftDest, rightDest
+                instrs.add(new ASMInstr_2Arg(
+                        // OP dest, r (r is a constant)
+                        asmOpCodeOf(cond.opType()),
+                        leftDest,
+                        rightDest
+                ));
+
+                // TEST leftDest, leftDest
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.TEST, leftDest, leftDest
+                ));
+        }
+
+        // Jcc trueLabel
+        instrs.add(new ASMInstr_1Arg(
+                jmpASMOpCodeOf(cond.opType()),
+                new ASMExprName(node.trueLabel())
+        ));
+    }
+
+    /**
+     * Adds the following instructions to the list is:
+     * ```
+     *  TEST t, t
+     *  JNE l
+     * ```
+     *
+     * @param t temp to test.
+     * @param l true label to jump to if test results in non-zero.
+     * @param is instruction list to add to.
+     */
+    private void testJumpNEtoLabel(ASMExprTemp t, String l, List<ASMInstr> is) {
+        // TEST t, t
+        is.add(new ASMInstr_2Arg(ASMOpCode.TEST, t, t));
+
+        // JNE trueLabel (jump to true label if `t & t` != 0)
+        is.add(new ASMInstr_1Arg( ASMOpCode.JNE, new ASMExprName(l)));
+    }
+
     public List<ASMInstr> visit(IRCJump node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        node.cond().matchLow(
+                (IRBinOp c) -> {
+                    cjumpBinOpToASMInstr(node, instrs);
+                    return null;
+                },
+                (IRCall c) -> {
+                    ASMExprTemp t = new ASMExprTemp(newTemp());
+                    instrs.addAll(c.accept(this, t));
+                    testJumpNEtoLabel(t, node.trueLabel(), instrs);
+                    return null;
+                },
+                (IRConst c) -> {
+                    // c != 0, jump unconditionally to the true label.
+                    if (c.value() != 0L) {
+                        instrs.add(new ASMInstr_1Arg(
+                                ASMOpCode.JMP,
+                                new ASMExprName(node.trueLabel())
+                        ));
+                    }
+                    // c is 0, fallthrough (don't add anything to instrs)
+                    return null;
+                },
+                (IRMem c) -> {
+                    ASMExprTemp t = new ASMExprTemp(newTemp());
+                    instrs.addAll(c.accept(this, t));
+                    testJumpNEtoLabel(t, node.trueLabel(), instrs);
+                    return null;
+                },
+                illegalAccessErrorLambda(),
+                (IRTemp c) -> {
+                    ASMExprTemp t = new ASMExprTemp(c.name());
+                    testJumpNEtoLabel(t, node.trueLabel(), instrs);
+                    return null;
+                }
+        );
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRCompUnit node) {
@@ -718,12 +865,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         //translation of [e] will put actual contents of [e] into dest
         //this CANNOT be used for writes
         List<ASMInstr> instrs = new ArrayList<>();
-        Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(node);
-        instrs.addAll(memTile.part1());
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV,
                 dest,
-                memTile.part2()
+                asmMemTileOf(node, instrs)
         ));
         return instrs;
     }
