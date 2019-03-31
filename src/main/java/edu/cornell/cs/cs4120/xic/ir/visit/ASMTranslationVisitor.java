@@ -980,12 +980,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
-        if (e instanceof IRBinOp) return visit((IRBinOp) e, tmp);
-        if (e instanceof IRCall) return visit((IRCall) e, tmp);
-        if (e instanceof IRConst) return visit((IRConst) e, tmp);
-        if (e instanceof IRMem) return visit((IRMem) e, tmp);
-        if (e instanceof IRTemp) return visit((IRTemp) e, tmp);
-        throw new IllegalAccessError();
+        return e.matchLow(
+                (IRBinOp n) -> visit(n, tmp),
+                (IRCall n) -> visit(n, tmp),
+                (IRConst n) -> visit(n, tmp),
+                (IRMem n) -> visit(n, tmp),
+                illegalAccessErrorLambda(),
+                (IRTemp n) -> visit(n, tmp)
+        );
     }
 
     private List<ASMInstr> visitStmt(IRStmt s) {
