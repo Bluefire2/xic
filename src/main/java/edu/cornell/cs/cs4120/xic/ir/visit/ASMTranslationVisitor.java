@@ -7,6 +7,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     private int tempcounter;
@@ -192,7 +193,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
+    private <T extends IRExpr> Function<T, Void> addAllAccept(ASMExprTemp dest,
+                                                List<ASMInstr> instrs) {
+        return (T e) -> {
+            instrs.addAll(e.accept(this, dest));
+            return null;
+        };
+    }
+
     public List<ASMInstr> visit(IRBinOp node, ASMExprTemp dest) {
+        List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
             case ADD:
             case SUB:
@@ -202,27 +212,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // one of the children will need to be moved to dest anyway
                 // after both are computed. So, lhs and rhs computation can
                 // be separated.
-                List<ASMInstr> instrs = new ArrayList<>();
 
                 // Visit left child and add the relevant moving ASMs.
                 node.left().matchLow(
-                        (IRBinOp l) -> {
-                            instrs.addAll(l.accept(this, dest));
-                            return null;
-                        },
-                        (IRCall l) -> {
-                            instrs.addAll(l.accept(this, dest));
-                            return null;
-                        },
-                        (IRConst l) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // MOV dest, l
-                                    ASMOpCode.MOV,
-                                    dest,
-                                    new ASMExprConst(l.value())
-                            ));
-                            return null;
-                        },
+                        // no, this can't be extracted into a variable
+                        addAllAccept(dest, instrs),
+                        addAllAccept(dest, instrs),
+                        addAllAccept(dest, instrs),
                         (IRMem l) -> {
                             if (validExprMem(l)) {
                                 instrs.add(new ASMInstr_2Arg(
@@ -236,15 +232,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             return null;
                         },
                         (IRName l) -> {throw new IllegalAccessError();},
-                        (IRTemp l) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // MOV dest, l
-                                    ASMOpCode.MOV,
-                                    dest,
-                                    new ASMExprTemp(l.name())
-                            ));
-                            return null;
-                        });
+                        addAllAccept(dest, instrs)
+                );
 
                 // Visit right child and complete adding instructions
                 node.right().matchLow(
