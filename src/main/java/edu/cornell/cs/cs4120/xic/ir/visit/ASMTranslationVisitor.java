@@ -376,9 +376,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         String fname = node.name();
 
         //Prologue
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("ebp")));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("ebp"),
-                new ASMExprReg("esp")));
+        instrs.add(new ASMInstr_1Arg(
+                ASMOpCode.PUSH, new ASMExprReg(ASMExprReg.x86_64Reg.rbp)
+        ));
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV,
+                new ASMExprReg(ASMExprReg.x86_64Reg.rbp),
+                new ASMExprReg(ASMExprReg.x86_64Reg.rsp))
+        );
         //set up stack frame for local vars?
 
         //Body
@@ -387,9 +392,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         //First return in rax, second in rdx
 
         //Epilogue
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("esp"),
-                new ASMExprReg("ebp")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("ebp")));
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV,
+                new ASMExprReg(ASMExprReg.x86_64Reg.rsp),
+                new ASMExprReg(ASMExprReg.x86_64Reg.rbp))
+        );
+        instrs.add(new ASMInstr_1Arg(
+                ASMOpCode.POP, new ASMExprReg(ASMExprReg.x86_64Reg.rbp))
+        );
         instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
 
         return instrs;

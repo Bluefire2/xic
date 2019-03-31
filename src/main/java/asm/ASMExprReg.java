@@ -1,18 +1,38 @@
 package asm;
 
 public class ASMExprReg extends ASMExpr {
-    private String name;
-
-    public ASMExprReg(String name) {
-        this.name = name;
+    public enum x86_64Reg {
+        rax,
+        rbx,
+        rcx,
+        rdx,
+        rsi,
+        rdi,
+        rbp,
+        rsp,
+        r8,
+        r9,
+        r10,
+        r11,
+        r12,
+        r13,
+        r14,
+        r15,
+        rip;
     }
 
-    public String getName() {
-        return name;
+    private x86_64Reg reg;
+
+    public ASMExprReg(x86_64Reg reg) {
+        this.reg = reg;
+    }
+
+    public x86_64Reg getReg() {
+        return reg;
     }
 
     @Override
     public String toString() {
-        return name;
+        return reg.toString();
     }
 }
