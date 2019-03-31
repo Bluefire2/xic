@@ -201,6 +201,28 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
+    private Function<IRMem, Void> addAllAcceptMem(ASMExprTemp dest,
+                                                  List<ASMInstr> instrs) {
+        return (IRMem l) -> {
+            if (validExprMem(l)) {
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        dest,
+                        tileInsideMem(l.expr())
+                ));
+            } else {
+                instrs.addAll(l.accept(this, dest));
+            }
+            return null;
+        };
+    }
+
+    private <T extends IRExpr> Function<T, Void> illegalAccess() {
+        return (T e) -> {
+            throw new IllegalAccessError();
+        };
+    }
+
     public List<ASMInstr> visit(IRBinOp node, ASMExprTemp dest) {
         List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
@@ -219,19 +241,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         addAllAccept(dest, instrs),
                         addAllAccept(dest, instrs),
                         addAllAccept(dest, instrs),
-                        (IRMem l) -> {
-                            if (validExprMem(l)) {
-                                instrs.add(new ASMInstr_2Arg(
-                                        ASMOpCode.MOV,
-                                        dest,
-                                        tileInsideMem(l.expr())
-                                ));
-                            } else {
-                                instrs.addAll(l.accept(this, dest));
-                            }
-                            return null;
-                        },
-                        (IRName l) -> {throw new IllegalAccessError();},
+                        addAllAcceptMem(dest, instrs),
+                        illegalAccess(),
                         addAllAccept(dest, instrs)
                 );
 
