@@ -20,9 +20,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
 
-    public ASMOpCode translateBinOpCode(IRBinOp node){
+    /**
+     * Returns the ASMOpCode of input IR binary operation. Since logical
+     * binops don't have a direct binop in assembly, the function throws an
+     * InternalCompilerError.
+     *
+     * @param op to translate.
+     * @return the corresponding assembly binop code.
+     */
+    private ASMOpCode asmOpCodeOf(IRBinOp.OpType op) {
         //comparison operators not translatable
-        switch (node.opType()){
+        switch (op) {
             case ADD:
                 return ASMOpCode.ADD;
             case SUB:
@@ -47,8 +55,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 return ASMOpCode.SHR;
             case ARSHIFT:
                 return ASMOpCode.SAR;
+            default:
+                throw new InternalCompilerError("Cannot translate op type");
         }
-        throw new InternalCompilerError("Cannot translate op type");
     }
 
     //translating the inside of mem accesses into ASMExpr
@@ -194,7 +203,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // after both are computed. So, lhs and rhs computation can
                 // be separated.
                 List<ASMInstr> instrs = new ArrayList<>();
-                Void lhs = node.left().matchLow(
+
+                // Visit left child and add the relevant moving ASMs.
+                node.left().matchLow(
                         (IRBinOp l) -> {
                             instrs.addAll(l.accept(this, dest));
                             return null;
@@ -205,14 +216,15 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         },
                         (IRConst l) -> {
                             instrs.add(new ASMInstr_2Arg(
+                                    // MOV dest, l
                                     ASMOpCode.MOV,
                                     dest,
                                     new ASMExprConst(l.value())
                             ));
                             return null;
-                            },
+                        },
                         (IRMem l) -> {
-                            if (validExprMem(l)){
+                            if (validExprMem(l)) {
                                 instrs.add(new ASMInstr_2Arg(
                                         ASMOpCode.MOV,
                                         dest,
@@ -226,63 +238,82 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         (IRName l) -> {throw new IllegalAccessError();},
                         (IRTemp l) -> {
                             instrs.add(new ASMInstr_2Arg(
+                                    // MOV dest, l
                                     ASMOpCode.MOV,
                                     dest,
                                     new ASMExprTemp(l.name())
                             ));
                             return null;
                         });
-                Void rhs = node.right().matchLow(
-                        (IRBinOp r) -> { //??? op BINOP
-                            String t1 = newTemp();
-                            instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
+
+                // Visit right child and complete adding instructions
+                node.right().matchLow(
+                        (IRBinOp r) -> {
+                            // Store the asm for binop in a new destination
+                            // temp, compute operation on the dest (input to
+                            // this node) and the new temp
+                            String rDest = newTemp();
+                            instrs.addAll(
+                                    r.accept(this, new ASMExprTemp(rDest))
+                            );
                             instrs.add(new ASMInstr_2Arg(
-                                    translateBinOpCode(node),
+                                    asmOpCodeOf(node.opType()),
                                     dest,
-                                    new ASMExprTemp(t1)
+                                    new ASMExprTemp(rDest)
                             ));
                             return null;
                         },
-                        (IRCall r) -> { //??? op CALL
-                            String t1 = newTemp();
-                            instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
+                        (IRCall r) -> {
+                            // Store the asm for binop in a new destination
+                            // temp, compute operation on the dest (input to
+                            // this node) and the new temp
+                            String rDest = newTemp();
+                            instrs.addAll(
+                                    r.accept(this, new ASMExprTemp(rDest))
+                            );
                             instrs.add(new ASMInstr_2Arg(
-                                    translateBinOpCode(node),
+                                    asmOpCodeOf(node.opType()),
                                     dest,
-                                    new ASMExprTemp(t1)
+                                    new ASMExprTemp(rDest)
                             ));
                             return null;
                         },
-                        (IRConst r) -> { //??? op CONST
+                        (IRConst r) -> {
                             instrs.add(new ASMInstr_2Arg(
-                                    translateBinOpCode(node),
+                                    // OP dest, r (r is a constant)
+                                    asmOpCodeOf(node.opType()),
                                     dest,
                                     new ASMExprConst(r.value())
                             ));
                             return null;
                         },
-                        (IRMem r) -> { //??? op [MEM]
-                            if (validExprMem(r)){
+                        (IRMem r) -> {
+                            if (validExprMem(r)) {
+                                // Can directly write the [...] expression as
+                                // the src of OP dest, src.
                                 instrs.add(new ASMInstr_2Arg(
-                                        translateBinOpCode(node),
+                                        asmOpCodeOf(node.opType()),
                                         dest,
                                         tileInsideMem(r.expr())
                                 ));
                             } else {
-                                String t1 = newTemp();
-                                instrs.addAll(r.accept(this, new ASMExprTemp(t1)));
+                                String rDest = newTemp();
+                                instrs.addAll(
+                                        r.accept(this, new ASMExprTemp(rDest))
+                                );
                                 instrs.add(new ASMInstr_2Arg(
-                                        translateBinOpCode(node),
+                                        asmOpCodeOf(node.opType()),
                                         dest,
-                                        new ASMExprTemp(t1)
+                                        new ASMExprTemp(rDest)
                                 ));
                             }
                             return null;
                         },
                         (IRName r) -> {throw new IllegalAccessError();},
-                        (IRTemp r) -> {//??? op TEMP
+                        (IRTemp r) -> {
                             instrs.add(new ASMInstr_2Arg(
-                                    translateBinOpCode(node),
+                                    // OP dest, r
+                                    asmOpCodeOf(node.opType()),
                                     dest,
                                     new ASMExprTemp(r.name())
                             ));
