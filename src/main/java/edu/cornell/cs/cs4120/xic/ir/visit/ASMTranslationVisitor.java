@@ -24,7 +24,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     /**
      * Returns the ASMOpCode of input IR binary operation. Since logical
      * binops don't have a direct binop in assembly, the function throws an
-     * InternalCompilerError.
+     * InternalCompilerError for them.
      *
      * @param op to translate.
      * @return the corresponding assembly binop code.
@@ -56,6 +56,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 return ASMOpCode.SHR;
             case ARSHIFT:
                 return ASMOpCode.SAR;
+            default:
+                throw new InternalCompilerError("Cannot translate op type");
+        }
+    }
+
+    /**
+     * Returns the ASMOpCode for setcc of input IR logical operation. Since
+     * arith binops don't have a setcc in assembly, the function throws an
+     * InternalCompilerError for them.
+     *
+     * @param op to translate.
+     * @return the corresponding assembly setcc code.
+     */
+    private ASMOpCode setASMOpCodeOf(IRBinOp.OpType op) {
+        switch (op) {
+            case EQ:
+                return ASMOpCode.SETE;
+            case NEQ:
+                return ASMOpCode.SETNE;
+            case LT:
+                return ASMOpCode.SETL;
+            case GT:
+                return ASMOpCode.SETG;
+            case LEQ:
+                return ASMOpCode.SETLE;
+            case GEQ:
+                return ASMOpCode.SETGE;
             default:
                 throw new InternalCompilerError("Cannot translate op type");
         }
@@ -193,31 +220,51 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
-    private <T extends IRExpr> Function<T, Void> addAllAccept(ASMExprTemp dest,
-                                                List<ASMInstr> instrs) {
+    private <T extends IRExpr> Function<T, Void> binOpArithAddAllAccept(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return null;
         };
     }
 
-    private Function<IRMem, Void> addAllAcceptMem(ASMExprTemp dest,
-                                                  List<ASMInstr> instrs) {
-        return (IRMem l) -> {
-            if (validExprMem(l)) {
+    private <T extends IRExpr> Function<T, ASMExpr> binOpLogicAddAllAccept(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
+        return (T e) -> {
+            instrs.addAll(e.accept(this, dest));
+            return dest;
+        };
+    }
+
+    private Function<IRMem, ASMExpr> binOpLogicAddAllAcceptMem(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
+        return (IRMem e) -> {
+            if (validExprMem(e)) {
+                return tileInsideMem(e.expr());
+            } else {
+                instrs.addAll(e.accept(this,dest));
+                return dest;
+            }
+        };
+    }
+
+    private Function<IRMem, Void> binOpArithAddAllAcceptMem(
+            ASMExprTemp dest, List<ASMInstr> instrs) {
+        return (IRMem e) -> {
+            if (validExprMem(e)) {
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.MOV,
                         dest,
-                        tileInsideMem(l.expr())
+                        tileInsideMem(e.expr())
                 ));
             } else {
-                instrs.addAll(l.accept(this, dest));
+                instrs.addAll(e.accept(this, dest));
             }
             return null;
         };
     }
 
-    private <T extends IRExpr> Function<T, Void> illegalAccess() {
+    private <T extends IRExpr, U> Function<T, U> illegalAccessErrorLambda() {
         return (T e) -> {
             throw new IllegalAccessError();
         };
@@ -238,12 +285,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // Visit left child and add the relevant moving ASMs.
                 node.left().matchLow(
                         // no, this can't be extracted into a variable
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAccept(dest, instrs),
-                        addAllAcceptMem(dest, instrs),
-                        illegalAccess(),
-                        addAllAccept(dest, instrs)
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAccept(dest, instrs),
+                        binOpArithAddAllAcceptMem(dest, instrs),
+                        illegalAccessErrorLambda(),
+                        binOpArithAddAllAccept(dest, instrs)
                 );
 
                 // Visit right child and complete adding instructions
@@ -339,7 +386,47 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case GT:
             case LEQ:
             case GEQ:
-                break;
+                // Visit left child and add the relevant moving ASMs.
+                ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
+                ASMExpr leftDest = node.left().matchLow(
+                        // no, this can't be extracted into a variable
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAccept(leftDestTemp, instrs),
+                        binOpLogicAddAllAcceptMem(leftDestTemp, instrs),
+                        illegalAccessErrorLambda(),
+                        (IRTemp l) -> new ASMExprTemp(l.name())
+                );
+
+                ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
+                ASMExpr rightDest = node.left().matchLow(
+                        // no, this can't be extracted into a variable
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAccept(rightDestTemp, instrs),
+                        binOpLogicAddAllAcceptMem(rightDestTemp, instrs),
+                        illegalAccessErrorLambda(),
+                        (IRTemp l) -> new ASMExprTemp(l.name())
+                );
+
+                // CMP leftDest, rightDest
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.CMP, leftDest, rightDest
+                ));
+
+                // SETcc al
+                instrs.add(new ASMInstr_1Arg(
+                        setASMOpCodeOf(node.opType()),
+                        new ASMExprReg("al")
+                ));
+
+                // MOVZX dest, al
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOVZX,
+                        dest,
+                        new ASMExprReg("al")
+                ));
+                return instrs;
         }
         throw new IllegalAccessError();
     }
@@ -376,13 +463,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         String fname = node.name();
 
         //Prologue
-        instrs.add(new ASMInstr_1Arg(
-                ASMOpCode.PUSH, new ASMExprReg(ASMExprReg.x86_64Reg.rbp)
-        ));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_2Arg(
-                ASMOpCode.MOV,
-                new ASMExprReg(ASMExprReg.x86_64Reg.rbp),
-                new ASMExprReg(ASMExprReg.x86_64Reg.rsp))
+                ASMOpCode.MOV, new ASMExprReg("rbp"), new ASMExprReg("rsp"))
         );
         //set up stack frame for local vars?
 
@@ -393,13 +476,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         //Epilogue
         instrs.add(new ASMInstr_2Arg(
-                ASMOpCode.MOV,
-                new ASMExprReg(ASMExprReg.x86_64Reg.rsp),
-                new ASMExprReg(ASMExprReg.x86_64Reg.rbp))
+                ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp"))
         );
-        instrs.add(new ASMInstr_1Arg(
-                ASMOpCode.POP, new ASMExprReg(ASMExprReg.x86_64Reg.rbp))
-        );
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
 
         return instrs;
