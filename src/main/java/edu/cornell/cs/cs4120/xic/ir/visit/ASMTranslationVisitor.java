@@ -6,6 +6,7 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
@@ -364,25 +365,109 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
+    private int getNumParams(IRFuncDecl node) {
+        String n = node.name();
+        String s = n.substring(n.lastIndexOf('_'));
+        if (s.startsWith("t")) {
+            int numrets = Integer.parseInt(s.substring(1, 2));
+            return s.length() - numrets - 1;
+        }
+        else return s.length() - 1;
+    }
+
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        String fname = node.name();
+        int numparams = getNumParams(node);
 
         //Prologue
-        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("ebp")));
-        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("ebp"),
-                new ASMExprReg("esp")));
-        //set up stack frame for local vars?
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
+        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rbp"),
+                new ASMExprReg("rsp")));
+        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("r12")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("r13")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("r14")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.PUSH, new ASMExprReg("r15")));
 
         //Body
-        //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
-        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        //First return in rax, second in rdx
+        HashMap<String, ASMExpr> argvars = new HashMap<>();
+        IRStmt body = node.body();
+        IRSeq stmts;
+        if (body instanceof IRSeq) stmts = (IRSeq) body;
+        else stmts = new IRSeq(body);
+            for (IRStmt s : stmts.stmts()) {
+
+                if (s instanceof IRReturn) {
+                    //First return in rax, second in rdx, rest saved to caller specified memory location
+                    IRReturn ret = (IRReturn) s;
+                    List<IRExpr> retvals = ret.rets();
+                    int numrets = 0;
+                    for (IRExpr e : retvals) {
+                      //  ASMInstr visited = visit(e);
+                        if (numrets == 0) {
+                            //TODO: visit IRExpr -> ASMExpr
+                            // instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rax"), visited));
+                        }
+                        else if (numrets == 1) {
+                            //  instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rdx"), visited));
+                        }
+                        else {} //Already handled in function body?
+                        numrets ++;
+                    }
+                    instrs.add(new ASMInstrNoArgs(ASMOpCode.RET));
+                }
+
+                else if (s instanceof IRMove) {
+                    IRMove mov = (IRMove) s;
+                    if (mov.target() instanceof IRTemp && mov.source() instanceof IRTemp) {
+                            String destname = ((IRTemp) mov.target()).name();
+                            String srcname = ((IRTemp) mov.target()).name();
+                            if (destname.startsWith("_ARG")) {
+                                //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
+                                int argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
+                                if (argnum == 0) argvars.put(srcname, new ASMExprReg("rdi"));
+                                else if (argnum == 1) argvars.put(srcname, new ASMExprReg("rsi"));
+                                else if (argnum == 2) argvars.put(srcname, new ASMExprReg("rdx"));
+                                else if (argnum == 3) argvars.put(srcname, new ASMExprReg("rcx"));
+                                else if (argnum == 4) argvars.put(srcname, new ASMExprReg("r8"));
+                                else if (argnum == 5) argvars.put(srcname, new ASMExprReg("r9"));
+                                else {
+                                    int stackloc = (numparams - argnum - 5)*8;
+                                    argvars.put(srcname, new ASMExprMem(new ASMExprBinOpAdd(new ASMExprReg("rbp"), new ASMExprConst(stackloc))));
+
+                                }
+                            }
+                            else {
+                                if (argvars.containsKey(destname) && argvars.containsKey(srcname))
+                                    instrs.add(new ASMInstrMove(ASMOpCode.MOV, argvars.get(destname), argvars.get(srcname)));
+                                //TODO: one or none are params
+
+                            }
+
+                        }
+                    else {
+                        //TODO: one is a temp
+                    }
+                    }
+                    //TODO: binop, anything else with temp
+                else {
+                    //TODO: generic visit function for statements
+                   // instrs.addAll(visit(s));
+                }
+                }
+
 
         //Epilogue
-        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("esp"),
-                new ASMExprReg("ebp")));
-        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("ebp")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("r15")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("r14")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("r13")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("r12")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("rbx")));
+
+        instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rsp"),
+                new ASMExprReg("rbp")));
+        instrs.add(new ASMInstrOneArg(ASMOpCode.POP, new ASMExprReg("rbp")));
         instrs.add(new ASMInstrNoArgs(ASMOpCode.RET));
 
         return instrs;
