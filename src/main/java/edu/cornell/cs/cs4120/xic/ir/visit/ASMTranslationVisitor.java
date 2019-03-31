@@ -303,6 +303,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case LSHIFT:
             case RSHIFT:
             case ARSHIFT:
+                /*
+                 * Boolean binops can also be tiled this way: we can use x86
+                 * bitwise instructions because booleans are all 0/1 anyway.
+                 */
+            case AND:
+            case OR:
+            case XOR:
                 // For ADD and MUL, switching left and right children might
                 // seem to improve performance, but there is no point since
                 // one of the children will need to be moved to dest anyway
@@ -386,10 +393,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 break;
             case DIV:
             case MOD:
-                break;
-            case AND:
-            case OR:
-            case XOR:
                 break;
             case EQ:
             case NEQ:
