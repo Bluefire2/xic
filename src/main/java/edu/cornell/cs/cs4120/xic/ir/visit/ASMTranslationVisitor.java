@@ -75,6 +75,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return i.value() == (long)((int)i.value());
     }
 
+    //helper function for tiling inside of mem
+    //input a MUL binop that is inside mem
+    //output is list of instructions and an ASMExprMem
     private Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
         IRExpr l = exp.left();
         IRExpr r = exp.right();
@@ -133,6 +136,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
+    // flatten add exprs
+    // example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
     private List<IRExpr> flattenAdds(IRBinOp b){
         List<IRExpr> exps = new ArrayList<>();
         if (b.opType() == OpType.ADD) {
@@ -161,13 +166,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         IRExpr e = m.expr();
         Pair<List<ASMInstr>, ASMExprMem> res = e.matchLow(
                 (IRBinOp exp) -> {
-                    if (exp.opType() == OpType.ADD) {
+                    if (exp.opType() == OpType.ADD) {//[a + b]
                         List<ASMInstr> instrs = new ArrayList<>();
+                        //flatten all the + ops into a list
                         List<IRExpr> flattened = flattenAdds(exp);
+                        //find B, I, S, and O from the flattened exprs
                         ASMExprTemp base = null;
                         ASMExpr index_scale = null;
                         ASMExprConst offset = null;
-                        //O
+                        //O will be a const that is 32 bits
+                        //try to find O, and remove if found
                         for (int i = 0; i < flattened.size(); i ++) {
                             IRExpr curr = flattened.get(i);
                             if (curr instanceof IRConst && validAddrDispl((IRConst) curr)) {
@@ -176,7 +184,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                 break;
                             }
                         }
-                        //I * S
+                        //first try and find I * S, remove if found
+                        //currently matches all MUL regardless if they match the format
+                        //will end up with either an ASM mult or an ASM temp
                         for (int i = 0; i < flattened.size(); i ++) {
                             IRExpr curr = flattened.get(i);
                             if (curr instanceof IRBinOp && ((IRBinOp) curr).opType() == OpType.MUL) {
@@ -187,7 +197,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                 break;
                             }
                         }
-                        if (index_scale == null) {//I with no S
+                        //if nothing matches I * S pattern then assume S is not provided
+                        //try and find some temp I, and remove if found
+                        if (index_scale == null) {
                             for (int i = 0; i < flattened.size(); i ++) {
                                 IRExpr curr = flattened.get(i);
                                 if (curr instanceof IRTemp) {
@@ -197,7 +209,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                 }
                             }
                         }
-                        //B
+                        //try and find B among remaining exprs
+                        //if no remaining temps, then B will be null
+                        //if 1 remaining temp, B will be a temp
+                        //if 2+ remaining temps, we need additional instructions
+                        // to calculate and save results to a temp which B will use
                         if (flattened.size() != 0){
                             IRExpr remaining = flattened.stream()
                                     .reduce((a, b)
@@ -212,22 +228,27 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                 base = new ASMExprTemp(t0);
                             }
                         }
-                        ASMExpr memExpr = base;
+                        ASMExpr memExpr = base; //B
                         if (index_scale != null) {
-                            memExpr = (memExpr == null) ?
+                            memExpr = (memExpr == null) ? //B + (I * S)
                                     index_scale : new ASMExprBinOpAdd(memExpr, index_scale);
                         }
                         if (offset != null) {
-                            memExpr = (memExpr == null) ?
+                            memExpr = (memExpr == null) ?//(B + (I * S)) + O
                                     offset : new ASMExprBinOpAdd(memExpr, offset);
                         }
                         if (memExpr == null) {
+                            //this means B, I, S, O are all null
                             throw new IllegalAccessError("what the FUCK");
                         }
                         return new Pair<>(instrs, new ASMExprMem(memExpr));
                     } else if (exp.opType() == OpType.MUL) {
+                        //[a * b]
+                        //use helper function
                         return tileMemMult(exp);
                     } else {
+                        //[a op b] where op is not + or *
+                        //calculate using instructions and put into a temp
                         String t0 = newTemp();
                         return new Pair<>(
                                 exp.accept(this, new ASMExprTemp(t0)),
