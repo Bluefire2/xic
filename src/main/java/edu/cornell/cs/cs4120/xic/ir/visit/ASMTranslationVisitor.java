@@ -358,8 +358,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return res;
     }
 
+    /**
+     * Get a lambda that takes an IR expression and adds all of its generated
+     * assembly instructions to a given list.
+     *
+     * @param dest The destination register for the current tile.
+     * @param instrs The list of instructions to add to.
+     * @param <T> The type of the IR expression.
+     * @return The lambda.
+     */
     private <T extends IRExpr> Function<T, Void> binOpArithAddAllAccept(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
+            final ASMExprTemp dest, final List<ASMInstr> instrs) {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return null;
@@ -367,7 +376,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     private <T extends IRExpr> Function<T, ASMExpr> binOpLogicAddAllAccept(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
+            final ASMExprTemp dest, final List<ASMInstr> instrs) {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return dest;
@@ -375,7 +384,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     private Function<IRMem, ASMExpr> binOpLogicAddAllAcceptMem(
-            List<ASMInstr> instrs) {
+            final List<ASMInstr> instrs) {
         return (IRMem e) -> {
             Pair<List<ASMInstr>,ASMExprMem> memTile = tileMemExpr(e);
             instrs.addAll(memTile.part1());
@@ -384,7 +393,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     private Function<IRMem, Void> binOpArithAddAllAcceptMem(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
+            final ASMExprTemp dest, final List<ASMInstr> instrs) {
         return (IRMem e) -> {
             Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr(e);
             instrs.addAll(memTile.part1());
@@ -397,14 +406,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
+    /**
+     * Get a lambda that throws an illegal access error, compatible for pattern
+     * matching against IR expressions.
+     *
+     * @param <T> The type of the IR expression.
+     * @param <U> The return type of the lambda (can be anything since it never
+     *           returns).
+     * @return The lambda.
+     */
     private <T extends IRExpr, U> Function<T, U> illegalAccessErrorLambda() {
         return (T e) -> {
             throw new IllegalAccessError();
         };
     }
 
-    public List<ASMInstr> visit(IRBinOp node, ASMExprTemp dest) {
-        List<ASMInstr> instrs = new ArrayList<>();
+    public List<ASMInstr> visit(IRBinOp node, final ASMExprTemp dest) {
+        final List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
             case ADD:
             case SUB:
