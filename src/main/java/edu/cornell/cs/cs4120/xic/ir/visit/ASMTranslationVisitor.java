@@ -618,7 +618,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     IRMove mov = (IRMove) s;
                     if (mov.target() instanceof IRTemp && mov.source() instanceof IRTemp) {
                             String destname = ((IRTemp) mov.target()).name();
-                            String srcname = ((IRTemp) mov.target()).name();
+                            String srcname = ((IRTemp) mov.source()).name();
                             if (destname.startsWith("_ARG")) {
                                 //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
                                 int argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
@@ -641,16 +641,65 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                             argvars.get(destname),
                                             argvars.get(srcname)
                                     ));
-                                //TODO: one or none are params
+                                else if (argvars.containsKey(destname)) {
+                                    ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                                    List<ASMInstr> visited = visitExpr(mov.source(), tmp);
+                                    instrs.addAll(visited);
+                                    instrs.add(new ASMInstr_2Arg(
+                                            ASMOpCode.MOV,
+                                            argvars.get(destname),
+                                            tmp
+                                    ));
+                                }
+                                else if (argvars.containsKey(srcname)) {
+                                    ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                                    List<ASMInstr> visited = visitExpr(mov.target(), tmp);
+                                    instrs.addAll(visited);
+                                    instrs.add(new ASMInstr_2Arg(
+                                            ASMOpCode.MOV,
+                                            tmp,
+                                            argvars.get(srcname)
+                                    ));
+                                }
+                                else {
+                                    instrs.addAll(visit(mov));
+                                }
 
                             }
 
                         }
+                    else if (mov.target() instanceof IRTemp) {
+                        String destname = ((IRTemp) mov.target()).name();
+                        if (argvars.containsKey(destname)) {
+                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                            List<ASMInstr> visited = visitExpr(mov.source(), tmp);
+                            instrs.addAll(visited);
+                            instrs.add(new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    argvars.get(destname),
+                                    tmp
+                            ));
+                        }
+                        else instrs.addAll(visit(mov));
+                    }
+                    else if (mov.source() instanceof IRTemp) {
+                        String srcname = ((IRTemp) mov.source()).name();
+                        if (argvars.containsKey(srcname)) {
+                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                            List<ASMInstr> visited = visitExpr(mov.target(), tmp);
+                            instrs.addAll(visited);
+                            instrs.add(new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    tmp,
+                                    argvars.get(srcname)
+                            ));
+                        }
+                    }
                     else {
-                        //TODO: one is a temp
+                        instrs.addAll(visit(mov));
                     }
                     }
-                    //TODO: binop, anything else with temp
+
                 else {
                    instrs.addAll(visitStmt(s));
                 }
