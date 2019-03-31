@@ -9,6 +9,7 @@ import edu.cornell.cs.cs4120.util.InternalCompilerError;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
 import java.util.stream.Collectors;
