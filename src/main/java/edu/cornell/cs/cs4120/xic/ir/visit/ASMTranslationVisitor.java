@@ -614,27 +614,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         else stmts = new IRSeq(body);
             for (IRStmt s : stmts.stmts()) {
 
-                if (s instanceof IRReturn) {
-                    //First return in rax, second in rdx, rest saved to caller specified memory location
-                    IRReturn ret = (IRReturn) s;
-                    List<IRExpr> retvals = ret.rets();
-                    int numrets = 0;
-                    for (IRExpr e : retvals) {
-                      //  ASMInstr visited = visit(e);
-                        if (numrets == 0) {
-                            //TODO: visit IRExpr -> ASMExpr
-                            // instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rax"), visited));
-                        }
-                        else if (numrets == 1) {
-                            //  instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rdx"), visited));
-                        }
-                        else {} //TODO
-                        numrets ++;
-                    }
-                    instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
-                }
-
-                else if (s instanceof IRMove) {
+                if (s instanceof IRMove) {
                     IRMove mov = (IRMove) s;
                     if (mov.target() instanceof IRTemp && mov.source() instanceof IRTemp) {
                             String destname = ((IRTemp) mov.target()).name();
@@ -672,8 +652,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }
                     //TODO: binop, anything else with temp
                 else {
-                    //TODO: generic visit function for statements
-                   // instrs.addAll(visit(s));
+                   instrs.addAll(visitStmt(s));
                 }
                 }
 
@@ -766,15 +745,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
-    private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
-        if (e instanceof IRBinOp) return visit((IRBinOp) e, tmp);
-        if (e instanceof IRCall) return visit((IRCall) e, tmp);
-        if (e instanceof IRConst) return visit((IRConst) e, tmp);
-        if (e instanceof IRMem) return visit((IRMem) e, tmp);
-        if (e instanceof IRTemp) return visit((IRTemp) e, tmp);
-        throw new IllegalAccessError();
-    }
-
     public List<ASMInstr> visit(IRReturn node) {
         List<ASMInstr> instrs = new ArrayList<>();
         List<IRExpr> retvals = node.rets();
@@ -814,5 +784,25 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 new ASMExprTemp(node.name())
         ));
         return instrs;
+    }
+
+    private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
+        if (e instanceof IRBinOp) return visit((IRBinOp) e, tmp);
+        if (e instanceof IRCall) return visit((IRCall) e, tmp);
+        if (e instanceof IRConst) return visit((IRConst) e, tmp);
+        if (e instanceof IRMem) return visit((IRMem) e, tmp);
+        if (e instanceof IRTemp) return visit((IRTemp) e, tmp);
+        throw new IllegalAccessError();
+    }
+
+    private List<ASMInstr> visitStmt(IRStmt s) {
+        if (s instanceof IRCJump) return visit((IRCJump) s);
+        if (s instanceof IRExp) return visit((IRExp) s);
+        if (s instanceof IRJump) return visit((IRJump) s);
+        if (s instanceof IRLabel) return visit((IRLabel) s);
+        if (s instanceof IRMove) return visit((IRMove) s);
+        if (s instanceof IRReturn) return visit((IRReturn) s);
+        if (s instanceof IRSeq) return visit((IRSeq) s);
+        throw new IllegalAccessError();
     }
 }
