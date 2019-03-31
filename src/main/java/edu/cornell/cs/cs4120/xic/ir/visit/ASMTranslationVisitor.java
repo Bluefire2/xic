@@ -761,31 +761,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         else stmts = new IRSeq(body);
             for (IRStmt s : stmts.stmts()) {
 
-                if (s instanceof IRReturn) {
-                    //First return in rax, second in rdx, rest saved to caller specified memory location
-                    IRReturn ret = (IRReturn) s;
-                    List<IRExpr> retvals = ret.rets();
-                    int numrets = 0;
-                    for (IRExpr e : retvals) {
-                      //  ASMInstr visited = visit(e);
-                        if (numrets == 0) {
-                            //TODO: visit IRExpr -> ASMExpr
-                            // instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rax"), visited));
-                        }
-                        else if (numrets == 1) {
-                            //  instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rdx"), visited));
-                        }
-                        else {} //Already handled in function body?
-                        numrets ++;
-                    }
-                    instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
-                }
-
-                else if (s instanceof IRMove) {
+                if (s instanceof IRMove) {
                     IRMove mov = (IRMove) s;
                     if (mov.target() instanceof IRTemp && mov.source() instanceof IRTemp) {
                             String destname = ((IRTemp) mov.target()).name();
-                            String srcname = ((IRTemp) mov.target()).name();
+                            String srcname = ((IRTemp) mov.source()).name();
                             if (destname.startsWith("_ARG")) {
                                 //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
                                 int argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
@@ -808,19 +788,67 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                             argvars.get(destname),
                                             argvars.get(srcname)
                                     ));
-                                //TODO: one or none are params
+                                else if (argvars.containsKey(destname)) {
+                                    ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                                    List<ASMInstr> visited = visitExpr(mov.source(), tmp);
+                                    instrs.addAll(visited);
+                                    instrs.add(new ASMInstr_2Arg(
+                                            ASMOpCode.MOV,
+                                            argvars.get(destname),
+                                            tmp
+                                    ));
+                                }
+                                else if (argvars.containsKey(srcname)) {
+                                    ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                                    List<ASMInstr> visited = visitExpr(mov.target(), tmp);
+                                    instrs.addAll(visited);
+                                    instrs.add(new ASMInstr_2Arg(
+                                            ASMOpCode.MOV,
+                                            tmp,
+                                            argvars.get(srcname)
+                                    ));
+                                }
+                                else {
+                                    instrs.addAll(visit(mov));
+                                }
 
                             }
 
                         }
+                    else if (mov.target() instanceof IRTemp) {
+                        String destname = ((IRTemp) mov.target()).name();
+                        if (argvars.containsKey(destname)) {
+                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                            List<ASMInstr> visited = visitExpr(mov.source(), tmp);
+                            instrs.addAll(visited);
+                            instrs.add(new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    argvars.get(destname),
+                                    tmp
+                            ));
+                        }
+                        else instrs.addAll(visit(mov));
+                    }
+                    else if (mov.source() instanceof IRTemp) {
+                        String srcname = ((IRTemp) mov.source()).name();
+                        if (argvars.containsKey(srcname)) {
+                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                            List<ASMInstr> visited = visitExpr(mov.target(), tmp);
+                            instrs.addAll(visited);
+                            instrs.add(new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    tmp,
+                                    argvars.get(srcname)
+                            ));
+                        }
+                    }
                     else {
-                        //TODO: one is a temp
+                        instrs.addAll(visit(mov));
                     }
                     }
-                    //TODO: binop, anything else with temp
+
                 else {
-                    //TODO: generic visit function for statements
-                   // instrs.addAll(visit(s));
+                   instrs.addAll(visitStmt(s));
                 }
                 }
 
@@ -912,7 +940,26 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRReturn node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        List<IRExpr> retvals = node.rets();
+        int numrets = 0;
+        for (IRExpr e : retvals) {
+            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(e, tmp);
+            instrs.addAll(visited);
+            if (numrets == 0) {
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), tmp));
+            }
+            else if (numrets == 1) {
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdx"), tmp));
+            }
+            else {
+                //TODO: return addr of values?
+                instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, tmp));
+            }
+            numrets ++;
+        }
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRSeq node) {
@@ -930,5 +977,25 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 new ASMExprTemp(node.name())
         ));
         return instrs;
+    }
+
+    private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
+        if (e instanceof IRBinOp) return visit((IRBinOp) e, tmp);
+        if (e instanceof IRCall) return visit((IRCall) e, tmp);
+        if (e instanceof IRConst) return visit((IRConst) e, tmp);
+        if (e instanceof IRMem) return visit((IRMem) e, tmp);
+        if (e instanceof IRTemp) return visit((IRTemp) e, tmp);
+        throw new IllegalAccessError();
+    }
+
+    private List<ASMInstr> visitStmt(IRStmt s) {
+        if (s instanceof IRCJump) return visit((IRCJump) s);
+        if (s instanceof IRExp) return visit((IRExp) s);
+        if (s instanceof IRJump) return visit((IRJump) s);
+        if (s instanceof IRLabel) return visit((IRLabel) s);
+        if (s instanceof IRMove) return visit((IRMove) s);
+        if (s instanceof IRReturn) return visit((IRReturn) s);
+        if (s instanceof IRSeq) return visit((IRSeq) s);
+        throw new IllegalAccessError();
     }
 }
