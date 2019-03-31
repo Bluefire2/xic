@@ -628,7 +628,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         else if (numrets == 1) {
                             //  instrs.add(new ASMInstrMove(ASMOpCode.MOV, new ASMExprReg("rdx"), visited));
                         }
-                        else {} //Already handled in function body?
+                        else {} //TODO
                         numrets ++;
                     }
                     instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
@@ -766,8 +766,37 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
-    public List<ASMInstr> visit(IRReturn node) {
+    private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
+        if (e instanceof IRBinOp) return visit((IRBinOp) e, tmp);
+        if (e instanceof IRCall) return visit((IRCall) e, tmp);
+        if (e instanceof IRConst) return visit((IRConst) e, tmp);
+        if (e instanceof IRMem) return visit((IRMem) e, tmp);
+        if (e instanceof IRTemp) return visit((IRTemp) e, tmp);
         throw new IllegalAccessError();
+    }
+
+    public List<ASMInstr> visit(IRReturn node) {
+        List<ASMInstr> instrs = new ArrayList<>();
+        List<IRExpr> retvals = node.rets();
+        int numrets = 0;
+        for (IRExpr e : retvals) {
+            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(e, tmp);
+            instrs.addAll(visited);
+            if (numrets == 0) {
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), tmp));
+            }
+            else if (numrets == 1) {
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdx"), tmp));
+            }
+            else {
+                //TODO: return addr of values?
+                instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, tmp));
+            }
+            numrets ++;
+        }
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRSeq node) {
