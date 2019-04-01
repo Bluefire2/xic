@@ -8,6 +8,7 @@ import polyglot.util.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 //               Functional programming died for this
@@ -594,7 +595,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRCompUnit node) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        for (IRFuncDecl f : node.functions().values()) {
+            instrs.addAll(visit(f));
+        }
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRConst node, ASMExprTemp dest) {
