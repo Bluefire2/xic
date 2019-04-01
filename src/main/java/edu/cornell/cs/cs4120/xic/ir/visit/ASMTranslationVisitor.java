@@ -8,7 +8,6 @@ import polyglot.util.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 //               Functional programming died for this
@@ -82,7 +81,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //helper function for tiling inside of mem
     //input a MUL binop that is inside mem
     //output is list of instructions and an ASMExprMem
-    private Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
+    Pair<List<ASMInstr>,ASMExprMem> tileMemMult(IRBinOp exp) {
         IRExpr l = exp.left();
         IRExpr r = exp.right();
         if (l instanceof IRConst && validAddrScale((IRConst) l)) {
@@ -142,7 +141,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     // flatten add exprs
     // example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
-    private List<IRExpr> flattenAdds(IRBinOp b){
+    List<IRExpr> flattenAdds(IRBinOp b){
         List<IRExpr> exps = new ArrayList<>();
         if (b.opType() == OpType.ADD) {
             if (b.left() instanceof IRBinOp && ((IRBinOp) b.left()).opType() == OpType.ADD) {
@@ -166,7 +165,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //[base + index * scale + displacement]
     //base and index are temps
     //scale is 1/2/4/8, displacement is 32 bits
-    private Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
+    Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
         IRExpr e = m.expr();
         return e.matchLow(
                 (IRBinOp exp) -> {
@@ -331,9 +330,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      *
      * Postconditions:
      *  - The left ASMExpr is either a Mem or a Temp. It is a Mem only if the
-     *  left child input is a Mem (the converse doesn't hold).
+     *  left child input is a Mem (the converse doesn't hold). If it is a
+     *  Temp, then it must be leftDestTemp.
      *  - If both IRExprs evaluate to Mems, then the left ASMExpr is a Temp
      *  and the right ASMExpr is a Mem.
+     *  - The right ASMExpr is either a Mem or a Temp or a Const, whichever
+     *  requires the fewest number of asm instructions to generate. This
+     *  means that if the right child is a Temp, this Temp's value is in the
+     *  right ASMExpr to avoid a MOV instruction (similarly for Const).
      *
      * @param left child of the binop.
      * @param right child of the binop.
@@ -341,11 +345,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param rightDestTemp destination temp for the right child.
      * @param instrs instructions to add to.
      */
-    private Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
-                                                  IRExpr right,
-                                                  ASMExprTemp leftDestTemp,
-                                                  ASMExprTemp rightDestTemp,
-                                                  List<ASMInstr> instrs) {
+    Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
+                                          IRExpr right,
+                                          ASMExprTemp leftDestTemp,
+                                          ASMExprTemp rightDestTemp,
+                                          List<ASMInstr> instrs) {
 
         // For ADD and MUL, switching left and right children might
         // seem to improve performance, but there is no point since
