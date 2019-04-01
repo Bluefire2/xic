@@ -1,7 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import asm.*;
-import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
@@ -65,100 +64,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         this.tempcounter = 0;
     }
 
-
-    /**
-     * Returns the ASMOpCode of input IR binary operation. Since logical
-     * binops don't have a direct binop in assembly, the function throws an
-     * InternalCompilerError for them.
-     *
-     * @param op to translate.
-     * @return the corresponding assembly binop code.
-     */
-    private ASMOpCode asmOpCodeOf(IRBinOp.OpType op) {
-        //comparison operators not translatable
-        switch (op) {
-            case ADD:
-                return ASMOpCode.ADD;
-            case SUB:
-                return ASMOpCode.SUB;
-            case MUL:
-                return ASMOpCode.IMUL;
-            case HMUL:
-                return ASMOpCode.PMULHW;
-            case DIV:
-                return ASMOpCode.IDIV;
-            case MOD:
-                return ASMOpCode.DIV;
-            case AND:
-                return ASMOpCode.AND;
-            case OR:
-                return ASMOpCode.OR;
-            case XOR:
-                return ASMOpCode.XOR;
-            case LSHIFT:
-                return ASMOpCode.SHL;
-            case RSHIFT:
-                return ASMOpCode.SHR;
-            case ARSHIFT:
-                return ASMOpCode.SAR;
-            default:
-                throw new InternalCompilerError("Cannot translate op type");
-        }
-    }
-
-    /**
-     * Returns the ASMOpCode for setcc of input IR logical operation. Since
-     * arith binops don't have a setcc in assembly, the function throws an
-     * InternalCompilerError for them.
-     *
-     * @param op to translate.
-     * @return the corresponding assembly setcc code.
-     */
-    private ASMOpCode setASMOpCodeOf(IRBinOp.OpType op) {
-        switch (op) {
-            case EQ:
-                return ASMOpCode.SETE;
-            case NEQ:
-                return ASMOpCode.SETNE;
-            case LT:
-                return ASMOpCode.SETL;
-            case GT:
-                return ASMOpCode.SETG;
-            case LEQ:
-                return ASMOpCode.SETLE;
-            case GEQ:
-                return ASMOpCode.SETGE;
-            default:
-                throw new InternalCompilerError("Cannot translate op type");
-        }
-    }
-
-    /**
-     * Returns the ASMOpCode for jcc of input IR logical operation. Since
-     * arith binops don't have a jcc in assembly, the function throws an
-     * InternalCompilerError for them.
-     *
-     * @param op to translate.
-     * @return the corresponding assembly jcc code.
-     */
-    private ASMOpCode jmpASMOpCodeOf(IRBinOp.OpType op) {
-        switch (op) {
-            case EQ:
-                return ASMOpCode.JE;
-            case NEQ:
-                return ASMOpCode.JNE;
-            case LT:
-                return ASMOpCode.JL;
-            case GT:
-                return ASMOpCode.JG;
-            case LEQ:
-                return ASMOpCode.JLE;
-            case GEQ:
-                return ASMOpCode.JGE;
-            default:
-                throw new InternalCompilerError("Cannot translate op type");
-        }
-    }
 
     //return if IRConst has 1,2,4,8
     private boolean validAddrScale(IRConst i) {
@@ -384,22 +289,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
     }
 
-    private <T extends IRExpr> Function<T, Void> binOpArithAddAllAccept(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
-        return (T e) -> {
-            instrs.addAll(e.accept(this, dest));
-            return null;
-        };
-    }
-
-    private <T extends IRExpr> Function<T, ASMExpr> binOpLogicAddAllAccept(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
-        return (T e) -> {
-            instrs.addAll(e.accept(this, dest));
-            return dest;
-        };
-    }
-
     /**
      * Converts the IRMem into ASMExprMem by adding the necessary asm code to
      * instrs and returning the resultant ASMExprMem.
@@ -413,16 +302,91 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return memTile.part2();
     }
 
-    private Function<IRMem, Void> binOpArithAddAllAcceptMem(
+    /**
+     * Returns a lambda which adds the assembly instructions of the IRExpr
+     * input to the lambda into instrs list. The IRExpr asm instructions are
+     * put in temporary dest.
+     *
+     * @param dest the temporary to put the results of evaluation in.
+     * @param instrs instructions to add to.
+     */
+    private <T extends IRExpr> Function<T, ASMExpr> irBinOpChildToASM(
             ASMExprTemp dest, List<ASMInstr> instrs) {
-        return (IRMem e) -> {
-            instrs.add(new ASMInstr_2Arg(
-                    ASMOpCode.MOV,
-                    dest,
-                    asmMemTileOf(e, instrs)
-            ));
-            return null;
+        return (T e) -> {
+            instrs.addAll(e.accept(this, dest));
+            return dest;
         };
+    }
+
+    /**
+     * Returns the ASMExpr for left and right children of a binary operation,
+     * according to the requirements of x86-64 addressing modes. The
+     * intermediate asm instructions, which need to execute before the returned
+     * ASMExpr are used, are added to the input list of instructions.
+     *
+     * If the children are complex expressions in themselves, the
+     * intermediate asm instructions have the corresponding temporary as the
+     * target variable.
+     *
+     * Postconditions:
+     *  - The left ASMExpr is either a Mem or a Temp. It is a Mem only if the
+     *  left child input is a Mem (the converse doesn't hold).
+     *  - If both IRExprs evaluate to Mems, then the left ASMExpr is a Temp
+     *  and the right ASMExpr is a Mem.
+     *
+     * @param left child of the binop.
+     * @param right child of the binop.
+     * @param leftDestTemp destination temp for the left child.
+     * @param rightDestTemp destination temp for the right child.
+     * @param instrs instructions to add to.
+     */
+    private Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
+                                                  IRExpr right,
+                                                  ASMExprTemp leftDestTemp,
+                                                  ASMExprTemp rightDestTemp,
+                                                  List<ASMInstr> instrs) {
+
+        // For ADD and MUL, switching left and right children might
+        // seem to improve performance, but there is no point since
+        // one of the children will need to be moved to dest anyway
+        // after both are computed. So, lhs and rhs computation can
+        // be separated.
+
+        // Get the Expr representation of the left side. Depending on
+        // the left child of this binop, the repr can be a temp t, a
+        // mem location [...] (if the right child is not a mem) etc.
+        ASMExpr leftDest = left.matchLow(
+                // no, this can't be extracted into a variable
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                (IRMem m) -> {
+                    ASMExprMem mTile = asmMemTileOf(m, instrs);
+                    if (right instanceof IRMem) {
+                        // binary ops can't take two IRMems, so put
+                        // the left in the dest and return the dest
+                        instrs.add(new ASMInstr_2Arg(
+                                ASMOpCode.MOV, leftDestTemp, mTile
+                        ));
+                        return leftDestTemp;
+                    } else {
+                        return asmMemTileOf(m, instrs);
+                    }},
+                illegalAccessErrorLambda(),
+                irBinOpChildToASM(leftDestTemp, instrs)
+        );
+        ASMExpr rightDest = right.matchLow(
+                // no, this can't be extracted into a variable
+                irBinOpChildToASM(rightDestTemp, instrs),
+                irBinOpChildToASM(rightDestTemp, instrs),
+                // Const on right child can be written as an imm
+                (IRConst r) -> new ASMExprConst(r.value()),
+                // Mem on right child can be written as [...]
+                (IRMem r) -> asmMemTileOf(r, instrs),
+                illegalAccessErrorLambda(),
+                (IRTemp r) -> new ASMExprTemp(r.name())
+        );
+        return new Pair<>(leftDest, rightDest);
     }
 
     private <T extends IRExpr, U> Function<T, U> illegalAccessErrorLambda() {
@@ -446,84 +410,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                  */
             case AND:
             case OR:
-            case XOR:
-                // For ADD and MUL, switching left and right children might
-                // seem to improve performance, but there is no point since
-                // one of the children will need to be moved to dest anyway
-                // after both are computed. So, lhs and rhs computation can
-                // be separated.
-
-                // Visit left child and add the relevant moving ASMs.
-                node.left().matchLow(
-                        // no, this can't be extracted into a variable
-                        binOpArithAddAllAccept(dest, instrs),
-                        binOpArithAddAllAccept(dest, instrs),
-                        binOpArithAddAllAccept(dest, instrs),
-                        binOpArithAddAllAcceptMem(dest, instrs),
-                        illegalAccessErrorLambda(),
-                        binOpArithAddAllAccept(dest, instrs)
+            case XOR: {
+                // Get exprs for left and right children
+                ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
+                Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
+                        // left destination is dest since binary OP will read
+                        // and write to dest in the final asm instr
+                        node.left(), node.right(), dest, rightDestTemp, instrs
                 );
 
-                // Visit right child and complete adding instructions
-                node.right().matchLow(
-                        (IRBinOp r) -> {
-                            // Store the asm for binop in a new destination
-                            // temp, compute operation on the dest (input to
-                            // this node) and the new temp
-                            String rDest = newTemp();
-                            instrs.addAll(
-                                    r.accept(this, new ASMExprTemp(rDest))
-                            );
-                            instrs.add(new ASMInstr_2Arg(
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(rDest)
-                            ));
-                            return null;
-                        },
-                        (IRCall r) -> {
-                            // Store the asm for binop in a new destination
-                            // temp, compute operation on the dest (input to
-                            // this node) and the new temp
-                            String rDest = newTemp();
-                            instrs.addAll(
-                                    r.accept(this, new ASMExprTemp(rDest))
-                            );
-                            instrs.add(new ASMInstr_2Arg(
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(rDest)
-                            ));
-                            return null;
-                        },
-                        (IRConst r) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // OP dest, r (r is a constant)
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprConst(r.value())
-                            ));
-                            return null;
-                        },
-                        (IRMem r) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    asmMemTileOf(r, instrs)
-                            ));
-                            return null;
-                        },
-                        illegalAccessErrorLambda(),
-                        (IRTemp r) -> {
-                            instrs.add(new ASMInstr_2Arg(
-                                    // OP dest, r
-                                    asmOpCodeOf(node.opType()),
-                                    dest,
-                                    new ASMExprTemp(r.name())
-                            ));
-                            return null;
-                        });
+                // OP dest, {... result of right ...}
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.asmOpCodeOf(node.opType()),
+                        dests.part1(),
+                        dests.part2()
+                ));
                 return instrs;
+            }
             case HMUL:
                 break;
             case DIV:
@@ -534,48 +437,34 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case LT:
             case GT:
             case LEQ:
-            case GEQ:
-                // Visit left child and add the relevant moving ASMs.
+            case GEQ: {
+                // Get exprs for left and right children
                 ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
-                ASMExpr leftDest = node.left().matchLow(
-                        // no, this can't be extracted into a variable
-                        binOpLogicAddAllAccept(leftDestTemp, instrs),
-                        binOpLogicAddAllAccept(leftDestTemp, instrs),
-                        binOpLogicAddAllAccept(leftDestTemp, instrs),
-                        (IRMem m) -> asmMemTileOf(m, instrs),
-                        illegalAccessErrorLambda(),
-                        (IRTemp l) -> new ASMExprTemp(l.name())
-                );
-
                 ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
-                ASMExpr rightDest = node.left().matchLow(
-                        // no, this can't be extracted into a variable
-                        binOpLogicAddAllAccept(rightDestTemp, instrs),
-                        binOpLogicAddAllAccept(rightDestTemp, instrs),
-                        binOpLogicAddAllAccept(rightDestTemp, instrs),
-                        (IRMem m) -> asmMemTileOf(m, instrs),
-                        illegalAccessErrorLambda(),
-                        (IRTemp l) -> new ASMExprTemp(l.name())
+                Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
+                        node.left(), node.right(), leftDestTemp,
+                        rightDestTemp, instrs
                 );
 
                 // CMP leftDest, rightDest
                 instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.CMP, leftDest, rightDest
+                        ASMOpCode.CMP, dests.part1(), dests.part2()
                 ));
 
-                // SETcc al
+                // SETcc al (8-bit version of rax, SETcc supports only 8-bit reg
                 instrs.add(new ASMInstr_1Arg(
-                        setASMOpCodeOf(node.opType()),
+                        ASMOpCode.setASMOpCodeOf(node.opType()),
                         new ASMExprReg("al")
                 ));
 
-                // MOVZX dest, al
+                // MOVZX dest, al (zero extend and move 8-bit to 64-bit reg)
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.MOVZX,
                         dest,
                         new ASMExprReg("al")
                 ));
                 return instrs;
+            }
         }
         throw new IllegalAccessError();
     }
@@ -595,26 +484,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         // Visit left child and add the relevant moving ASMs.
         ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
-        ASMExpr leftDest = cond.left().matchLow(
-                // no, this can't be extracted into a variable
-                binOpLogicAddAllAccept(leftDestTemp, instrs),
-                binOpLogicAddAllAccept(leftDestTemp, instrs),
-                binOpLogicAddAllAccept(leftDestTemp, instrs),
-                (IRMem m) -> asmMemTileOf(m, instrs),
-                illegalAccessErrorLambda(),
-                (IRTemp l) -> new ASMExprTemp(l.name())
-        );
-
         ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
-        ASMExpr rightDest = cond.left().matchLow(
-                // no, this can't be extracted into a variable
-                binOpLogicAddAllAccept(rightDestTemp, instrs),
-                binOpLogicAddAllAccept(rightDestTemp, instrs),
-                binOpLogicAddAllAccept(rightDestTemp, instrs),
-                (IRMem m) -> asmMemTileOf(m, instrs),
-                illegalAccessErrorLambda(),
-                (IRTemp l) -> new ASMExprTemp(l.name())
+        Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
+                cond.left(), cond.right(), leftDestTemp, rightDestTemp, instrs
         );
+        ASMExpr leftDest = dests.part1(), rightDest = dests.part2();
 
         switch (cond.opType()) {
             case EQ:
@@ -627,27 +501,37 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.CMP, leftDest, rightDest
                 ));
+
+                // Jcc trueLabel
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.jmpASMOpCodeOf(cond.opType()),
+                        new ASMExprName(node.trueLabel())
+                ));
                 break;
             default:
                 // OP leftDest, rightDest
                 instrs.add(new ASMInstr_2Arg(
                         // OP dest, r (r is a constant)
-                        asmOpCodeOf(cond.opType()),
+                        ASMOpCode.asmOpCodeOf(cond.opType()),
                         leftDest,
                         rightDest
                 ));
 
                 // TEST leftDest, leftDest
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.TEST, leftDest, leftDest
-                ));
+                if (leftDest instanceof ASMExprTemp) {
+                    testJumpNEtoLabel(
+                            (ASMExprTemp) leftDest, node.trueLabel(), instrs
+                    );
+                } else {
+                    // since both arguments to TEST are leftDest, leftDest
+                    // must be a temp. So move left to a temp, and TEST on
+                    // the temp
+                    ASMExprTemp t = new ASMExprTemp(newTemp());
+                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, t, leftDest));
+                    testJumpNEtoLabel(t, node.trueLabel(), instrs);
+                }
         }
 
-        // Jcc trueLabel
-        instrs.add(new ASMInstr_1Arg(
-                jmpASMOpCodeOf(cond.opType()),
-                new ASMExprName(node.trueLabel())
-        ));
     }
 
     /**
