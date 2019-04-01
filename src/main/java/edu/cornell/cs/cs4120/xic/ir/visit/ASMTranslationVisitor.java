@@ -91,8 +91,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         new ArrayList<>(),
                         new ASMExprMem(
                                 new ASMExprBinOpMult(
-                                        new ASMExprTemp(((IRTemp) r).name()),
-                                        new ASMExprConst(((IRConst) l).value())
+                                        toASM((IRTemp) r),
+                                        toASM((IRConst) l)
                                 )
                         )
                 );
@@ -103,7 +103,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         new ASMExprMem(
                                 new ASMExprBinOpMult(
                                         new ASMExprTemp(t0),
-                                        new ASMExprConst(((IRConst) l).value())
+                                        toASM((IRConst) l)
                                 )
                         )
                 );
@@ -114,8 +114,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         new ArrayList<>(),
                         new ASMExprMem(
                                 new ASMExprBinOpMult(
-                                        new ASMExprTemp(((IRTemp) l).name()),
-                                        new ASMExprConst(((IRConst) r).value())
+                                        toASM((IRTemp) l),
+                                        toASM((IRConst) r)
                                 )
                         )
                 );
@@ -126,7 +126,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         new ASMExprMem(
                                 new ASMExprBinOpMult(
                                         new ASMExprTemp(t0),
-                                        new ASMExprConst(((IRConst) r).value())
+                                        toASM((IRConst) r)
                                 )
                         )
                 );
@@ -183,7 +183,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         for (int i = 0; i < flattened.size(); i ++) {
                             IRExpr curr = flattened.get(i);
                             if (curr instanceof IRConst && validAddrDispl((IRConst) curr)) {
-                                offset = new ASMExprConst(((IRConst) curr).value());
+                                offset = toASM((IRConst) curr);//new ASMExprConst(((IRConst) curr).value());
                                 flattened.remove(i);
                                 break;
                             }
@@ -207,7 +207,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             for (int i = 0; i < flattened.size(); i ++) {
                                 IRExpr curr = flattened.get(i);
                                 if (curr instanceof IRTemp) {
-                                    index_scale = new ASMExprTemp(((IRTemp) curr).name());
+                                    index_scale = toASM(((IRTemp) curr));
                                     flattened.remove(i);
                                     break;
                                 }
@@ -223,7 +223,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                     .reduce((a, b)
                                             -> new IRBinOp(OpType.ADD, a, b)).get();
                             if (remaining instanceof IRTemp) {//only one temp left
-                                base = new ASMExprTemp(((IRTemp) remaining).name());
+                                base = toASM(((IRTemp) remaining));
                             } else { //bunch of temps left, need to calculate
                                 String t0 = newTemp();
                                 instrs.addAll(
@@ -266,7 +266,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 illegalAccessErrorLambda(),
                 (IRTemp exp) -> new Pair<>(
                         new ArrayList<>(),
-                        new ASMExprMem(new ASMExprTemp(exp.name())))
+                        new ASMExprMem(toASM(exp))
+                )
         );
     }
 
@@ -378,13 +379,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(rightDestTemp, instrs),
                 irBinOpChildToASM(rightDestTemp, instrs),
                 // Const on right child can be written as an imm
-                (IRConst r) -> new ASMExprConst(r.value()),
+                ASMTranslationVisitor::toASM,
                 // Mem on right child can be written as [...]
                 (IRMem r) -> asmMemTileOf(r, instrs),
                 illegalAccessErrorLambda(),
-                (IRTemp r) -> new ASMExprTemp(r.name())
+                ASMTranslationVisitor::toASM
         );
         return new Pair<>(leftDest, rightDest);
+    }
+
+    /**
+     * Convert a IR constant to an ASM expression.
+     *
+     * @param c The constant.
+     * @return The ASM expression.
+     */
+    private static ASMExprConst toASM(IRConst c) {
+        return new ASMExprConst(c.value());
+    }
+
+    /**
+     * Convert an IR temp to an ASM expression.
+     *
+     * @param t The temp.
+     * @return The ASM expression.
+     */
+    private static ASMExprTemp toASM(IRTemp t) {
+        return new ASMExprTemp(t.name());
     }
 
     /**
@@ -632,7 +653,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 },
                 illegalAccessErrorLambda(),
                 (IRTemp c) -> {
-                    ASMExprTemp t = new ASMExprTemp(c.name());
+                    ASMExprTemp t = toASM(c);
                     testJumpNEtoLabel(t, node.trueLabel(), instrs);
                     return null;
                 }
@@ -654,7 +675,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV,
                 dest,
-                new ASMExprConst(node.value())
+                toASM(node)
         ));
         return instrs;
     }
@@ -978,7 +999,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV,
                 dest,
-                new ASMExprTemp(node.name())
+                toASM(node)
         ));
         return instrs;
     }
