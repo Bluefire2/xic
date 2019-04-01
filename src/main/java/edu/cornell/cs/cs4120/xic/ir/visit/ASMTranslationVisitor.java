@@ -622,6 +622,24 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         else return s.length() - 1;
     }
 
+    private int getNumReturns(IRFuncDecl node) {
+        String n = node.name();
+        String s = n.substring(n.lastIndexOf('_'));
+        if (s.startsWith("p")) return 0;
+        else if (s.startsWith("t")) {
+            return Integer.parseInt(s.replaceAll("\\D+", ""));
+        }
+        else return 1;
+    }
+
+    private int getNumTemps(IRFuncDecl node) {
+        //TODO: return actual number of temps instead of max
+        if (!(node.body() instanceof IRSeq)) return 2;
+        return ((IRSeq) node.body()).stmts().size() * 2;
+    }
+
+    private ASMExprTemp return_value_loc;
+
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
         int numparams = getNumParams(node);
@@ -630,6 +648,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
                 new ASMExprReg("rsp")));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"),
+                new ASMExprConst(getNumTemps(node))));
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
@@ -651,8 +671,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             String destname = ((IRTemp) mov.target()).name();
                             String srcname = ((IRTemp) mov.source()).name();
                             if (destname.startsWith("_ARG")) {
+                                int argnum;
+                                //If function has more than 2 returns, first arg is storage location
+                                if (getNumReturns(node) > 2) {
+                                    argnum = Integer.parseInt(destname.replaceAll("\\D+", "")) -1;
+                                    if (argnum == -1) return_value_loc = new ASMExprTemp(srcname);
+                                }
                                 //Args passed in rdi,rsi,rdx,rcx,r8,r9, (stack in reverse order)
-                                int argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
+                                else argnum = Integer.parseInt(destname.replaceAll("\\D+", ""));
                                 if (argnum == 0) argvars.put(srcname, new ASMExprReg("rdi"));
                                 else if (argnum == 1) argvars.put(srcname, new ASMExprReg("rsi"));
                                 else if (argnum == 2) argvars.put(srcname, new ASMExprReg("rdx"));
@@ -730,7 +756,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         instrs.addAll(visit(mov));
                     }
                     }
-
                 else {
                    instrs.addAll(visitStmt(s));
                 }
@@ -838,8 +863,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdx"), tmp));
             }
             else {
-                //TODO: return addr of values?
-                instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, tmp));
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprMem(return_value_loc), tmp));
             }
             numrets ++;
         }
