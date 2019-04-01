@@ -166,7 +166,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     //[base + index * scale + displacement]
     //base and index are temps
     //scale is 1/2/4/8, displacement is 32 bits
-    Pair<List<ASMInstr>,ASMExprMem> tileMemExpr(IRMem m) {
+    Pair<List<ASMInstr>, ASMExprMem> tileMemExpr(IRMem m) {
         IRExpr e = m.expr();
         return e.matchLow(
                 (IRBinOp exp) -> {
@@ -260,30 +260,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         );
                     }
                 },
-                (IRCall exp) -> {
-                    String t0 = newTemp();
-                    return new Pair<>(
-                            exp.accept(this, new ASMExprTemp(t0)),
-                            new ASMExprMem(new ASMExprTemp(t0))
-                    );
-                },
-                (IRConst exp) -> {
-                    String t0 = newTemp();
-                    return new Pair<>(
-                            exp.accept(this, new ASMExprTemp(t0)),
-                            new ASMExprMem(new ASMExprTemp(t0))
-                    );
-                },
-                (IRMem exp) -> {
-                    String t0 = newTemp();
-                    return new Pair<>(
-                            exp.accept(this, new ASMExprTemp(t0)),
-                            new ASMExprMem(new ASMExprTemp(t0))
-                    );
-                },
-                (IRName exp) -> {
-                    throw new IllegalAccessError();
-                },
+                exprToTileMem(this),
+                exprToTileMem(this),
+                exprToTileMem(this),
+                illegalAccessErrorLambda(),
                 (IRTemp exp) -> new Pair<>(
                         new ArrayList<>(),
                         new ASMExprMem(new ASMExprTemp(exp.name())))
@@ -316,6 +296,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return dest;
+        };
+    }
+
+    // TODO: docstring
+    private <T extends IRExpr> Function<T, Pair<List<ASMInstr>, ASMExprMem>>
+                                        exprToTileMem(ASMTranslationVisitor v) {
+        return exp -> {
+            String t0 = newTemp();
+            return new Pair<>(
+                    exp.accept(v, new ASMExprTemp(t0)),
+                    new ASMExprMem(new ASMExprTemp(t0))
+            );
         };
     }
 
