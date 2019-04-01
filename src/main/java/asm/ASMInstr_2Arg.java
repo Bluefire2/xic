@@ -15,4 +15,15 @@ public class ASMInstr_2Arg extends ASMInstr {
         return INDENT_TAB + formatOpCode() + " " +
                 dest.toString() + ", " + src.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMInstr_2Arg) {
+            ASMInstr_2Arg o = (ASMInstr_2Arg) obj;
+            return this.getOpCode().equals(o.getOpCode())
+                    && this.dest.equals(o.dest)
+                    && this.src.equals(o.src);
+        }
+        return false;
+    }
 }

@@ -16,4 +16,12 @@ public abstract class ASMInstr {
     public ASMOpCode getOpCode() {
         return opCode;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMInstr) {
+            return this.opCode.equals(((ASMInstr) obj).opCode);
+        }
+        return false;
+    }
 }

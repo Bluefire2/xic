@@ -15,4 +15,12 @@ public class ASMExprMem extends ASMExpr {
     public String toString() {
         return "[" + addr.toString() + "]";
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprMem) {
+            return this.addr.equals(((ASMExprMem) obj).addr);
+        }
+        return false;
+    }
 }

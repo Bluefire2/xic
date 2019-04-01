@@ -15,4 +15,12 @@ public class ASMExprTemp extends ASMExpr {
     public String toString() {
         return name;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprTemp) {
+            return this.name.equals(((ASMExprTemp) obj).name);
+        }
+        return false;
+    }
 }

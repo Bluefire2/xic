@@ -18,4 +18,12 @@ public class ASMExprName extends ASMExpr {
     public String toString() {
         return name;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprName) {
+            return this.name.equals(((ASMExprName) obj).name);
+        }
+        return false;
+    }
 }
