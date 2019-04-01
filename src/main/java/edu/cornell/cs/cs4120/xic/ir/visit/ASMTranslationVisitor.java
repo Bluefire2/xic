@@ -6,6 +6,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
@@ -475,7 +476,47 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRCall node, ASMExprTemp destreg) {
-        throw new IllegalAccessError();
+        List<ASMInstr> instrs = new ArrayList<>();
+        int numargs = node.args().size();
+        List<IRExpr> args;
+        List<ASMExprReg> argRegs = new ArrayList<>();
+        argRegs.add(new ASMExprReg("rdi"));
+        argRegs.add(new ASMExprReg("rsi"));
+        argRegs.add(new ASMExprReg("rdx"));
+        argRegs.add(new ASMExprReg("rcx"));
+        argRegs.add(new ASMExprReg("r8"));
+        argRegs.add(new ASMExprReg("r9"));
+        //Args passed in rdi,rsi,rdx,rcx,r8,r9
+        //Rest are passed on (stack in reverse order)
+        if (numargs > 6) {
+            List<IRExpr> extra_args = node.args().subList(6, numargs-1);
+            args = node.args().subList(0,6);
+            Collections.reverse(extra_args);
+            for (IRExpr e : extra_args) {
+                ASMExprTemp tmp = new ASMExprTemp(newTemp());
+                List<ASMInstr> visited = visitExpr(e, tmp);
+                instrs.addAll(visited);
+                instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, tmp));
+            }
+        }
+        else args = node.args();
+        for (int i = 0; i < args.size(); i++) {
+            ASMExprTemp tmp = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(args.get(i), tmp);
+            instrs.addAll(visited);
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(i), tmp));
+        }
+        ASMExprTemp tmp = new ASMExprTemp(newTemp());
+        List<ASMInstr> visited = visitExpr(node.target(), tmp);
+        instrs.addAll(visited);
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, tmp));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destreg,
+                new ASMExprReg("rax")));
+        if (numargs > 6) {
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rsp"),
+                    new ASMExprConst(8*(numargs-6))));
+        }
+        return instrs;
     }
 
     /**
