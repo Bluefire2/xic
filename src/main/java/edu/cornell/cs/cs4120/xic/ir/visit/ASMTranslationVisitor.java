@@ -609,7 +609,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     public List<ASMInstr> visit(IRExp node) {
-        throw new IllegalAccessError();
+        return visitExpr(node.expr(), new ASMExprTemp(newTemp()));
     }
 
     /**
