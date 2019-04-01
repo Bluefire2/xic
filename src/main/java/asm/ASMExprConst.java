@@ -15,4 +15,12 @@ public class ASMExprConst extends ASMExpr {
     public String toString() {
         return val.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprConst) {
+            return this.val.longValue() == ((ASMExprConst) obj).val.longValue();
+        }
+        return false;
+    }
 }

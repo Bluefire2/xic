@@ -1,7 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import asm.ASMExprMem;
-import asm.ASMInstr;
+import asm.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import org.junit.After;
@@ -9,9 +8,11 @@ import org.junit.Before;
 import org.junit.Test;
 import polyglot.util.Pair;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class ASMTranslationVisitorTest {
     private ASMTranslationVisitor visitor;
@@ -117,6 +118,332 @@ public class ASMTranslationVisitorTest {
         assertNotEquals(res7.part1().size(), 0);
     }
 
+    @Test
+    public void testASMExprOfBinOpTempTemp() {
+        // left: "_a", right: "_b"
+        // results:
+        //  MOV a, _a
+        //  a, _b
+        IRExpr left = new IRTemp("_a");
+        IRExpr right = new IRTemp("_b");
+        ASMExprTemp leftDestTemp = new ASMExprTemp("a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(new ASMExprTemp("_b"), dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprTemp("_a")
+                ),
+                instrs.get(0)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpConstConst() {
+        // left: 3, right: 5
+        // results:
+        //  MOV a, 3
+        //  a, 5
+        IRExpr left = new IRConst(3);
+        IRExpr right = new IRConst(5);
+        ASMExprTemp leftDestTemp = new ASMExprTemp("a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(new ASMExprConst(5), dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprConst(3)
+                ),
+                instrs.get(0)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpConstTemp() {
+        // left: 3, right: "b"
+        // results:
+        //  MOV a, 3
+        //  a, b
+        IRExpr left = new IRConst(3);
+        IRExpr right = new IRTemp("b");
+        ASMExprTemp leftDestTemp = new ASMExprTemp("a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(new ASMExprTemp("b"), dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprConst(3)
+                ),
+                instrs.get(0)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpTempConst() {
+        // left: "_a", right: 5
+        // results:
+        //  MOV a, _a
+        //  a, 5
+        IRExpr left = new IRTemp("_a");
+        IRExpr right = new IRConst(5);
+        ASMExprTemp leftDestTemp = new ASMExprTemp("a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(new ASMExprConst(5), dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprTemp("_a")
+                ),
+                instrs.get(0)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpBinOpTemp() {
+        // left: 3 + "a" + 2, right: "b"
+        // results:
+        //  MOV _a, 3
+        //  ADD _a, a
+        //  ADD _a, 2
+        //  a, b
+        IRExpr left = new IRBinOp(
+                OpType.ADD,
+                new IRBinOp(OpType.ADD, new IRConst(3), new IRTemp("a")),
+                new IRConst(2)
+        );
+        IRExpr right = new IRTemp("b");
+        ASMExprTemp leftDestTemp = new ASMExprTemp("_a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(new ASMExprTemp("b"), dests.part2());
+        assertEquals(3, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprConst(3)
+                ),
+                instrs.get(0)
+        );
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.ADD, leftDestTemp, new ASMExprTemp("a")
+                ),
+                instrs.get(1)
+        );
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.ADD, leftDestTemp, new ASMExprConst(2)
+                ),
+                instrs.get(2)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpTempBinOp() {
+        // left: "a", right: 3 + "b" + 2
+        // results:
+        //  MOV _a, a
+        //  MOV _b, 3
+        //  ADD _b, a
+        //  ADD _b, 2
+        //  _a, _b
+        IRExpr left = new IRTemp("a");
+        IRExpr right = new IRBinOp(
+                OpType.ADD,
+                new IRBinOp(OpType.ADD, new IRConst(3), new IRTemp("b")),
+                new IRConst(2)
+        );
+        ASMExprTemp leftDestTemp = new ASMExprTemp("_a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("_b");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(rightDestTemp, dests.part2());
+        assertEquals(4, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprTemp("a")
+                ),
+                instrs.get(0)
+        );
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, rightDestTemp, new ASMExprConst(3)
+                ),
+                instrs.get(1)
+        );
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.ADD, rightDestTemp, new ASMExprTemp("b")
+                ),
+                instrs.get(2)
+        );
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.ADD, rightDestTemp, new ASMExprConst(2)
+                ),
+                instrs.get(3)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpMemTemp() {
+        // left: ["a" + "b"*4], right: "c"
+        // results:
+        //  [a + b*4], c
+        IRExpr left = new IRMem(
+                new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(
+                        OpType.MUL, new IRTemp("b"), new IRConst(4)
+                ))
+        );
+        IRExpr right = new IRTemp("c");
+        ASMExprTemp leftDestTemp = new ASMExprTemp("");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        ASMExprMem leftMem = new ASMExprMem(
+                new ASMExprBinOpAdd(
+                        new ASMExprTemp("a"),
+                        new ASMExprBinOpMult(
+                                new ASMExprTemp("b"),
+                                new ASMExprConst(4)
+                        )
+                )
+        );
+
+        assertEquals(leftMem, dests.part1());
+        assertEquals(new ASMExprTemp("c"), dests.part2());
+        assertEquals(0, instrs.size());
+    }
+
+    @Test
+    public void testASMExprOfBinOpTempMem() {
+        // left: "a", right: ["b" + "c"*4]
+        // results:
+        //  MOV _a, a
+        //  _a, [b + c*4]
+        IRExpr left = new IRTemp("a");
+        IRExpr right = new IRMem(
+                new IRBinOp(OpType.ADD, new IRTemp("b"), new IRBinOp(
+                        OpType.MUL, new IRTemp("c"), new IRConst(4)
+                ))
+        );
+        ASMExprTemp leftDestTemp = new ASMExprTemp("_a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        ASMExprMem rightMem = new ASMExprMem(
+                new ASMExprBinOpAdd(
+                        new ASMExprTemp("b"),
+                        new ASMExprBinOpMult(
+                                new ASMExprTemp("c"),
+                                new ASMExprConst(4)
+                        )
+                )
+        );
+
+        assertEquals(new ASMExprTemp("_a"), dests.part1());
+        assertEquals(rightMem, dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, new ASMExprTemp("a")
+                ),
+                instrs.get(0)
+        );
+    }
+
+    @Test
+    public void testASMExprOfBinOpMemMem() {
+        // left: ["a" + "b"*4], right: ["c" + "d"]
+        // results:
+        //  MOV _a, [a + b*4]
+        //  _a, [c + d]
+        IRExpr left = new IRMem(
+                new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(
+                        OpType.MUL, new IRTemp("b"), new IRConst(4)
+                ))
+        );
+        IRExpr right = new IRMem(
+                new IRBinOp(OpType.ADD, new IRTemp("c"), new IRTemp("d"))
+        );
+        ASMExprTemp leftDestTemp = new ASMExprTemp("_a");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        List<ASMInstr> instrs = new ArrayList<>();
+
+        Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
+                left, right, leftDestTemp, rightDestTemp, instrs
+        );
+
+        ASMExprMem leftMem = new ASMExprMem(
+                new ASMExprBinOpAdd(
+                        new ASMExprTemp("a"),
+                        new ASMExprBinOpMult(
+                                new ASMExprTemp("b"),
+                                new ASMExprConst(4)
+                        )
+                )
+        );
+        // For some reason, c and d are swapped when the memTile is
+        // created. Since + is commutative, it can be ignored however.
+        ASMExprMem rightMem = new ASMExprMem(new ASMExprBinOpAdd(
+                new ASMExprTemp("d"), new ASMExprTemp("c")
+        ));
+        assertEquals(leftDestTemp, dests.part1());
+        assertEquals(rightMem, dests.part2());
+        assertEquals(1, instrs.size());
+        assertEquals(
+                new ASMInstr_2Arg(
+                        ASMOpCode.MOV, leftDestTemp, leftMem
+                ),
+                instrs.get(0)
+        );
+    }
 
     @Before
     public void setUp() throws Exception {

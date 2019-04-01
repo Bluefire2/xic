@@ -16,4 +16,13 @@ public abstract class ASMExprBinOp extends ASMExpr {
     public ASMExpr getRight() {
         return right;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprBinOp) {
+            ASMExprBinOp o = (ASMExprBinOp) obj;
+            return this.left.equals(o.left) && this.right.equals(o.right);
+        }
+        return false;
+    }
 }

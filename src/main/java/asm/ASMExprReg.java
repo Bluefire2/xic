@@ -15,4 +15,12 @@ public class ASMExprReg extends ASMExpr {
     public String toString() {
         return reg;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ASMExprReg) {
+            return this.reg.equals(((ASMExprReg) obj).reg);
+        }
+        return false;
+    }
 }
