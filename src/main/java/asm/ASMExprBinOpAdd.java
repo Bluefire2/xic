@@ -8,6 +8,10 @@ public class ASMExprBinOpAdd extends ASMExprBinOp {
 
     @Override
     public String toString() {
+        //if RHS is negative don't print the +
+        if (this.getRight() instanceof ASMExprConst && ((ASMExprConst)this.getRight()).getVal() < 0){
+            return getLeft().toString() + getRight().toString();
+        }
         return getLeft().toString() + " + " + getRight().toString();
     }
 }

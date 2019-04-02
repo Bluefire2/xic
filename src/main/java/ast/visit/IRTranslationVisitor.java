@@ -129,9 +129,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRBinOp(OpType.LT, new IRTemp(temp_index), new IRConst(0)),
                 new IRBinOp(OpType.GEQ, new IRTemp(temp_index), new IRMem(
                         new IRBinOp(
-                                OpType.SUB,
+                                OpType.ADD,
                                 new IRTemp(temp_array),
-                                new IRConst(WORD_NUM_BYTES)
+                                new IRConst(-WORD_NUM_BYTES)
                         )
                 ))
         );
@@ -407,14 +407,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             String tempLLength = newTemp();
             String tempRLength = newTemp();
             IRMove lengthL = new IRMove(new IRTemp(tempLLength), new IRMem(
-                    new IRBinOp(OpType.SUB,
+                    new IRBinOp(OpType.ADD,
                             new IRTemp(tempL),
-                            new IRConst(WORD_NUM_BYTES)
+                            new IRConst(-WORD_NUM_BYTES)
                     )));
             IRMove lengthR = new IRMove(new IRTemp(tempRLength), new IRMem(
-                    new IRBinOp(OpType.SUB,
+                    new IRBinOp(OpType.ADD,
                             new IRTemp(tempR),
-                            new IRConst(WORD_NUM_BYTES)
+                            new IRConst(-WORD_NUM_BYTES)
                     )));
             String tempNewArray = newTemp();
             String newRStart = newTemp();
@@ -565,9 +565,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRExpr visit(ExprLength node) {
         return new IRMem(new IRBinOp(
-                OpType.SUB,
+                OpType.ADD,
                 (IRExpr) node.getArray().accept(this),
-                new IRConst(WORD_NUM_BYTES)
+                new IRConst(-WORD_NUM_BYTES)
         ));
     }
 

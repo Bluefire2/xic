@@ -243,7 +243,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         }
                         if (memExpr == null) {
                             //this means B, I, S, O are all null
-                            throw new IllegalAccessError("what the FUCK");
+                            throw new IllegalAccessError();
                         }
                         return new Pair<>(instrs, new ASMExprMem(memExpr));
                     } else if (exp.opType() == OpType.MUL) {
