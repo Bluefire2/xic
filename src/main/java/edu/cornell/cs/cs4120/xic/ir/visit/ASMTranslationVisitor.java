@@ -447,10 +447,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         node.left(), node.right(), dest, rightDestTemp, instrs
                 );
 
-                // OP dest, {... result of right ...}
+                // mov dest, left
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        dest,
+                        dests.part1()
+                ));
+
+                // OP dest, right
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.asmOpCodeOf(node.opType()),
-                        dests.part1(),
+                        dest,
                         dests.part2()
                 ));
                 return instrs;
