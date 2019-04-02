@@ -932,8 +932,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     public List<ASMInstr> visit(IRMove node) {
         IRExpr dest = node.target();
         IRExpr src = node.source();
+        List<ASMInstr> instrs = new ArrayList<>();
         if (dest instanceof IRTemp) {
-            throw new IllegalAccessError();
+            src.matchLow(
+                    (IRBinOp s) -> {return null;}, //TODO
+                    (IRCall s) -> {return null;}, //TODO
+                    (IRConst s) -> {
+                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
+                        return null;
+                    },
+                    (IRMem s) -> {return null;}, // TODO
+                    (IRName s) -> {throw new IllegalAccessError();},
+                    (IRTemp s) -> {
+                        if (s.name() != ((IRTemp) dest).name()) {
+                            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
+                        }
+                        return null;
+                    });
             //RHS cases:
             //call -> fresh temp
             //mem -> tile mem as usual
@@ -948,7 +963,28 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             //otherwise fresh temp
         }
         else if (dest instanceof IRMem) {
-            throw new IllegalAccessError();
+            Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr((IRMem) dest);
+            src.matchLow(
+                    (IRBinOp s) -> {return null;}, //TODO
+                    (IRCall s) -> {return null;}, //TODO
+                    (IRConst s) -> {
+                        instrs.addAll(memTile.part1());
+                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
+                        return null;
+                    },
+                    (IRMem s) -> {
+                        if (!s.equals(dest)){
+                            //TODO
+                        }
+                        return null;
+                    },
+                    (IRName s) -> {throw new IllegalAccessError();},
+                    (IRTemp s) -> {
+                        instrs.addAll(memTile.part1());
+                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
+                        return null;
+                    }
+            );
             //RHS cases:
             //call -> fresh temp
             //mem -> tile mem as usual if not equivalent mem otherwise NOP
