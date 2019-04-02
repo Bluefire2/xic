@@ -82,11 +82,16 @@ public class ASMTranslationVisitorTest {
     }
 
     @Test
-    public void testTileMemExprMult() {
+    public void testTileMemExpr() {
         //do not need instrs
         IRBinOp noinstr0 = new IRBinOp(OpType.MUL, new IRTemp("a"), new IRConst(2));
         IRBinOp noinstr1 = new IRBinOp(OpType.MUL, new IRConst(2), new IRTemp("a"));
         IRBinOp noinstr2 = new IRBinOp(OpType.MUL, new IRTemp("a"), new IRConst(4));
+        IRBinOp noinstr3 = new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(4));
+        IRBinOp noinstr4 = new IRBinOp(OpType.ADD, new IRBinOp(OpType.MUL, new IRTemp("a"), new IRConst(4)), new IRConst(4));
+        IRBinOp noinstr5 = new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(4)));
+        IRBinOp noinstr6 = new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(-4)));
+        IRBinOp noinstr7 = new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(-8));
         //need instrs
         IRBinOp instr0 = new IRBinOp(OpType.MUL, new IRTemp("a"), new IRConst(5));
         IRBinOp instr1 = new IRBinOp(OpType.MUL, new IRTemp("a"), new IRTemp("b"));
@@ -99,23 +104,36 @@ public class ASMTranslationVisitorTest {
                 new IRConst(2),
                 new IRBinOp(OpType.MUL, new IRTemp("a"), new IRConst(2))
         );
+        IRBinOp instr5 = new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(OpType.ADD, new IRTemp("a"), new IRTemp("a")));
         Pair<List<ASMInstr>, ASMExprMem> res0 = visitor.tileMemExpr(new IRMem(noinstr0));
         Pair<List<ASMInstr>, ASMExprMem> res1 = visitor.tileMemExpr(new IRMem(noinstr1));
         Pair<List<ASMInstr>, ASMExprMem> res2 = visitor.tileMemExpr(new IRMem(noinstr2));
-        Pair<List<ASMInstr>, ASMExprMem> res3 = visitor.tileMemExpr(new IRMem(instr0));
-        Pair<List<ASMInstr>, ASMExprMem> res4 = visitor.tileMemExpr(new IRMem(instr1));
-        Pair<List<ASMInstr>, ASMExprMem> res5 = visitor.tileMemExpr(new IRMem(instr2));
-        Pair<List<ASMInstr>, ASMExprMem> res6 = visitor.tileMemExpr(new IRMem(instr3));
-        Pair<List<ASMInstr>, ASMExprMem> res7 = visitor.tileMemExpr(new IRMem(instr4));
+        Pair<List<ASMInstr>, ASMExprMem> res3 = visitor.tileMemExpr(new IRMem(noinstr3));
+        Pair<List<ASMInstr>, ASMExprMem> res4 = visitor.tileMemExpr(new IRMem(noinstr4));
+        Pair<List<ASMInstr>, ASMExprMem> res5 = visitor.tileMemExpr(new IRMem(noinstr5));
+        Pair<List<ASMInstr>, ASMExprMem> res6 = visitor.tileMemExpr(new IRMem(noinstr6));
+        Pair<List<ASMInstr>, ASMExprMem> res7 = visitor.tileMemExpr(new IRMem(noinstr7));
+        Pair<List<ASMInstr>, ASMExprMem> res8 = visitor.tileMemExpr(new IRMem(instr0));
+        Pair<List<ASMInstr>, ASMExprMem> res9 = visitor.tileMemExpr(new IRMem(instr1));
+        Pair<List<ASMInstr>, ASMExprMem> res10 = visitor.tileMemExpr(new IRMem(instr2));
+        Pair<List<ASMInstr>, ASMExprMem> res11 = visitor.tileMemExpr(new IRMem(instr3));
+        Pair<List<ASMInstr>, ASMExprMem> res12 = visitor.tileMemExpr(new IRMem(instr4));
+        Pair<List<ASMInstr>, ASMExprMem> res13 = visitor.tileMemExpr(new IRMem(instr5));
         //check if instructions were generated
         assertEquals(res0.part1().size(), 0);
         assertEquals(res1.part1().size(), 0);
         assertEquals(res2.part1().size(), 0);
-        assertNotEquals(res3.part1().size(), 0);
-        assertNotEquals(res4.part1().size(), 0);
-        assertNotEquals(res5.part1().size(), 0);
-        assertNotEquals(res6.part1().size(), 0);
-        assertNotEquals(res7.part1().size(), 0);
+        assertEquals(res3.part1().size(), 0);
+        assertEquals(res4.part1().size(), 0);
+        assertEquals(res5.part1().size(), 0);
+        assertEquals(res6.part1().size(), 0);
+        assertEquals(res7.part1().size(), 0);
+        assertNotEquals(res8.part1().size(), 0);
+        assertNotEquals(res9.part1().size(), 0);
+        assertNotEquals(res10.part1().size(), 0);
+        assertNotEquals(res11.part1().size(), 0);
+        assertNotEquals(res12.part1().size(), 0);
+        assertNotEquals(res13.part1().size(), 0);
     }
 
     @Test
