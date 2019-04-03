@@ -330,17 +330,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      *  means that if the right child is a Temp, this Temp's value is in the
      *  right ASMExpr to avoid a MOV instruction (similarly for Const).
      *
-     * @param left child of the binop.
-     * @param right child of the binop.
-     * @param leftDestTemp destination temp for the left child.
-     * @param rightDestTemp destination temp for the right child.
-     * @param instrs instructions to add to.
+     * @param left Left child of the binop.
+     * @param right Right child of the binop.
+     * @param leftDestTemp Destination temp for the left child.
+     * @param rightDestTemp Destination temp for the right child.
+     * @param instrs The instructions to add to.
+     * @param useTemps If {@code true}, this function will ensure that,
+     *                 regardless of the inputs, the values of {@code left} and
+     *                 {@code right} end up in {@code leftDestTemp} and
+     *                 {@code rightDestTemp}, respectively. This overrides the
+     *                 postconditions above.
      */
     Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
                                           IRExpr right,
                                           ASMExprTemp leftDestTemp,
                                           ASMExprTemp rightDestTemp,
-                                          List<ASMInstr> instrs) {
+                                          List<ASMInstr> instrs,
+                                          boolean useTemps) {
 
         // For ADD and MUL, switching left and right children might
         // seem to improve performance, but there is no point since
@@ -358,7 +364,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(leftDestTemp, instrs),
                 (IRMem m) -> {
                     ASMExprMem mTile = asmMemTileOf(m, instrs);
-                    if (right instanceof IRMem) {
+                    if (right instanceof IRMem || useTemps) {
                         // binary ops can't take two IRMems, so put
                         // the left in the dest and return the dest
                         instrs.add(new ASMInstr_2Arg(
@@ -371,18 +377,45 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 illegalAccessErrorLambda(),
                 irBinOpChildToASM(leftDestTemp, instrs)
         );
-        ASMExpr rightDest = right.matchLow(
-                // no, this can't be extracted into a variable
-                irBinOpChildToASM(rightDestTemp, instrs),
-                irBinOpChildToASM(rightDestTemp, instrs),
-                // Const on right child can be written as an imm
-                ASMTranslationVisitor::toASM,
-                // Mem on right child can be written as [...]
-                (IRMem r) -> asmMemTileOf(r, instrs),
-                illegalAccessErrorLambda(),
-                ASMTranslationVisitor::toASM
-        );
+
+        ASMExpr rightDest;
+
+        if (useTemps) {
+            rightDest = right.matchLow(
+                    // no, this can't be extracted into a variable
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    illegalAccessErrorLambda(),
+                    irBinOpChildToASM(rightDestTemp, instrs)
+            );
+        } else {
+            rightDest = right.matchLow(
+                    // no, this can't be extracted into a variable
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    irBinOpChildToASM(rightDestTemp, instrs),
+                    // Const on right child can be written as an imm
+                    ASMTranslationVisitor::toASM,
+                    // Mem on right child can be written as [...]
+                    (IRMem r) -> asmMemTileOf(r, instrs),
+                    illegalAccessErrorLambda(),
+                    ASMTranslationVisitor::toASM
+            );
+        }
         return new Pair<>(leftDest, rightDest);
+    }
+
+    Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
+                                          IRExpr right,
+                                          ASMExprTemp leftDestTemp,
+                                          ASMExprTemp rightDestTemp,
+                                          List<ASMInstr> instrs) {
+        return asmExprOfBinOp(
+                left, right,
+                leftDestTemp, rightDestTemp,
+                instrs, false
+        );
     }
 
     /**
