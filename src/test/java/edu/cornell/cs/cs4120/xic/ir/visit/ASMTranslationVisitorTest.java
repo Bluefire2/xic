@@ -150,7 +150,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -177,7 +177,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -204,7 +204,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -231,7 +231,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -264,7 +264,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -310,7 +310,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         assertEquals(leftDestTemp, dests.part1());
@@ -358,7 +358,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         ASMExprMem leftMem = new ASMExprMem(
@@ -393,7 +393,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         ASMExprMem rightMem = new ASMExprMem(
@@ -436,7 +436,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
-                left, right, leftDestTemp, rightDestTemp, instrs
+                left, right, leftDestTemp, rightDestTemp, instrs, false
         );
 
         ASMExprMem leftMem = new ASMExprMem(
