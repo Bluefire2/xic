@@ -696,7 +696,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     private int getNumParams(IRFuncDecl node) {
         String n = node.name();
-        System.out.println(n);
         String s = n.substring(n.lastIndexOf('_'));
         if (s.startsWith("t")) {
             int numrets = Integer.parseInt(s.substring(1, 2));
@@ -732,8 +731,15 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return ((IRSeq) node.body()).stmts().size() * 2;
     }
 
+    /**
+     * Returns true if the function declaration uses one or more of the
+     * callee-save registers: rbx, r12, r13, r14, r15. Rbp not included since
+     * it is saved by every function regardless.
+     * @param node
+     * @return true if node uses callee-save registers, false otherwise
+     */
     private boolean use_callee_save_regs(IRFuncDecl node) {
-        //TODO:
+        //TODO: assume false until we do reg allocation
         return false;
     }
 
@@ -895,7 +901,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
         }
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD,
+                new ASMExprReg("rbp"), lvarspace));
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
         ));
