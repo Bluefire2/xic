@@ -320,12 +320,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * target variable.
      *
      * Postconditions:
-     *  - If leftDestOverride is true, then the left ASMExpr is always
-     *  leftDestTemp.
-     *  - If leftDestOverride is false, then the left ASMExpr is either a Mem
-     *  or a Temp. It is a Mem if and only if the left child input is a Mem and
-     *  the right child input is not a Mem. If it is a Temp, then it must be
-     *  leftDestTemp.
+     *  - The left ASMExpr is either a Mem or a Temp. It is a Mem only if the
+     *  left child input is a Mem (the converse doesn't hold). If it is a
+     *  Temp, then it must be leftDestTemp.
      *  - If both IRExprs evaluate to Mems, then the left ASMExpr is a Temp
      *  and the right ASMExpr is a Mem.
      *  - The right ASMExpr is either a Mem or a Temp or a Const, whichever
@@ -337,19 +334,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param right child of the binop.
      * @param leftDestTemp destination temp for the left child.
      * @param rightDestTemp destination temp for the right child.
-     * @param leftDestOverride if true, then the left child will be stored in
-     *                         leftDestTemp, which will be returned as the left
-     *                         ASMExpr. If false, then simply the translation
-     *                         of the left child will be returned (left
-     *                         ASMExpr may or may not be leftDestTemp).
      * @param instrs instructions to add to.
      */
     Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
                                           IRExpr right,
                                           ASMExprTemp leftDestTemp,
                                           ASMExprTemp rightDestTemp,
-                                          List<ASMInstr> instrs,
-                                          boolean leftDestOverride) {
+                                          List<ASMInstr> instrs) {
 
         // For ADD and MUL, switching left and right children might
         // seem to improve performance, but there is no point since
@@ -367,10 +358,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(leftDestTemp, instrs),
                 (IRMem m) -> {
                     ASMExprMem mTile = asmMemTileOf(m, instrs);
-                    if (right instanceof IRMem || leftDestOverride) {
+                    if (right instanceof IRMem) {
                         // binary ops can't take two IRMems, so put
                         // the left in the dest and return the dest
-                        // OR we must store the mem in the leftDestTemp
                         instrs.add(new ASMInstr_2Arg(
                                 ASMOpCode.MOV, leftDestTemp, mTile
                         ));
@@ -451,16 +441,20 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
                         // left destination is dest since binary OP will read
                         // and write to dest in the final asm instr
-                        node.left(), node.right(), dest, rightDestTemp,
-                        instrs, true
+                        node.left(), node.right(), dest, rightDestTemp, instrs
                 );
 
-                // OP {... result of left ...}, {... result of right ...}
-                // We can do this because the left destination is dest since
-                // the override flag we pass is true
+                // mov dest, left
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        dest,
+                        dests.part1()
+                ));
+
+                // OP dest, right
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.asmOpCodeOf(node.opType()),
-                        dests.part1(),
+                        dest,
                         dests.part2()
                 ));
                 return instrs;
@@ -480,9 +474,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
                 ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
-                        // do not need leftDest to always be leftDestTemp
                         node.left(), node.right(), leftDestTemp,
-                        rightDestTemp, instrs, false
+                        rightDestTemp, instrs
                 );
 
                 // CMP leftDest, rightDest
@@ -566,9 +559,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
         ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
         Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
-                // do not need leftDest to always be leftDestTemp
-                cond.left(), cond.right(), leftDestTemp, rightDestTemp,
-                instrs, false
+                cond.left(), cond.right(), leftDestTemp, rightDestTemp, instrs
         );
         ASMExpr leftDest = dests.part1(), rightDest = dests.part2();
 
