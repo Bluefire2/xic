@@ -974,6 +974,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             // We accept e which generates instructions for it and places the
             // result in a destination temp t. Then, we just do:
             // mov x, t
+
+            // Get the destination ASM representation
+            ASMExpr x = dest instanceof IRMem
+                    ? asmMemTileOf((IRMem) dest, instrs)
+                    : new ASMExprTemp(((IRTemp) dest).name());
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            instrs.addAll(src.accept(this, t));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, x, t));
         }
 //        if (dest instanceof IRTemp) {
 //            src.matchLow(
