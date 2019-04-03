@@ -959,7 +959,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     (IRMem s) -> {return null;}, // TODO
                     (IRName s) -> {throw new IllegalAccessError();},
                     (IRTemp s) -> {
-                        if (s.name() != ((IRTemp) dest).name()) {
+                        if (!s.name().equals(((IRTemp) dest).name())) {
                             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
                         }
                         return null;
@@ -976,8 +976,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             //if op is commutative:
             // if LHS or RHS is same temp then use single instr
             //otherwise fresh temp
-        }
-        else if (dest instanceof IRMem) {
+        } else if (dest instanceof IRMem) {
             Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr((IRMem) dest);
             src.matchLow(
                     (IRBinOp s) -> {return null;}, //TODO
@@ -1012,11 +1011,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             //if op is commutative:
             // if LHS or RHS of binop is equivalent mem then use single instr
             //otherwise fresh temp
-        }
-        else {
+        } else {
             throw new IllegalAccessError("only Mem and Temp allowed as destination");
         }
-        return null;
+
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRReturn node) {
