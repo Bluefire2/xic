@@ -948,72 +948,99 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         IRExpr dest = node.target();
         IRExpr src = node.source();
         List<ASMInstr> instrs = new ArrayList<>();
-        if (dest instanceof IRTemp) {
-            src.matchLow(
-                    (IRBinOp s) -> {return null;}, //TODO
-                    (IRCall s) -> {return null;}, //TODO
-                    (IRConst s) -> {
-                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
-                        return null;
-                    },
-                    (IRMem s) -> {return null;}, // TODO
-                    (IRName s) -> {throw new IllegalAccessError();},
-                    (IRTemp s) -> {
-                        if (!s.name().equals(((IRTemp) dest).name())) {
-                            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
-                        }
-                        return null;
-                    });
-            //RHS cases:
-            //call -> fresh temp
-            //mem -> tile mem as usual
-            //name -> error
-            //temp -> MOV if different temp otherwise NOP
-            //const -> MOV
-            //binop -> switch on op
-            //if op is not commutative:
-            // if LHS is same temp then use single instr
-            //if op is commutative:
-            // if LHS or RHS is same temp then use single instr
-            //otherwise fresh temp
-        } else if (dest instanceof IRMem) {
-            Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr((IRMem) dest);
-            src.matchLow(
-                    (IRBinOp s) -> {return null;}, //TODO
-                    (IRCall s) -> {return null;}, //TODO
-                    (IRConst s) -> {
-                        instrs.addAll(memTile.part1());
-                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
-                        return null;
-                    },
-                    (IRMem s) -> {
-                        if (!s.equals(dest)){
-                            //TODO
-                        }
-                        return null;
-                    },
-                    (IRName s) -> {throw new IllegalAccessError();},
-                    (IRTemp s) -> {
-                        instrs.addAll(memTile.part1());
-                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
-                        return null;
-                    }
+
+        if (!(dest instanceof IRTemp || dest instanceof IRMem)) {
+            throw new IllegalAccessError(
+                    "only Mem and Temp allowed as destination for move"
             );
-            //RHS cases:
-            //call -> fresh temp
-            //mem -> tile mem as usual if not equivalent mem otherwise NOP
-            //name -> error
-            //temp -> MOV
-            //const -> MOV
-            //binop -> switch on op
-            //if op is not commutative:
-            // if LHS of binop is equivalent mem then use single instr
-            //if op is commutative:
-            // if LHS or RHS of binop is equivalent mem then use single instr
-            //otherwise fresh temp
-        } else {
-            throw new IllegalAccessError("only Mem and Temp allowed as destination");
         }
+
+        if (dest instanceof IRMem && src instanceof IRMem) {
+            /*
+             * case 1: both source and dest are mems
+             * move [a], [b]
+             *
+             * mov t, [b]
+             * mov [a] t
+             */
+
+        } else if (src instanceof IRMem || src instanceof IRTemp) {
+            // case 2: the source is a mem or a temp
+            // case 2.1: move [a], t -> mov [a], t
+            // case 2.2: move t, [a] -> mov t, [a]
+        } else {
+            // case 3 (fallback): the source is an expression that is not a mem or a temp
+            // move x, e (where x is a temp or a mem)
+            // We accept e which generates instructions for it and places the
+            // result in a destination temp t. Then, we just do:
+            // mov x, t
+        }
+//        if (dest instanceof IRTemp) {
+//            src.matchLow(
+//                    (IRBinOp s) -> {return null;}, //TODO
+//                    (IRCall s) -> {return null;}, //TODO
+//                    (IRConst s) -> {
+//                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
+//                        return null;
+//                    },
+//                    (IRMem s) -> {return null;}, // TODO
+//                    (IRName s) -> {throw new IllegalAccessError();},
+//                    (IRTemp s) -> {
+//                        if (!s.name().equals(((IRTemp) dest).name())) {
+//                            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, toASM((IRTemp) dest), toASM(s)));
+//                        }
+//                        return null;
+//                    });
+//            //RHS cases:
+//            //call -> fresh temp
+//            //mem -> tile mem as usual
+//            //name -> error
+//            //temp -> MOV if different temp otherwise NOP
+//            //const -> MOV
+//            //binop -> switch on op
+//            //if op is not commutative:
+//            // if LHS is same temp then use single instr
+//            //if op is commutative:
+//            // if LHS or RHS is same temp then use single instr
+//            //otherwise fresh temp
+//        } else if (dest instanceof IRMem) {
+//            Pair<List<ASMInstr>, ASMExprMem> memTile = tileMemExpr((IRMem) dest);
+//            src.matchLow(
+//                    (IRBinOp s) -> {return null;}, //TODO
+//                    (IRCall s) -> {return null;}, //TODO
+//                    (IRConst s) -> {
+//                        instrs.addAll(memTile.part1());
+//                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
+//                        return null;
+//                    },
+//                    (IRMem s) -> {
+//                        if (!s.equals(dest)){
+//                            //TODO
+//                        }
+//                        return null;
+//                    },
+//                    (IRName s) -> {throw new IllegalAccessError();},
+//                    (IRTemp s) -> {
+//                        instrs.addAll(memTile.part1());
+//                        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, memTile.part2(), toASM(s)));
+//                        return null;
+//                    }
+//            );
+//            //RHS cases:
+//            //call -> fresh temp
+//            //mem -> tile mem as usual if not equivalent mem otherwise NOP
+//            //name -> error
+//            //temp -> MOV
+//            //const -> MOV
+//            //binop -> switch on op
+//            //if op is not commutative:
+//            // if LHS of binop is equivalent mem then use single instr
+//            //if op is commutative:
+//            // if LHS or RHS of binop is equivalent mem then use single instr
+//            //otherwise fresh temp
+//        } else {
+//            throw new IllegalAccessError("only Mem and Temp allowed as destination");
+//        }
 
         return instrs;
     }
