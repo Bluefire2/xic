@@ -1,6 +1,6 @@
 package asm;
 
-public class ASMExprTemp extends ASMExpr {
+public class ASMExprTemp extends ASMExprRegReplaceable {
     private String name;
 
     public ASMExprTemp(String name) {

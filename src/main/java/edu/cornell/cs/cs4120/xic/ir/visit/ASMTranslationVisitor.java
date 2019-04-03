@@ -290,7 +290,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param instrs instructions to add to.
      */
     private <T extends IRExpr> Function<T, ASMExpr> irBinOpChildToASM(
-            ASMExprTemp dest, List<ASMInstr> instrs) {
+            ASMExprRegReplaceable dest, List<ASMInstr> instrs) {
         return (T e) -> {
             instrs.addAll(e.accept(this, dest));
             return dest;
@@ -338,8 +338,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     Pair<ASMExpr, ASMExpr> asmExprOfBinOp(IRExpr left,
                                           IRExpr right,
-                                          ASMExprTemp leftDestTemp,
-                                          ASMExprTemp rightDestTemp,
+                                          ASMExprRegReplaceable leftDestTemp,
+                                          ASMExprRegReplaceable rightDestTemp,
                                           List<ASMInstr> instrs) {
 
         // For ADD and MUL, switching left and right children might
@@ -420,7 +420,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
-    public List<ASMInstr> visit(IRBinOp node, final ASMExprTemp dest) {
+    public List<ASMInstr> visit(IRBinOp node, final ASMExprRegReplaceable dest) {
         final List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
             case ADD:
@@ -505,7 +505,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
-    public List<ASMInstr> visit(IRCall node, ASMExprTemp destreg) {
+    public List<ASMInstr> visit(IRCall node, ASMExprRegReplaceable destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
         int numargs = node.args().size();
         List<IRExpr> args;
@@ -678,7 +678,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
-    public List<ASMInstr> visit(IRConst node, ASMExprTemp dest) {
+    public List<ASMInstr> visit(IRConst node, ASMExprRegReplaceable dest) {
         //c => MOV dest c
         List<ASMInstr> instrs = new ArrayList<>();
         instrs.add(new ASMInstr_2Arg(
@@ -936,7 +936,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
-    public List<ASMInstr> visit(IRMem node, ASMExprTemp dest) {
+    public List<ASMInstr> visit(IRMem node, ASMExprRegReplaceable dest) {
         //translation of [e] will put actual contents of [e] into dest
         //this CANNOT be used for writes
         List<ASMInstr> instrs = new ArrayList<>();
@@ -1066,7 +1066,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return allInstrs;
     }
 
-    public List<ASMInstr> visit(IRTemp node, ASMExprTemp dest) {
+    public List<ASMInstr> visit(IRTemp node, ASMExprRegReplaceable dest) {
         List<ASMInstr> instrs = new ArrayList<>();
         //r => MOV dest r
         instrs.add(new ASMInstr_2Arg(
@@ -1077,7 +1077,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
-    private List<ASMInstr> visitExpr(IRExpr e, ASMExprTemp tmp) {
+    private List<ASMInstr> visitExpr(IRExpr e, ASMExprRegReplaceable tmp) {
         return e.matchLow(
                 (IRBinOp n) -> visit(n, tmp),
                 (IRCall n) -> visit(n, tmp),

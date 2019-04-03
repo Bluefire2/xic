@@ -1,6 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
-import asm.ASMExprTemp;
+import asm.ASMExprRegReplaceable;
 import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
@@ -75,7 +75,7 @@ public class IRESeq extends IRExpr_c {
     }
 
     @Override
-    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprTemp t) {
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
         throw new IllegalAccessError("IRESeq should not be visited by ASM " +
                 "Translator");
     }
