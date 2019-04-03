@@ -963,11 +963,44 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
              * mov t, [b]
              * mov [a] t
              */
+            ASMExprTemp t = new ASMExprTemp(newTemp());
 
+            ASMExprMem destASM = asmMemTileOf((IRMem) dest, instrs);
+            ASMExprMem srcASM = asmMemTileOf((IRMem) src, instrs);
+
+            instrs.add(
+                    new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            t,
+                            srcASM
+                    )
+            );
+            instrs.add(
+                    new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            destASM,
+                            t
+                    )
+            );
         } else if (src instanceof IRMem || src instanceof IRTemp) {
             // case 2: the source is a mem or a temp
             // case 2.1: move [a], t -> mov [a], t
             // case 2.2: move t, [a] -> mov t, [a]
+
+            ASMExpr destASM = dest instanceof IRMem
+                    ? asmMemTileOf((IRMem) dest, instrs)
+                    : new ASMExprTemp(((IRTemp) dest).name());
+            ASMExpr srcASM = src instanceof IRMem
+                    ? asmMemTileOf((IRMem) src, instrs)
+                    : new ASMExprTemp(((IRTemp) src).name());
+
+            instrs.add(
+                    new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            destASM,
+                            srcASM
+                    )
+            );
         } else {
             // case 3 (fallback): the source is an expression that is not a mem or a temp
             // move x, e (where x is a temp or a mem)
