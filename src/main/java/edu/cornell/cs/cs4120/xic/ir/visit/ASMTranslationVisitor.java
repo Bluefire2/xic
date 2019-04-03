@@ -477,17 +477,21 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         node.left(), node.right(), dest, rightDestTemp, instrs
                 );
 
-                // mov dest, left
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOV,
-                        dest,
-                        dests.part1()
-                ));
-
-                // OP dest, right
+                if (dests.part1() instanceof ASMExprMem) {
+                    // since this is a binop with a target dest, we need to
+                    // move the left part to dest if the left part is a
+                    // memory expression
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            dest,
+                            dests.part1()
+                    ));
+                }
+                // else part1 is dest, using asmExprOfBinOp's postconditions
+                // OP left, right
                 instrs.add(new ASMInstr_2Arg(
                         ASMOpCode.asmOpCodeOf(node.opType()),
-                        dest,
+                        dests.part1(),
                         dests.part2()
                 ));
                 return instrs;
