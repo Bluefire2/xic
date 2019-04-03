@@ -5,10 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 //               Functional programming died for this
@@ -508,13 +505,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         List<ASMInstr> instrs = new ArrayList<>();
         int numargs = node.args().size();
         List<IRExpr> args;
-        List<ASMExprReg> argRegs = new ArrayList<>();
-        argRegs.add(new ASMExprReg("rdi"));
-        argRegs.add(new ASMExprReg("rsi"));
-        argRegs.add(new ASMExprReg("rdx"));
-        argRegs.add(new ASMExprReg("rcx"));
-        argRegs.add(new ASMExprReg("r8"));
-        argRegs.add(new ASMExprReg("r9"));
+        List<ASMExprReg> argRegs = Arrays.asList(
+                new ASMExprReg("rdi"),
+                new ASMExprReg("rsi"),
+                new ASMExprReg("rdx"),
+                new ASMExprReg("rcx"),
+                new ASMExprReg("r8"),
+                new ASMExprReg("r9")
+                 );
         //Args passed in rdi,rsi,rdx,rcx,r8,r9
         //Rest are passed on (stack in reverse order)
         if (numargs > 6) {
@@ -536,9 +534,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(i), tmp));
         }
         ASMExprTemp tmp = new ASMExprTemp(newTemp());
-        List<ASMInstr> visited = visitExpr(node.target(), tmp);
-        instrs.addAll(visited);
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, tmp));
+        if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
+        String name = ((IRName) node.target()).name();
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destreg,
                 new ASMExprReg("rax")));
         if (numargs > 6) {
@@ -698,6 +696,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     private int getNumParams(IRFuncDecl node) {
         String n = node.name();
+        System.out.println(n);
         String s = n.substring(n.lastIndexOf('_'));
         if (s.startsWith("t")) {
             int numrets = Integer.parseInt(s.substring(1, 2));
@@ -733,6 +732,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return ((IRSeq) node.body()).stmts().size() * 2;
     }
 
+    private boolean use_callee_save_regs(IRFuncDecl node) {
+        //TODO:
+        return false;
+    }
+
     //Current memory location in which to store extra return values
     private ASMExprTemp return_value_loc;
     private int return_value_loc_offset;
@@ -746,14 +750,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
                 new ASMExprReg("rsp")));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"),
-                new ASMExprConst(getNumTemps(node))));
+        ASMExprConst lvarspace = new ASMExprConst(getNumTemps(node)*8);
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
+        if (use_callee_save_regs(node)) {
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
+        }
 
         //Body
         HashMap<String, ASMExpr> argvars = new HashMap<>();
@@ -882,12 +888,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
 
         //Epilogue
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
-
+        if (use_callee_save_regs(node)) {
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
+        }
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
         ));
@@ -1001,6 +1009,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         else {
             throw new IllegalAccessError("only Mem and Temp allowed as destination");
         }
+        return null;
     }
 
     public List<ASMInstr> visit(IRReturn node) {
