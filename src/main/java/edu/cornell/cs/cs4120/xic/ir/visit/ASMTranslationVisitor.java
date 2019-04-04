@@ -62,18 +62,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         this.tempcounter = 0;
     }
 
-
-    //return if IRConst has 1,2,4,8
-    private boolean validAddrScale(IRConst i) {
+    /**
+     * Returns true if Const i is either 1, 2, 4, or 8. That is, if i is a
+     * valid address scale.
+     *
+     * @param i constant.
+     */
+    private static boolean validAddrScale(IRConst i) {
         return i.value() == 1
                 || i.value() == 2
                 || i.value() == 4
                 || i.value() == 8;
     }
 
-    //return if IRConst fits in 32 bits
-    private boolean validAddrDispl(IRConst i){
-        return i.value() == (long)((int)i.value());
+    /**
+     * Returns true if the value in i is actually an int (<= 32 bits). False
+     * if 64 bits are needed to represent i.
+     *
+     * @param i constant to check.
+     */
+    private static boolean isInt(IRConst i) {
+        try {
+            int _i = Math.toIntExact(i.value());
+        } catch (ArithmeticException e) {
+            // could not be cast
+            return false;
+        }
+        return true;
     }
 
     //helper function for tiling inside of mem
@@ -187,7 +202,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         //try to find O, and remove if found
                         for (int i = 0; i < flattened.size(); i ++) {
                             IRExpr curr = flattened.get(i);
-                            if (curr instanceof IRConst && validAddrDispl((IRConst) curr)) {
+                            // TODO: remove the isInt check; toASM handles it
+                            if (curr instanceof IRConst && isInt((IRConst) curr)) {
                                 offset = toASM((IRConst) curr, instrs);
                                 flattened.remove(i);
                                 break;
@@ -406,7 +422,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     private ASMExpr toASM(IRConst c, List<ASMInstr> instrs) {
         long val = c.value();
-        if ((int) val == val)
+        if (isInt(c))
             // const is actually less than 32 bits
             return new ASMExprConst(val);
         else {
