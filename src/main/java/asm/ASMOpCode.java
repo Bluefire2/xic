@@ -135,13 +135,11 @@ public enum ASMOpCode {
             case SUB:
                 return ASMOpCode.SUB;
             case MUL:
-                return ASMOpCode.IMUL;
             case HMUL:
-                return ASMOpCode.PMULHW;
+                return ASMOpCode.IMUL;
             case DIV:
-                return ASMOpCode.IDIV;
             case MOD:
-                return ASMOpCode.DIV;
+                return ASMOpCode.IDIV;
             case AND:
                 return ASMOpCode.AND;
             case OR:
