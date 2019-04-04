@@ -85,9 +85,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return i.value() == (int) i.value();
     }
 
-    //helper function for tiling inside of mem
-    //input a MUL binop that is inside mem
-    //output is list of instructions and an ASMExprMem
+    /**
+     * Helper function for tiling inside of nodes that are MEM(a * b) format
+     * Returns assembly instructions required to tile the children
+     * as well as the memory address expression for the root of the MEM tree
+     *
+     * @param b binop representing inside of MEM node - must be MUL operation
+     */
     Pair<List<ASMInstr>, ASMExprMem> tileMemMult(IRBinOp b) {
         IRExpr l = b.left();
         IRExpr r = b.right();
@@ -126,7 +130,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         )
                 ));
             }
-        } else { //[non-const * non-const]
+        } else {
+            //[non-const * non-const] => tile binop and put it in a temp
+            //result will be stored in index reg and treated as if no scale
             String t0 = newTemp();
             return new Pair<>(
                     b.accept(this, new ASMExprTemp(t0)),
@@ -135,8 +141,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
     }
 
-    // flatten add exprs
-    // example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
+    /**
+     * Returns a list of IR Expressions that result from flattening the
+     * add expressions at the root of the input IR tree. If the root
+     *
+     * example: (+ (+ a b) (+ c (* d e))) => (a,b,c,(* d e))
+     *
+     * @param b the input binop if not an add then the returned list will just contain itself
+     */
     List<IRExpr> flattenAdds(IRBinOp b) {
         List<IRExpr> exps = new ArrayList<>();
         if (b.opType() == OpType.ADD) {
@@ -158,11 +170,30 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return exps;
     }
 
-
-    //tile inside a mem expr
-    //[base + index * scale + displacement]
-    //base and index are temps
-    //scale is 1/2/4/8, displacement is 32 bits
+    /**
+     * For tiling MEM nodes as assembly memory addresses as opposed to instructions
+     * Format must match the following pattern:
+     * [base + index * scale + offset]
+     * where base and index are temps, scale is 1/2/4/8, and offset is 32 bits
+     * any (but not all) of the parts may be missing
+     *
+     * Table from https://cs.nyu.edu/courses/fall10/V22.0201-002/addressing_modes.pdf
+     * +-------------+----------------------------+
+     * | Mode        | Intel                      |
+     * +-------------+----------------------------+
+     * | Absolute    | MOV EAX, [0100]            |
+     * | Register    | MOV EAX, [ESI]             |
+     * | Reg + Off   | MOV EAX, [EBP-8]           |
+     * | R*W + Off   | MOV EAX, [EBX*4 + 0100]    |
+     * | B + R*W + O | MOV EAX, [EDX + EBX*4 + 8] |
+     * +-------------+----------------------------+
+     * effectively, missing parts default to 0 except for scale which defaults to 1
+     *
+     * Returns assembly instructions required to tile the children
+     * as well as the memory address expression for the root of the MEM tree
+     *
+     * @param m input MEM node
+     */
     Pair<List<ASMInstr>, ASMExprMem> tileMemExpr(IRMem m) {
         return m.expr().matchLow(
                 (IRBinOp e) -> {
@@ -220,10 +251,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         //if 1 remaining temp, B will be a temp
                         //if 2+ remaining temps, we need additional instructions
                         // to calculate and save results to a temp which B will use
-                        // TODO: I don't think we need this size != 0 check
-                        //  since the postconditions of flattenAdds (see the
-                        //  code flow) makes sure the returned list is never
-                        //  empty
+
+                        //size check because objects that match with
+                        //offset, index, scale were removed
                         if (flattened.size() != 0){
                             IRExpr remaining = flattened.stream()
                                     .reduce((a, b) -> new IRBinOp(
@@ -303,7 +333,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
-    // TODO: docstring
+    /**
+     * Returns a lambda which tiles the IRExpr input as a memory access
+     * The lambda takes in the inside of an IRMem (some IRExpr e) and returns a pair:
+     * instructions storing the result of e in a temp t, and [t]
+     *
+     * @param v the visitor that is used to translate the lambda input to assembly
+     */
     private <T extends IRExpr> Function<T, Pair<List<ASMInstr>, ASMExprMem>>
                                         exprToTileMem(ASMTranslationVisitor v) {
         return exp -> {
