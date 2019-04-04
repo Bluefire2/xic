@@ -82,13 +82,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param i constant to check.
      */
     private static boolean isInt(IRConst i) {
-        try {
-            int _i = Math.toIntExact(i.value());
-        } catch (ArithmeticException e) {
-            // could not be cast
-            return false;
-        }
-        return true;
+        return i.value() == (int) i.value();
     }
 
     //helper function for tiling inside of mem
