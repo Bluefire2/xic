@@ -466,8 +466,67 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case HMUL:
                 break;
             case DIV:
-            case MOD:
-                break;
+            case MOD: {
+                // idiv x -> rax = rax / x, rdx = rax % x
+                // so we have to do a bit of gymnastics to get this to work
+
+                // we want to do left / right
+                // rax <- left
+                // t <- right
+                ASMExprReg leftDestTemp = new ASMExprReg("rax"); // rax
+                ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp()); // t
+                Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
+                        node.left(), node.right(),
+                        leftDestTemp, rightDestTemp,
+                        instrs
+                );
+
+                if (dests.part1() instanceof ASMExprMem) {
+                    // left needs to be moved into rax
+                    instrs.add(
+                            new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    leftDestTemp,
+                                    dests.part1()
+                            )
+                    );
+                }
+
+                if (dests.part2() instanceof ASMExprConst) {
+                    // right needs to be moved into t
+                    instrs.add(
+                            new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    rightDestTemp,
+                                    dests.part2()
+                            )
+                    );
+                }
+
+                // now we do idiv t
+                instrs.add(
+                        new ASMInstr_1Arg(
+                                ASMOpCode.IDIV,
+                                rightDestTemp
+                        )
+                );
+
+                // finally, move the result into dest
+                // if we want the quotient, we take rax
+                // if we want the remainder, we take rdx
+
+                ASMExprReg result = node.opType() == OpType.DIV ?
+                        new ASMExprReg("rax") : new ASMExprReg("rdx");
+
+                instrs.add(
+                        new ASMInstr_2Arg(
+                                ASMOpCode.MOV,
+                                dest,
+                                result
+                        )
+                );
+                return instrs;
+            }
             case EQ:
             case NEQ:
             case LT:
