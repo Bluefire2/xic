@@ -450,7 +450,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         switch (node.opType()) {
             case ADD:
             case SUB:
-            case MUL:
             case LSHIFT:
             case RSHIFT:
             case ARSHIFT:
@@ -488,6 +487,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ));
                 return instrs;
             }
+            case MUL:
             case HMUL:
             case DIV:
             case MOD: {
@@ -495,7 +495,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // imul x -> rdx:rax = rax * x
                 // so we have to do a bit of gymnastics to get this to work
 
-                boolean useRAX = node.opType() == OpType.DIV;
+                boolean useRAX = node.opType() == OpType.DIV
+                        || node.opType() == OpType.MUL;
 
                 // we want to do left / right
                 // rax <- left
@@ -510,49 +511,31 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
                 if (dests.part1() instanceof ASMExprMem) {
                     // left needs to be moved into rax
-                    instrs.add(
-                            new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    leftDestTemp,
-                                    dests.part1()
-                            )
-                    );
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, leftDestTemp, dests.part1()
+                    ));
                 }
 
                 if (dests.part2() instanceof ASMExprConst) {
                     // right needs to be moved into t
-                    instrs.add(
-                            new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    rightDestTemp,
-                                    dests.part2()
-                            )
-                    );
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, rightDestTemp, dests.part2()
+                    ));
                 }
 
-                // now we do idiv t
-                instrs.add(
-                        new ASMInstr_1Arg(
-                                // this takes care of choosing the opcode
-                                ASMOpCode.asmOpCodeOf(node.opType()),
-                                rightDestTemp
-                        )
-                );
+                // now we do idiv/imul t
+                instrs.add(new ASMInstr_1Arg(
+                        // this takes care of choosing the opcode
+                        ASMOpCode.asmOpCodeOf(node.opType()), rightDestTemp
+                ));
 
                 // finally, move the result into dest
-                // if we want the quotient, we take rax
+                // if we want the quotient or the mul result, we take rax
                 // if we want the remainder or the hmul result, we take rdx
-
-                ASMExprReg result = useRAX ?
-                        new ASMExprReg("rax") : new ASMExprReg("rdx");
-
-                instrs.add(
-                        new ASMInstr_2Arg(
-                                ASMOpCode.MOV,
-                                dest,
-                                result
-                        )
-                );
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV, dest,
+                        useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
+                ));
                 return instrs;
             }
             case EQ:
