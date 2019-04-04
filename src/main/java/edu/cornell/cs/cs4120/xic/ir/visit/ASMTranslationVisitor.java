@@ -792,9 +792,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @return number of local variables
      */
     private int getNumTemps(IRFuncDecl node) {
-        //TODO: return actual number of temps instead of max
-        if (!(node.body() instanceof IRSeq)) return 2;
-        return ((IRSeq) node.body()).stmts().size() * 2;
+        HashSet<String> tempnames = new HashSet<>();
+        List<IRNode> children = node.aggregateChildren(new ListChildrenVisitor());
+        for (IRNode n : children) {
+            if (n instanceof IRTemp) {
+                String name = ((IRTemp) n).name();
+                if (!tempnames.contains(name)) {
+                    tempnames.add(name);
+                }
+            }
+        }
+        return tempnames.size();
     }
 
     /**
@@ -823,7 +831,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
                 new ASMExprReg("rsp")));
         ASMExprConst lvarspace = new ASMExprConst(getNumTemps(node)*8);
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
+        if (lvarspace.getVal() > 0)
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
         if (use_callee_save_regs(node)) {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
@@ -967,8 +976,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
         }
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD,
-                new ASMExprReg("rbp"), lvarspace));
+        if (lvarspace.getVal() > 0)
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
         ));
