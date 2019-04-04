@@ -464,11 +464,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 return instrs;
             }
             case HMUL:
-                break;
             case DIV:
             case MOD: {
                 // idiv x -> rax = rax / x, rdx = rax % x
+                // imul x -> rdx:rax = rax * x
                 // so we have to do a bit of gymnastics to get this to work
+
+                boolean useRAX = node.opType() == OpType.DIV;
 
                 // we want to do left / right
                 // rax <- left
@@ -506,16 +508,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // now we do idiv t
                 instrs.add(
                         new ASMInstr_1Arg(
-                                ASMOpCode.IDIV,
+                                // this takes care of choosing the opcode
+                                ASMOpCode.asmOpCodeOf(node.opType()),
                                 rightDestTemp
                         )
                 );
 
                 // finally, move the result into dest
                 // if we want the quotient, we take rax
-                // if we want the remainder, we take rdx
+                // if we want the remainder or the hmul result, we take rdx
 
-                ASMExprReg result = node.opType() == OpType.DIV ?
+                ASMExprReg result = useRAX ?
                         new ASMExprReg("rax") : new ASMExprReg("rdx");
 
                 instrs.add(
