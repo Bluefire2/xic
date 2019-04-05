@@ -1,5 +1,6 @@
 package cli;
 
+import asm.ASMInstr;
 import ast.ASTNode;
 import ast.Printable;
 import ast.visit.IRTranslationVisitor;
@@ -9,10 +10,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
-import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.ConstantFoldVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
@@ -33,6 +31,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+
 /*
 ██╗  ██╗██╗     ██████╗ ██████╗ ███╗   ███╗██████╗ ██╗██╗     ███████╗██████╗
 ╚██╗██╔╝██║    ██╔════╝██╔═══██╗████╗ ████║██╔══██╗██║██║     ██╔════╝██╔══██╗
@@ -94,6 +94,10 @@ public class CLI implements Runnable {
             description = "Specify where to place generated diagnostic files.")
     private Path path;
 
+    @Option (names = "-d", defaultValue = ".",
+            description = "Specify where to place generated assembly files.")
+    private Path asmPath;
+
     @Option (names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
     private Path sourcepath;
@@ -101,6 +105,11 @@ public class CLI implements Runnable {
     @Option (names = "-libpath", defaultValue = ".",
             description = "Specify where to find input library/interface files.")
     private Path libpath;
+
+    @Option (names = "-target", defaultValue = "linux",
+            description = "Specify the operating system for which to generate code." +
+                    "Supported options: linux.")
+    private boolean optAsmGen = false;
 
     @Override
     public void run() {
@@ -120,6 +129,9 @@ public class CLI implements Runnable {
                 }
                 if (optIRRun) {
                     IRRun();
+                }
+                if (optAsmGen) {
+                    asmGen();
                 }
             } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -285,6 +297,31 @@ public class CLI implements Runnable {
             } finally {
                 // reset the standard output stream
                 System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+            }
+        }
+    }
+
+    private void asmGen() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(asmPath.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".s")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                IRNode foldedIR = buildIR(f, fileReader);
+                ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
+                List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
+                for (ASMInstr i : instrs) {
+                    fileWriter.write(i.toString());
+                }
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
