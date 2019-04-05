@@ -794,6 +794,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     /**
+     * Remove all non-digit characters from a string, and return the integer
+     * value of the result.
+     * @param s string containing one or more digit
+     * @return number contained within the string
+     */
+    private int numFromString(String s) {
+        return Integer.parseInt(s.replaceAll("\\D+", ""));
+    }
+
+    /**
      * Return the number of parameters that the function declaration takes in.
      * @param node IRFuncDecl instance
      * @return number of parameters
@@ -818,7 +828,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         String s = n.substring(n.lastIndexOf('_'));
         if (s.startsWith("p")) return 0;
         else if (s.startsWith("t")) {
-            return Integer.parseInt(s.replaceAll("\\D+", ""));
+            return numFromString(s);
         }
         else return 1;
     }
@@ -904,17 +914,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         //If function has more than 2 returns
                         // first arg is storage location
                         if (getNumReturns(node) > 2) {
-                            argnum = Integer.parseInt(
-                                    destname.replaceAll("\\D+",
-                                            "")) - 1;
+                            argnum = numFromString(destname) - 1;
                             if (argnum == -1)
                                 return_value_loc = new ASMExprTemp(srcname);
                         }
                         //Args passed in rdi,rsi,rdx,rcx,r8,r9
                         //Rest are passed on (stack in reverse order)
-                        else argnum = Integer.parseInt(
-                                destname.replaceAll("\\D+",
-                                        ""));
+                        else argnum = numFromString(destname);
                         if (argnum == 0)
                             argvars.put(srcname, new ASMExprReg("rdi"));
                         else if (argnum == 1)
