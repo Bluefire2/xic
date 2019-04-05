@@ -95,7 +95,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     Pair<List<ASMInstr>, ASMExprMem> tileMemMult(IRBinOp b) {
         IRExpr l = b.left();
         IRExpr r = b.right();
-        // TODO: repetitive code in if and first elseif; can we refactor?
         if (l instanceof IRConst && validAddrScale((IRConst) l)) {
             if (r instanceof IRTemp) { //[C * T] => [T * C]
                 List<ASMInstr> instrs = new ArrayList<>();
@@ -133,11 +132,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         } else {
             //[non-const * non-const] => tile binop and put it in a temp
             //result will be stored in index reg and treated as if no scale
-            String t0 = newTemp();
-            return new Pair<>(
-                    b.accept(this, new ASMExprTemp(t0)),
-                    new ASMExprMem(new ASMExprTemp(t0))
-            );
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            return new Pair<>(b.accept(this, t), new ASMExprMem(t));
         }
     }
 
