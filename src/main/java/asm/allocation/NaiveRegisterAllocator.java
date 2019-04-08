@@ -16,10 +16,19 @@ public class NaiveRegisterAllocator {
 
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
-        //TODO
-        //count regs
-        //increment RSP
-        //MOV RSP to some register
+        int num_temps = count_temps(input);
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.ADD,
+                new ASMExprReg("rsp"),
+                new ASMExprConst(num_temps * 8))
+        );
+        //Unused regs - rbx, r7, r10-r15
+        //initial SP moved to rbx
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV,
+                new ASMExprReg("rbx"),
+                new ASMExprReg("rsp"))
+        );
         //generate code for instrs, modifying the tempMap
         return instrs;
     }
