@@ -1,5 +1,6 @@
 package asm.allocation;
-import asm.ASMInstr;
+import asm.*;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +25,16 @@ public class NaiveRegisterAllocator {
     }
 
     public int count_temps(List<ASMInstr> input){
-        return 0; //TODO
+        int count = 0;
+        for (ASMInstr instr : input) {
+            if (instr instanceof ASMInstr_2Arg) {
+                ASMInstr_2Arg i2a = (ASMInstr_2Arg) instr;
+                if (i2a.getOpCode() == ASMOpCode.MOV) {
+                    ASMExpr dest = i2a.getDest();
+                    if (dest instanceof ASMExprTemp) count++;
+                }
+            }
+        }
+        return count;
     }
 }

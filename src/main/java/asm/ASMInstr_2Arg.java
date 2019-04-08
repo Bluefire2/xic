@@ -26,4 +26,8 @@ public class ASMInstr_2Arg extends ASMInstr {
         }
         return false;
     }
+
+    public ASMExpr getDest() {
+        return dest;
+    }
 }
