@@ -20,12 +20,117 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     public RegAllocationNaiveVisitor() {
     }
 
+    /**
+     * Returns true if instruction ins is a function label.
+     *
+     * @param ins instruction to test.
+     */
+    private boolean instrIsFunction(ASMInstr ins) {
+        return ins instanceof ASMInstrLabel && ((ASMInstrLabel) ins).isFunction();
+    }
+
+    /**
+     * Returns true if instruction ins is of the form `sub rsp, imm` where
+     * imm can be any constant.
+     *
+     * @param ins instruction to test.
+     */
+    private boolean instrIsSubRSPImm(ASMInstr ins) {
+        if (ins instanceof ASMInstr_2Arg) {
+            ASMInstr_2Arg ins2 = (ASMInstr_2Arg) ins;
+            return ins2.getOpCode() == ASMOpCode.SUB
+                    && ins2.getDest().equals(new ASMExprReg("rsp"))
+                    && ins2.getSrc() instanceof ASMExprConst;
+        }
+        return false;
+    }
+
+    /**
+     * Returns a list of instructions with the repetitive `sub rsp, imm` in
+     * the list of instructions func replaced by a single `sub rsp, totalSub`
+     * where `totalSub` is the sum of imms in all repetitive `sub rsp, imm`.
+     * The input func is not changed.
+     *
+     * @param func List of instructions signifying a function. The first
+     *             instruction must be the function's label.
+     */
+    private List<ASMInstr> removeRepetitiveRSPInFunc(List<ASMInstr> func) {
+        // calculate the total amount of rsp subtractions in
+        // input[startFunc:endFunc] (inclusive, exclusive)
+        long totalSub = 0;
+        for (ASMInstr ins : func) {
+            if (instrIsSubRSPImm(ins)) {
+                // sub rsp, imm
+                ASMInstr_2Arg ins2 = (ASMInstr_2Arg) ins;
+                totalSub += ((ASMExprConst) ins2.getSrc()).getVal();
+            }
+        }
+
+        List<ASMInstr> reducedFunc = new ArrayList<>();
+        // loop again, replace the first sub rsp, imm with sub rsp, totalSub
+        // and delete the sub rsps later in the function
+        boolean addSubRSP = true;
+        for (ASMInstr ins : func) {
+            if (instrIsSubRSPImm(ins)) {
+                if (addSubRSP) {
+                    // don't delete this sub rsp, replace by sub rsp, totalSub
+                    reducedFunc.add(new ASMInstr_2Arg(
+                            ASMOpCode.SUB, new ASMExprReg("rsp"),
+                            new ASMExprConst(totalSub)
+                    ));
+                    addSubRSP = false; // next sub rsp will be deleted
+                }
+                // else don't add this sub rsp to copy
+            } else {
+                reducedFunc.add(ins);
+            }
+        }
+        return reducedFunc;
+    }
+
+    /**
+     * Combines repetitive `sub rsp, imm` in between functions inside the
+     * list of instructions ins. The input instrs is not changed.
+     *
+     * @param instrs instructions to optimize.
+     */
+    private List<ASMInstr> reduceSubRSPImmInstrs(List<ASMInstr> instrs) {
+        List<ASMInstr> optimInstrs = new ArrayList<>();
+        for (int i = 0; i < instrs.size();) {
+            ASMInstr insi = instrs.get(i);
+            if (instrIsFunction(insi)) {
+                int startFunc = i, endFunc = i+1;
+                for (int j = startFunc+1; j < instrs.size(); ++j) {
+                    ASMInstr insj = instrs.get(j);
+                    if (j == instrs.size() - 1) {
+                        // reached the end of the file
+                        endFunc = instrs.size();
+                        break;
+                    } else if (instrIsFunction(insj)) {
+                        endFunc = j;
+                        break;
+                    }
+                }
+                optimInstrs.addAll(removeRepetitiveRSPInFunc(
+                        instrs.subList(startFunc, endFunc)
+                ));
+                i = endFunc;
+            } else {
+                // instruction not a function
+                optimInstrs.add(insi);
+                i++;
+            }
+        }
+        return optimInstrs;
+    }
+
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
-        return instrs;
+        // Collect all sub rsp, imm in a function in a single instr
+        return reduceSubRSPImmInstrs(instrs);
     }
 
     public int count_temps(List<ASMInstr> input){
@@ -192,7 +297,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             );
         } else if (expr instanceof ASMExprBinOpMult) {
             // visit both child and wrap inside a binop
-            return new ASMExprBinOpAdd(
+            return new ASMExprBinOpMult(
                     replaceTempsWithRegs(((ASMExprBinOpMult) expr).getLeft(),
                             tempsToRegs),
                     replaceTempsWithRegs(((ASMExprBinOpMult) expr).getRight(),
