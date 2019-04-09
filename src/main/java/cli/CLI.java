@@ -1,6 +1,7 @@
 package cli;
 
 import asm.ASMInstr;
+import asm.visit.RegAllocationNaiveVisitor;
 import ast.ASTNode;
 import ast.Printable;
 import ast.visit.IRTranslationVisitor;
@@ -313,7 +314,9 @@ public class CLI implements Runnable {
 
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
+                RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
+                instrs = regVisitor.visit(instrs);
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString());
                 }
