@@ -4,13 +4,15 @@ import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
     // caller-saved and callee-saved regs that can be used for data transfer
-    private static final Set<String> AVAIL_DATA_REGS = Set.of(
+    private static final Set<String> AVAIL_DATA_REGS = Stream.of(
             "rbx", "r10", "r11", "r12", "r13", "r14", "r15"
-    );
+    ).collect(Collectors.toSet());
     // The number of callee-saved regs pushed onto stack in the IR -> ASM
     // translation phase
     private static final int N_CALLEE_SAVE_REGS_PUSH = 5;
