@@ -22,6 +22,10 @@ public class ASMInstr_1Arg extends ASMInstr {
         return v.visit(this);
     }
 
+    public ASMExpr getArg() {
+        return arg;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof ASMInstr_1Arg) {
