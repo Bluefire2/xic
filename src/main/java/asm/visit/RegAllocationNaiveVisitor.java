@@ -82,20 +82,21 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                                            Class<? extends ASMExpr> c) {
         ASMExpr left = expr.getLeft();
         ASMExpr right = expr.getRight();
-        List<String> temps = new ArrayList<>();
+        List<String> objStrings = new ArrayList<>();
         // check the left for temps, then check the right
         if (c.isInstance(left)) {
-            // left is an instance of class c
-            temps.add(((ASMExprTemp) left).getName());
+            // left is an instance of class c. After casting to c, toString
+            // will return the temp/reg name or expr string representation
+            objStrings.add(c.cast(left).toString());
         } else if (left instanceof ASMExprBinOp) {
-            temps.addAll(getObjectsInBinOp((ASMExprBinOp) left, c));
+            objStrings.addAll(getObjectsInBinOp((ASMExprBinOp) left, c));
         }
         if (c.isInstance(right)) {
-            temps.add(((ASMExprTemp) right).getName());
+            objStrings.add(c.cast(right).toString());
         } else if (right instanceof ASMExprBinOp) {
-            temps.addAll(getObjectsInBinOp((ASMExprBinOp) right, c));
+            objStrings.addAll(getObjectsInBinOp((ASMExprBinOp) right, c));
         }
-        return temps;
+        return objStrings;
     }
 
     /**
