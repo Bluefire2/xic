@@ -107,10 +107,10 @@ public class CLI implements Runnable {
             description = "Specify where to find input library/interface files.")
     private Path libpath;
 
-    @Option (names = "-target", defaultValue = "linux",
+    @Option (names = {"-target"},
             description = "Specify the operating system for which to generate code." +
                     "Supported options: linux.")
-    private boolean optAsmGen = false;
+    private String target = null;
 
     @Override
     public void run() {
@@ -131,7 +131,7 @@ public class CLI implements Runnable {
                 if (optIRRun) {
                     IRRun();
                 }
-                if (optAsmGen) {
+                if (target != null && target.equals("linux")) {
                     asmGen();
                 }
             } else {
