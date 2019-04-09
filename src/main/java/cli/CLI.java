@@ -316,7 +316,7 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
-                instrs = regVisitor.visit(instrs);
+                instrs = regVisitor.allocate(instrs);
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString());
                 }
