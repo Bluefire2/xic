@@ -25,4 +25,11 @@ public class ASMInstrLabel extends ASMInstr {
     public List<ASMInstr> accept(RegAllocationNaiveVisitor v) {
         return v.visit(this);
     }
+
+    /**
+     * Returns true if this label is for a function, false otherwise.
+     */
+    public boolean isFunction() {
+        return name.startsWith("_I"); // based on the ABI spec
+    }
 }
