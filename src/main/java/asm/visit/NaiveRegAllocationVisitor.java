@@ -1,16 +1,16 @@
-package asm.allocation;
+package asm.visit;
+
 import asm.*;
-import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class NaiveRegisterAllocator {
+public class NaiveRegAllocationVisitor {
     HashMap<String, Integer> tempMap;
 
 
-    public NaiveRegisterAllocator() {
+    public NaiveRegAllocationVisitor() {
         tempMap = new HashMap<>();
     }
 
