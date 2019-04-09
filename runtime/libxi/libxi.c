@@ -58,7 +58,7 @@ static xistring mkString(const char* in) {
     xistring out = mkArray(len * sizeof(xiint), len);
 
     for (c = 0; c < len; ++c)
-        out[c] = (unsigned char)in[c];
+        out[c] = in[c];
     return out;
 }
 
