@@ -312,12 +312,22 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         if (r instanceof ASMExprTemp) {
             ASMExpr srcMem = getMemForTemp(((ASMExprTemp) r).getName(), instrs);
             usedRegs.addAll(getRegsInExpr(srcMem));
-            src = new ASMExprReg(getAvailRegs(usedRegs).get(0));
+            List<String> availRegs = getAvailRegs(usedRegs);
+            if (availRegs.size() == 0){
+                throw new InternalCompilerError("Allocating regs naively: not " +
+                        "enough regs for RHS of 2 argument expr");
+            }
+            src = new ASMExprReg(availRegs.get(0));
             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
         } else if (r instanceof ASMExprMem) {
             ASMExpr srcMem = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
             usedRegs.addAll(getRegsInExpr(srcMem));
-            src = new ASMExprReg(getAvailRegs(usedRegs).get(0));
+            List<String> availRegs = getAvailRegs(usedRegs);
+            if (availRegs.size() == 0){
+                throw new InternalCompilerError("Allocating regs naively: not " +
+                        "enough regs for RHS of 2 argument expr");
+            }
+            src = new ASMExprReg(availRegs.get(0));
             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
         } else {
             src = r;
