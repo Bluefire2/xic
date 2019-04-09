@@ -687,17 +687,22 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
         if (node.getRhs() instanceof ExprFunctionCall) {
             for (int i = 0; i < decls.size(); ++i) {
-                Pair<String, TypeTTau> decl =
-                        ((TypeDeclVar) decls.get(i)).getPair();
-                // Initialize the ith declaration
-                if (decl.part2() instanceof TypeTTauArray) {
-                    declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                TypeDecl di = decls.get(i);
+                // if di is an underscore, the _RETi is ignored, i.e., don't
+                // do a move operation
+                if (!(di.typeOf() instanceof TypeTUnit)) {
+                    // di is a var
+                    Pair<String, TypeTTau> decl = ((TypeDeclVar) di).getPair();
+                    // Initialize the ith declaration
+                    if (decl.part2() instanceof TypeTTauArray) {
+                        declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                    }
+                    // Move return value i to this declaration
+                    moveRetIR.add(new IRMove(
+                            new IRTemp(decl.part1()),
+                            new IRTemp(returnValueName(i))
+                    ));
                 }
-                // Move return value i to this declaration
-                moveRetIR.add(new IRMove(
-                        new IRTemp(decl.part1()),
-                        new IRTemp(returnValueName(i))
-                ));
             }
 
             return new IRSeq(
