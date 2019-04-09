@@ -339,4 +339,21 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         ));
         return instrs;
     }
+
+    public List<ASMInstr> visit(List<ASMInstr> instrs) {
+        List<ASMInstr> ret = new ArrayList<>();
+        for (ASMInstr instr : instrs) {
+            if (instr instanceof ASMInstr_0Arg) {
+                ret.addAll(visit((ASMInstr_0Arg) instr));
+            }
+            else if (instr instanceof ASMInstr_1Arg) {
+                ret.addAll(visit((ASMInstr_1Arg) instr));
+            }
+            else {
+                ret.addAll(visit((ASMInstr_2Arg) instr));
+            }
+        }
+        return ret;
+    }
+
 }
