@@ -6,11 +6,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class NaiveRegAllocationVisitor {
+public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     HashMap<String, Integer> tempMap;
 
 
-    public NaiveRegAllocationVisitor() {
+    public RegAllocationNaiveVisitor() {
         tempMap = new HashMap<>();
     }
 
@@ -45,5 +45,27 @@ public class NaiveRegAllocationVisitor {
             }
         }
         return count;
+    }
+
+    @Override
+    public List<ASMInstr> visit(ASMInstrLabel i) {
+        List<ASMInstr> l = new ArrayList<>();
+        l.add(i);
+        return l;
+    }
+
+    @Override
+    public List<ASMInstr> visit(ASMInstr_0Arg i) {
+        return null;
+    }
+
+    @Override
+    public List<ASMInstr> visit(ASMInstr_1Arg i) {
+        return null;
+    }
+
+    @Override
+    public List<ASMInstr> visit(ASMInstr_2Arg i) {
+        return null;
     }
 }

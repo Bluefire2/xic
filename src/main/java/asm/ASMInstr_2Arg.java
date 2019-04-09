@@ -1,5 +1,9 @@
 package asm;
 
+import asm.visit.RegAllocationNaiveVisitor;
+
+import java.util.List;
+
 public class ASMInstr_2Arg extends ASMInstr {
     private ASMExpr dest;
     private ASMExpr src;
@@ -14,6 +18,11 @@ public class ASMInstr_2Arg extends ASMInstr {
     public String toString() {
         return INDENT_TAB + formatOpCode() + " " +
                 dest.toString() + ", " + src.toString();
+    }
+
+    @Override
+    public List<ASMInstr> accept(RegAllocationNaiveVisitor v) {
+        return v.visit(this);
     }
 
     @Override
