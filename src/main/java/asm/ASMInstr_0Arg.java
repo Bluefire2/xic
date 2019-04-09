@@ -14,4 +14,10 @@ public class ASMInstr_0Arg extends ASMInstr {
     public List<ASMInstr> accept(RegAllocationNaiveVisitor v) {
         return v.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return INDENT_TAB + formatOpCode();
+    }
+
 }

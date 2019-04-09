@@ -869,6 +869,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         int numparams = getNumParams(node);
         return_value_loc_offset = 0;
 
+        instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),

@@ -318,7 +318,7 @@ public class CLI implements Runnable {
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
                 instrs = regVisitor.allocate(instrs);
                 for (ASMInstr i : instrs) {
-                    fileWriter.write(i.toString());
+                    fileWriter.write(i.toString() + "\n");
                 }
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);

@@ -301,7 +301,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         if (l instanceof ASMExprTemp) {//if LHS is a temp it gets turned into a mem
             dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
         } else if (l instanceof ASMExprMem) {// if LHS is a mem it gets turned into a mem
-            dest = convertTempsToRegsInMem((ASMExprMem) r, instrs, new ArrayList<>());
+            dest = convertTempsToRegsInMem((ASMExprMem) l, instrs, new ArrayList<>());
         } else {//otherwise keep it
             dest = l;
         }
