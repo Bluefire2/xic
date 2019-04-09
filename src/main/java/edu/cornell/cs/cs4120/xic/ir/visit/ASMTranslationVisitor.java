@@ -637,7 +637,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.addAll(visited);
             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(i), tmp));
         }
-        ASMExprTemp tmp = new ASMExprTemp(newTemp());
         if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
         String name = ((IRName) node.target()).name();
         instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
@@ -853,7 +852,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * Returns true if the function declaration uses one or more of the
      * callee-save registers: rbx, r12, r13, r14, r15. Rbp not included since
      * it is saved by every function regardless.
-     * @param node
+     * @param node function declaration node
      * @return true if node uses callee-save registers, false otherwise
      */
     private boolean use_callee_save_regs(IRFuncDecl node) {
@@ -875,9 +874,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
                 new ASMExprReg("rsp")));
         ASMExprConst lvarspace = new ASMExprConst(getNumTemps(node) * 8);
-        if (lvarspace.getVal() > 0) {
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
-        }
+        // TODO: don't preallocate temps on the stack in this translation pass
+//        if (lvarspace.getVal() > 0) {
+//            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
+//        }
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
         if (use_callee_save_regs(node)) {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
@@ -917,25 +917,25 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         //Args passed in rdi,rsi,rdx,rcx,r8,r9
                         //Rest are passed on (stack in reverse order)
                         else argnum = numFromString(destname);
-                        if (argnum == 0)
-                            argvars.put(srcname, new ASMExprReg("rdi"));
-                        else if (argnum == 1)
-                            argvars.put(srcname, new ASMExprReg("rsi"));
-                        else if (argnum == 2)
-                            argvars.put(srcname, new ASMExprReg("rdx"));
-                        else if (argnum == 3)
-                            argvars.put(srcname, new ASMExprReg("rcx"));
-                        else if (argnum == 4)
-                            argvars.put(srcname, new ASMExprReg("r8"));
-                        else if (argnum == 5)
-                            argvars.put(srcname, new ASMExprReg("r9"));
-                        else {
-                            int stackloc = (numparams - argnum - 5) * 8;
-                            argvars.put(srcname,
-                                    new ASMExprMem(new ASMExprBinOpAdd(
-                                            new ASMExprReg("rbp"),
-                                            new ASMExprConst(stackloc))));
-
+                        switch(argnum) {
+                            case 0: argvars.put(srcname, new ASMExprReg("rdi"));
+                                break;
+                            case 1: argvars.put(srcname, new ASMExprReg("rsi"));
+                                break;
+                            case 2: argvars.put(srcname, new ASMExprReg("rdx"));
+                                break;
+                            case 3: argvars.put(srcname, new ASMExprReg("rcx"));
+                                break;
+                            case 4: argvars.put(srcname, new ASMExprReg("r8"));
+                                break;
+                            case 5: argvars.put(srcname, new ASMExprReg("r9"));
+                                break;
+                            default:
+                                int stackloc = (numparams - argnum - 5) * 8;
+                                argvars.put(srcname,
+                                        new ASMExprMem(new ASMExprBinOpAdd(
+                                                new ASMExprReg("rbp"),
+                                                new ASMExprConst(stackloc))));
                         }
                     } else {
                         if (argvars.containsKey(destname)
@@ -1012,9 +1012,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
             instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
         }
-        if (lvarspace.getVal() > 0) {
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
-        }
+//        if (lvarspace.getVal() > 0) {
+//            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
+//        }
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
         ));

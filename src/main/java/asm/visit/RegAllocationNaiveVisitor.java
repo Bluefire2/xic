@@ -6,14 +6,16 @@ import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import java.util.*;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
-    private Stack<HashMap<String, Integer>> tempMapStack;
+    private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
     // caller-saved and callee-saved regs that can be used for data transfer
     private static final Set<String> AVAIL_DATA_REGS = Set.of(
             "rbx", "r10", "r11", "r12", "r13", "r14", "r15"
     );
+    // The number of callee-saved regs pushed onto stack in the IR -> ASM
+    // translation phase
+    private static final int N_CALLEE_SAVE_REGS_PUSH = 5;
 
     public RegAllocationNaiveVisitor() {
-        tempMapStack = new Stack<>();
     }
 
     public List<ASMInstr> allocate(List<ASMInstr> input){
@@ -41,8 +43,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     @Override
     public List<ASMInstr> visit(ASMInstrLabel i) {
         if (i.isFunction()) {
-            // this label is a function, push a new hashmap
-            tempMapStack.push(new HashMap<>());
+            // this label is a function, start a new hashmap
+            tempToStackAddrMap.clear();
         }
         List<ASMInstr> l = new ArrayList<>();
         l.add(i);
@@ -187,12 +189,11 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param instrs instructions to add to.
      */
     private ASMExprMem getMemForTemp(String t, List<ASMInstr> instrs) {
-        HashMap<String, Integer> currMap = tempMapStack.peek();
         Integer k_t;
-        if (currMap.containsKey(t)) {
+        if (tempToStackAddrMap.containsKey(t)) {
             // mapping to hardware stack present (t -> k_t), replace t
             // with a [rbp - k_t]
-            k_t = currMap.get(t);
+            k_t = tempToStackAddrMap.get(t);
         } else {
             // mapping to hardware stack doesn't exist, dec rsp, create
             // mapping the stack t -> k_t, replace temp with a [rbp - k_t]
@@ -205,8 +206,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // k_t is negative because the stack grows downwards.
             // TODO: this will change if we save callee-save registers in
             //  IR to ASM translation.
-            k_t = -((currMap.size() + 1) * 8);
-            currMap.put(t, k_t);
+            k_t = -((tempToStackAddrMap.size() + N_CALLEE_SAVE_REGS_PUSH + 1) * 8);
+            tempToStackAddrMap.put(t, k_t);
         }
         return new ASMExprMem(new ASMExprBinOpAdd(
                 new ASMExprReg("rbp"), new ASMExprConst(k_t)
@@ -222,7 +223,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      */
     private ASMExpr convertTempsToRegsInMem(ASMExprMem m,
                                                List<ASMInstr> instrs) {
-        HashMap<String, Integer> currMap = tempMapStack.peek();
         // Get potential mapping from temps to regs
         Map<String, String> tempsToRegs = getTempToRegMappingInMem(m);
 
@@ -230,7 +230,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         for (Map.Entry<String, String> entry : tempsToRegs.entrySet()) {
             // the temp t must exist in the currMap because t is
             // referenced inside this mem expression. Get the k_t
-            Integer k_t = currMap.get(entry.getKey());
+            Integer k_t = tempToStackAddrMap.get(entry.getKey());
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprReg(entry.getValue()),
