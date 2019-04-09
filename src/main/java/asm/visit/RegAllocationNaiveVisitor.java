@@ -40,6 +40,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return count;
     }
 
+    public boolean updatesDest(ASMInstr_2Arg i) {
+        return i.getOpCode() != ASMOpCode.CMP && i.getOpCode() != ASMOpCode.TEST;
+    }
+
     @Override
     public List<ASMInstr> visit(ASMInstrLabel i) {
         if (i.isFunction()) {
@@ -86,6 +90,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         // check the left for temps, then check the right
         if (c.isInstance(left)) {
             // left is an instance of class c
+            //TODO we can use c.cast here if we need to
             temps.add(((ASMExprTemp) left).getName());
         } else if (left instanceof ASMExprBinOp) {
             temps.addAll(getObjectsInBinOp((ASMExprBinOp) left, c));
@@ -99,12 +104,27 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     }
 
     /**
+     * Returns a list of registers used in ASM expression e
+     *
+     * @param e ASM expression.
+     */
+    private List<String> getRegsInExpr(ASMExpr e){
+        List<String> regs = new ArrayList<>();
+        if (e instanceof ASMExprBinOp) {
+            regs.addAll(getObjectsInBinOp((ASMExprBinOp) e, ASMExprReg.class));
+        } else if (e instanceof ASMExprReg){
+            regs.add(((ASMExprReg) e).getReg());
+        }
+        return regs;
+    }
+
+    /**
      * Returns a mapping between temps in the memory expression m and the
      * data registers each temp can be replaced with in reg allocation.
      *
      * @param m memory expression.
      */
-    private Map<String, String> getTempToRegMappingInMem(ASMExprMem m) {
+    private Map<String, String> getTempToRegMappingInMem(ASMExprMem m, List<String> excludeRegs) {
         ASMExpr expr = m.getAddr();
 
         List<String> temps = new ArrayList<>(); // temps in m
@@ -124,6 +144,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         }
 
         // filter out regs from the list of available data regs
+        regs.addAll(excludeRegs);
         List<String> availRegs = getAvailRegs(regs);
         if (availRegs.size() < temps.size()) {
             // number of available regs is less than the temps in the mem,
@@ -222,9 +243,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param instrs instructions to add to.
      */
     private ASMExpr convertTempsToRegsInMem(ASMExprMem m,
-                                               List<ASMInstr> instrs) {
+                                               List<ASMInstr> instrs, List<String> excludeRegs) {
         // Get potential mapping from temps to regs
-        Map<String, String> tempsToRegs = getTempToRegMappingInMem(m);
+        Map<String, String> tempsToRegs = getTempToRegMappingInMem(m, excludeRegs);
 
         // Add move instructions like: mov reg, [rbp + k_t] (k_t < 0)
         for (Map.Entry<String, String> entry : tempsToRegs.entrySet()) {
@@ -258,7 +279,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // mapping from temps to regs
             instrs.add(new ASMInstr_1Arg(
                     i.getOpCode(),
-                    convertTempsToRegsInMem((ASMExprMem) arg, instrs)
+                    convertTempsToRegsInMem((ASMExprMem) arg, instrs, new ArrayList<>())
             ));
         } else {
             // argument neither a temp or a mem expression, this instruction
@@ -270,6 +291,42 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     @Override
     public List<ASMInstr> visit(ASMInstr_2Arg i) {
-        return null;
+        ASMExpr l = i.getDest();
+        ASMExpr r = i.getSrc();
+        List<ASMInstr> instrs = new ArrayList<>();
+        List<String> usedRegs = new ArrayList<>();
+        ASMExpr dest;
+        //LHS is always a mem
+        if (l instanceof ASMExprTemp) {
+            dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
+        } else if (l instanceof ASMExprMem) {
+            dest = convertTempsToRegsInMem((ASMExprMem) r, instrs, new ArrayList<>());
+        } else {
+            dest = l;
+        }
+        usedRegs.addAll(getRegsInExpr(dest));
+        ASMExpr src;
+        //RHS must always be a reg or immediate
+        //mems and temps need to be calculated and moved to reg
+        //make sure that we don't reuse regs that were already used
+        if (r instanceof ASMExprTemp) {
+            ASMExpr srcMem = getMemForTemp(((ASMExprTemp) r).getName(), instrs);
+            usedRegs.addAll(getRegsInExpr(srcMem));
+            src = new ASMExprReg(getAvailRegs(usedRegs).get(0));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
+        } else if (r instanceof ASMExprMem) {
+            ASMExpr srcMem = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
+            usedRegs.addAll(getRegsInExpr(srcMem));
+            src = new ASMExprReg(getAvailRegs(usedRegs).get(0));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
+        } else {
+            src = r;
+        }
+        instrs.add(new ASMInstr_2Arg(
+                i.getOpCode(),
+                dest,
+                src
+        ));
+        return instrs;
     }
 }
