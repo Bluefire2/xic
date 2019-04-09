@@ -848,18 +848,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return tempnames.size();
     }
 
-    /**
-     * Returns true if the function declaration uses one or more of the
-     * callee-save registers: rbx, r12, r13, r14, r15. Rbp not included since
-     * it is saved by every function regardless.
-     * @param node function declaration node
-     * @return true if node uses callee-save registers, false otherwise
-     */
-    private boolean use_callee_save_regs(IRFuncDecl node) {
-        //TODO: assume false until we do reg allocation
-        return false;
-    }
-
     //Current memory location in which to store extra return values
     private ASMExprTemp return_value_loc;
     private int return_value_loc_offset;
@@ -880,13 +868,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 //            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
 //        }
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        if (use_callee_save_regs(node)) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
-        }
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
 
         //Body
         HashMap<String, ASMExpr> argvars = new HashMap<>();
@@ -1006,13 +992,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
 
         //Epilogue
-        if (use_callee_save_regs(node)) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
-        }
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
 //        if (lvarspace.getVal() > 0) {
 //            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
 //        }
