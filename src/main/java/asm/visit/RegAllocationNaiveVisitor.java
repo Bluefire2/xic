@@ -177,9 +177,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      */
     private List<String> getAvailRegs(List<String> excludeRegs) {
         Set<String> availRegs = new HashSet<>(AVAIL_DATA_REGS); // copy
-        for (String reg : excludeRegs) {
-            availRegs.remove(reg);
-        }
+        availRegs.removeAll(excludeRegs);
         return new ArrayList<>(availRegs);
     }
 
