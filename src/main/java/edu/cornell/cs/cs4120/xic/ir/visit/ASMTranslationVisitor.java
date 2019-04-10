@@ -868,11 +868,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 //            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
 //        }
         //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
+        /* instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15"))); */
 
         //Body
         HashMap<String, ASMExpr> argvars = new HashMap<>();
@@ -973,11 +973,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
 
         //Epilogue
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
+        /* instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
         instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx"))); */
 //        if (lvarspace.getVal() > 0) {
 //            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
 //        }
