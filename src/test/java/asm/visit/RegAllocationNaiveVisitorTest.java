@@ -76,7 +76,7 @@ public class RegAllocationNaiveVisitorTest {
         }
 
         Collections.shuffle(instrs);
-        func.addAll(instrs);
+        func.addAll(instrs); // make sure label is first
         List<ASMInstr> transformed = visitor.removeRepetitiveRSPInFunc(func);
         ASMInstr_2Arg first = (ASMInstr_2Arg) transformed.get(1);
         assertEquals(first.getOpCode(), ASMOpCode.SUB);
