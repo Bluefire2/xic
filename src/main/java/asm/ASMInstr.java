@@ -1,5 +1,6 @@
 package asm;
 
+import asm.visit.ASMinstrBareVisitor;
 import asm.visit.RegAllocationNaiveVisitor;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public abstract class ASMInstr {
         return opCode;
     }
 
-    public abstract List<ASMInstr> accept(RegAllocationNaiveVisitor v);
+    public abstract List<ASMInstr> accept(ASMinstrBareVisitor<List<ASMInstr>> v);
 
     @Override
     public boolean equals(Object obj) {
