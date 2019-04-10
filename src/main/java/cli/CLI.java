@@ -317,7 +317,7 @@ public class CLI implements Runnable {
                 RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
                 instrs = regVisitor.allocate(instrs);
-                fileWriter.write(".intel_syntax noprefix\n");
+                asmFilePrologueWrite(fileWriter);
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
                 }
@@ -328,6 +328,21 @@ public class CLI implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static final String INDENT_ASM = "   ";
+
+    /**
+     * Writes the asm file prologue (intel syntax, global func etc.) to the
+     * file writer.
+     *
+     * @param fileWriter file writer.
+     * @throws IOException
+     */
+    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
+        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
+        fileWriter.write(INDENT_ASM + ".text\n");
+        fileWriter.write(INDENT_ASM + ".globl" + INDENT_ASM + "_Imain_paai\n");
     }
 
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
