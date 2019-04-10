@@ -317,6 +317,7 @@ public class CLI implements Runnable {
                 RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
                 instrs = regVisitor.allocate(instrs);
+                fileWriter.write(".intel_syntax noprefix\n");
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
                 }
