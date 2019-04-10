@@ -54,7 +54,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param func List of instructions signifying a function. The first
      *             instruction must be the function's label.
      */
-    private List<ASMInstr> removeRepetitiveRSPInFunc(List<ASMInstr> func) {
+    List<ASMInstr> removeRepetitiveRSPInFunc(List<ASMInstr> func) {
         // calculate the total amount of rsp subtractions in
         // input[startFunc:endFunc] (inclusive, exclusive)
         long totalSub = 0;
