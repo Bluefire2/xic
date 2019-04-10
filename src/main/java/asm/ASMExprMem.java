@@ -13,7 +13,7 @@ public class ASMExprMem extends ASMExpr {
 
     @Override
     public String toString() {
-        return "[" + addr.toString() + "]";
+        return "QWORD PTR [" + addr.toString() + "]";
     }
 
     @Override
