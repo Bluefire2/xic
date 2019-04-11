@@ -916,34 +916,44 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     String destname = ((IRTemp) mov.target()).name();
                     String srcname = ((IRTemp) mov.source()).name();
 
-                    if (destname.startsWith("_ARG")) {
+                    if (destname.startsWith("_ARG") || srcname.startsWith("_ARG")) {
+                        String argname;
+                        String varname;
+                        if (destname.startsWith("_ARG")) {
+                            argname = destname;
+                            varname = srcname;
+                        }
+                        else {
+                            argname = srcname;
+                            varname = destname;
+                        }
                         int argnum;
                         //If function has more than 2 returns
                         // first arg is storage location
                         if (getNumReturns(node) > 2) {
-                            argnum = numFromString(destname) - 1;
+                            argnum = numFromString(argname) - 1;
                             if (argnum == -1)
-                                return_value_loc = new ASMExprTemp(srcname);
+                                return_value_loc = new ASMExprTemp(varname);
                         }
                         //Args passed in rdi,rsi,rdx,rcx,r8,r9
                         //Rest are passed on (stack in reverse order)
-                        else argnum = numFromString(destname);
+                        else argnum = numFromString(argname);
                         switch(argnum) {
-                            case 0: argvars.put(srcname, new ASMExprReg("rdi"));
+                            case 0: argvars.put(varname, new ASMExprReg("rdi"));
                                 break;
-                            case 1: argvars.put(srcname, new ASMExprReg("rsi"));
+                            case 1: argvars.put(varname, new ASMExprReg("rsi"));
                                 break;
-                            case 2: argvars.put(srcname, new ASMExprReg("rdx"));
+                            case 2: argvars.put(varname, new ASMExprReg("rdx"));
                                 break;
-                            case 3: argvars.put(srcname, new ASMExprReg("rcx"));
+                            case 3: argvars.put(varname, new ASMExprReg("rcx"));
                                 break;
-                            case 4: argvars.put(srcname, new ASMExprReg("r8"));
+                            case 4: argvars.put(varname, new ASMExprReg("r8"));
                                 break;
-                            case 5: argvars.put(srcname, new ASMExprReg("r9"));
+                            case 5: argvars.put(varname, new ASMExprReg("r9"));
                                 break;
                             default:
                                 int stackloc = (numparams - argnum - 5) * 8;
-                                argvars.put(srcname,
+                                argvars.put(varname,
                                         new ASMExprMem(new ASMExprBinOpAdd(
                                                 new ASMExprReg("rbp"),
                                                 new ASMExprConst(stackloc))));
