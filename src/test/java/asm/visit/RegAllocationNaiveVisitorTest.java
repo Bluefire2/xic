@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class RegAllocationNaiveVisitorTest {
     private RegAllocationNaiveVisitor visitor = new RegAllocationNaiveVisitor();
@@ -27,14 +27,18 @@ public class RegAllocationNaiveVisitorTest {
         ASMExprReg rsp = new ASMExprReg("rsp");
         List<ASMInstr> instrs = new ArrayList<>();
         instrs.add(new ASMInstrLabel("aaa"));
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)
+        ));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, rsp, new ASMExprConst(8)));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, rsp, new ASMExprConst(8)));
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
 
         List<ASMInstr> transformed = visitor.removeRepetitiveRSPInFunc(instrs);
         ASMInstr_2Arg first = (ASMInstr_2Arg) transformed.get(1);
-        assertEquals(first.getOpCode(), ASMOpCode.SUB);
-        assertEquals(first.getDest(), rsp);
-        assertEquals(first.getSrc(), new ASMExprConst(16));
+        assertEquals(first.getOpCode(), ASMOpCode.ENTER);
+        assertEquals(first.getDest(), new ASMExprConst(16));
     }
 
     @Test
@@ -42,6 +46,9 @@ public class RegAllocationNaiveVisitorTest {
         ASMExprReg rsp = new ASMExprReg("rsp");
         List<ASMInstr> func = new ArrayList<>();
         func.add(new ASMInstrLabel("aaa"));
+        func.add(new ASMInstr_2Arg(
+                ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)
+        ));
 
         List<ASMInstr> instrs = new ArrayList<>();
         // random instructions
@@ -77,10 +84,12 @@ public class RegAllocationNaiveVisitorTest {
 
         Collections.shuffle(instrs);
         func.addAll(instrs); // make sure label is first
+        func.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
+        func.add(new ASMInstr_0Arg(ASMOpCode.RET));
+
         List<ASMInstr> transformed = visitor.removeRepetitiveRSPInFunc(func);
         ASMInstr_2Arg first = (ASMInstr_2Arg) transformed.get(1);
-        assertEquals(first.getOpCode(), ASMOpCode.SUB);
-        assertEquals(first.getDest(), rsp);
-        assertEquals(first.getSrc(), new ASMExprConst(total));
+        assertEquals(first.getOpCode(), ASMOpCode.ENTER);
+        assertEquals(first.getDest(), new ASMExprConst(total));
     }
 }
