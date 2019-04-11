@@ -1,6 +1,6 @@
 package asm;
 
-import asm.visit.RegAllocationNaiveVisitor;
+import asm.visit.ASMinstrBareVisitor;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public class ASMInstr_1Arg extends ASMInstr {
     }
 
     @Override
-    public List<ASMInstr> accept(RegAllocationNaiveVisitor v) {
+    public List<ASMInstr> accept(ASMinstrBareVisitor<List<ASMInstr>> v) {
         return v.visit(this);
     }
 

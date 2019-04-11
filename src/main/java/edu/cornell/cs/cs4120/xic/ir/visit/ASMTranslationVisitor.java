@@ -876,18 +876,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return tempnames.size();
     }
 
-    /**
-     * Returns true if the function declaration uses one or more of the
-     * callee-save registers: rbx, r12, r13, r14, r15. Rbp not included since
-     * it is saved by every function regardless.
-     * @param node function declaration node
-     * @return true if node uses callee-save registers, false otherwise
-     */
-    private boolean use_callee_save_regs(IRFuncDecl node) {
-        //TODO: assume false until we do reg allocation
-        return false;
-    }
-
     //Current memory location in which to store extra return values
     private ASMExprTemp return_value_loc;
     private int return_value_loc_offset;
@@ -897,23 +885,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         int numparams = getNumParams(node);
         return_value_loc_offset = 0;
 
+        instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"),
-                new ASMExprReg("rsp")));
-        ASMExprConst lvarspace = new ASMExprConst(getNumTemps(node) * 8);
-        // TODO: don't preallocate temps on the stack in this translation pass
-//        if (lvarspace.getVal() > 0) {
-//            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB, new ASMExprReg("rbp"), lvarspace));
-//        }
-        //If rbx,rbp, r12, r13, r14, r15 used, restore before returning
-        if (use_callee_save_regs(node)) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbx")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r12")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r13")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r14")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("r15")));
-        }
+        // https://www.cs.cornell.edu/courses/cs4120/2019sp/lectures/18callconv/lec18-sp18.pdf
+        // can use ENTER 0, 0 to denote:
+        // PUSH rbp
+        // MOV rbp, rsp
+        // SUB rsp, 0
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)
+        ));
 
         //Body
         HashMap<String, ASMExpr> argvars = new HashMap<>();
@@ -924,6 +905,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         } else {
             stmts = new IRSeq(body);
         }
+        List<ASMInstr> stmtInstrs = new ArrayList<>();
         for (IRStmt s : stmts.stmts()) {
 
             if (s instanceof IRMove) {
@@ -933,6 +915,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
                     String destname = ((IRTemp) mov.target()).name();
                     String srcname = ((IRTemp) mov.source()).name();
+
                     if (destname.startsWith("_ARG")) {
                         int argnum;
                         //If function has more than 2 returns
@@ -964,89 +947,55 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                         new ASMExprMem(new ASMExprBinOpAdd(
                                                 new ASMExprReg("rbp"),
                                                 new ASMExprConst(stackloc))));
-                        }
-                    } else {
-                        if (argvars.containsKey(destname)
-                                && argvars.containsKey(srcname))
-                            instrs.add(new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    argvars.get(destname),
-                                    argvars.get(srcname)
-                            ));
-                        else if (argvars.containsKey(destname)) {
-                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
-                            List<ASMInstr> visited =
-                                    visitExpr(mov.source(), tmp);
-                            instrs.addAll(visited);
-                            instrs.add(new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    argvars.get(destname),
-                                    tmp
-                            ));
-                        } else if (argvars.containsKey(srcname)) {
-                            ASMExprTemp tmp = new ASMExprTemp(newTemp());
-                            List<ASMInstr> visited =
-                                    visitExpr(mov.target(), tmp);
-                            instrs.addAll(visited);
-                            instrs.add(new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    tmp,
-                                    argvars.get(srcname)
-                            ));
-                        } else {
-                            instrs.addAll(visit(mov));
-                        }
-
-                    }
-
-                } else if (mov.target() instanceof IRTemp) {
-                    String destname = ((IRTemp) mov.target()).name();
-                    if (argvars.containsKey(destname)) {
-                        ASMExprTemp tmp = new ASMExprTemp(newTemp());
-                        List<ASMInstr> visited = visitExpr(mov.source(), tmp);
-                        instrs.addAll(visited);
-                        instrs.add(new ASMInstr_2Arg(
-                                ASMOpCode.MOV,
-                                argvars.get(destname),
-                                tmp
-                        ));
-                    } else instrs.addAll(visit(mov));
-                } else if (mov.source() instanceof IRTemp) {
-                    String srcname = ((IRTemp) mov.source()).name();
-                    if (argvars.containsKey(srcname)) {
-                        ASMExprTemp tmp = new ASMExprTemp(newTemp());
-                        List<ASMInstr> visited = visitExpr(mov.target(), tmp);
-                        instrs.addAll(visited);
-                        instrs.add(new ASMInstr_2Arg(
-                                ASMOpCode.MOV,
-                                tmp,
-                                argvars.get(srcname)
-                        ));
-                    }
-                } else {
-                    instrs.addAll(visit(mov));
+                        }}}}
+                else {
+                    stmtInstrs.addAll(visitStmt(s));
                 }
-            } else {
-                instrs.addAll(visitStmt(s));
+        }
+
+        for (ASMInstr instr : stmtInstrs) {
+
+            if (instr instanceof ASMInstr_1Arg) {
+                ASMExpr arg = ((ASMInstr_1Arg) instr).getArg();
+                if (arg instanceof ASMExprTemp) {
+                    String argName = ((ASMExprTemp) arg).getName();
+                    if (argvars.containsKey(argName)) {
+                        instrs.add(new ASMInstr_1Arg(instr.getOpCode(),
+                                    argvars.get(argName)));
+                    }
+                    else instrs.add(instr);
+                }
+                else instrs.add(instr);
             }
+            else if (instr instanceof ASMInstr_2Arg) {
+                ASMExpr dest = ((ASMInstr_2Arg) instr).getDest();
+                ASMExpr src = ((ASMInstr_2Arg) instr).getSrc();
+                ASMExpr newdest = dest;
+                ASMExpr newsrc = src;
+                if (dest instanceof ASMExprTemp) {
+                    String argName = ((ASMExprTemp) dest).getName();
+                    if (argvars.containsKey(argName)) {
+                        newdest = argvars.get(argName);
+                    }
+                }
+                if (src instanceof ASMExprTemp) {
+                    String argName = ((ASMExprTemp) src).getName();
+                    if (argvars.containsKey(argName)) {
+                        newsrc = argvars.get(argName);
+                    }
+                }
+                instrs.add(new ASMInstr_2Arg(instr.getOpCode(), newdest, newsrc));
+            }
+
+            else {
+                instrs.add(instr);
+            }
+
         }
 
 
         //Epilogue
-        if (use_callee_save_regs(node)) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r15")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r14")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r13")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("r12")));
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbx")));
-        }
-//        if (lvarspace.getVal() > 0) {
-//            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rbp"), lvarspace));
-//        }
-        instrs.add(new ASMInstr_2Arg(
-                ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")
-        ));
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbp")));
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
         instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
 
         return instrs;
