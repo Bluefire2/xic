@@ -172,6 +172,10 @@ public class ASMTranslationVisitorTest {
                 new IRMem(new IRTemp("a")),
                 new IRBinOp(OpType.ADD, new IRMem(new IRTemp("a")), new IRMem(new IRTemp("b"))));
 
+        IRMove simple0 = new IRMove(
+                new IRTemp("_mir_t0"),
+                new IRTemp("args"));
+
         List<ASMInstr> res0 = inc0.accept(visitor);
         List<ASMInstr> res1 = inc1.accept(visitor);
         List<ASMInstr> res2 = inc2.accept(visitor);
@@ -187,6 +191,7 @@ public class ASMTranslationVisitorTest {
         List<ASMInstr> res12 = multi0.accept(visitor);
         List<ASMInstr> res13 = multi1.accept(visitor);
         List<ASMInstr> res14 = multi2.accept(visitor);
+        List<ASMInstr> res15 = simple0.accept(visitor);
         //check if instructions were generated
         assertEquals(res0.size(), 1);
         assertEquals(res1.size(), 1);
@@ -213,6 +218,8 @@ public class ASMTranslationVisitorTest {
         assertNotEquals(res12.size(), 0);
         assertNotEquals(res13.size(), 0);
         assertNotEquals(res14.size(), 0);
+        assertEquals(res15.size(), 1);
+        assertEquals(res15.get(0).toString(), "    mov _mir_t0, args");
     }
 
     @Test
