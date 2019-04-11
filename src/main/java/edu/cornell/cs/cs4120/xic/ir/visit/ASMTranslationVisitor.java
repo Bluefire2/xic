@@ -615,16 +615,42 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
                 // MOVZX dest, al (zero extend and move 8-bit to 64-bit reg)
                 if (dest == null) {
-                    instrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.MOVZX,
-                            dests.part1(),
-                            new ASMExprReg("al")
-                    ));
-                } else {
+                    if (dests.part1() instanceof ASMExprTemp) {
+                        instrs.add(new ASMInstr_2Arg(
+                                ASMOpCode.MOVZX,
+                                dests.part1(),
+                                new ASMExprReg("al")
+                        ));
+                    } else {
+                        String t = newTemp();
+                        instrs.add(new ASMInstr_2Arg(
+                                ASMOpCode.MOVZX,
+                                new ASMExprTemp(t),
+                                new ASMExprReg("al")
+                        ));
+                        instrs.add(new ASMInstr_2Arg(
+                                ASMOpCode.MOV,
+                                dests.part1(),
+                                new ASMExprTemp(t)
+                        ));
+                    }
+                } else if (dest instanceof ASMExprTemp){
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOVZX,
                             dest,
                             new ASMExprReg("al")
+                    ));
+                } else {
+                    String t = newTemp();
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOVZX,
+                            new ASMExprTemp(t),
+                            new ASMExprReg("al")
+                    ));
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            dest,
+                            new ASMExprTemp(t)
                     ));
                 }
                 return instrs;
