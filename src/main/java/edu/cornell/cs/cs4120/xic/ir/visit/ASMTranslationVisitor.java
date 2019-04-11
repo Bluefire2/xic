@@ -819,6 +819,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     /**
      * Remove all non-digit characters from a string, and return the integer
      * value of the result.
+     *
      * @param s string containing one or more digit
      * @return number contained within the string
      */
@@ -827,33 +828,38 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     /**
-     * Return the number of parameters that the function declaration takes in.
-     * @param node IRFuncDecl instance
-     * @return number of parameters
+     * Return the number of values that the function declaration returns.
+     *
+     * @param name name of the function from IRFuncDecl instance
+     * @return number of return values
      */
-    private int getNumParams(IRFuncDecl node) {
-        String n = node.name();
-        String s = n.substring(n.lastIndexOf('_'));
-        if (s.startsWith("t")) {
-            int numrets = Integer.parseInt(s.substring(1, 2));
-            return s.length() - numrets - 1;
+    int getNumReturns(String name) {
+        String sig = name.substring(name.lastIndexOf('_'));
+        if (sig.startsWith("p")) {
+            // procedure
+            return 0;
+        } else if (sig.startsWith("t")) {
+            // tuple return, get the number after "t"
+            return numFromString(sig);
+        } else {
+            // single return
+            return 1;
         }
-        else return s.length() - 1;
     }
 
     /**
-     * Return the number of values that the function declaration returns.
-     * @param node IRFuncDecl instance
-     * @return number of return values
+     * Return the number of parameters that the function declaration takes in.
+     *
+     * @param name name of the function from IRFuncDecl instance
+     * @return number of parameters
      */
-    private int getNumReturns(IRFuncDecl node) {
-        String n = node.name();
-        String s = n.substring(n.lastIndexOf('_'));
-        if (s.startsWith("p")) return 0;
-        else if (s.startsWith("t")) {
-            return numFromString(s);
-        }
-        else return 1;
+    int getNumParams(String name) {
+        String sig = name.substring(name.lastIndexOf('_') + 1);
+        // the number of parameters is the total number of i and b in params
+        // sub the returnCount since that also gets counted in iCount and bCount
+        int iCount = (int) sig.chars().filter(c -> c == 'i').count();
+        int bCount = (int) sig.chars().filter(c -> c == 'b').count();
+        return iCount + bCount - getNumReturns(name);
     }
 
     /**
@@ -876,13 +882,20 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return tempnames.size();
     }
 
+    /**
+     * Returns true if arg is of the form _ARGi with i is an integer.
+     */
+    private boolean isAFuncArg(String arg) {
+        return arg.startsWith("_ARG");
+    }
+
     //Current memory location in which to store extra return values
     private ASMExprTemp return_value_loc;
     private int return_value_loc_offset;
 
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numparams = getNumParams(node);
+        int numparams = getNumParams(node.name());
         return_value_loc_offset = 0;
 
         instrs.add(new ASMInstrLabel(node.name()));
@@ -905,104 +918,124 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         } else {
             stmts = new IRSeq(body);
         }
+
         List<ASMInstr> stmtInstrs = new ArrayList<>();
         for (IRStmt s : stmts.stmts()) {
 
+            // functions always have mov a, _ARGi at most once for each i
+            // before the real body of the function begins. Replace this with
+            // mov a, r** or mov a, [rbp+t]
             if (s instanceof IRMove) {
                 IRMove mov = (IRMove) s;
-                if (mov.target() instanceof IRTemp &&
-                        mov.source() instanceof IRTemp) {
-
-                    String destname = ((IRTemp) mov.target()).name();
+                if (mov.target() instanceof IRTemp
+                        && mov.source() instanceof IRTemp) {
                     String srcname = ((IRTemp) mov.source()).name();
+                    if (!isAFuncArg(srcname)) {
+                        // rhs is not _ARGi, so simply visit this stmt
+                        stmtInstrs.addAll(visitStmt(s));
+                    }
 
-                    if (destname.startsWith("_ARG") || srcname.startsWith("_ARG")) {
-                        String argname;
-                        String varname;
-                        if (destname.startsWith("_ARG")) {
-                            argname = destname;
-                            varname = srcname;
+                    // rhs/src is _ARGi
+                    int argnum = numFromString(srcname);
+                    String dest = ((IRTemp) mov.target()).name();
+                    if (getNumReturns(node.name()) > 2) {
+                        // If function has more than 2 returns, _ARG0 is
+                        // the storage location for extra return values.
+                        if (argnum == 0) {
+                            // _ARG0, goes into return_value_loc
+                            String t = newTemp();
+                            return_value_loc = new ASMExprTemp(t);
+                            // rdi needs to be moved into this
+
+                        } else {
+                            // num returns > 2, argnum > 0, adjust argnum to
+                            // be argnum+1 since
+                            argnum++;
+
                         }
-                        else {
-                            argname = srcname;
-                            varname = destname;
-                        }
-                        int argnum;
-                        //If function has more than 2 returns
-                        // first arg is storage location
-                        if (getNumReturns(node) > 2) {
-                            argnum = numFromString(argname) - 1;
-                            if (argnum == -1)
-                                return_value_loc = new ASMExprTemp(varname);
-                        }
-                        //Args passed in rdi,rsi,rdx,rcx,r8,r9
-                        //Rest are passed on (stack in reverse order)
-                        else argnum = numFromString(argname);
-                        switch(argnum) {
-                            case 0: argvars.put(varname, new ASMExprReg("rdi"));
-                                break;
-                            case 1: argvars.put(varname, new ASMExprReg("rsi"));
-                                break;
-                            case 2: argvars.put(varname, new ASMExprReg("rdx"));
-                                break;
-                            case 3: argvars.put(varname, new ASMExprReg("rcx"));
-                                break;
-                            case 4: argvars.put(varname, new ASMExprReg("r8"));
-                                break;
-                            case 5: argvars.put(varname, new ASMExprReg("r9"));
-                                break;
-                            default:
-                                int stackloc = (numparams - argnum - 5) * 8;
-                                argvars.put(varname,
-                                        new ASMExprMem(new ASMExprBinOpAdd(
-                                                new ASMExprReg("rbp"),
-                                                new ASMExprConst(stackloc))));
-                        }}}}
-                else {
+                    } else {
+                    }
+
+                    ASMExpr replace_ARGi;
+                    switch (argnum) {
+                        case 0: replace_ARGi = new ASMExprReg("rdi"); break;
+                        case 1: replace_ARGi = new ASMExprReg("rsi"); break;
+                        case 2: replace_ARGi = new ASMExprReg("rdx"); break;
+                        case 3: replace_ARGi = new ASMExprReg("rcx"); break;
+                        case 4: replace_ARGi = new ASMExprReg("r8"); break;
+                        case 5: replace_ARGi = new ASMExprReg("r9"); break;
+                        default:
+                            // rbp + 0 is old rbp; rbp + 8 is old rip
+                            // so the 7th arg is at [rbp + ((7-7)+2)*8] or
+                            // [rbp + 16
+                            int stackLoc = (numparams - (argnum + 1) + 2) * 8;
+                            replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
+                                    new ASMExprReg("rbp"),
+                                    new ASMExprConst(stackLoc)
+                            ));
+                    }
+                    stmtInstrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            new ASMExprTemp(dest),
+                            replace_ARGi
+                    ));
+                } else {
+                    // both exprs are not temps
                     stmtInstrs.addAll(visitStmt(s));
                 }
+            } else {
+                // not a move
+                stmtInstrs.addAll(visitStmt(s));
+            }
         }
 
-        for (ASMInstr instr : stmtInstrs) {
-
-            if (instr instanceof ASMInstr_1Arg) {
-                ASMExpr arg = ((ASMInstr_1Arg) instr).getArg();
-                if (arg instanceof ASMExprTemp) {
-                    String argName = ((ASMExprTemp) arg).getName();
-                    if (argvars.containsKey(argName)) {
-                        instrs.add(new ASMInstr_1Arg(instr.getOpCode(),
-                                    argvars.get(argName)));
-                    }
-                    else instrs.add(instr);
-                }
-                else instrs.add(instr);
-            }
-            else if (instr instanceof ASMInstr_2Arg) {
-                ASMExpr dest = ((ASMInstr_2Arg) instr).getDest();
-                ASMExpr src = ((ASMInstr_2Arg) instr).getSrc();
-                ASMExpr newdest = dest;
-                ASMExpr newsrc = src;
-                if (dest instanceof ASMExprTemp) {
-                    String argName = ((ASMExprTemp) dest).getName();
-                    if (argvars.containsKey(argName)) {
-                        newdest = argvars.get(argName);
-                    }
-                }
-                if (src instanceof ASMExprTemp) {
-                    String argName = ((ASMExprTemp) src).getName();
-                    if (argvars.containsKey(argName)) {
-                        newsrc = argvars.get(argName);
-                    }
-                }
-                instrs.add(new ASMInstr_2Arg(instr.getOpCode(), newdest, newsrc));
-            }
-
-            else {
-                instrs.add(instr);
-            }
-
-        }
-
+//                    if (isAFuncArg(destname) || isAFuncArg(srcname)) {
+//                        String argname;
+//                        String varname;
+//                        if (isAFuncArg(destname)) {
+//                            argname = destname;
+//                            varname = srcname;
+//                        } else {
+//                            argname = srcname;
+//                            varname = destname;
+//                        }
+//                        int argnum;
+//                        //If function has more than 2 returns
+//                        // first arg is storage location
+//                        if (getNumReturns(node) > 2) {
+//                            argnum = numFromString(argname) - 1;
+//                            if (argnum == -1)
+//                                return_value_loc = new ASMExprTemp(varname);
+//                        }
+//                        //Args passed in rdi,rsi,rdx,rcx,r8,r9
+//                        //Rest are passed on (stack in reverse order)
+//                        else argnum = numFromString(argname);
+//                        switch(argnum) {
+//                            case 0: argvars.put(varname, new ASMExprReg("rdi"));
+//                                break;
+//                            case 1: argvars.put(varname, new ASMExprReg("rsi"));
+//                                break;
+//                            case 2: argvars.put(varname, new ASMExprReg("rdx"));
+//                                break;
+//                            case 3: argvars.put(varname, new ASMExprReg("rcx"));
+//                                break;
+//                            case 4: argvars.put(varname, new ASMExprReg("r8"));
+//                                break;
+//                            case 5: argvars.put(varname, new ASMExprReg("r9"));
+//                                break;
+//                            default:
+//                                int stackloc = (numparams - argnum - 5) * 8;
+//                                argvars.put(varname,
+//                                        new ASMExprMem(new ASMExprBinOpAdd(
+//                                                new ASMExprReg("rbp"),
+//                                                new ASMExprConst(stackloc))));
+//                        }
+//                    }
+//                }
+//            } else {
+//                stmtInstrs.addAll(visitStmt(s));
+//            }
+//        }
 
         //Epilogue
         instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
