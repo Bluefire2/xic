@@ -205,30 +205,52 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         ));
     }
 
+    //unfolds the sizes of the array and converts them all into IRTemps
+    private Pair<List<IRStmt>,List<String>> unfoldSizes(TypeTTauArray arr){
+        List<IRStmt> moves = new ArrayList<>();
+        List<String> sizeTemps = new ArrayList<>();
+        Expr size = arr.getSize();
+        TypeTTauArray curr = arr;
+        while (size != null && curr != null){
+            IRExpr sizeIR = (IRExpr) size.accept(this);
+            String sizeTemp = newTemp();
+            moves.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+            sizeTemps.add(sizeTemp);
+            if (curr.getTypeTTau() instanceof TypeTTauArray){
+                curr = (TypeTTauArray) curr.getTypeTTau();
+                size = curr.getSize();
+            } else {
+                curr = null;
+                size = null;
+            }
+        }
+        return new Pair(moves, sizeTemps);
+    }
+
     /**
      * Allocates a multi dimensional array of type arr starting at
      * temporary/memory location t.
      *
      * @param t   temporary or memory address.
      * @param arr type of multi dim array.
+     * @param sizeTemps list of temp names where the array sizes are stored
+     *                  need to pre-calculate and store them elsewhere
      * @return a list of IR statements for performing this array allocation.
      */
-    private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr) {
+    private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr, List<String> sizeTemps) {
         assert t instanceof IRTemp || t instanceof IRMem;
 
         TypeTTau innerType = arr.getTypeTTau();
         Expr size = arr.getSize();
         if (size != null) {
-            IRExpr sizeIR = (IRExpr) size.accept(this);
-            String sizeTemp = newTemp();
-
+            String sizeTemp = sizeTemps.get(0);
             List<IRStmt> allocIR = new ArrayList<>();
-            // sizeTemp <- eval(size)
-            allocIR.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+
             // Create an array of size sizeTemp
             allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
 
-            if (innerType instanceof TypeTTauArray) {
+            if (innerType instanceof TypeTTauArray
+                    && ((TypeTTauArray) innerType).getSize() != null) {
                 // innerType is an array, create a while loop to initialize
                 // each element of t
                 TypeTTauArray itArray = (TypeTTauArray) innerType;
@@ -259,7 +281,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                                         new IRConst(WORD_NUM_BYTES)
                                 )
                         )),
-                        itArray)));
+                        itArray,
+                        sizeTemps.subList(1,sizeTemps.size()))));
                 // i++
                 allocIR.add(new IRMove(
                         new IRTemp(i),
@@ -662,9 +685,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private IRStmt initDecl(String declName, TypeTTau declType) {
         if (declType instanceof TypeTTauArray) {
             TypeTTauArray declArray = (TypeTTauArray) declType;
-            return new IRSeq(
-                    allocateMultiDimArray(new IRTemp(declName), declArray)
+            Pair<List<IRStmt>,List<String>> unfoldedSizes = unfoldSizes(declArray);
+            List<IRStmt> stmts = new ArrayList<>(unfoldedSizes.part1());
+            stmts.addAll(
+                    allocateMultiDimArray(new IRTemp(declName),
+                            declArray, unfoldedSizes.part2())
             );
+            return new IRSeq(stmts);
         } else {
             // declType either an int or bool, initialize arbitrarily
             return new IRMove(new IRTemp(declName), new IRConst(0));
