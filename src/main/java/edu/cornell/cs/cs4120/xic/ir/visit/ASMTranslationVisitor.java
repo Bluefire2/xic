@@ -5,7 +5,10 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Function;
 
 //               Functional programming died for this
@@ -863,26 +866,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     /**
-     * Return the number of local variables that the function uses, erring on
-     * the side of too many when necessary.
-     * @param node IRFuncDecl instance
-     * @return number of local variables
-     */
-    private int getNumTemps(IRFuncDecl node) {
-        HashSet<String> tempnames = new HashSet<>();
-        List<IRNode> children = node.aggregateChildren(new ListChildrenVisitor());
-        for (IRNode n : children) {
-            if (n instanceof IRTemp) {
-                String name = ((IRTemp) n).name();
-                if (!tempnames.contains(name)) {
-                    tempnames.add(name);
-                }
-            }
-        }
-        return tempnames.size();
-    }
-
-    /**
      * Returns true if arg is of the form _ARGi with i is an integer.
      */
     private boolean isAFuncArg(String arg) {
@@ -910,7 +893,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         ));
 
         //Body
-        // HashMap<String, ASMExpr> argvars = new HashMap<>();
         IRStmt body = node.body();
         IRSeq stmts;
         if (body instanceof IRSeq) {
@@ -938,14 +920,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
                     // rhs/src is _ARGi
                     int argnum = numFromString(srcname);
-                    String dest = ((IRTemp) mov.target()).name();
                     if (getNumReturns(node.name()) > 2) {
                         // If function has more than 2 returns, _ARG0 is
                         // the storage location for extra return values.
                         if (argnum == 0) {
                             // _ARG0, goes into return_value_loc
-                            String t = newTemp();
-                            return_value_loc = new ASMExprTemp(t);
+                            return_value_loc = new ASMExprTemp(newTemp());
                             // rdi needs to be moved into this:
                             // mov t, rdi
                             stmtInstrs.add(new ASMInstr_2Arg(
@@ -953,22 +933,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                     return_value_loc,
                                     new ASMExprReg("rdi")
                             ));
-                        } else {
-                            // TODO: should this be moved out of the else? We should increment argnum even if it is zero, because if we have "mov a, _ARG0", that needs to be changed to "mov a, _ARG1" since _ARG0 is the return value location
-                            // num returns > 2, argnum > 0, adjust argnum to be
-                            // argnum+1 since _ARG1 is now _ARG0, _ARG2 is now
-                            // _ARG1, etc
-                            argnum++;
-                            // incrementing argnum means that we load arg0 from
-                            // rsi, arg 1 from rdx, etc, essentially shifting
-                            // the registers by 1 and ensuring rdi is ignored
-                            // when loading argument values (since it contains
-                            // the return value location)
                         }
-                    } else {
-                        // do nothing... I think? we only need to adjust argnum
-                        // if arg0 is the return value location
+                        // num returns > 2, adjust argnum to be
+                        // argnum+1 so that _ARG0 is now _ARG1, _ARG1 is now
+                        // _ARG2, etc
+                        argnum++;
+                        // incrementing argnum means that we load arg0 from
+                        // rsi, arg1 from rdx, etc, essentially shifting
+                        // the registers by 1 and ensuring rdi is ignored
+                        // when loading argument values (since it contains
+                        // the return value location)
                     }
+                    // num returns < 2, don't change argnum
 
                     ASMExpr replace_ARGi;
                     switch (argnum) {
@@ -990,7 +966,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }
                     stmtInstrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV,
-                            new ASMExprTemp(dest),
+                            new ASMExprTemp(((IRTemp) mov.target()).name()),
                             replace_ARGi
                     ));
                 } else {
@@ -1003,56 +979,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             }
         }
 
-        // add prologue
+        // add body
         instrs.addAll(stmtInstrs);
-
-//                    if (isAFuncArg(destname) || isAFuncArg(srcname)) {
-//                        String argname;
-//                        String varname;
-//                        if (isAFuncArg(destname)) {
-//                            argname = destname;
-//                            varname = srcname;
-//                        } else {
-//                            argname = srcname;
-//                            varname = destname;
-//                        }
-//                        int argnum;
-//                        //If function has more than 2 returns
-//                        // first arg is storage location
-//                        if (getNumReturns(node) > 2) {
-//                            argnum = numFromString(argname) - 1;
-//                            if (argnum == -1)
-//                                return_value_loc = new ASMExprTemp(varname);
-//                        }
-//                        //Args passed in rdi,rsi,rdx,rcx,r8,r9
-//                        //Rest are passed on (stack in reverse order)
-//                        else argnum = numFromString(argname);
-//                        switch(argnum) {
-//                            case 0: argvars.put(varname, new ASMExprReg("rdi"));
-//                                break;
-//                            case 1: argvars.put(varname, new ASMExprReg("rsi"));
-//                                break;
-//                            case 2: argvars.put(varname, new ASMExprReg("rdx"));
-//                                break;
-//                            case 3: argvars.put(varname, new ASMExprReg("rcx"));
-//                                break;
-//                            case 4: argvars.put(varname, new ASMExprReg("r8"));
-//                                break;
-//                            case 5: argvars.put(varname, new ASMExprReg("r9"));
-//                                break;
-//                            default:
-//                                int stackloc = (numparams - argnum - 5) * 8;
-//                                argvars.put(varname,
-//                                        new ASMExprMem(new ASMExprBinOpAdd(
-//                                                new ASMExprReg("rbp"),
-//                                                new ASMExprConst(stackloc))));
-//                        }
-//                    }
-//                }
-//            } else {
-//                stmtInstrs.addAll(visitStmt(s));
-//            }
-//        }
 
         //Epilogue
         instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
