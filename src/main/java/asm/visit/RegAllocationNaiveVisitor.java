@@ -58,7 +58,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param func List of instructions signifying a function. The first
      *             instruction must be the function's label.
      */
-    private List<ASMInstr> removeRepetitiveRSPInFunc(List<ASMInstr> func) {
+    List<ASMInstr> removeRepetitiveRSPInFunc(List<ASMInstr> func) {
         // calculate the total amount of rsp subtractions in
         // input[startFunc:endFunc] (inclusive, exclusive)
         long totalSub = 0;
@@ -301,11 +301,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         Set<String> availCallerRegs = new HashSet<>(CALLER_SAVE_REGS);
         Set<String> availCalleeRegs = new HashSet<>(CALLEE_SAVE_REGS);
 
-        for (String reg : excludeRegs) {
-            // exclude this reg, remove from either set
-            availCallerRegs.remove(reg);
-            availCallerRegs.remove(reg);
-        }
+        availCallerRegs.removeAll(excludeRegs);
+        availCalleeRegs.removeAll(excludeRegs);
 
         // create list with caller regs first, then add callee regs
         // ==> follows function's postcondition
