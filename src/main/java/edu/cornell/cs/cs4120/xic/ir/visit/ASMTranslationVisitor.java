@@ -1113,7 +1113,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
                     instrs.add(new ASMInstr_1Arg(ASMOpCode.DEC, destASM));
                 } else {
-                    srcBinOp.accept(this, null);
+                    instrs.addAll(srcBinOp.accept(this, null));//spooky
                 }
             } else if (dest.equals(srcBinOp.right())){//MOV(A, B op A)
                 if (srcBinOp.opType() == OpType.ADD && one.equals(srcBinOp.left())) {//INC
@@ -1218,14 +1218,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRTemp node, ASMExprRegReplaceable dest) {
         List<ASMInstr> instrs = new ArrayList<>();
-        //r => MOV dest r
-        if (!node.equals(dest)){
-            instrs.add(new ASMInstr_2Arg(
-                    ASMOpCode.MOV,
-                    dest,
-                    toASM(node)
-            ));
+        //if dest is the same as src then we don't move
+        if (dest instanceof ASMExprTemp) {
+            if (((ASMExprTemp) dest).getName() == node.name()){
+                return instrs;
+            }
         }
+        //r => MOV dest r
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV,
+                dest,
+                toASM(node)
+        ));
         return instrs;
     }
 
