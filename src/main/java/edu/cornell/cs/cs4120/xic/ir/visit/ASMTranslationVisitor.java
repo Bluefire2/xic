@@ -910,7 +910,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         ));
 
         //Body
-        HashMap<String, ASMExpr> argvars = new HashMap<>();
+        // HashMap<String, ASMExpr> argvars = new HashMap<>();
         IRStmt body = node.body();
         IRSeq stmts;
         if (body instanceof IRSeq) {
@@ -996,6 +996,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 stmtInstrs.addAll(visitStmt(s));
             }
         }
+
+        // add prologue
+        instrs.addAll(stmtInstrs);
 
 //                    if (isAFuncArg(destname) || isAFuncArg(srcname)) {
 //                        String argname;
