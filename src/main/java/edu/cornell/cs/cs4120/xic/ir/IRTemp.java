@@ -57,6 +57,6 @@ public class IRTemp extends IRExpr_c {
 
     @Override
     public boolean equals(Object node) {
-        return node instanceof IRTemp;
+        return node instanceof IRTemp && ((IRTemp) node).name() == this.name;
     }
 }

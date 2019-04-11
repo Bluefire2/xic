@@ -137,6 +137,83 @@ public class ASMTranslationVisitorTest {
     }
 
     @Test
+    public void testMoveTiling() {
+        IRMove inc0 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(1)));
+        IRMove inc1 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.ADD, new IRConst(1), new IRTemp("a")));
+        IRMove inc2 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.ADD, new IRMem(new IRTemp("a")), new IRConst(1)));
+        IRMove dec0 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.SUB, new IRTemp("a"), new IRConst(1)));
+        IRMove dec1 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.SUB, new IRMem(new IRTemp("a")), new IRConst(1)));
+
+        IRMove single0 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.ADD, new IRTemp("a"), new IRConst(2)));
+        IRMove single1 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.ADD, new IRConst(2), new IRTemp("a")));
+        IRMove single2 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.OR, new IRConst(2), new IRTemp("a")));
+        IRMove single3 = new IRMove(new IRTemp("a"), new IRBinOp(OpType.AND, new IRTemp("a"), new IRConst(2)));
+        IRMove single4 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.SUB, new IRMem(new IRTemp("a")), new IRConst(2)));
+        IRMove single5 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.ADD, new IRMem(new IRTemp("a")), new IRTemp("b")));
+        IRMove single6 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.ADD, new IRTemp("b"), new IRMem(new IRTemp("a"))));
+
+        IRMove multi0 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.ADD, new IRTemp("b"), new IRConst(1)));
+        IRMove multi1 = new IRMove(
+                new IRTemp("a"),
+                new IRBinOp(OpType.ADD, new IRTemp("b"), new IRConst(1)));
+        IRMove multi2 = new IRMove(
+                new IRMem(new IRTemp("a")),
+                new IRBinOp(OpType.ADD, new IRMem(new IRTemp("a")), new IRMem(new IRTemp("b"))));
+
+        List<ASMInstr> res0 = inc0.accept(visitor);
+        List<ASMInstr> res1 = inc1.accept(visitor);
+        List<ASMInstr> res2 = inc2.accept(visitor);
+        List<ASMInstr> res3 = dec0.accept(visitor);
+        List<ASMInstr> res4 = dec1.accept(visitor);
+        List<ASMInstr> res5 = single0.accept(visitor);
+        List<ASMInstr> res6 = single1.accept(visitor);
+        List<ASMInstr> res7 = single2.accept(visitor);
+        List<ASMInstr> res8 = single3.accept(visitor);
+        List<ASMInstr> res9 = single4.accept(visitor);
+        List<ASMInstr> res10 = single5.accept(visitor);
+        List<ASMInstr> res11 = single6.accept(visitor);
+        List<ASMInstr> res12 = multi0.accept(visitor);
+        List<ASMInstr> res13 = multi1.accept(visitor);
+        List<ASMInstr> res14 = multi2.accept(visitor);
+        //check if instructions were generated
+        assertEquals(res0.size(), 1);
+        assertEquals(res1.size(), 1);
+        assertEquals(res2.size(), 1);
+        assertEquals(res0.get(0).getOpCode(), ASMOpCode.INC);
+        assertEquals(res1.get(0).getOpCode(), ASMOpCode.INC);
+        assertEquals(res2.get(0).getOpCode(), ASMOpCode.INC);
+        assertEquals(res3.size(), 1);
+        assertEquals(res4.size(), 1);
+        assertEquals(res3.get(0).getOpCode(), ASMOpCode.DEC);
+        assertEquals(res4.get(0).getOpCode(), ASMOpCode.DEC);
+        assertEquals(res5.size(), 1);
+        assertEquals(res6.size(), 1);
+        assertEquals(res7.size(), 1);
+        assertEquals(res8.size(), 1);
+        assertEquals(res9.size(), 1);
+        assertEquals(res10.size(), 1);
+        assertEquals(res11.size(), 1);
+        assertNotEquals(res12.size(), 1);
+        assertNotEquals(res13.size(), 1);
+        assertNotEquals(res14.size(), 1);
+        assertNotEquals(res12.size(), 0);
+        assertNotEquals(res13.size(), 0);
+        assertNotEquals(res14.size(), 0);
+    }
+
+    @Test
     public void testASMExprOfBinOpTempTemp() {
         // left: "_a", right: "_b"
         // results:

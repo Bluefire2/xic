@@ -381,7 +381,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                           ASMExprRegReplaceable leftDestTemp,
                                           ASMExprRegReplaceable rightDestTemp,
                                           List<ASMInstr> instrs) {
-
+        if (leftDestTemp == null && !(left instanceof IRTemp || left instanceof IRMem)){
+            throw new IllegalAccessError(
+                    "if no destination provided, LHS must be a temp or mem"
+            );
+        }
         // For ADD and MUL, switching left and right children might
         // seem to improve performance, but there is no point since
         // one of the children will need to be moved to dest anyway
@@ -396,18 +400,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(leftDestTemp, instrs),
                 irBinOpChildToASM(leftDestTemp, instrs),
                 irBinOpChildToASM(leftDestTemp, instrs),
-                (IRMem m) -> {
-                    ASMExprMem mTile = asmMemTileOf(m, instrs);
-                    if (right instanceof IRMem) {
-                        // binary ops can't take two IRMems, so put
-                        // the left in the dest and return the dest
-                        instrs.add(new ASMInstr_2Arg(
-                                ASMOpCode.MOV, leftDestTemp, mTile
-                        ));
-                        return leftDestTemp;
-                    } else {
-                        return asmMemTileOf(m, instrs);
-                    }},
+                (IRMem m) -> asmMemTileOf(m, instrs),
                 illegalAccessErrorLambda(),
                 irBinOpChildToASM(leftDestTemp, instrs)
         );
@@ -418,7 +411,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // Const on right child can be written as an imm
                 (IRConst c) -> toASM(c, instrs),
                 // Mem on right child can be written as [...]
-                (IRMem r) -> asmMemTileOf(r, instrs),
+                (IRMem m) -> {
+                    ASMExprMem mTile = asmMemTileOf(m, instrs);
+                    if (left instanceof IRMem) {
+                        // binary ops can't take two IRMems, so put
+                        // the left in the dest and return the dest
+                        instrs.add(new ASMInstr_2Arg(
+                                ASMOpCode.MOV, rightDestTemp, mTile
+                        ));
+                        return rightDestTemp;
+                    } else {
+                        return asmMemTileOf(m, instrs);
+                    }},
                 illegalAccessErrorLambda(),
                 this::toASM
         );
@@ -475,7 +479,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         };
     }
 
-    public List<ASMInstr> visit(IRBinOp node, final ASMExprRegReplaceable dest) {
+    //special behavior - if dest is null, result is stored in LHS operand, if it is mem or temp
+    public List<ASMInstr> visit(IRBinOp node, ASMExprRegReplaceable dest) {
+        if (dest == null && !(node.left() instanceof IRTemp || node.left() instanceof IRMem)){
+            throw new IllegalAccessError(
+                    "if no destination provided, LHS must be a temp or mem"
+            );
+        }
+        //set LHS to dest if no dest is provided and LHS is a temp
+        if (dest == null && node.left() instanceof IRTemp){
+            dest = new ASMExprTemp(((IRTemp) node.left()).name());
+        }
         final List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
             case ADD:
@@ -495,10 +509,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
                         // left destination is dest since binary OP will read
                         // and write to dest in the final asm instr
-                        node.left(), node.right(), dest, rightDestTemp, instrs
+                        node.left(), node.right(),
+                        dest, rightDestTemp, instrs
                 );
 
-                if (dests.part1() instanceof ASMExprMem) {
+                if (dests.part1() instanceof ASMExprMem && dest != null) {
                     // since this is a binop with a target dest, we need to
                     // move the left part to dest if the left part is a
                     // memory expression
@@ -535,8 +550,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp()); // t
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
                         node.left(), node.right(),
-                        leftDestTemp, rightDestTemp,
-                        instrs
+                        leftDestTemp, rightDestTemp, instrs
                 );
 
                 if (dests.part1() instanceof ASMExprMem) {
@@ -562,10 +576,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // finally, move the result into dest
                 // if we want the quotient or the mul result, we take rax
                 // if we want the remainder or the hmul result, we take rdx
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOV, dest,
-                        useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
-                ));
+                if (dest == null) {
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, dests.part1(),
+                            useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
+                    ));
+                } else {
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, dest,
+                            useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
+                    ));
+                }
                 return instrs;
             }
             case EQ:
@@ -575,11 +596,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             case LEQ:
             case GEQ: {
                 // Get exprs for left and right children
-                ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp());
                 ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp());
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
-                        node.left(), node.right(), leftDestTemp,
-                        rightDestTemp, instrs
+                        node.left(), node.right(),
+                        dest, rightDestTemp, instrs
                 );
 
                 // CMP leftDest, rightDest
@@ -594,11 +614,19 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ));
 
                 // MOVZX dest, al (zero extend and move 8-bit to 64-bit reg)
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOVZX,
-                        dest,
-                        new ASMExprReg("al")
-                ));
+                if (dest == null) {
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOVZX,
+                            dests.part1(),
+                            new ASMExprReg("al")
+                    ));
+                } else {
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOVZX,
+                            dest,
+                            new ASMExprReg("al")
+                    ));
+                }
                 return instrs;
             }
         }
@@ -1005,6 +1033,20 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
+    public void moveHelper(IRExpr src, IRExpr dest, List<ASMInstr> instrs){
+        // case 3 (fallback): the source is an expression that is not a mem or a temp
+        // move x, e (where x is a temp or a mem)
+        // We accept e which generates instructions for it and places the
+        // result in a destination temp t. Then, we just do:
+        // mov x, t
+
+        // Get the destination ASM representation
+        ASMExpr x = asmExprOfMemOrTemp(dest, instrs);
+        ASMExprTemp t = new ASMExprTemp(newTemp());
+        instrs.addAll(src.accept(this, t));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, x, t));
+    }
+
     public List<ASMInstr> visit(IRMove node) {
         IRExpr dest = node.target();
         IRExpr src = node.source();
@@ -1058,18 +1100,69 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             srcASM
                     )
             );
+        } else if (src instanceof IRBinOp) {
+            IRBinOp srcBinOp = (IRBinOp) src;
+            IRConst one = new IRConst(1);
+            //MOV(A, A op B)
+            if (dest.equals(srcBinOp.left())){
+                if (srcBinOp.opType() == OpType.ADD && one.equals(srcBinOp.right())){//INC
+                    //must call for each case to avoid side effects...
+                    ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
+                    instrs.add(new ASMInstr_1Arg(ASMOpCode.INC, destASM));
+                } else if (srcBinOp.opType() == OpType.SUB && one.equals(srcBinOp.right())){//DEC
+                    ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
+                    instrs.add(new ASMInstr_1Arg(ASMOpCode.DEC, destASM));
+                } else {
+                    instrs.addAll(srcBinOp.accept(this, null));//spooky
+                }
+            } else if (dest.equals(srcBinOp.right())){//MOV(A, B op A)
+                if (srcBinOp.opType() == OpType.ADD && one.equals(srcBinOp.left())) {//INC
+                    ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
+                    instrs.add(new ASMInstr_1Arg(ASMOpCode.INC, destASM));
+                } else {
+                    //see if Left and Right can be flipped
+                    //that way we can have dest be on the left
+                    //if it can't then we will use the default tiling case
+                    IRMove flipped;
+                    switch (srcBinOp.opType()) {
+                        //these are commutative
+                        case ADD:
+                        case AND:
+                        case OR:
+                        case XOR:
+                        case MUL:
+                        case HMUL:
+                        case EQ:
+                        case NEQ:
+                            flipped = new IRMove(dest, new IRBinOp(srcBinOp.opType(), srcBinOp.right(), srcBinOp.left()));
+                            instrs.addAll(flipped.accept(this));
+                            break;
+                        //these require changing the opcode
+                        case LT:
+                            flipped = new IRMove(dest, new IRBinOp(OpType.GEQ, srcBinOp.right(), srcBinOp.left()));
+                            instrs.addAll(flipped.accept(this));
+                            break;
+                        case GT:
+                            flipped = new IRMove(dest, new IRBinOp(OpType.LEQ, srcBinOp.right(), srcBinOp.left()));
+                            instrs.addAll(flipped.accept(this));
+                            break;
+                        case LEQ:
+                            flipped = new IRMove(dest, new IRBinOp(OpType.GT, srcBinOp.right(), srcBinOp.left()));
+                            instrs.addAll(flipped.accept(this));
+                            break;
+                        case GEQ:
+                            flipped = new IRMove(dest, new IRBinOp(OpType.LT, srcBinOp.right(), srcBinOp.left()));
+                            instrs.addAll(flipped.accept(this));
+                            break;
+                        default:
+                            moveHelper(src, dest, instrs);
+                    }
+                }
+            } else {//MOV(A, B op C) - no tile
+                moveHelper(src, dest, instrs);
+            }
         } else {
-            // case 3 (fallback): the source is an expression that is not a mem or a temp
-            // move x, e (where x is a temp or a mem)
-            // We accept e which generates instructions for it and places the
-            // result in a destination temp t. Then, we just do:
-            // mov x, t
-
-            // Get the destination ASM representation
-            ASMExpr x = asmExprOfMemOrTemp(dest, instrs);
-            ASMExprTemp t = new ASMExprTemp(newTemp());
-            instrs.addAll(src.accept(this, t));
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, x, t));
+            moveHelper(src, dest, instrs);
         }
         return instrs;
     }
@@ -1125,6 +1218,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRTemp node, ASMExprRegReplaceable dest) {
         List<ASMInstr> instrs = new ArrayList<>();
+        //if dest is the same as src then we don't move
+        if (dest instanceof ASMExprTemp) {
+            if (((ASMExprTemp) dest).getName() == node.name()){
+                return instrs;
+            }
+        }
         //r => MOV dest r
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV,
