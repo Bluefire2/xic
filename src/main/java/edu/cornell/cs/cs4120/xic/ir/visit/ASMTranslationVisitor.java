@@ -872,14 +872,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return arg.startsWith("_ARG");
     }
 
-    //Current memory location in which to store extra return values
+    //Current memory location in which to store extra return values for the func
     private ASMExprTemp return_value_loc;
-    private int return_value_loc_offset;
 
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
         int numparams = getNumParams(node.name());
-        return_value_loc_offset = 0;
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -1173,28 +1171,39 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRReturn node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        List<IRExpr> retvals = node.rets();
-        int numrets = 0;
-        for (IRExpr e : retvals) {
+        List<IRExpr> retVals = node.rets();
+
+        for (int i = 0; i < retVals.size(); i++) {
+            // evaluate ei
             ASMExprTemp tmp = new ASMExprTemp(newTemp());
-            List<ASMInstr> visited = visitExpr(e, tmp);
+            List<ASMInstr> visited = visitExpr(retVals.get(i), tmp);
             instrs.addAll(visited);
-            if (numrets == 0) {
-                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
-                        new ASMExprReg("rax"), tmp));
+            switch (i) {
+                case 0:
+                    // First return value, move to rax
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, new ASMExprReg("rax"), tmp
+                    ));
+                    break;
+                case 1:
+                    // Second return value, move to rdx
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV, new ASMExprReg("rdx"), tmp
+                    ));
+                    break;
+                default:
+                    // ith return value, move to [return_value_loc - (i-2)*8]
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            new ASMExprBinOpAdd(
+                                    new ASMExprMem(return_value_loc),
+                                    new ASMExprConst(-(i-2)*8)
+                            ),
+                            tmp
+                    ));
             }
-            else if (numrets == 1) {
-                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
-                        new ASMExprReg("rdx"), tmp));
-            }
-            else {
-                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
-                        new ASMExprBinOpAdd(new ASMExprMem(return_value_loc),
-                        new ASMExprConst(return_value_loc_offset)), tmp));
-                return_value_loc_offset += 8;
-            }
-            numrets ++;
         }
+
         return instrs;
     }
 
@@ -1208,7 +1217,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         List<ASMInstr> instrs = new ArrayList<>();
         //if dest is the same as src then we don't move
         if (dest instanceof ASMExprTemp) {
-            if (((ASMExprTemp) dest).getName() == node.name()){
+            if (((ASMExprTemp) dest).getName().equals(node.name())) {
                 return instrs;
             }
         }
