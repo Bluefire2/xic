@@ -933,6 +933,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     if (!isAFuncArg(srcname)) {
                         // rhs is not _ARGi, so simply visit this stmt
                         stmtInstrs.addAll(visitStmt(s));
+                        continue; // go to the next statement
                     }
 
                     // rhs/src is _ARGi
@@ -945,15 +946,22 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             // _ARG0, goes into return_value_loc
                             String t = newTemp();
                             return_value_loc = new ASMExprTemp(t);
-                            // rdi needs to be moved into this
-
+                            // rdi needs to be moved into this:
+                            // mov t, rdi
+                            stmtInstrs.add(new ASMInstr_2Arg(
+                                    ASMOpCode.MOV,
+                                    return_value_loc,
+                                    new ASMExprReg("rdi")
+                            ));
                         } else {
-                            // num returns > 2, argnum > 0, adjust argnum to
-                            // be argnum+1 since
+                            // num returns > 2, argnum > 0, adjust argnum to be
+                            // argnum+1 since _ARG1 is now _ARG0, _ARG2 is now
+                            // _ARG1, etc
                             argnum++;
-
                         }
                     } else {
+                        // do nothing... I think? we only need to adjust argnum
+                        // if arg0 is the return value location
                     }
 
                     ASMExpr replace_ARGi;
