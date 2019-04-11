@@ -642,19 +642,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
         String name = ((IRName) node.target()).name();
 
-        int numargs = node.args().size();
-        List<IRExpr> args;
-        int numrets = getNumReturns(name);
-        if (numrets > 2) {
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
-                    new ASMExprReg("rdi"),
-                    new ASMExprReg("rsp")));
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB,
-                    new ASMExprReg("rsp"),
-                    new ASMExprConst(8*(numrets-2))));
-            numargs += 1;
-        }
-
         List<ASMExprReg> argRegs = Arrays.asList(
                 new ASMExprReg("rdi"),
                 new ASMExprReg("rsi"),
@@ -663,35 +650,146 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 new ASMExprReg("r8"),
                 new ASMExprReg("r9")
         );
-        //Args passed in rdi,rsi,rdx,rcx,r8,r9
-        //Rest are passed on (stack in reverse order)
-        if (numargs > 6) {
-            List<IRExpr> extra_args = node.args().subList(6, numargs-1);
-            args = node.args().subList(0,6);
-            Collections.reverse(extra_args);
-            for (IRExpr e : extra_args) {
-                ASMExprTemp tmp = new ASMExprTemp(newTemp());
-                List<ASMInstr> visited = visitExpr(e, tmp);
-                instrs.addAll(visited);
-                instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, tmp));
+
+        int numargs = node.args().size();
+        List<IRExpr> argsInRegs;
+        List<IRExpr> argsOnStack = new ArrayList<>();
+        int numrets = getNumReturns(name);
+        if (numrets > 2) {
+            // LEA rdi, [rsp-8]
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.LEA,
+                    new ASMExprReg("rdi"),
+                    new ASMExprMem(new ASMExprBinOpAdd(
+                            new ASMExprReg("rsp"),
+                            new ASMExprConst(-8)
+                    ))
+            ));
+
+            // SUB rsp, 8*(rets-2)
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.SUB,
+                    new ASMExprReg("rsp"),
+                    new ASMExprConst(8*(numrets-2))
+            ));
+
+            // Allocate 6th+ args on the stack
+            if (numargs > 5) {
+                argsOnStack = node.args().subList(5, numargs);
+                argsInRegs = node.args().subList(0, 5);
+            } else {
+                // argsOnStack is empty
+                argsInRegs = node.args();
+            }
+        } else {
+            // num of rets <= 2
+            // Allocate 7th+ args on the stack
+            if (numargs > 6) {
+                argsOnStack = node.args().subList(6, numargs);
+                argsInRegs = node.args().subList(0, 6);
+            } else {
+                // argsOnStack is empty
+                argsInRegs = node.args();
             }
         }
-        else args = node.args();
-        for (int i = 0; i < args.size(); i++) {
-            int reg_index = (numrets > 2) ? i +1 : i;
-            ASMExprTemp tmp = new ASMExprTemp(newTemp());
-            List<ASMInstr> visited = visitExpr(args.get(i), tmp);
+
+        // Push argsOnStack in reverse order
+        Collections.reverse(argsOnStack);
+        for (IRExpr e : argsOnStack) {
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(e, t);
             instrs.addAll(visited);
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(reg_index), tmp));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, t));
         }
 
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destreg,
-                new ASMExprReg("rax")));
-        if (numargs > 6) {
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprReg("rsp"),
-                    new ASMExprConst(8*(numargs-6))));
+        // Move each arg into corresponding regs
+        for (int i = 0; i < argsInRegs.size(); i++) {
+            int regIndex = (numrets > 2) ? i + 1 : i;
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(argsInRegs.get(i), t);
+            instrs.addAll(visited);
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(regIndex), t));
         }
+
+        // Function call
+        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
+
+        // Free space of argsOnStack
+        if (argsOnStack.size() > 0) {
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.ADD,
+                    new ASMExprReg("rsp"),
+                    new ASMExprConst(8*argsOnStack.size())
+            ));
+        }
+
+        // Move rax into destreg
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV, destreg, new ASMExprReg("rax")
+        ));
+
+        // Move the return values to _RETi
+        switch (numrets) {
+            case 0: break;
+            case 1: {
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        new ASMExprTemp("_RET0"),
+                        new ASMExprReg("rax")
+                ));
+            } break;
+            case 2: {
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        new ASMExprTemp("_RET0"),
+                        new ASMExprReg("rax")
+                ));
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        new ASMExprTemp("_RET1"),
+                        new ASMExprReg("rdx")
+                ));
+            } break;
+            default: {
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        new ASMExprTemp("_RET0"),
+                        new ASMExprReg("rax")
+                ));
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        new ASMExprTemp("_RET1"),
+                        new ASMExprReg("rdx")
+                ));
+
+                // For i >= 2, move from stack to RETi
+                for (int i = 2; i < numrets; i++) {
+                    // _RET2 is highest on the stack, _RETn is lowest. So
+                    // stackLoc is calculated as numrets - i. 1 deducted
+                    // because how stack addresses work
+                    int stackLoc = (numrets - i - 1)*8;
+                    // MOV _RETi, [rsp + stackLoc]
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.MOV,
+                            new ASMExprTemp("_RET" + i),
+                            new ASMExprMem(new ASMExprBinOpAdd(
+                                    new ASMExprReg("rsp"),
+                                    new ASMExprConst(stackLoc)
+                            ))
+                    ));
+                }
+
+                // Free up space for return values, ADD rsp, 8*(n-2)
+                if (numrets > 2) {
+                    instrs.add(new ASMInstr_2Arg(
+                            ASMOpCode.ADD,
+                            new ASMExprReg("rsp"),
+                            new ASMExprConst(8*(numrets-2))
+                    ));
+                }
+            }
+        }
+
         return instrs;
     }
 
