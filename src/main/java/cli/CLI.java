@@ -87,6 +87,10 @@ public class CLI implements Runnable {
             description = "Do not lower the IR.")
     private boolean optMIR = false;
 
+    @Option (names = {"--asm-no-reg"},
+            description = "Do not do register allocation in the asm.")
+    private boolean optASMDisableRegAllocation = false;
+
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
@@ -316,7 +320,9 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
-                instrs = regVisitor.allocate(instrs);
+                if (!optASMDisableRegAllocation) {
+                    instrs = regVisitor.allocate(instrs);
+                }
                 asmFilePrologueWrite(fileWriter);
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
