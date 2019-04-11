@@ -665,9 +665,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
         //Args passed in rdi,rsi,rdx,rcx,r8,r9
         //Rest are passed on (stack in reverse order)
+        List<IRExpr> extra_args;
+
         if (numargs > 6) {
-            List<IRExpr> extra_args = node.args().subList(6, numargs-1);
-            args = node.args().subList(0,6);
+            if (numrets > 2) {
+                extra_args = node.args().subList(5, numargs - 1);
+                args = node.args().subList(0, 5);
+            }
+            else {
+                extra_args = node.args().subList(6, numargs - 1);
+                args = node.args().subList(0, 6);
+            }
             Collections.reverse(extra_args);
             for (IRExpr e : extra_args) {
                 ASMExprTemp tmp = new ASMExprTemp(newTemp());
