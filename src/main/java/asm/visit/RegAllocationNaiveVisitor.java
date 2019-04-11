@@ -4,18 +4,21 @@ import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
-    // caller-saved and callee-saved regs that can be used for data transfer
-    private static final Set<String> AVAIL_DATA_REGS = Stream.of(
-            "rbx", "r10", "r11", "r12", "r13", "r14", "r15"
+
+    private static final Set<String> CALLER_SAVE_REGS = Stream.of(
+            "r10", "r11", "rax"
     ).collect(Collectors.toSet());
-    // The number of callee-saved regs pushed onto stack in the IR -> ASM
-    // translation phase
-    private static final int N_CALLEE_SAVE_REGS_PUSH = 5;
+
+    // rbp can't be used for data transfer, so not included here
+    private static final Set<String> CALLEE_SAVE_REGS = Stream.of(
+            "rbx", "r12", "r13", "14", "r15"
+    ).collect(Collectors.toSet());
 
     public RegAllocationNaiveVisitor() {
     }
@@ -47,9 +50,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     /**
      * Returns a list of instructions with the repetitive `sub rsp, imm` in
-     * the list of instructions func replaced by a single `sub rsp, totalSub`
-     * where `totalSub` is the sum of imms in all repetitive `sub rsp, imm`.
-     * The input func is not changed.
+     * the list of instructions func removed. The total subtraction that rsp
+     * undergoes throughout the function is captured in the `enter totalSub, 0`
+     * instruction, which replaces the existing `enter 0, 0` instruction. The
+     * input func is not changed.
      *
      * @param func List of instructions signifying a function. The first
      *             instruction must be the function's label.
@@ -67,34 +71,163 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         }
 
         List<ASMInstr> reducedFunc = new ArrayList<>();
-        // loop again, replace the first sub rsp, imm with sub rsp, totalSub
-        // and delete the sub rsps later in the function
-        boolean addSubRSP = true;
+        // loop again, replace the enter, delete all sub rsp, imm
         for (ASMInstr ins : func) {
-            if (instrIsSubRSPImm(ins)) {
-                if (addSubRSP) {
-                    // don't delete this sub rsp, replace by sub rsp, totalSub
-                    reducedFunc.add(new ASMInstr_2Arg(
-                            ASMOpCode.SUB, new ASMExprReg("rsp"),
-                            new ASMExprConst(totalSub)
-                    ));
-                    addSubRSP = false; // next sub rsp will be deleted
-                }
-                // else don't add this sub rsp to copy
-            } else {
+            if (ins.getOpCode() == ASMOpCode.ENTER) {
+                // replace this ENTER 0, 0 with ENTER totalSub, 0
+                reducedFunc.add(new ASMInstr_2Arg(
+                        ASMOpCode.ENTER,
+                        new ASMExprConst(totalSub),
+                        new ASMExprConst(0)
+                ));
+            } else if (!instrIsSubRSPImm(ins)) {
+                // not a sub rsp, so add to reducedFunc
                 reducedFunc.add(ins);
             }
+            // sub rsp, don't add this to reducedFunc
         }
         return reducedFunc;
     }
 
     /**
-     * Combines repetitive `sub rsp, imm` in between functions inside the
-     * list of instructions ins. The input instrs is not changed.
+     * Returns true if expression expr is of the form `[rbp - imm]` where
+     * imm can be any constant.
      *
-     * @param instrs instructions to optimize.
+     * @param expr expression to test.
      */
-    private List<ASMInstr> reduceSubRSPImmInstrs(List<ASMInstr> instrs) {
+    private boolean exprIsMemRBPMinusConst(ASMExpr expr) {
+        if (expr instanceof ASMExprMem) {
+            ASMExpr addr = ((ASMExprMem) expr).getAddr();
+            if (addr instanceof ASMExprBinOpAdd) {
+                // rbp - imm is represented as rbp + (-imm)
+                ASMExprBinOpAdd a = (ASMExprBinOpAdd) addr;
+                return a.getLeft().equals(new ASMExprReg("rbp"))
+                        && a.getRight() instanceof ASMExprConst
+                        && ((ASMExprConst) a.getRight()).getVal() < 0;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    /**
+     * If the expression expr is `[rbp - k_t]`, the returned expr is
+     * `[rbp - k_t]` where k_t' = k_t + n. Otherwise, the expr is returned
+     *
+     * @param expr expression.
+     * @param n constant to add to k_t.
+     */
+    private ASMExpr exprIfMemRBPMinusConstAddConst(ASMExpr expr, int n) {
+        if (exprIsMemRBPMinusConst(expr)) {
+            ASMExprBinOpAdd a = (ASMExprBinOpAdd) ((ASMExprMem) expr).getAddr();
+            long negk_t = ((ASMExprConst) a.getRight()).getVal(); // negk_t < 0
+            return new ASMExprMem(new ASMExprBinOpAdd(
+                    new ASMExprReg("rbp"), new ASMExprConst(negk_t - n)
+            ));
+        } else {
+            return expr;
+        }
+    }
+
+    /**
+     * Returns a list of instructions for the func where any callee regs
+     * appearing in the func list of instructions are pushed at the beginning
+     * and popped off the stack at the end.
+     *
+     * @param func list of instructions.
+     */
+    private List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
+        // find all the callee regs in this function
+        Set<String> usedRegs = new HashSet<>();
+        for (ASMInstr instr : func) {
+            // add the instruction's expr's regs to usedRegs
+            if (instr instanceof ASMInstr_1Arg) {
+                usedRegs.addAll(getRegsInExpr(((ASMInstr_1Arg) instr).getArg()));
+            } else if (instr instanceof ASMInstr_2Arg) {
+                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getDest()));
+                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getSrc()));
+            }
+        }
+        List<String> usedCalleeRegs = new ArrayList<>();
+        for (String reg : CALLEE_SAVE_REGS) {
+            if (usedRegs.contains(reg)) {
+                usedCalleeRegs.add(reg);
+            }
+        }
+        int N = usedCalleeRegs.size();
+
+        if (N == 0) {
+            // no callee regs used, return with a copy of func
+            return new ArrayList<>(func);
+        }
+        // some callee regs used
+
+        // add push instructions at the right place (just after enter)
+        // add pop instructions at the right place (just before leave)
+
+        // also adjust the rbp - k_t to be rbp - k_t' where k_t' = k_t + (8*N),
+        // where N is the number of callee save regs used in this function.
+
+        List<ASMInstr> updatedFunc = new ArrayList<>();
+        for (ASMInstr instr : func) {
+            if (instr.getOpCode() == ASMOpCode.ENTER) {
+                updatedFunc.add(instr);// ENTER
+                // add PUSH reg instructions sequentially
+                for (String reg : usedCalleeRegs) {
+                    updatedFunc.add(new ASMInstr_1Arg(
+                            ASMOpCode.PUSH, new ASMExprReg(reg)
+                    ));
+                }
+            } else if (instr.getOpCode() == ASMOpCode.LEAVE) {
+                // add POP reg instructions sequentially, but in reverse order
+                // reverse usedCalleeRegs. Doesn't affect other future runs
+                // on the loop because ENTER and LEAVE can each exist one in
+                // this function, and LEAVE appears at the end ==> so no use
+                // of usedCalleeRegs order after this point.
+                Collections.reverse(usedCalleeRegs);
+                for (String reg : usedCalleeRegs) {
+                    updatedFunc.add(new ASMInstr_1Arg(
+                            ASMOpCode.POP, new ASMExprReg(reg)
+                    ));
+                }
+                updatedFunc.add(instr);// LEAVE
+            } else {
+                if (instr instanceof ASMInstr_1Arg) {
+                    updatedFunc.add(new ASMInstr_1Arg(
+                            instr.getOpCode(),
+                            exprIfMemRBPMinusConstAddConst(
+                                    ((ASMInstr_1Arg) instr).getArg(), 8*N
+                            )
+                    ));
+                } else if (instr instanceof ASMInstr_2Arg) {
+                    updatedFunc.add(new ASMInstr_2Arg(
+                            instr.getOpCode(),
+                            exprIfMemRBPMinusConstAddConst(
+                                    ((ASMInstr_2Arg) instr).getDest(), 8*N
+                            ),
+                            exprIfMemRBPMinusConstAddConst(
+                                    ((ASMInstr_2Arg) instr).getSrc(), 8*N
+                            )
+                    ));
+                } else {
+                    // no expressions to replace
+                    updatedFunc.add(instr);
+                }
+            }
+        }
+        return updatedFunc;
+    }
+
+    /**
+     * Executes function f for each function in the list of instructions ins.
+     * The input instrs is not changed. The result of f on each function is
+     * what replaces the function f instructions in instrs.
+     *
+     * @param instrs instructions.
+     */
+    private List<ASMInstr> execPerFunc(
+            List<ASMInstr> instrs, Function<List<ASMInstr>, List<ASMInstr>> f
+    ) {
         List<ASMInstr> optimInstrs = new ArrayList<>();
         for (int i = 0; i < instrs.size();) {
             ASMInstr insi = instrs.get(i);
@@ -111,9 +244,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                         break;
                     }
                 }
-                optimInstrs.addAll(removeRepetitiveRSPInFunc(
-                        instrs.subList(startFunc, endFunc)
-                ));
+                optimInstrs.addAll(f.apply(instrs.subList(startFunc, endFunc)));
                 i = endFunc;
             } else {
                 // instruction not a function
@@ -130,25 +261,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             instrs.addAll(instr.accept(this));
         }
         // Collect all sub rsp, imm in a function in a single instr
-        return reduceSubRSPImmInstrs(instrs);
-    }
-
-    public int count_temps(List<ASMInstr> input){
-        int count = 0;
-        for (ASMInstr instr : input) {
-            if (instr instanceof ASMInstr_2Arg) {
-                ASMInstr_2Arg i2a = (ASMInstr_2Arg) instr;
-                if (i2a.getOpCode() == ASMOpCode.MOV) {
-                    ASMExpr dest = i2a.getDest();
-                    if (dest instanceof ASMExprTemp) count++;
-                }
-            }
-        }
-        return count;
-    }
-
-    public boolean updatesDest(ASMInstr_2Arg i) {
-        return i.getOpCode() != ASMOpCode.CMP && i.getOpCode() != ASMOpCode.TEST;
+        List<ASMInstr> subRSPReduced = execPerFunc(
+                instrs, this::removeRepetitiveRSPInFunc
+        );
+        return execPerFunc(subRSPReduced, this::saveCalleeRegsInFunc);
     }
 
     @Override
@@ -172,15 +288,30 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     /**
      * Returns a list of available data registers (list may be empty),
      * excluding the ones in excludeRegs.
+     * Postcondition:
+     *  The returned list will have caller save regs (that were not excluded)
+     *  followed by the callee save regs (that were not excluded). So, if the
+     *  list is accessed sequentially and those regs are used, caller save regs
+     *  will get priority in usage.
      *
      * @param excludeRegs registers to exclude.
      */
     private List<String> getAvailRegs(List<String> excludeRegs) {
-        Set<String> availRegs = new HashSet<>(AVAIL_DATA_REGS); // copy
+        // copy registers
+        Set<String> availCallerRegs = new HashSet<>(CALLER_SAVE_REGS);
+        Set<String> availCalleeRegs = new HashSet<>(CALLEE_SAVE_REGS);
+
         for (String reg : excludeRegs) {
-            availRegs.remove(reg);
+            // exclude this reg, remove from either set
+            availCallerRegs.remove(reg);
+            availCallerRegs.remove(reg);
         }
-        return new ArrayList<>(availRegs);
+
+        // create list with caller regs first, then add callee regs
+        // ==> follows function's postcondition
+        List<String> availRegs = new ArrayList<>(availCallerRegs);
+        availRegs.addAll(availCalleeRegs);
+        return availRegs;
     }
 
     /**
@@ -231,37 +362,37 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      *
      * @param m memory expression.
      */
-    private Map<String, String> getTempToRegMappingInMem(ASMExprMem m, List<String> excludeRegs) {
+    private Map<String, String> getTempToRegMappingInMem(
+            ASMExprMem m, List<String> excludeRegs
+    ) {
         ASMExpr expr = m.getAddr();
 
-        List<String> temps = new ArrayList<>(); // temps in m
+        List<String> tmps = new ArrayList<>(); // temps in m
         if (expr instanceof ASMExprTemp) {
-            temps.add(((ASMExprTemp) expr).getName());
+            tmps.add(((ASMExprTemp) expr).getName());
         } else if (expr instanceof ASMExprBinOp) {
-            Class<ASMExprTemp> c = ASMExprTemp.class;
-            temps.addAll(getObjectsInBinOp((ASMExprBinOp) expr, c));
+            tmps.addAll(getObjectsInBinOp((ASMExprBinOp) expr, ASMExprTemp.class));
         }
 
         List<String> regs = new ArrayList<>(); // regs in m
         if (expr instanceof ASMExprReg) {
             regs.add(((ASMExprReg) expr).getReg());
         } else if (expr instanceof ASMExprBinOp) {
-            Class<ASMExprReg> c = ASMExprReg.class;
-            regs.addAll(getObjectsInBinOp((ASMExprBinOp) expr, c));
+            regs.addAll(getObjectsInBinOp((ASMExprBinOp) expr, ASMExprReg.class));
         }
 
         // filter out regs from the list of available data regs
         regs.addAll(excludeRegs);
         List<String> availRegs = getAvailRegs(regs);
-        if (availRegs.size() < temps.size()) {
+        if (availRegs.size() < tmps.size()) {
             // number of available regs is less than the temps in the mem,
             // throw an error
             throw new InternalCompilerError("Allocating regs naively: not " +
                     "enough regs for the temps in memory expression");
         } else {
             Map<String, String> map = new HashMap<>();
-            for (int i = 0; i < temps.size(); ++i) {
-                map.put(temps.get(i), availRegs.get(i));
+            for (int i = 0; i < tmps.size(); ++i) {
+                map.put(tmps.get(i), availRegs.get(i));
             }
             return map;
         }
@@ -332,9 +463,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // the size of the mapping is the number of temps on the
             // stack, so the new k_t will be at (size+1)*8 position
             // k_t is negative because the stack grows downwards.
-            // TODO: this will change if we save callee-save registers in
-            //  IR to ASM translation.
-            k_t = -((tempToStackAddrMap.size() + N_CALLEE_SAVE_REGS_PUSH + 1) * 8);
+            k_t = -((tempToStackAddrMap.size() + 1) * 8);
             tempToStackAddrMap.put(t, k_t);
         }
         return new ASMExprMem(new ASMExprBinOpAdd(
@@ -372,6 +501,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         // Replace the temps in mem with regs
         return replaceTempsWithRegs(m, tempsToRegs);
     }
+
     @Override
     public List<ASMInstr> visit(ASMInstr_1Arg i) {
         ASMExpr arg = i.getArg();
@@ -401,7 +531,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         ASMExpr l = i.getDest();
         ASMExpr r = i.getSrc();
         List<ASMInstr> instrs = new ArrayList<>();
-        List<String> usedRegs = new ArrayList<>();
         ASMExpr dest;
         if (l instanceof ASMExprTemp) {//if LHS is a temp it gets turned into a mem
             dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
@@ -410,7 +539,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         } else {//otherwise keep it
             dest = l;
         }
-        usedRegs.addAll(getRegsInExpr(dest));
+        List<String> usedRegs = new ArrayList<>(getRegsInExpr(dest));
         ASMExpr src;
         //TODO are there instructions where RHS cannot be mem?
         //ex: original instruction OP REG TEMP becomes invalid when
