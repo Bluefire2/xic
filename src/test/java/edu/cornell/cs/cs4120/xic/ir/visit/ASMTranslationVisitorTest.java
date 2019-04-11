@@ -202,7 +202,9 @@ public class ASMTranslationVisitorTest {
         assertEquals(res6.size(), 1);
         assertEquals(res7.size(), 1);
         assertEquals(res8.size(), 1);
+        assertEquals(res8.get(0).toString(), "    and a, 2");
         assertEquals(res9.size(), 1);
+        assertEquals(res9.get(0).toString(), "    sub QWORD PTR [a], 2");
         assertEquals(res10.size(), 1);
         assertEquals(res11.size(), 1);
         assertNotEquals(res12.size(), 1);
