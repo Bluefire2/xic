@@ -17,7 +17,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     // rbp can't be used for data transfer, so not included here
     private static final Set<String> CALLEE_SAVE_REGS = Stream.of(
-            "rbx", "r12", "r13", "14", "r15"
+            "rbx", "r12", "r13", "r14", "r15"
     ).collect(Collectors.toSet());
 
     public RegAllocationNaiveVisitor() {
@@ -95,7 +95,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      *
      * @param expr expression to test.
      */
-    private boolean exprIsMemRBPMinusConst(ASMExpr expr) {
+    boolean exprIsMemRBPMinusConst(ASMExpr expr) {
         if (expr instanceof ASMExprMem) {
             ASMExpr addr = ((ASMExprMem) expr).getAddr();
             if (addr instanceof ASMExprBinOpAdd) {
@@ -132,11 +132,13 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     /**
      * Returns a list of instructions for the func where any callee regs
      * appearing in the func list of instructions are pushed at the beginning
-     * and popped off the stack at the end.
+     * and popped off the stack at the end. The order of pushing callee regs
+     * is in ascending order of the reg names. Thus, r12 is pushed before rbx
+     * etc.
      *
      * @param func list of instructions.
      */
-    private List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
+    List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
         // find all the callee regs in this function
         Set<String> usedRegs = new HashSet<>();
         for (ASMInstr instr : func) {
@@ -154,6 +156,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 usedCalleeRegs.add(reg);
             }
         }
+        Collections.sort(usedCalleeRegs);   // just for predictability
         int N = usedCalleeRegs.size();
 
         if (N == 0) {
