@@ -1,4 +1,4 @@
-	.file	"arr.c"
+.file	"arr.c"
 	.intel_syntax noprefix
 	.text
 	.globl	_Imain_paai
@@ -31,4 +31,4 @@ _Imain_paai:
 	ret
 	.size	_Imain_paai, .-_Imain_paai
 	.ident	"GCC: (Ubuntu 7.3.0-27ubuntu1~18.04) 7.3.0"
-	.section	.note.GNU-stack,"",@progbits
+.section	.note.GNU-stack,"",@progbits

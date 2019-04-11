@@ -648,10 +648,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         if (numrets > 2) {
             instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
                     new ASMExprReg("rdi"),
-                    new ASMExprReg("rbp")));
+                    new ASMExprReg("rsp")));
             instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB,
-                    new ASMExprReg("rbp"),
-                    new ASMExprConst(8*numrets-2)));
+                    new ASMExprReg("rsp"),
+                    new ASMExprConst(8*(numrets-2))));
             numargs += 1;
         }
 
