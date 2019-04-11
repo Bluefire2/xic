@@ -638,8 +638,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRCall node, ASMExprRegReplaceable destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
+
+        if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
+        String name = ((IRName) node.target()).name();
+
         int numargs = node.args().size();
         List<IRExpr> args;
+        int numrets = getNumReturns(name);
+        if (numrets > 2) {
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV,
+                    new ASMExprReg("rdi"),
+                    new ASMExprReg("rbp")));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB,
+                    new ASMExprReg("rbp"),
+                    new ASMExprConst(8*numrets-2)));
+            numargs += 1;
+        }
+
         List<ASMExprReg> argRegs = Arrays.asList(
                 new ASMExprReg("rdi"),
                 new ASMExprReg("rsi"),
@@ -647,7 +662,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 new ASMExprReg("rcx"),
                 new ASMExprReg("r8"),
                 new ASMExprReg("r9")
-                 );
+        );
         //Args passed in rdi,rsi,rdx,rcx,r8,r9
         //Rest are passed on (stack in reverse order)
         if (numargs > 6) {
@@ -663,13 +678,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
         else args = node.args();
         for (int i = 0; i < args.size(); i++) {
+            int reg_index = (numrets > 2) ? i +1 : i;
             ASMExprTemp tmp = new ASMExprTemp(newTemp());
             List<ASMInstr> visited = visitExpr(args.get(i), tmp);
             instrs.addAll(visited);
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(i), tmp));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(reg_index), tmp));
         }
-        if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
-        String name = ((IRName) node.target()).name();
+
         instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
         instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destreg,
                 new ASMExprReg("rax")));
