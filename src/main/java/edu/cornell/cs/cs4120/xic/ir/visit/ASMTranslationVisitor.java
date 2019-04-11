@@ -954,10 +954,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                     new ASMExprReg("rdi")
                             ));
                         } else {
+                            // TODO: should this be moved out of the else? We should increment argnum even if it is zero, because if we have "mov a, _ARG0", that needs to be changed to "mov a, _ARG1" since _ARG0 is the return value location
                             // num returns > 2, argnum > 0, adjust argnum to be
                             // argnum+1 since _ARG1 is now _ARG0, _ARG2 is now
                             // _ARG1, etc
                             argnum++;
+                            // incrementing argnum means that we load arg0 from
+                            // rsi, arg 1 from rdx, etc, essentially shifting
+                            // the registers by 1 and ensuring rdi is ignored
+                            // when loading argument values (since it contains
+                            // the return value location)
                         }
                     } else {
                         // do nothing... I think? we only need to adjust argnum
