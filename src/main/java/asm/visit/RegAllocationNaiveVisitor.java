@@ -264,10 +264,12 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             instrs.addAll(instr.accept(this));
         }
         // Collect all sub rsp, imm in a function in a single instr
-        List<ASMInstr> subRSPReduced = execPerFunc(
-                instrs, this::removeRepetitiveRSPInFunc
-        );
-        return execPerFunc(subRSPReduced, this::saveCalleeRegsInFunc);
+        // TODO: activate the following lines when the repetitive RSP remover
+        //  is fixed
+//        List<ASMInstr> instrs = execPerFunc(
+//                instrs, this::removeRepetitiveRSPInFunc
+//        );
+        return execPerFunc(instrs, this::saveCalleeRegsInFunc);
     }
 
     @Override
