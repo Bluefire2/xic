@@ -1118,10 +1118,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         // add body
         instrs.addAll(stmtInstrs);
 
-        //Epilogue
-        instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
-        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
-
         return instrs;
     }
 
@@ -1341,6 +1337,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ));
             }
         }
+
+        //Epilogue to this function
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
+        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
+
 
         return instrs;
     }
