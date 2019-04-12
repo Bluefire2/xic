@@ -352,8 +352,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         List<String> regs = new ArrayList<>();
         if (e instanceof ASMExprBinOp) {
             regs.addAll(getObjectsInBinOp((ASMExprBinOp) e, ASMExprReg.class));
-        } else if (e instanceof ASMExprReg){
+        } else if (e instanceof ASMExprReg) {
             regs.add(((ASMExprReg) e).getReg());
+        } else if (e instanceof ASMExprMem) {
+            regs.addAll(getRegsInExpr(((ASMExprMem) e).getAddr()));
         }
         return regs;
     }
