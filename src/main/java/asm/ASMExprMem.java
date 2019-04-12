@@ -4,6 +4,9 @@ public class ASMExprMem extends ASMExpr {
     private ASMExpr addr;
 
     public ASMExprMem(ASMExpr addr) {
+        if (addr == null || addr instanceof ASMExprMem){
+            throw new IllegalAccessError("illegal mem address");
+        }
         this.addr = addr;
     }
 

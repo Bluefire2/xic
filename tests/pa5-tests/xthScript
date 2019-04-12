@@ -29,43 +29,49 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test -target linux") "-libpath $(testpath) -target linux" {
-  array_assign.xi;
-  array_concat.xi;
-  array_index.xi;
-  deepcopy.xi;
-  difflen_assign.xi;
-  multidim_alloc.xi;
-  multidim_literal.xi;
-  propagate_dbz.xi;
-  simple_inc_print.xi;
-  simulator_ex.xi;
-  sortstring.xi;
-  localdecl08.xi;
-  localdecl10.xi;
-  localdecl11.xi;
-  localdecl12.xi;
-  localdecl13.xi;
-  localdecl14.xi;
-  medley01.xi;
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    medley01.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    manyargs_manyreturns.xi;
 }
 
 xic ("Test -target linux -O") "-libpath $(testpath) -target linux -O" {
-  array_assign.xi;
-  array_concat.xi;
-  array_index.xi;
-  deepcopy.xi;
-  difflen_assign.xi;
-  multidim_alloc.xi;
-  multidim_literal.xi;
-  propagate_dbz.xi;
-  simple_inc_print.xi;
-  simulator_ex.xi;
-  sortstring.xi;
-  localdecl08.xi;
-  localdecl10.xi;
-  localdecl11.xi;
-  localdecl12.xi;
-  localdecl13.xi;
-  localdecl14.xi;
-  medley01.xi;
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    medley01.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    manyargs_manyreturns.xi;
 }
