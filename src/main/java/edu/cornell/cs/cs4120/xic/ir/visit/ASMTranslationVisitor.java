@@ -653,6 +653,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
+    private ASMExprTemp returnValueLoc = new ASMExprTemp("returnValueLoc");
+
     public List<ASMInstr> visit(IRCall node, ASMExprRegReplaceable destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
 
@@ -977,8 +979,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param name name of the function from IRFuncDecl instance
      * @return number of return values
      */
-    int getNumReturns(String name) {
-        String sig = name.substring(name.lastIndexOf('_'));
+    private int getNumReturns(String name) {
+        String sig = name.substring(name.lastIndexOf('_') + 1);
         if (sig.startsWith("p")) {
             // procedure
             return 0;
@@ -997,7 +999,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      * @param name name of the function from IRFuncDecl instance
      * @return number of parameters
      */
-    int getNumParams(String name) {
+    private int getNumParams(String name) {
         String sig = name.substring(name.lastIndexOf('_') + 1);
         // the number of parameters is the total number of i and b in params
         // sub the returnCount since that also gets counted in iCount and bCount
@@ -1013,12 +1015,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return arg.startsWith("_ARG");
     }
 
-    //Current memory location in which to store extra return values for the func
-    private ASMExprTemp return_value_loc;
-
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numparams = getNumParams(node.name());
+        int numParams = getNumParams(node.name());
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -1033,14 +1032,22 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         //Body
         IRStmt body = node.body();
-        IRSeq stmts;
-        if (body instanceof IRSeq) {
-            stmts = (IRSeq) body;
-        } else {
-            stmts = new IRSeq(body);
-        }
+        IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
 
         List<ASMInstr> stmtInstrs = new ArrayList<>();
+
+        int numRets = getNumReturns(node.name());
+        if (numRets > 2 && numParams == 0) {
+            // procedure with multiple returns. The body won't contain any
+            // references to _ARG0, which we need here for the return asm at
+            // the end. So add it before rest of body
+            stmtInstrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV,
+                    new ASMExprTemp("_ARG0"),
+                    new ASMExprReg("rdi")
+            ));
+        }
+
         for (IRStmt s : stmts.stmts()) {
 
             // functions always have mov a, _ARGi at most once for each i
@@ -1058,25 +1065,23 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }
 
                     // rhs/src is _ARGi
-                    int argnum = numFromString(srcname);
-                    if (getNumReturns(node.name()) > 2) {
+                    int argNum = numFromString(srcname);
+                    if (numRets > 2) {
                         // If function has more than 2 returns, _ARG0 is
                         // the storage location for extra return values.
-                        if (argnum == 0) {
-                            // _ARG0, goes into return_value_loc
-                            return_value_loc = new ASMExprTemp(newTemp());
-                            // rdi needs to be moved into this:
-                            // mov t, rdi
+                        if (argNum == 0) {
+                            // rdi needs to be moved into _ARG0:
+                            // mov _ARG0, rdi
                             stmtInstrs.add(new ASMInstr_2Arg(
                                     ASMOpCode.MOV,
-                                    return_value_loc,
+                                    new ASMExprTemp("_ARG0"),
                                     new ASMExprReg("rdi")
                             ));
                         }
                         // num returns > 2, adjust argnum to be
                         // argnum+1 so that _ARG0 is now _ARG1, _ARG1 is now
                         // _ARG2, etc
-                        argnum++;
+                        argNum++;
                         // incrementing argnum means that we load arg0 from
                         // rsi, arg1 from rdx, etc, essentially shifting
                         // the registers by 1 and ensuring rdi is ignored
@@ -1086,7 +1091,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     // num returns < 2, don't change argnum
 
                     ASMExpr replace_ARGi;
-                    switch (argnum) {
+                    switch (argNum) {
                         case 0: replace_ARGi = new ASMExprReg("rdi"); break;
                         case 1: replace_ARGi = new ASMExprReg("rsi"); break;
                         case 2: replace_ARGi = new ASMExprReg("rdx"); break;
@@ -1096,8 +1101,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         default:
                             // rbp + 0 is old rbp; rbp + 8 is old rip
                             // so the 7th arg is at [rbp + ((7-7)+2)*8] or
-                            // [rbp + 16
-                            int stackLoc = (numparams - (argnum + 1) + 2) * 8;
+                            // [rbp + 16]
+                            int stackLoc = (numParams - (argNum + 1) + 2) * 8;
                             replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
                                     new ASMExprReg("rbp"),
                                     new ASMExprConst(stackLoc)
@@ -1156,7 +1161,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
-    public void moveHelper(IRExpr src, IRExpr dest, List<ASMInstr> instrs){
+    private void moveHelper(IRExpr src, IRExpr dest, List<ASMInstr> instrs){
         // case 3 (fallback): the source is an expression that is not a mem or a temp
         // move x, e (where x is a temp or a mem)
         // We accept e which generates instructions for it and places the
@@ -1332,10 +1337,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     // ith return value, move to [return_value_loc - (i-2)*8]
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV,
-                            new ASMExprBinOpAdd(
-                                    new ASMExprMem(return_value_loc),
+                            new ASMExprMem(new ASMExprBinOpAdd(
+                                    new ASMExprTemp("_ARG0"),
                                     new ASMExprConst(-(i-2)*8)
-                            ),
+                            )),
                             tmp
                     ));
             }
