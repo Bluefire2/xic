@@ -112,7 +112,10 @@ public enum ASMOpCode {
     HLT,
     LOCK,
     NOP,
-    WAIT;
+    WAIT,
+
+    //comments
+    COMMENT;
 
     @Override
     public String toString() {

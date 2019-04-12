@@ -67,6 +67,12 @@ public class CLI implements Runnable {
             description = "Optional flag which prints to terminal instead of outputting files.")
     private boolean optDebug = false;
 
+    @Option (names = {"--commentASM"},
+            description = "Optional flag which adds a comment with the abstract assembly instruction"+
+                    "right above the instructions generated from register allocation"
+    )
+    private boolean optCommentASM = false;
+
     @Option (names = {"--typecheck"},
             description = "Generate output from semantic analysis.")
     private boolean optTypeCheck = false;
@@ -318,7 +324,7 @@ public class CLI implements Runnable {
 
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
-                RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor();
+                RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
                 if (!optASMDisableRegAllocation) {
                     instrs = regVisitor.allocate(instrs);

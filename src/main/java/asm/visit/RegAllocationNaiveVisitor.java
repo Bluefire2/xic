@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
+    private boolean addComments;
 
     private static final Set<String> CALLER_SAVE_REGS = Stream.of(
             "r10", "r11", "rax"
@@ -20,7 +21,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             "rbx", "r12", "r13", "r14", "r15"
     ).collect(Collectors.toSet());
 
-    public RegAllocationNaiveVisitor() {
+    public RegAllocationNaiveVisitor(boolean addComment) {
+        this.addComments = addComment;
     }
 
     /**
@@ -508,6 +510,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     public List<ASMInstr> visit(ASMInstr_1Arg i) {
         ASMExpr arg = i.getArg();
         List<ASMInstr> instrs = new ArrayList<>();
+        if (addComments){
+            instrs.add(new ASMInstrComment("                           "
+                    +i.toString()));
+        }
         if (arg instanceof ASMExprTemp) {
             instrs.add(new ASMInstr_1Arg(
                     i.getOpCode(),
@@ -533,6 +539,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         ASMExpr l = i.getDest();
         ASMExpr r = i.getSrc();
         List<ASMInstr> instrs = new ArrayList<>();
+        if (addComments){
+            instrs.add(new ASMInstrComment("                           "
+                    +i.toString()));
+        }
         ASMExpr dest;
         if (l instanceof ASMExprTemp) {//if LHS is a temp it gets turned into a mem
             dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
