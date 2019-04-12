@@ -682,6 +682,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ))
             ));
 
+            // MOV returnValueLoc, rdi
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV,
+                    returnValueLoc,
+                    new ASMExprReg("rdi")
+            ));
+
             // SUB rsp, 8*(rets-2)
             int ret_space = 8*(numrets -2);
             //align if necessary
@@ -799,10 +806,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV,
                             new ASMExprTemp("_RET" + i),
-                            new ASMExprMem(new ASMExprBinOpAdd(
-                                    new ASMExprReg("rsp"),
-                                    new ASMExprConst(stackLoc)
-                            ))
+                            returnValueLoc
+
                     ));
                 }
 
