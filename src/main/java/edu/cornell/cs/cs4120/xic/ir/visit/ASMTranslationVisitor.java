@@ -389,6 +389,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     "if no destination provided, LHS must be a temp or mem"
             );
         }
+        if (left instanceof IRTemp && leftDestTemp == null) {
+            leftDestTemp = new ASMExprTemp(((IRTemp) left).name());
+        }
         // For ADD and MUL, switching left and right children might
         // seem to improve performance, but there is no point since
         // one of the children will need to be moved to dest anyway
@@ -637,7 +640,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                                 new ASMExprTemp(t)
                         ));
                     }
-                } else if (dest instanceof ASMExprTemp){
+                } else {
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOVZX,
                             dest,
