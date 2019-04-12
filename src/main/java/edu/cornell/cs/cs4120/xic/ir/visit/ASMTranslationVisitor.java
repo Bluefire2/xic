@@ -643,18 +643,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             dest,
                             new ASMExprReg("al")
                     ));
-                } else {
-                    String t = newTemp();
-                    instrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.MOVZX,
-                            new ASMExprTemp(t),
-                            new ASMExprReg("al")
-                    ));
-                    instrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.MOV,
-                            dest,
-                            new ASMExprTemp(t)
-                    ));
                 }
                 return instrs;
             }

@@ -543,9 +543,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         }
         List<String> usedRegs = new ArrayList<>(getRegsInExpr(dest));
         ASMExpr src;
-        //TODO are there instructions where RHS cannot be mem?
-        //ex: original instruction OP REG TEMP becomes invalid when
-        //translated as OP REG MEM
         if (l instanceof ASMExprReg) {
             //if LHS is a reg and the op type allows mem as second arg,
             //then RHS can be a mem
@@ -569,6 +566,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 }
                 src = new ASMExprReg(availRegs.get(0));
                 instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
+                usedRegs.add(availRegs.get(0));
             } else if (r instanceof ASMExprMem) {
                 ASMExpr srcMem = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
                 usedRegs.addAll(getRegsInExpr(srcMem));
@@ -579,15 +577,34 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 }
                 src = new ASMExprReg(availRegs.get(0));
                 instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
+                usedRegs.add(availRegs.get(0));
             } else {
                 src = r;
             }
         }
-        instrs.add(new ASMInstr_2Arg(
-                i.getOpCode(),
-                dest,
-                src
-        ));
+        if (i.getOpCode() == ASMOpCode.MOVZX){
+            List<String> availRegs = getAvailRegs(usedRegs);
+            if (availRegs.size() == 0){
+                throw new InternalCompilerError("Allocating regs naively: not " +
+                        "enough regs for RHS of 2 argument expr");
+            }
+            instrs.add(new ASMInstr_2Arg(
+                    i.getOpCode(),
+                    new ASMExprReg(availRegs.get(0)),
+                    src
+            ));
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV,
+                    dest,
+                    new ASMExprReg(availRegs.get(0))
+            ));
+        } else {
+            instrs.add(new ASMInstr_2Arg(
+                    i.getOpCode(),
+                    dest,
+                    src
+            ));
+        }
         return instrs;
     }
 
