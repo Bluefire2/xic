@@ -11,7 +11,8 @@ import java.util.Random;
 import static org.junit.Assert.assertEquals;
 
 public class RegAllocationNaiveVisitorTest {
-    private RegAllocationNaiveVisitor visitor = new RegAllocationNaiveVisitor();
+    private RegAllocationNaiveVisitor visitor =
+            new RegAllocationNaiveVisitor(false);
 
     private int randInRange(int min, int max) {
         return min + (int) (Math.random() * ((max - min) + 1));
