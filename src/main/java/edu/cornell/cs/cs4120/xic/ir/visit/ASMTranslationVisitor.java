@@ -693,10 +693,13 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             ));
 
             // SUB rsp, 8*(rets-2)
+            int ret_space = 8*(numrets -2);
+            //align if necessary
+            if (ret_space % 16 != 0) ret_space += 8;
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.SUB,
                     new ASMExprReg("rsp"),
-                    new ASMExprConst(8*(numrets-2))
+                    new ASMExprConst(ret_space)
             ));
 
             // Allocate 6th+ args on the stack
@@ -727,6 +730,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.addAll(visited);
             instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, t));
         }
+
+        //Align stack to 16 bytes if necessary
+        if (numargs % 2 != 0) {
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB,
+                    new ASMExprReg("rsp"),
+                    new ASMExprConst(8)));
+        }
+
 
         // Move each arg into corresponding regs
         for (int i = 0; i < argsInRegs.size(); i++) {
