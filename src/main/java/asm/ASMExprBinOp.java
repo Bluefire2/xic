@@ -5,6 +5,10 @@ public abstract class ASMExprBinOp extends ASMExpr {
     private ASMExpr right;
 
     ASMExprBinOp(ASMExpr left, ASMExpr right) {
+        if (left == null || left instanceof ASMExprMem
+                || right == null || right instanceof ASMExprMem) {
+            throw new IllegalAccessError("Illegal argument of ASM expr");
+        }
         this.left = left;
         this.right = right;
     }
