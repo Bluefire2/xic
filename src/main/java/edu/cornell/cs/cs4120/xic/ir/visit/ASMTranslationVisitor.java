@@ -670,82 +670,66 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 new ASMExprReg("r9")
         );
 
-        int numargs = node.args().size();
-        List<IRExpr> argsInRegs;
-        List<IRExpr> argsOnStack = new ArrayList<>();
-        int numrets = getNumReturns(name);
-        if (numrets > 2) {
-            // LEA rdi, [rsp-8]
-            instrs.add(new ASMInstr_2Arg(
-                    ASMOpCode.LEA,
-                    new ASMExprReg("rdi"),
-                    new ASMExprMem(new ASMExprBinOpAdd(
-                            new ASMExprReg("rsp"),
-                            new ASMExprConst(-8)
-                    ))
-            ));
+        int numArgs = node.args().size();
+        int numRets = getNumReturns(name);
 
-            // MOV returnValueLoc, rdi
-            instrs.add(new ASMInstr_2Arg(
-                    ASMOpCode.MOV,
-                    returnValueLoc,
-                    new ASMExprReg("rdi")
-            ));
+        // Evaluate each func arg
+        List<ASMExprTemp> argTemps = new ArrayList<>();
+        for (IRExpr e : node.args()) {
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            List<ASMInstr> visited = visitExpr(e, t);
+            instrs.addAll(visited);
+            argTemps.add(t);
+        }
 
-            // SUB rsp, 8*(rets-2)
-            int ret_space = 8*(numrets -2);
-            //align if necessary
-            if (ret_space % 16 != 0) ret_space += 8;
+        List<ASMExprTemp> argsInRegs;
+        List<ASMExprTemp> argsOnStack = new ArrayList<>();
+        if (numRets > 2) {
+            // Create scratch space for extra return values
+            // SUB rsp, 8*(numRets-2)
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.SUB,
                     new ASMExprReg("rsp"),
-                    new ASMExprConst(ret_space)
+                    new ASMExprConst(8 * (numRets-2))
+            ));
+
+            // MOV rdi, rsp
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV, new ASMExprReg("rdi"), new ASMExprReg("rsp")
             ));
 
             // Allocate 6th+ args on the stack
-            if (numargs > 5) {
-                argsOnStack = node.args().subList(5, numargs);
-                argsInRegs = node.args().subList(0, 5);
+            if (numArgs > 5) {
+                argsOnStack = argTemps.subList(5, numArgs);
+                argsInRegs = argTemps.subList(0, 5);
             } else {
                 // argsOnStack is empty
-                argsInRegs = node.args();
+                argsInRegs = argTemps;
             }
         } else {
             // num of rets <= 2
             // Allocate 7th+ args on the stack
-            if (numargs > 6) {
-                argsOnStack = node.args().subList(6, numargs);
-                argsInRegs = node.args().subList(0, 6);
+            if (numArgs > 6) {
+                argsOnStack = argTemps.subList(6, numArgs);
+                argsInRegs = argTemps.subList(0, 6);
             } else {
                 // argsOnStack is empty
-                argsInRegs = node.args();
+                argsInRegs = argTemps;
             }
         }
 
         // Push argsOnStack in reverse order
         Collections.reverse(argsOnStack);
-        for (IRExpr e : argsOnStack) {
-            ASMExprTemp t = new ASMExprTemp(newTemp());
-            List<ASMInstr> visited = visitExpr(e, t);
-            instrs.addAll(visited);
+        for (ASMExprTemp t : argsOnStack) {
             instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, t));
         }
 
-        //Align stack to 16 bytes if necessary
-        if (numargs % 2 != 0) {
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.SUB,
-                    new ASMExprReg("rsp"),
-                    new ASMExprConst(8)));
-        }
-
-
         // Move each arg into corresponding regs
         for (int i = 0; i < argsInRegs.size(); i++) {
-            int regIndex = (numrets > 2) ? i + 1 : i;
-            ASMExprTemp t = new ASMExprTemp(newTemp());
-            List<ASMInstr> visited = visitExpr(argsInRegs.get(i), t);
-            instrs.addAll(visited);
-            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, argRegs.get(regIndex), t));
+            int regIndex = (numRets > 2) ? i + 1 : i;
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV, argRegs.get(regIndex), argsInRegs.get(i)
+            ));
         }
 
         // Function call
@@ -766,7 +750,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         ));
 
         // Move the return values to _RETi
-        switch (numrets) {
+        switch (numRets) {
             case 0: break;
             case 1: {
                 instrs.add(new ASMInstr_2Arg(
@@ -800,28 +784,28 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ));
 
                 // For i >= 2, move from stack to RETi
-                for (int i = 2; i < numrets; i++) {
+                for (int i = 2; i < numRets; i++) {
                     // _RET2 is highest on the stack, _RETn is lowest. So
                     // stackLoc is calculated as numrets - i. 1 deducted
                     // because how stack addresses work
-                    int stackLoc = (numrets - i - 1)*8;
-                    // MOV _RETi, [rsp + stackLoc]
+                    int stackLoc = (numRets - i - 1)*8;
+                    // MOV _RETi, [rsp + 8*(i-2)]
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV,
                             new ASMExprTemp("_RET" + i),
-                            returnValueLoc
-
+                            new ASMExprMem(new ASMExprBinOpAdd(
+                                    new ASMExprReg("rsp"),
+                                    new ASMExprConst(8 * (i-2))
+                            ))
                     ));
                 }
 
                 // Free up space for return values, ADD rsp, 8*(n-2)
-                if (numrets > 2) {
-                    instrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.ADD,
-                            new ASMExprReg("rsp"),
-                            new ASMExprConst(8*(numrets-2))
-                    ));
-                }
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.ADD,
+                        new ASMExprReg("rsp"),
+                        new ASMExprConst(8 * (numRets-2))
+                ));
             }
         }
 
@@ -1105,12 +1089,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         case 5: replace_ARGi = new ASMExprReg("r9"); break;
                         default:
                             // rbp + 0 is old rbp; rbp + 8 is old rip
-                            // so the 7th arg is at [rbp + ((7-7)+2)*8] or
-                            // [rbp + 16]
-                            int stackLoc = (numParams - (argNum + 1) + 2) * 8;
+                            // so the ith arg is at [rbp + 8*((i-1)-6+2)] or
+                            // [rbp + 16] where i >= 7 (i-1) due to 0-indexing
                             replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
                                     new ASMExprReg("rbp"),
-                                    new ASMExprConst(stackLoc)
+                                    new ASMExprConst(8 * (argNum - 6 + 2))
                             ));
                     }
                     stmtInstrs.add(new ASMInstr_2Arg(
@@ -1339,12 +1322,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ));
                     break;
                 default:
-                    // ith return value, move to [return_value_loc - (i-2)*8]
+                    // ith return value, move to [_ARG0 + 8*(i-2)]
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV,
                             new ASMExprMem(new ASMExprBinOpAdd(
                                     new ASMExprTemp("_ARG0"),
-                                    new ASMExprConst(-(i-2)*8)
+                                    new ASMExprConst(8 * (i-2))
                             )),
                             tmp
                     ));
