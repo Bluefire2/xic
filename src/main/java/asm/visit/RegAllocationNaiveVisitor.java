@@ -224,6 +224,13 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
+    /**
+     * Returns a list of ASM instructions with space allocated for _RETi 0 <=
+     * i < n where n is the max number of returns returned by any callee
+     * function inside this func.
+     *
+     * @param func list of instructions denoting a function.
+     */
     private List<ASMInstr> create_RETiPerFunc(List<ASMInstr> func) {
         // Go through all the calls in this function, and get the maximum
         // number of returns that any callee function would return
@@ -303,12 +310,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
-        // Collect all sub rsp, imm in a function in a single instr
-        // TODO: activate the following lines when the repetitive RSP remover
-        //  is fixed
-//        List<ASMInstr> instrs = execPerFunc(
-//                instrs, this::removeRepetitiveRSPInFunc
-//        );
         return execPerFunc(instrs, this::saveCalleeRegsInFunc);
     }
 
