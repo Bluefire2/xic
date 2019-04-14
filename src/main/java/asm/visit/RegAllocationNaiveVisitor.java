@@ -2,7 +2,6 @@ package asm.visit;
 
 import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
-import symboltable.NotFoundException;
 
 import java.util.*;
 import java.util.function.Function;
@@ -355,48 +354,50 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private String getCallName(List<ASMInstr> func, int pos) {
         for (int i = pos; i < func.size(); i++){
             ASMInstr curr = func.get(i);
-            if (curr instanceof ASMInstr_1Arg && curr.getOpCode() == ASMOpCode.CALL){
+            if (curr instanceof ASMInstr_1Arg && curr.getOpCode() == ASMOpCode.CALL) {
                 return ((ASMExprName) ((ASMInstr_1Arg) curr).getArg()).getName();
             }
         }
-        throw new InternalCompilerError("wtf");
+        throw new InternalCompilerError("`call func` instruction not found");
     }
 
-    private int getCallEnd(List<ASMInstr> func, int pos) {
-        for (int i = pos; i < func.size(); i++){
+    private int getCallEndIndex(List<ASMInstr> func, int pos) {
+        for (int i = pos; i < func.size(); i++) {
             ASMInstr curr = func.get(i);
             if (curr instanceof ASMInstrComment &&
-                    ((ASMInstrComment) curr).getComment().equals("CALL_END")){
+                    ((ASMInstrComment) curr).getComment().equals("CALL_END")) {
                 return i;
             }
         }
-        throw new InternalCompilerError("wtf");
+        throw new InternalCompilerError("CALL_END comment not found");
     }
 
     private List<ASMInstr> alignStackInFunc(List<ASMInstr> func) {
         //assume 1 return address, 5 callee-saved, no temps on stack
-        String funcName = ((ASMInstrLabel) func.get(0)).getName();
+        List<ASMInstr> updatedFunc = new ArrayList<>(func);
+        String funcName = ((ASMInstrLabel) updatedFunc.get(0)).getName();
         int numTemps = funcToRefTempMap.get(funcName).size();
-        for (int i = 0; i < func.size(); i++){
-            ASMInstr curr = func.get(i);
+        for (int i = 0; i < updatedFunc.size(); i++){
+            ASMInstr curr = updatedFunc.get(i);
             if (curr instanceof ASMInstrComment &&
-                    ((ASMInstrComment) curr).getComment().equals("CALL_START")){
+                    ((ASMInstrComment) curr).getComment().equals("CALL_START")) {
                 //execute for each call
-                String fname = getCallName(func, i);
-                int params = ASMUtils.getNumParams(fname);
-                int returns = ASMUtils.getNumReturns(fname);
-                int n_stack;
-                if (returns > 2){
-                    n_stack = Math.max(returns - 2, 0) + Math.max(params - 5, 0);
-                } else {
-                    n_stack = Math.max(params - 6, 0);
-                }
-                if ((n_stack + numTemps) % 2 != 0){//need padding
-                    //replace CALL_START with PUSH 0
-                    func.set(i, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprConst(0)));
-                    int endCallLoc = getCallEnd(func, i);
+                String callFuncName = getCallName(updatedFunc, i);
+                int numParams = ASMUtils.getNumParams(callFuncName);
+                int numReturns = ASMUtils.getNumReturns(callFuncName);
+                // stack space required for extra rets, params for the callee
+                int numStackCallFunc = Math.max(numReturns - 2, 0) +
+                        Math.max(numParams - (numReturns > 2 ? 5 : 6), 0);
+                if ((numStackCallFunc + numTemps) % 2 != 0) {//need padding
+                    //replace comment CALL_START with sub rsp, 8
+                    updatedFunc.set(i, new ASMInstr_2Arg(
+                            ASMOpCode.SUB,
+                            new ASMExprReg("rsp"),
+                            new ASMExprConst(8)
+                    ));
                     //replace CALL_END with instruction to free up space
-                    func.set(endCallLoc, new ASMInstr_2Arg(
+                    int endCallIndex = getCallEndIndex(updatedFunc, i);
+                    updatedFunc.set(endCallIndex, new ASMInstr_2Arg(
                             ASMOpCode.ADD,
                             new ASMExprReg("rsp"),
                             new ASMExprConst(8)
@@ -404,7 +405,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 }
             }
         }
-        return func;
+        return updatedFunc;
     }
 
     /**

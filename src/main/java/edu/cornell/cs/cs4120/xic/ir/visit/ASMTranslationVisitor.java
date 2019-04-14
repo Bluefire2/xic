@@ -679,7 +679,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             instrs.addAll(visited);
             argTemps.add(t);
         }
+
         instrs.add(new ASMInstrComment("CALL_START"));
+
         List<ASMExprTemp> argsInRegs;
         List<ASMExprTemp> argsOnStack = new ArrayList<>();
         if (numRets > 2) {
@@ -802,11 +804,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             }
         }
 
+        instrs.add(new ASMInstrComment("CALL_END"));
+
         // Move rax into destreg
         instrs.add(new ASMInstr_2Arg(
                 ASMOpCode.MOV, destreg, new ASMExprTemp("_RET0")
         ));
-        instrs.add(new ASMInstrComment("CALL_END"));
         return instrs;
     }
 
