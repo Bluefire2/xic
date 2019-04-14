@@ -506,8 +506,8 @@ public class ASMTranslationVisitorTest {
     public void testASMExprOfBinOpMemMem() {
         // left: ["a" + "b"*4], right: ["c" + "d"]
         // results:
-        //  MOV _a, [a + b*4]
-        //  _a, [c + d]
+        //  MOV _a, [c + d]
+        //  MOV [a + b*4], _a
         IRExpr left = new IRMem(
                 new IRBinOp(OpType.ADD, new IRTemp("a"), new IRBinOp(
                         OpType.MUL, new IRTemp("b"), new IRConst(4)
@@ -517,7 +517,7 @@ public class ASMTranslationVisitorTest {
                 new IRBinOp(OpType.ADD, new IRTemp("c"), new IRTemp("d"))
         );
         ASMExprTemp leftDestTemp = new ASMExprTemp("_a");
-        ASMExprTemp rightDestTemp = new ASMExprTemp("");
+        ASMExprTemp rightDestTemp = new ASMExprTemp("_a");
         List<ASMInstr> instrs = new ArrayList<>();
 
         Pair<ASMExpr, ASMExpr> dests = visitor.asmExprOfBinOp(
@@ -538,12 +538,12 @@ public class ASMTranslationVisitorTest {
         ASMExprMem rightMem = new ASMExprMem(new ASMExprBinOpAdd(
                 new ASMExprTemp("d"), new ASMExprTemp("c")
         ));
-        assertEquals(leftDestTemp, dests.part1());
-        assertEquals(rightMem, dests.part2());
+        assertEquals(leftMem, dests.part1());
+        assertEquals(rightDestTemp, dests.part2());
         assertEquals(1, instrs.size());
         assertEquals(
                 new ASMInstr_2Arg(
-                        ASMOpCode.MOV, leftDestTemp, leftMem
+                        ASMOpCode.MOV, rightDestTemp, rightMem
                 ),
                 instrs.get(0)
         );
