@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
-//    private final HashMap<String, Integer> funcToMaxRetValMap = new HashMap<>();
     private final HashMap<String, Set<String>> funcToRefTempMap =
             new HashMap<>();
     private boolean addComments;
@@ -95,46 +94,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     }
 
     /**
-     * Returns true if expression expr is of the form `[rbp - imm]` where
-     * imm can be any constant.
-     *
-     * @param expr expression to test.
-     */
-    boolean exprIsMemRBPMinusConst(ASMExpr expr) {
-        if (expr instanceof ASMExprMem) {
-            ASMExpr addr = ((ASMExprMem) expr).getAddr();
-            if (addr instanceof ASMExprBinOpAdd) {
-                // rbp - imm is represented as rbp + (-imm)
-                ASMExprBinOpAdd a = (ASMExprBinOpAdd) addr;
-                return a.getLeft().equals(new ASMExprReg("rbp"))
-                        && a.getRight() instanceof ASMExprConst
-                        && ((ASMExprConst) a.getRight()).getVal() < 0;
-            }
-            return false;
-        }
-        return false;
-    }
-
-    /**
-     * If the expression expr is `[rbp - k_t]`, the returned expr is
-     * `[rbp - k_t]` where k_t' = k_t + n. Otherwise, the expr is returned
-     *
-     * @param expr expression.
-     * @param n constant to add to k_t.
-     */
-    private ASMExpr exprIfMemRBPMinusConstAddConst(ASMExpr expr, int n) {
-        if (exprIsMemRBPMinusConst(expr)) {
-            ASMExprBinOpAdd a = (ASMExprBinOpAdd) ((ASMExprMem) expr).getAddr();
-            long negk_t = ((ASMExprConst) a.getRight()).getVal(); // negk_t < 0
-            return new ASMExprMem(new ASMExprBinOpAdd(
-                    new ASMExprReg("rbp"), new ASMExprConst(negk_t - n)
-            ));
-        } else {
-            return expr;
-        }
-    }
-
-    /**
      * Given a function, create a list of instructions for the function where
      * any registers designated as callee-saved are pushed to the stack at the
      * beginning of the function, and popped from the stack at the end. The
@@ -182,141 +141,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
         return updatedFunc;
     }
-
-//    /**
-//     * Returns a list of instructions for the func where any callee regs
-//     * appearing in the func list of instructions are pushed at the beginning
-//     * and popped off the stack at the end. The order of pushing callee regs
-//     * is in ascending order of the reg names. Thus, r12 is pushed before rbx
-//     * etc.
-//     *
-//     * @param func list of instructions.
-//     */
-//    List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
-//        // find all the callee regs in this function
-//        Set<String> usedRegs = new HashSet<>();
-//        for (ASMInstr instr : func) {
-//            // add the instruction's expr's regs to usedRegs
-//            if (instr instanceof ASMInstr_1Arg) {
-//                usedRegs.addAll(getRegsInExpr(((ASMInstr_1Arg) instr).getArg()));
-//            } else if (instr instanceof ASMInstr_2Arg) {
-//                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getDest()));
-//                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getSrc()));
-//            }
-//        }
-//        List<String> usedCalleeRegs = new ArrayList<>();
-//        for (String reg : CALLEE_SAVE_REGS) {
-//            if (usedRegs.contains(reg)) {
-//                usedCalleeRegs.add(reg);
-//            }
-//        }
-//        Collections.sort(usedCalleeRegs);   // just for predictability
-//        int N = usedCalleeRegs.size();
-//
-//        if (N == 0) {
-//            // no callee regs used, return with a copy of func
-//            return new ArrayList<>(func);
-//        }
-//        // some callee regs used
-//
-//        // add push instructions at the right place (just after enter)
-//        // add pop instructions at the right place (just before leave)
-//
-//        // also adjust the rbp - k_t to be rbp - k_t' where k_t' = k_t + (8*N),
-//        // where N is the number of callee save regs used in this function.
-//
-//        List<ASMInstr> updatedFunc = new ArrayList<>();
-//        for (ASMInstr instr : func) {
-//            if (instr.getOpCode() == ASMOpCode.ENTER) {
-//                updatedFunc.add(instr);// ENTER
-//                // add PUSH reg instructions sequentially
-//                for (String reg : usedCalleeRegs) {
-//                    updatedFunc.add(new ASMInstr_1Arg(
-//                            ASMOpCode.PUSH, new ASMExprReg(reg)
-//                    ));
-//                }
-//            } else if (instr.getOpCode() == ASMOpCode.LEAVE) {
-//                // add POP reg instructions sequentially, but in reverse order
-//                // reverse usedCalleeRegs. Doesn't affect other future runs
-//                // on the loop because ENTER and LEAVE can each exist one in
-//                // this function, and LEAVE appears at the end ==> so no use
-//                // of usedCalleeRegs order after this point.
-//                Collections.reverse(usedCalleeRegs);
-//                for (String reg : usedCalleeRegs) {
-//                    updatedFunc.add(new ASMInstr_1Arg(
-//                            ASMOpCode.POP, new ASMExprReg(reg)
-//                    ));
-//                }
-//                updatedFunc.add(instr);// LEAVE
-//            } else {
-//                if (instr instanceof ASMInstr_1Arg) {
-//                    updatedFunc.add(new ASMInstr_1Arg(
-//                            instr.getOpCode(),
-//                            exprIfMemRBPMinusConstAddConst(
-//                                    ((ASMInstr_1Arg) instr).getArg(), 8*N
-//                            )
-//                    ));
-//                } else if (instr instanceof ASMInstr_2Arg) {
-//                    updatedFunc.add(new ASMInstr_2Arg(
-//                            instr.getOpCode(),
-//                            exprIfMemRBPMinusConstAddConst(
-//                                    ((ASMInstr_2Arg) instr).getDest(), 8*N
-//                            ),
-//                            exprIfMemRBPMinusConstAddConst(
-//                                    ((ASMInstr_2Arg) instr).getSrc(), 8*N
-//                            )
-//                    ));
-//                } else {
-//                    // no expressions to replace
-//                    updatedFunc.add(instr);
-//                }
-//            }
-//        }
-//        return updatedFunc;
-//    }
-
-//    /**
-//     * Returns a list of ASM instructions with space allocated for _RETi 0 <=
-//     * i < n where n is the max number of returns returned by any callee
-//     * function inside this func.
-//     *
-//     * @param func list of instructions denoting a function.
-//     */
-//    private List<ASMInstr> create_RETiPerFunc(List<ASMInstr> func) {
-//        // Go through all the calls in this function, and get the maximum
-//        // number of returns that any callee function would return
-//        int maxNumReturns = 0;
-//        for (ASMInstr instr : func) {
-//            if (instr instanceof ASMInstr_1Arg
-//                    && instr.getOpCode() == ASMOpCode.CALL) {
-//                String name = ((ASMExprName)
-//                        ((ASMInstr_1Arg) instr).getArg())
-//                        .getName();
-//                if (name.startsWith("_I")) {
-//                    // CALL function
-//                    maxNumReturns = Math.max(
-//                            maxNumReturns, ASMUtils.getNumReturns(name)
-//                    );
-//                }
-//            }
-//        }
-//
-//        List<ASMInstr> updatedFunc = new ArrayList<>(func);
-//        // 0 -> funcLabel, 1 -> ENTER. Add the _RETi allocation after ENTER
-//        if (maxNumReturns > 0) {
-//            updatedFunc.add(2, new ASMInstr_2Arg(
-//                    ASMOpCode.SUB,
-//                    new ASMExprReg("rsp"),
-//                    new ASMExprConst(8 * maxNumReturns)
-//            ));
-//        }
-//
-//        funcToMaxRetValMap.put(
-//                ((ASMInstrLabel) updatedFunc.get(0)).getName(), maxNumReturns
-//        );
-//
-//        return updatedFunc;
-//    }
 
     private List<ASMInstr> createTempSpaceOnStack(List<ASMInstr> func) {
         // Go through the func, and get all the unique temps referenced in it
