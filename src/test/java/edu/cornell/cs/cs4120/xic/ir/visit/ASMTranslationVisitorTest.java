@@ -570,19 +570,22 @@ public class ASMTranslationVisitorTest {
                 Arrays.asList(new IRConst(4), new IRConst(5)));
         List<ASMInstr> expected = new ArrayList<>(Arrays.asList(
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t0"), new ASMExprConst(4)),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdi"), new ASMExprTemp("_asm_t0")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t1"), new ASMExprConst(5)),
+                new ASMInstrComment("CALL_START"),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdi"), new ASMExprTemp("_asm_t0")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rsi"), new ASMExprTemp("_asm_t1")),
                 new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName("_If_iii")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("tmp"), new ASMExprReg("rax")),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_RET0"), new ASMExprReg("rax")),
+                new ASMInstrComment("CALL_END"),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("tmp"), new ASMExprTemp("_RET0")),
                 new ASMInstrLabel("_If_iii"),
-                new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rbp")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rbp"), new ASMExprReg("rsp")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t2"), new ASMExprTemp("rdi")),
-                new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprTemp("_asm_t2"), new ASMExprTemp("rsi")),
+                new ASMInstr_2Arg(ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG0"), new ASMExprTemp("x")),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG1"), new ASMExprTemp("y")),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t2"), new ASMExprTemp("x")),
+                new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprTemp("_asm_t2"), new ASMExprTemp("y")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), new ASMExprTemp("_asm_t2")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rsp"), new ASMExprReg("rbp")),
-                new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rbp")),
+                new ASMInstr_0Arg(ASMOpCode.LEAVE),
                 new ASMInstr_0Arg(ASMOpCode.RET)
         ));
         List<ASMInstr> actual = visitor.visit(fcall, new ASMExprTemp("tmp"));
