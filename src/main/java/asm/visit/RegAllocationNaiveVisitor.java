@@ -136,48 +136,24 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     }
 
     /**
-     * Returns a list of instructions for the func where any callee regs
-     * appearing in the func list of instructions are pushed at the beginning
-     * and popped off the stack at the end. The order of pushing callee regs
-     * is in ascending order of the reg names. Thus, r12 is pushed before rbx
-     * etc.
+     * Given a function, create a list of instructions for the function where
+     * any registers designated as callee-saved are pushed to the stack at the
+     * beginning of the function, and popped from the stack at the end. The
+     * order of pushing callee regs is in ascending order of the reg names.
+     * Thus, r12 is pushed before rbx, etc.
      *
-     * @param func list of instructions.
+     * Note that the original list of instructions is not mutated.
+     *
+     * @param func The function.
+     * @return A version of the function with all callee-saved registers saved.
      */
-    List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
-        // find all the callee regs in this function
-        Set<String> usedRegs = new HashSet<>();
-        for (ASMInstr instr : func) {
-            // add the instruction's expr's regs to usedRegs
-            if (instr instanceof ASMInstr_1Arg) {
-                usedRegs.addAll(getRegsInExpr(((ASMInstr_1Arg) instr).getArg()));
-            } else if (instr instanceof ASMInstr_2Arg) {
-                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getDest()));
-                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getSrc()));
-            }
-        }
-        List<String> usedCalleeRegs = new ArrayList<>();
-        for (String reg : CALLEE_SAVE_REGS) {
-            if (usedRegs.contains(reg)) {
-                usedCalleeRegs.add(reg);
-            }
-        }
-        Collections.sort(usedCalleeRegs);   // just for predictability
-        int N = usedCalleeRegs.size();
-
-        if (N == 0) {
-            // no callee regs used, return with a copy of func
-            return new ArrayList<>(func);
-        }
-        // some callee regs used
-
-        // add push instructions at the right place (just after enter)
-        // add pop instructions at the right place (just before leave)
-
-        // also adjust the rbp - k_t to be rbp - k_t' where k_t' = k_t + (8*N),
-        // where N is the number of callee save regs used in this function.
-
+    List<ASMInstr> saveAllCalleeRegsInFunc(List<ASMInstr> func) {
         List<ASMInstr> updatedFunc = new ArrayList<>();
+        List<String> usedCalleeRegs = new ArrayList<>(CALLEE_SAVE_REGS);
+        Collections.sort(usedCalleeRegs);
+
+        // No need to update memory references after ENTER because this is run
+        // before allocating registers
         for (ASMInstr instr : func) {
             if (instr.getOpCode() == ASMOpCode.ENTER) {
                 updatedFunc.add(instr);// ENTER
@@ -201,31 +177,104 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 }
                 updatedFunc.add(instr);// LEAVE
             } else {
-                if (instr instanceof ASMInstr_1Arg) {
-                    updatedFunc.add(new ASMInstr_1Arg(
-                            instr.getOpCode(),
-                            exprIfMemRBPMinusConstAddConst(
-                                    ((ASMInstr_1Arg) instr).getArg(), 8*N
-                            )
-                    ));
-                } else if (instr instanceof ASMInstr_2Arg) {
-                    updatedFunc.add(new ASMInstr_2Arg(
-                            instr.getOpCode(),
-                            exprIfMemRBPMinusConstAddConst(
-                                    ((ASMInstr_2Arg) instr).getDest(), 8*N
-                            ),
-                            exprIfMemRBPMinusConstAddConst(
-                                    ((ASMInstr_2Arg) instr).getSrc(), 8*N
-                            )
-                    ));
-                } else {
-                    // no expressions to replace
-                    updatedFunc.add(instr);
-                }
+                updatedFunc.add(instr);
             }
         }
+
         return updatedFunc;
     }
+
+//    /**
+//     * Returns a list of instructions for the func where any callee regs
+//     * appearing in the func list of instructions are pushed at the beginning
+//     * and popped off the stack at the end. The order of pushing callee regs
+//     * is in ascending order of the reg names. Thus, r12 is pushed before rbx
+//     * etc.
+//     *
+//     * @param func list of instructions.
+//     */
+//    List<ASMInstr> saveCalleeRegsInFunc(List<ASMInstr> func) {
+//        // find all the callee regs in this function
+//        Set<String> usedRegs = new HashSet<>();
+//        for (ASMInstr instr : func) {
+//            // add the instruction's expr's regs to usedRegs
+//            if (instr instanceof ASMInstr_1Arg) {
+//                usedRegs.addAll(getRegsInExpr(((ASMInstr_1Arg) instr).getArg()));
+//            } else if (instr instanceof ASMInstr_2Arg) {
+//                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getDest()));
+//                usedRegs.addAll(getRegsInExpr(((ASMInstr_2Arg) instr).getSrc()));
+//            }
+//        }
+//        List<String> usedCalleeRegs = new ArrayList<>();
+//        for (String reg : CALLEE_SAVE_REGS) {
+//            if (usedRegs.contains(reg)) {
+//                usedCalleeRegs.add(reg);
+//            }
+//        }
+//        Collections.sort(usedCalleeRegs);   // just for predictability
+//        int N = usedCalleeRegs.size();
+//
+//        if (N == 0) {
+//            // no callee regs used, return with a copy of func
+//            return new ArrayList<>(func);
+//        }
+//        // some callee regs used
+//
+//        // add push instructions at the right place (just after enter)
+//        // add pop instructions at the right place (just before leave)
+//
+//        // also adjust the rbp - k_t to be rbp - k_t' where k_t' = k_t + (8*N),
+//        // where N is the number of callee save regs used in this function.
+//
+//        List<ASMInstr> updatedFunc = new ArrayList<>();
+//        for (ASMInstr instr : func) {
+//            if (instr.getOpCode() == ASMOpCode.ENTER) {
+//                updatedFunc.add(instr);// ENTER
+//                // add PUSH reg instructions sequentially
+//                for (String reg : usedCalleeRegs) {
+//                    updatedFunc.add(new ASMInstr_1Arg(
+//                            ASMOpCode.PUSH, new ASMExprReg(reg)
+//                    ));
+//                }
+//            } else if (instr.getOpCode() == ASMOpCode.LEAVE) {
+//                // add POP reg instructions sequentially, but in reverse order
+//                // reverse usedCalleeRegs. Doesn't affect other future runs
+//                // on the loop because ENTER and LEAVE can each exist one in
+//                // this function, and LEAVE appears at the end ==> so no use
+//                // of usedCalleeRegs order after this point.
+//                Collections.reverse(usedCalleeRegs);
+//                for (String reg : usedCalleeRegs) {
+//                    updatedFunc.add(new ASMInstr_1Arg(
+//                            ASMOpCode.POP, new ASMExprReg(reg)
+//                    ));
+//                }
+//                updatedFunc.add(instr);// LEAVE
+//            } else {
+//                if (instr instanceof ASMInstr_1Arg) {
+//                    updatedFunc.add(new ASMInstr_1Arg(
+//                            instr.getOpCode(),
+//                            exprIfMemRBPMinusConstAddConst(
+//                                    ((ASMInstr_1Arg) instr).getArg(), 8*N
+//                            )
+//                    ));
+//                } else if (instr instanceof ASMInstr_2Arg) {
+//                    updatedFunc.add(new ASMInstr_2Arg(
+//                            instr.getOpCode(),
+//                            exprIfMemRBPMinusConstAddConst(
+//                                    ((ASMInstr_2Arg) instr).getDest(), 8*N
+//                            ),
+//                            exprIfMemRBPMinusConstAddConst(
+//                                    ((ASMInstr_2Arg) instr).getSrc(), 8*N
+//                            )
+//                    ));
+//                } else {
+//                    // no expressions to replace
+//                    updatedFunc.add(instr);
+//                }
+//            }
+//        }
+//        return updatedFunc;
+//    }
 
 //    /**
 //     * Returns a list of ASM instructions with space allocated for _RETi 0 <=
@@ -398,10 +447,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
         input = execPerFunc(input, this::createTempSpaceOnStack);
+        input = execPerFunc(input, this::saveAllCalleeRegsInFunc);
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
-        instrs = execPerFunc(instrs, this::saveCalleeRegsInFunc);
         return execPerFunc(instrs, this::alignStackInFunc);
     }
 
