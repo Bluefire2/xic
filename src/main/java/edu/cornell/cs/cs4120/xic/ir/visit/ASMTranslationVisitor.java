@@ -566,17 +566,20 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ));
                 }
 
+                ASMExpr rightDest = dests.part2();
+
                 if (dests.part2() instanceof ASMExprConst) {
                     // right needs to be moved into t
                     instrs.add(new ASMInstr_2Arg(
                             ASMOpCode.MOV, rightDestTemp, dests.part2()
                     ));
+                    rightDest = rightDestTemp;
                 }
 
-                // now we do idiv/imul t
+                // now we do idiv/imul dests.part2()
                 instrs.add(new ASMInstr_1Arg(
                         // this takes care of choosing the opcode
-                        ASMOpCode.asmOpCodeOf(node.opType()), rightDestTemp
+                        ASMOpCode.asmOpCodeOf(node.opType()), rightDest
                 ));
 
                 // finally, move the result into dest
