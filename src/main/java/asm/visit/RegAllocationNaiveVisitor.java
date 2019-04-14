@@ -2,6 +2,7 @@ package asm.visit;
 
 import asm.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
+import symboltable.NotFoundException;
 
 import java.util.*;
 import java.util.function.Function;
@@ -302,6 +303,61 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
+    private String getCallName(List<ASMInstr> func, int pos) {
+        for (int i = pos; i < func.size(); i++){
+            ASMInstr curr = func.get(i);
+            if (curr instanceof ASMInstr_1Arg && curr.getOpCode() == ASMOpCode.CALL){
+                return ((ASMExprName) ((ASMInstr_1Arg) curr).getArg()).getName();
+            }
+        }
+        throw new InternalCompilerError("wtf");
+    }
+
+    private int getCallEnd(List<ASMInstr> func, int pos) {
+        for (int i = pos; i < func.size(); i++){
+            ASMInstr curr = func.get(i);
+            if (curr instanceof ASMInstrComment &&
+                    ((ASMInstrComment) curr).getComment().equals("CALL_END")){
+                return i;
+            }
+        }
+        throw new InternalCompilerError("wtf");
+    }
+
+    private List<ASMInstr> alignStackInFunc(List<ASMInstr> func) {
+        //assume 1 return address, 5 callee-saved, no temps on stack
+        String funcName = ((ASMInstrLabel) func.get(0)).getName();
+        int numTemps = funcToRefTempMap.get(funcName).size();
+        for (int i = 0; i < func.size(); i++){
+            ASMInstr curr = func.get(i);
+            if (curr instanceof ASMInstrComment &&
+                    ((ASMInstrComment) curr).getComment().equals("CALL_START")){
+                //execute for each call
+                String fname = getCallName(func, i);
+                int params = ASMUtils.getNumParams(fname);
+                int returns = ASMUtils.getNumReturns(fname);
+                int n_stack;
+                if (returns > 2){
+                    n_stack = Math.max(returns - 2, 0) + Math.max(params - 5, 0);
+                } else {
+                    n_stack = Math.max(params - 6, 0);
+                }
+                if ((n_stack + numTemps) % 2 != 0){//need padding
+                    //replace CALL_START with PUSH 0
+                    func.set(i, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprConst(0)));
+                    int endCallLoc = getCallEnd(func, i);
+                    //replace CALL_END with instruction to free up space
+                    func.set(endCallLoc, new ASMInstr_2Arg(
+                            ASMOpCode.ADD,
+                            new ASMExprReg("rsp"),
+                            new ASMExprConst(8)
+                    ));
+                }
+            }
+        }
+        return func;
+    }
+
     /**
      * Executes function f for each function in the list of instructions ins.
      * The input instrs is not changed. The result of f on each function is
@@ -345,7 +401,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
-        return execPerFunc(instrs, this::saveCalleeRegsInFunc);
+        instrs = execPerFunc(instrs, this::saveCalleeRegsInFunc);
+        return execPerFunc(instrs, this::alignStackInFunc);
     }
 
     @Override

@@ -20,6 +20,12 @@ public class ASMInstrComment extends ASMInstr {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ASMInstrComment &&
+                ((ASMInstrComment) obj).getComment() == this.comment;
+    }
+
+    @Override
     public List<ASMInstr> accept(ASMinstrBareVisitor<List<ASMInstr>> v) {
         return new ArrayList<>();
     }
