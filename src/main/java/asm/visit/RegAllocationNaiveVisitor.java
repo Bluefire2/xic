@@ -373,7 +373,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     }
 
     private List<ASMInstr> alignStackInFunc(List<ASMInstr> func) {
-        //assume 1 return address, 5 callee-saved, no temps on stack
         List<ASMInstr> updatedFunc = new ArrayList<>(func);
         String funcName = ((ASMInstrLabel) updatedFunc.get(0)).getName();
         int numTemps = funcToRefTempMap.get(funcName).size();
@@ -388,7 +387,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 // stack space required for extra rets, params for the callee
                 int numStackCallFunc = Math.max(numReturns - 2, 0) +
                         Math.max(numParams - (numReturns > 2 ? 5 : 6), 0);
-                if ((numStackCallFunc + numTemps) % 2 != 0) {//need padding
+                //assume 1 rip, 1 rbp, 5 callee-saved, temps on stack
+                int totalStackSize = 1 + 1 + 5 + numTemps + numStackCallFunc;
+                if (totalStackSize % 2 != 0) {//need padding
                     //replace comment CALL_START with sub rsp, 8
                     updatedFunc.set(i, new ASMInstr_2Arg(
                             ASMOpCode.SUB,
@@ -449,10 +450,11 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         List<ASMInstr> instrs = new ArrayList<>();
         input = execPerFunc(input, this::createTempSpaceOnStack);
         input = execPerFunc(input, this::saveAllCalleeRegsInFunc);
+        input = execPerFunc(input, this::alignStackInFunc);
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
-        return execPerFunc(instrs, this::alignStackInFunc);
+        return instrs;
     }
 
     @Override
@@ -704,7 +706,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     public List<ASMInstr> visit(ASMInstr_1Arg i) {
         ASMExpr arg = i.getArg();
         List<ASMInstr> instrs = new ArrayList<>();
-        if (addComments){
+        if (addComments) {
             instrs.add(new ASMInstrComment("                           "
                     +i.toString()));
         }
