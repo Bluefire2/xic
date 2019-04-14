@@ -10,7 +10,9 @@ import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
-    private final HashMap<String, Integer> funcToMaxRetValMap = new HashMap<>();
+//    private final HashMap<String, Integer> funcToMaxRetValMap = new HashMap<>();
+    private final HashMap<String, Set<String>> funcToRefTempMap =
+            new HashMap<>();
     private boolean addComments;
 
     private static final Set<String> CALLER_SAVE_REGS = Stream.of(
@@ -224,44 +226,77 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
-    /**
-     * Returns a list of ASM instructions with space allocated for _RETi 0 <=
-     * i < n where n is the max number of returns returned by any callee
-     * function inside this func.
-     *
-     * @param func list of instructions denoting a function.
-     */
-    private List<ASMInstr> create_RETiPerFunc(List<ASMInstr> func) {
-        // Go through all the calls in this function, and get the maximum
-        // number of returns that any callee function would return
-        int maxNumReturns = 0;
+//    /**
+//     * Returns a list of ASM instructions with space allocated for _RETi 0 <=
+//     * i < n where n is the max number of returns returned by any callee
+//     * function inside this func.
+//     *
+//     * @param func list of instructions denoting a function.
+//     */
+//    private List<ASMInstr> create_RETiPerFunc(List<ASMInstr> func) {
+//        // Go through all the calls in this function, and get the maximum
+//        // number of returns that any callee function would return
+//        int maxNumReturns = 0;
+//        for (ASMInstr instr : func) {
+//            if (instr instanceof ASMInstr_1Arg
+//                    && instr.getOpCode() == ASMOpCode.CALL) {
+//                String name = ((ASMExprName)
+//                        ((ASMInstr_1Arg) instr).getArg())
+//                        .getName();
+//                if (name.startsWith("_I")) {
+//                    // CALL function
+//                    maxNumReturns = Math.max(
+//                            maxNumReturns, ASMUtils.getNumReturns(name)
+//                    );
+//                }
+//            }
+//        }
+//
+//        List<ASMInstr> updatedFunc = new ArrayList<>(func);
+//        // 0 -> funcLabel, 1 -> ENTER. Add the _RETi allocation after ENTER
+//        if (maxNumReturns > 0) {
+//            updatedFunc.add(2, new ASMInstr_2Arg(
+//                    ASMOpCode.SUB,
+//                    new ASMExprReg("rsp"),
+//                    new ASMExprConst(8 * maxNumReturns)
+//            ));
+//        }
+//
+//        funcToMaxRetValMap.put(
+//                ((ASMInstrLabel) updatedFunc.get(0)).getName(), maxNumReturns
+//        );
+//
+//        return updatedFunc;
+//    }
+
+    private List<ASMInstr> createTempSpaceOnStack(List<ASMInstr> func) {
+        // Go through the func, and get all the unique temps referenced in it
+        Set<String> tempsInFunc = new HashSet<>();
         for (ASMInstr instr : func) {
-            if (instr instanceof ASMInstr_1Arg
-                    && instr.getOpCode() == ASMOpCode.CALL) {
-                String name = ((ASMExprName)
-                        ((ASMInstr_1Arg) instr).getArg())
-                        .getName();
-                if (name.startsWith("_I")) {
-                    // CALL function
-                    maxNumReturns = Math.max(
-                            maxNumReturns, ASMUtils.getNumReturns(name)
-                    );
+            if (instr instanceof ASMInstr_1Arg) {
+                ASMInstr_1Arg ins1 = (ASMInstr_1Arg) instr;
+                if (ins1.getArg() instanceof ASMExprTemp) {
+                    tempsInFunc.add(((ASMExprTemp) ins1.getArg()).getName());
+                }
+            } else if (instr instanceof ASMInstr_2Arg) {
+                ASMInstr_2Arg ins2 = (ASMInstr_2Arg) instr;
+                // each temp referenced in this func must be assigned to at a
+                // certain point. So all unique temps exist as a destination
+                if (ins2.getDest() instanceof ASMExprTemp) {
+                    tempsInFunc.add(((ASMExprTemp) ins2.getDest()).getName());
                 }
             }
         }
-
         List<ASMInstr> updatedFunc = new ArrayList<>(func);
-        // 0 -> funcLabel, 1 -> ENTER. Add the _RETi allocation after ENTER
-        if (maxNumReturns > 0) {
-            updatedFunc.add(2, new ASMInstr_2Arg(
-                    ASMOpCode.SUB,
-                    new ASMExprReg("rsp"),
-                    new ASMExprConst(8 * maxNumReturns)
-            ));
-        }
+        // replace the ENTER by the space for temps needed
+        updatedFunc.set(1, new ASMInstr_2Arg(
+                ASMOpCode.ENTER,
+                new ASMExprConst(8 * tempsInFunc.size()),
+                new ASMExprConst(0)
+        ));
 
-        funcToMaxRetValMap.put(
-                ((ASMInstrLabel) updatedFunc.get(0)).getName(), maxNumReturns
+        funcToRefTempMap.put(
+                ((ASMInstrLabel) updatedFunc.get(0)).getName(), tempsInFunc
         );
 
         return updatedFunc;
@@ -306,7 +341,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
-        input = execPerFunc(input, this::create_RETiPerFunc);
+        input = execPerFunc(input, this::createTempSpaceOnStack);
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
@@ -319,12 +354,15 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // this label is a function, start a new hashmap
             tempToStackAddrMap.clear();
 
-            // Add to hashmaps the mappings from _RETi to stack locations
-            int maxNumRets = funcToMaxRetValMap.get(i.getName());
-            for (int j = 0; j < maxNumRets; j++) {
+            // Add to hashmap the mappings from temps to stack locations
+            List<String> tempsInFunc = new ArrayList<>(
+                    funcToRefTempMap.get(i.getName())
+            );
+
+            for (String temp : tempsInFunc) {
                 // [rbp - k_t]
                 int k_t = -((tempToStackAddrMap.size() + 1) * 8);
-                tempToStackAddrMap.put("_RET" + j, k_t);
+                tempToStackAddrMap.put(temp, k_t);
             }
         }
         List<ASMInstr> l = new ArrayList<>();

@@ -653,8 +653,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         throw new IllegalAccessError();
     }
 
-    private ASMExprTemp returnValueLoc = new ASMExprTemp("returnValueLoc");
-
     public List<ASMInstr> visit(IRCall node, ASMExprRegReplaceable destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
 
