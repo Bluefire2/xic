@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
+    private final HashMap<String, Integer> funcToMaxRetValMap = new HashMap<>();
     private boolean addComments;
 
     private static final Set<String> CALLER_SAVE_REGS = Stream.of(
@@ -223,6 +224,42 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
+    private List<ASMInstr> create_RETiPerFunc(List<ASMInstr> func) {
+        // Go through all the calls in this function, and get the maximum
+        // number of returns that any callee function would return
+        int maxNumReturns = 0;
+        for (ASMInstr instr : func) {
+            if (instr instanceof ASMInstr_1Arg
+                    && instr.getOpCode() == ASMOpCode.CALL) {
+                String name = ((ASMExprName)
+                        ((ASMInstr_1Arg) instr).getArg())
+                        .getName();
+                if (name.startsWith("_I")) {
+                    // CALL function
+                    maxNumReturns = Math.max(
+                            maxNumReturns, ASMUtils.getNumReturns(name)
+                    );
+                }
+            }
+        }
+
+        List<ASMInstr> updatedFunc = new ArrayList<>(func);
+        // 0 -> funcLabel, 1 -> ENTER. Add the _RETi allocation after ENTER
+        if (maxNumReturns > 0) {
+            updatedFunc.add(2, new ASMInstr_2Arg(
+                    ASMOpCode.SUB,
+                    new ASMExprReg("rsp"),
+                    new ASMExprConst(8 * maxNumReturns)
+            ));
+        }
+
+        funcToMaxRetValMap.put(
+                ((ASMInstrLabel) updatedFunc.get(0)).getName(), maxNumReturns
+        );
+
+        return updatedFunc;
+    }
+
     /**
      * Executes function f for each function in the list of instructions ins.
      * The input instrs is not changed. The result of f on each function is
@@ -262,6 +299,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
+        input = execPerFunc(input, this::create_RETiPerFunc);
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
@@ -279,6 +317,14 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         if (i.isFunction()) {
             // this label is a function, start a new hashmap
             tempToStackAddrMap.clear();
+
+            // Add to hashmaps the mappings from _RETi to stack locations
+            int maxNumRets = funcToMaxRetValMap.get(i.getName());
+            for (int j = 0; j < maxNumRets; j++) {
+                // [rbp - k_t]
+                int k_t = -((tempToStackAddrMap.size() + 1) * 8);
+                tempToStackAddrMap.put("_RET" + j, k_t);
+            }
         }
         List<ASMInstr> l = new ArrayList<>();
         l.add(i);

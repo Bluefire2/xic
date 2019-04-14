@@ -671,7 +671,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
 
         int numArgs = node.args().size();
-        int numRets = getNumReturns(name);
+        int numRets = ASMUtils.getNumReturns(name);
 
         // Evaluate each func arg
         List<ASMExprTemp> argTemps = new ArrayList<>();
@@ -744,11 +744,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             ));
         }
 
-        // Move rax into destreg
-        instrs.add(new ASMInstr_2Arg(
-                ASMOpCode.MOV, destreg, new ASMExprReg("rax")
-        ));
-
         // Move the return values to _RETi
         switch (numRets) {
             case 0: break;
@@ -808,6 +803,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 ));
             }
         }
+
+        // Move rax into destreg
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV, destreg, new ASMExprTemp("_RET0")
+        ));
+
 
         return instrs;
     }
@@ -952,52 +953,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     /**
-     * Remove all non-digit characters from a string, and return the integer
-     * value of the result.
-     *
-     * @param s string containing one or more digit
-     * @return number contained within the string
-     */
-    private int numFromString(String s) {
-        return Integer.parseInt(s.replaceAll("\\D+", ""));
-    }
-
-    /**
-     * Return the number of values that the function declaration returns.
-     *
-     * @param name name of the function from IRFuncDecl instance
-     * @return number of return values
-     */
-    private int getNumReturns(String name) {
-        String sig = name.substring(name.lastIndexOf('_') + 1);
-        if (sig.startsWith("p")) {
-            // procedure
-            return 0;
-        } else if (sig.startsWith("t")) {
-            // tuple return, get the number after "t"
-            return numFromString(sig);
-        } else {
-            // single return
-            return 1;
-        }
-    }
-
-    /**
-     * Return the number of parameters that the function declaration takes in.
-     *
-     * @param name name of the function from IRFuncDecl instance
-     * @return number of parameters
-     */
-    private int getNumParams(String name) {
-        String sig = name.substring(name.lastIndexOf('_') + 1);
-        // the number of parameters is the total number of i and b in params
-        // sub the returnCount since that also gets counted in iCount and bCount
-        int iCount = (int) sig.chars().filter(c -> c == 'i').count();
-        int bCount = (int) sig.chars().filter(c -> c == 'b').count();
-        return iCount + bCount - getNumReturns(name);
-    }
-
-    /**
      * Returns true if arg is of the form _ARGi with i is an integer.
      */
     private boolean isAFuncArg(String arg) {
@@ -1006,7 +961,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numParams = getNumParams(node.name());
+        int numParams = ASMUtils.getNumParams(node.name());
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -1025,7 +980,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         List<ASMInstr> stmtInstrs = new ArrayList<>();
 
-        int numRets = getNumReturns(node.name());
+        int numRets = ASMUtils.getNumReturns(node.name());
         if (numRets > 2 && numParams == 0) {
             // procedure with multiple returns. The body won't contain any
             // references to _ARG0, which we need here for the return asm at
@@ -1054,7 +1009,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }
 
                     // rhs/src is _ARGi
-                    int argNum = numFromString(srcname);
+                    int argNum = ASMUtils.numFromString(srcname);
                     if (numRets > 2) {
                         // If function has more than 2 returns, _ARG0 is
                         // the storage location for extra return values.
