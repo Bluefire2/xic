@@ -31,6 +31,7 @@
 xic ("Test -target linux") "-libpath $(testpath) -target linux" {
     array_assign.xi;
     array_concat.xi;
+    array_simple_concat.xi;
     array_index.xi;
     deepcopy.xi;
     difflen_assign.xi;
