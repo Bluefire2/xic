@@ -4,12 +4,9 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.LinkedList;
-import java.util.LinkedHashMap;
-import java.util.Iterator;
-import java.util.Iterator;
 
 public class LoweringVisitor extends IRVisitor {
     private int tempcounter;
@@ -116,9 +113,9 @@ public class LoweringVisitor extends IRVisitor {
                 currentBlock = new BasicBlock(l);
             } else if (currStmt instanceof IRJump){
                 IRJump j = (IRJump) currStmt;
-                //This needs to be changed later (pa7), currently we always jump to named locs
-                String name = ((IRName) j.target()).name();
-                currentBlock.jumpTo = name;
+                // TODO: This needs to be changed later (pa7), currently we
+                //  always jump to named locs
+                currentBlock.jumpTo = ((IRName) j.target()).name();
                 //do not add to block, but record that it should jumpTo
                 lookup.put(currentBlock.label, currentBlock);
                 currentBlock = null;

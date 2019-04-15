@@ -1,9 +1,13 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
+import java.util.List;
 
 /**
  * An intermediate representation for evaluating an expression for side effects,
@@ -50,6 +54,11 @@ public class IRExp extends IRStmt {
     public CheckCanonicalIRVisitor checkCanonicalEnter(
             CheckCanonicalIRVisitor v) {
         return v.enterExp();
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        return v.visit(this);
     }
 
     @Override

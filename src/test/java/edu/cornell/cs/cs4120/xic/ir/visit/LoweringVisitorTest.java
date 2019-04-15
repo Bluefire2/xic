@@ -64,7 +64,7 @@ public class LoweringVisitorTest {
                                         new IRTemp("_lir_t0"),
                                         new IRTemp("_lir_t1"))))
                         , new IRTemp("_lir_t2"));
-        assertEquals(lcall, visitor.lower(call));
+        assertEquals(lcall.toString(), visitor.lower(call).toString());
     }
 
     @Test
@@ -174,8 +174,8 @@ public class LoweringVisitorTest {
         IRSeq lowered = new IRSeq(new IRMove(new IRTemp(t), new IRName("x")),
                         new IRLabel("l"),
                         new IRMove(new IRMem(new IRTemp(t)),
-                                new IRBinOp(IRBinOp.OpType.ADD, new IRTemp("x"), new IRConst(1))));
-        assertEquals(lowered, visitor.lower(mov));
+                                new IRBinOp(IRBinOp.OpType.ADD, new IRTemp("y"), new IRConst(1))));
+        assertEquals(lowered.toString(), visitor.lower(mov).toString());
     }
 
     @Test
@@ -187,7 +187,7 @@ public class LoweringVisitorTest {
                 new IRLabel("l"),
                 new IRMove(new IRMem(new IRTemp(t)),
                         new IRMem(new IRName("x"))));
-        assertEquals(lowered, visitor.lower(mov));
+        assertEquals(lowered.toString(), visitor.lower(mov).toString());
     }
 
     @Test
@@ -239,7 +239,7 @@ public class LoweringVisitorTest {
                 new IRSeq(
                         new IRJump(new IRTemp("a")),
                         new IRMove(new IRTemp(t), new IRConst(5)),
-                        new IRJump(new IRTemp("b"))
+                        new IRJump(new IRTemp("a"))
                 ),
                 new IRBinOp(
                         IRBinOp.OpType.ADD,
@@ -247,7 +247,7 @@ public class LoweringVisitorTest {
                         new IRTemp("c")
                 )
         );
-        assertEquals(ret, visitor.lower(binOp));
+        assertEquals(ret.toString(), visitor.lower(binOp).toString());
     }
 
 

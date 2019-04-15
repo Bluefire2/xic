@@ -1,18 +1,19 @@
-package ast;
+package ast.visit;
 
+import ast.*;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import polyglot.util.Pair;
 import symboltable.TypeSymTableFunc;
-import edu.cornell.cs.cs4120.util.InternalCompilerError;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public class VisitorTranslation implements VisitorAST<IRNode> {
+public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private static final int WORD_NUM_BYTES = 8;
     private int labelcounter;
     private int tempcounter;
@@ -27,7 +28,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public VisitorTranslation(boolean opt, String name) {
+    public IRTranslationVisitor(boolean opt, String name) {
         this.labelcounter = 0;
         this.tempcounter = 0;
         this.optimize = opt;
@@ -75,7 +76,7 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         }
     }
 
-    String functionName(String name, TypeSymTableFunc signature) {
+    public String functionName(String name, TypeSymTableFunc signature) {
         String newName = name.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
@@ -128,9 +129,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                 new IRBinOp(OpType.LT, new IRTemp(temp_index), new IRConst(0)),
                 new IRBinOp(OpType.GEQ, new IRTemp(temp_index), new IRMem(
                         new IRBinOp(
-                                OpType.SUB,
+                                OpType.ADD,
                                 new IRTemp(temp_array),
-                                new IRConst(WORD_NUM_BYTES)
+                                new IRConst(-WORD_NUM_BYTES)
                         )
                 ))
         );
@@ -204,30 +205,52 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
         ));
     }
 
+    //unfolds the sizes of the array and converts them all into IRTemps
+    private Pair<List<IRStmt>,List<String>> unfoldSizes(TypeTTauArray arr){
+        List<IRStmt> moves = new ArrayList<>();
+        List<String> sizeTemps = new ArrayList<>();
+        Expr size = arr.getSize();
+        TypeTTauArray curr = arr;
+        while (size != null && curr != null){
+            IRExpr sizeIR = (IRExpr) size.accept(this);
+            String sizeTemp = newTemp();
+            moves.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+            sizeTemps.add(sizeTemp);
+            if (curr.getTypeTTau() instanceof TypeTTauArray){
+                curr = (TypeTTauArray) curr.getTypeTTau();
+                size = curr.getSize();
+            } else {
+                curr = null;
+                size = null;
+            }
+        }
+        return new Pair(moves, sizeTemps);
+    }
+
     /**
      * Allocates a multi dimensional array of type arr starting at
      * temporary/memory location t.
      *
      * @param t   temporary or memory address.
      * @param arr type of multi dim array.
+     * @param sizeTemps list of temp names where the array sizes are stored
+     *                  need to pre-calculate and store them elsewhere
      * @return a list of IR statements for performing this array allocation.
      */
-    private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr) {
+    private List<IRStmt> allocateMultiDimArray(IRExpr t, TypeTTauArray arr, List<String> sizeTemps) {
         assert t instanceof IRTemp || t instanceof IRMem;
 
         TypeTTau innerType = arr.getTypeTTau();
         Expr size = arr.getSize();
         if (size != null) {
-            IRExpr sizeIR = (IRExpr) size.accept(this);
-            String sizeTemp = newTemp();
-
+            String sizeTemp = sizeTemps.get(0);
             List<IRStmt> allocIR = new ArrayList<>();
-            // sizeTemp <- eval(size)
-            allocIR.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
+
             // Create an array of size sizeTemp
             allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
 
-            if (innerType instanceof TypeTTauArray) {
+            if (innerType instanceof TypeTTauArray
+                    && ((TypeTTauArray) innerType).getSize() != null) {
                 // innerType is an array, create a while loop to initialize
                 // each element of t
                 TypeTTauArray itArray = (TypeTTauArray) innerType;
@@ -258,7 +281,8 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
                                         new IRConst(WORD_NUM_BYTES)
                                 )
                         )),
-                        itArray)));
+                        itArray,
+                        sizeTemps.subList(1,sizeTemps.size()))));
                 // i++
                 allocIR.add(new IRMove(
                         new IRTemp(i),
@@ -406,14 +430,14 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
             String tempLLength = newTemp();
             String tempRLength = newTemp();
             IRMove lengthL = new IRMove(new IRTemp(tempLLength), new IRMem(
-                    new IRBinOp(OpType.SUB,
+                    new IRBinOp(OpType.ADD,
                             new IRTemp(tempL),
-                            new IRConst(WORD_NUM_BYTES)
+                            new IRConst(-WORD_NUM_BYTES)
                     )));
             IRMove lengthR = new IRMove(new IRTemp(tempRLength), new IRMem(
-                    new IRBinOp(OpType.SUB,
+                    new IRBinOp(OpType.ADD,
                             new IRTemp(tempR),
-                            new IRConst(WORD_NUM_BYTES)
+                            new IRConst(-WORD_NUM_BYTES)
                     )));
             String tempNewArray = newTemp();
             String newRStart = newTemp();
@@ -564,9 +588,9 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     @Override
     public IRExpr visit(ExprLength node) {
         return new IRMem(new IRBinOp(
-                OpType.SUB,
+                OpType.ADD,
                 (IRExpr) node.getArray().accept(this),
-                new IRConst(WORD_NUM_BYTES)
+                new IRConst(-WORD_NUM_BYTES)
         ));
     }
 
@@ -661,9 +685,13 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
     private IRStmt initDecl(String declName, TypeTTau declType) {
         if (declType instanceof TypeTTauArray) {
             TypeTTauArray declArray = (TypeTTauArray) declType;
-            return new IRSeq(
-                    allocateMultiDimArray(new IRTemp(declName), declArray)
+            Pair<List<IRStmt>,List<String>> unfoldedSizes = unfoldSizes(declArray);
+            List<IRStmt> stmts = new ArrayList<>(unfoldedSizes.part1());
+            stmts.addAll(
+                    allocateMultiDimArray(new IRTemp(declName),
+                            declArray, unfoldedSizes.part2())
             );
+            return new IRSeq(stmts);
         } else {
             // declType either an int or bool, initialize arbitrarily
             return new IRMove(new IRTemp(declName), new IRConst(0));
@@ -686,17 +714,22 @@ public class VisitorTranslation implements VisitorAST<IRNode> {
 
         if (node.getRhs() instanceof ExprFunctionCall) {
             for (int i = 0; i < decls.size(); ++i) {
-                Pair<String, TypeTTau> decl =
-                        ((TypeDeclVar) decls.get(i)).getPair();
-                // Initialize the ith declaration
-                if (decl.part2() instanceof TypeTTauArray) {
-                    declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                TypeDecl di = decls.get(i);
+                // if di is an underscore, the _RETi is ignored, i.e., don't
+                // do a move operation
+                if (!(di.typeOf() instanceof TypeTUnit)) {
+                    // di is a var
+                    Pair<String, TypeTTau> decl = ((TypeDeclVar) di).getPair();
+                    // Initialize the ith declaration
+                    if (decl.part2() instanceof TypeTTauArray) {
+                        declsInitIR.add(initDecl(decl.part1(), decl.part2()));
+                    }
+                    // Move return value i to this declaration
+                    moveRetIR.add(new IRMove(
+                            new IRTemp(decl.part1()),
+                            new IRTemp(returnValueName(i))
+                    ));
                 }
-                // Move return value i to this declaration
-                moveRetIR.add(new IRMove(
-                        new IRTemp(decl.part1()),
-                        new IRTemp(returnValueName(i))
-                ));
             }
 
             return new IRSeq(

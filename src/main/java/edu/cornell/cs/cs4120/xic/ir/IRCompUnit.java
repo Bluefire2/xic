@@ -1,11 +1,14 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An intermediate representation for a compilation unit
@@ -67,6 +70,10 @@ public class IRCompUnit extends IRNode_c {
         for (IRFuncDecl func : functions.values())
             result = v.bind(result, v.visit(func));
         return result;
+    }
+
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        return v.visit(this);
     }
 
     @Override

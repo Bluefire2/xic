@@ -3,6 +3,6 @@ package ast;
 import java.util.List;
 
 public abstract class TypeDecl implements Printable {
-    abstract TypeT typeOf();
-    abstract List<String> varsOf();
+    public abstract TypeT typeOf();
+    public abstract List<String> varsOf();
 }

@@ -1,6 +1,8 @@
-package ast;
+package ast.visit;
 
-interface VisitorAST<T> {
+import ast.*;
+
+interface ASTVisitor<T> {
     T visit(ExprBinop node);
     T visit(ExprBoolLiteral node);
     T visit(ExprFunctionCall node);

@@ -1,7 +1,11 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.InsnMapsBuilder;
+
+import java.util.List;
 
 /**
  * An intermediate representation for naming a memory address
@@ -30,6 +34,11 @@ public class IRLabel extends IRStmt {
     public InsnMapsBuilder buildInsnMapsEnter(InsnMapsBuilder v) {
         v.addNameToCurrentIndex(name);
         return v;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        return v.visit(this);
     }
 
     @Override

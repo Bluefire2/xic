@@ -10,8 +10,8 @@ make clean
 java -jar lib/jflex-full-1.7.0.jar src/main/java/lexer/xilexer.flex -d src/main/java/lexer/
 
 #Run cup
-./lib/cup -parser "XiParser" -destdir ./src/main/java/xi_parser -locations ./src/main/java/xi_parser/xi.cup
-./lib/cup -parser "IxiParser" -destdir ./src/main/java/xi_parser -locations ./src/main/java/xi_parser/ixi.cup
+./lib/cup -nowarn -parser "XiParser" -destdir ./src/main/java/xi_parser -locations ./src/main/java/xi_parser/xi.cup
+./lib/cup -nowarn -parser "IxiParser" -destdir ./src/main/java/xi_parser -locations ./src/main/java/xi_parser/ixi.cup
 
 # Create the compiler using gradle, create xic binary
 ./gradle_exec.sh --no-daemon customFatJar

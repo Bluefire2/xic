@@ -1,9 +1,15 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprRegReplaceable;
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for an expression evaluated under side effects
@@ -66,6 +72,23 @@ public class IRESeq extends IRExpr_c {
     @Override
     public boolean isCanonical(CheckCanonicalIRVisitor v) {
         return false;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
+        throw new IllegalAccessError("IRESeq should not be visited by ASM " +
+                "Translator");
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        throw new IllegalAccessError("IRESeq can't be matched upon by the " +
+                "lowered IR matcher");
     }
 
     @Override

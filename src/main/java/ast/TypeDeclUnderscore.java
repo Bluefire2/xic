@@ -14,12 +14,12 @@ public class TypeDeclUnderscore extends TypeDecl {
     }
 
     @Override
-    TypeT typeOf() {
+    public TypeT typeOf() {
         return new TypeTUnit();
     }
 
     @Override
-    List<String> varsOf() {
+    public List<String> varsOf() {
         return new ArrayList<>(0);
     }
 }

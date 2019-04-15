@@ -1,6 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprRegReplaceable;
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
+
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for a 64-bit integer constant.
@@ -19,6 +25,21 @@ public class IRConst extends IRExpr_c {
 
     public long value() {
         return value;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
+        return v.visit(this, t);
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        return c.apply(this);
     }
 
     @Override

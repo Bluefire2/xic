@@ -56,7 +56,7 @@ public class TypeTList extends TypeT {
     }
 
     @Override
-    boolean subtypeOf(TypeT t) {
+    public boolean subtypeOf(TypeT t) {
         if (t instanceof TypeTList) {
             List<TypeTTau> otherTauList = ((TypeTList) t).getTTauList();
 

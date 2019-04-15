@@ -1,18 +1,17 @@
 package cli;
 
+import asm.ASMInstr;
+import asm.visit.RegAllocationNaiveVisitor;
 import ast.ASTNode;
 import ast.Printable;
-import ast.VisitorTranslation;
-import ast.VisitorTypeCheck;
+import ast.visit.IRTranslationVisitor;
+import ast.visit.TypeCheckVisitor;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
-import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.CheckConstFoldedIRVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.ConstantFoldVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.LoweringVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import lexer.XiLexer;
 import lexer.XiTokenFactory;
@@ -33,7 +32,23 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
+/*
+██╗  ██╗██╗     ██████╗ ██████╗ ███╗   ███╗██████╗ ██╗██╗     ███████╗██████╗
+╚██╗██╔╝██║    ██╔════╝██╔═══██╗████╗ ████║██╔══██╗██║██║     ██╔════╝██╔══██╗
+ ╚███╔╝ ██║    ██║     ██║   ██║██╔████╔██║██████╔╝██║██║     █████╗  ██████╔╝
+ ██╔██╗ ██║    ██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██║██║     ██╔══╝  ██╔══██╗
+██╔╝ ██╗██║    ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║     ██║███████╗███████╗██║  ██║
+╚═╝  ╚═╝╚═╝     ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝
+
+██╗  ██╗ ██████╗ █████╗ ███████╗███████╗
+██║ ██╔╝██╔════╝██╔══██╗╚════██║██╔════╝
+█████╔╝ ██║     ╚█████╔╝    ██╔╝███████╗
+██╔═██╗ ██║     ██╔══██╗   ██╔╝ ╚════██║
+██║  ██╗╚██████╗╚█████╔╝   ██║  ███████║
+╚═╝  ╚═╝ ╚═════╝ ╚════╝    ╚═╝  ╚══════╝
+ */
 @CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
     @Option (names = {"-h", "--help"}, usageHelp = true,
@@ -51,6 +66,12 @@ public class CLI implements Runnable {
     @Option (names = {"--debug"},
             description = "Optional flag which prints to terminal instead of outputting files.")
     private boolean optDebug = false;
+
+    @Option (names = {"--commentASM"},
+            description = "Optional flag which adds a comment with the abstract assembly instruction"+
+                    "right above the instructions generated from register allocation"
+    )
+    private boolean optCommentASM = false;
 
     @Option (names = {"--typecheck"},
             description = "Generate output from semantic analysis.")
@@ -72,6 +93,10 @@ public class CLI implements Runnable {
             description = "Do not lower the IR.")
     private boolean optMIR = false;
 
+    @Option (names = {"--asm-no-reg"},
+            description = "Do not do register allocation in the asm.")
+    private boolean optASMDisableRegAllocation = false;
+
     @Parameters (arity = "1..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
@@ -80,6 +105,10 @@ public class CLI implements Runnable {
             description = "Specify where to place generated diagnostic files.")
     private Path path;
 
+    @Option (names = "-d", defaultValue = ".",
+            description = "Specify where to place generated assembly files.")
+    private Path asmPath;
+
     @Option (names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
     private Path sourcepath;
@@ -87,6 +116,11 @@ public class CLI implements Runnable {
     @Option (names = "-libpath", defaultValue = ".",
             description = "Specify where to find input library/interface files.")
     private Path libpath;
+
+    @Option (names = {"-target"},
+            description = "Specify the operating system for which to generate code." +
+                    "Supported options: linux.")
+    private String target = null;
 
     @Override
     public void run() {
@@ -106,6 +140,9 @@ public class CLI implements Runnable {
                 }
                 if (optIRRun) {
                     IRRun();
+                }
+                if (target != null && target.equals("linux")) {
+                    asmGen();
                 }
             } else {
                 System.out.println(String.format("Error: directory %s not found", sourcepath));
@@ -275,10 +312,55 @@ public class CLI implements Runnable {
         }
     }
 
+    private void asmGen() {
+        for (File f : optInputFiles) {
+            String outputFilePath = Paths.get(asmPath.toString(),
+                    FilenameUtils.removeExtension(f.getName()) + ".s")
+                    .toString();
+            String inputFilePath = Paths.get(sourcepath.toString(),
+                    f.getPath()).toString();
+            try (FileReader fileReader = new FileReader(inputFilePath);
+                 FileWriter fileWriter = new FileWriter(outputFilePath)) {
+
+                IRNode foldedIR = buildIR(f, fileReader);
+                ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
+                RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor(optCommentASM);
+                List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
+                if (!optASMDisableRegAllocation) {
+                    instrs = regVisitor.allocate(instrs);
+                }
+                asmFilePrologueWrite(fileWriter);
+                for (ASMInstr i : instrs) {
+                    fileWriter.write(i.toString() + "\n");
+                }
+            } catch (LexicalError | SyntaxError | SemanticError e) {
+                e.stdoutError(inputFilePath);
+                fileoutError(outputFilePath, e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static final String INDENT_ASM = "   ";
+
+    /**
+     * Writes the asm file prologue (intel syntax, global func etc.) to the
+     * file writer.
+     *
+     * @param fileWriter file writer.
+     * @throws IOException
+     */
+    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
+        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
+        fileWriter.write(INDENT_ASM + ".text\n");
+        fileWriter.write(INDENT_ASM + ".globl" + INDENT_ASM + "_Imain_paai\n");
+    }
+
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
         ASTNode root = buildAST(fileReader);
         //IR translation and lowering
-        VisitorTranslation tv = new VisitorTranslation(
+        IRTranslationVisitor tv = new IRTranslationVisitor(
                 !optDisableOptimization,
                 FilenameUtils.removeExtension(f.getName()));
         IRNode mir = root.accept(tv);
@@ -293,7 +375,7 @@ public class CLI implements Runnable {
         XiLexer lexer = new XiLexer(fileReader, xtf);
         XiParser parser = new XiParser(lexer, xtf);
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new VisitorTypeCheck(new HashMapSymbolTable<>(), libpath.toString()));
+        root.accept(new TypeCheckVisitor(new HashMapSymbolTable<>(), libpath.toString()));
         return root;
     }
 
@@ -316,3 +398,7 @@ public class CLI implements Runnable {
         CommandLine.run(new CLI(), args);
     }
 }
+
+/*
+
+*/

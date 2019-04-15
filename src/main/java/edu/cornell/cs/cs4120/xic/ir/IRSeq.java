@@ -1,15 +1,17 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMInstr;
+import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
+import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import edu.cornell.cs.cs4120.util.SExpPrinter;
-import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 
 /**
  * An intermediate representation for a sequence of statements
@@ -90,6 +92,11 @@ public class IRSeq extends IRStmt {
     @Override
     public boolean isCanonical(CheckCanonicalIRVisitor v) {
         return !v.inSeq();
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v) {
+        return v.visit(this);
     }
 
     @Override

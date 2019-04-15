@@ -1,9 +1,15 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprRegReplaceable;
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for a memory location
@@ -68,6 +74,21 @@ public class IRMem extends IRExpr_c {
         T result = v.unit();
         result = v.bind(result, v.visit(expr));
         return result;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
+        return v.visit(this, t);
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        return d.apply(this);
     }
 
     @Override

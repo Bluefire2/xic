@@ -1,6 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import asm.ASMExprRegReplaceable;
+import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
+import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
+
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * An intermediate representation for named memory address
@@ -19,6 +25,22 @@ public class IRName extends IRExpr_c {
 
     public String name() {
         return name;
+    }
+
+    @Override
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
+        throw new IllegalAccessError("IRName should not be visited by ASM " +
+                "Translator");
+    }
+
+    @Override
+    public <T> T matchLow(Function<IRBinOp, T> a,
+                          Function<IRCall, T> b,
+                          Function<IRConst, T> c,
+                          Function<IRMem, T> d,
+                          Function<IRName, T> e,
+                          Function<IRTemp, T> f) {
+        return e.apply(this);
     }
 
     @Override
