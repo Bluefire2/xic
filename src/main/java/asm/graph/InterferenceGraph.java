@@ -12,6 +12,7 @@ abstract public class InterferenceGraph extends Graph {
     abstract public List<ASMInstr_2Arg> moves();
     //which move instrs are associated with this graph
 
-    abstract public int spillCost(GraphNode n);
-    //estimate extra instructions if n were kept in memory instead of regs
+    public int spillCost(GraphNode n) {
+        return 1;//naive spilling
+    }
 }

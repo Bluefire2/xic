@@ -4,16 +4,16 @@ import java.util.List;
 public class Graph {
     List<GraphNode> nodes;
 
-    public Graph(){
-        //TODO
-    }
+    public Graph(){ }
 
     public List<GraphNode> getNodes() {
         return nodes;
     }
 
     public GraphNode newNode() {
-        return new GraphNode(this);
+        GraphNode node = new GraphNode(this);
+        nodes.add(node);
+        return node;
     }
 
     public void addEdge(GraphNode from, GraphNode to){
