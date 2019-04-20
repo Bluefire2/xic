@@ -73,7 +73,7 @@ public class RegAllocationColoringVisitor {
     }
 
     public void livenessAnalysis(){
-        //TODO
+        //TODO see Liveness class
     }
 
     public void build(){

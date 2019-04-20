@@ -12,20 +12,21 @@ import java.util.ArrayList;
 
 public class Liveness extends InterferenceGraph {
     //class for liveness analysis (used in reg allocation)
-    
+
     //what is live at in/out of each graph node
     private HashMap<GraphNode, List<ASMExprRegReplaceable>> inLiveMap;
     private HashMap<GraphNode, List<ASMExprRegReplaceable>> outLiveMap;
 
-    //TODO everything
     public Liveness(FlowGraph flow){
-        this.inliveMap = new HashMap<>();
-        this.outliveMap = new HashMap<>();
+        this.inLiveMap = new HashMap<>();
+        this.outLiveMap = new HashMap<>();
         for (GraphNode n : flow.getNodes()){
-            liveMap.put(n, new ArrayList<>());
+            inLiveMap.put(n, new ArrayList<>());
+            outLiveMap.put(n, new ArrayList<>());
         }
     }
 
+    //TODO everything
     @Override
     public GraphNode tnode(ASMExprTemp temp) {
         return null;
