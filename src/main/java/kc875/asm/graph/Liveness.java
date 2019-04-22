@@ -3,6 +3,7 @@ package kc875.asm.graph;
 import kc875.asm.ASMExprRegReplaceable;
 import kc875.asm.ASMExprTemp;
 import kc875.asm.ASMInstr_2Arg;
+import kc875.cfg.GraphNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;

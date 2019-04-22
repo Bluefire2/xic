@@ -1,6 +1,8 @@
 package kc875.asm.graph;
 
 import kc875.asm.ASMExprRegReplaceable;
+import kc875.cfg.Graph;
+import kc875.cfg.GraphNode;
 
 import java.util.List;
 

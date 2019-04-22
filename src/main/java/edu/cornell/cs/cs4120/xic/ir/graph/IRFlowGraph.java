@@ -1,8 +1,8 @@
 package edu.cornell.cs.cs4120.xic.ir.graph;
 
 import edu.cornell.cs.cs4120.xic.ir.IRExpr;
-import kc875.asm.graph.Graph;
-import kc875.asm.graph.GraphNode;
+import kc875.cfg.Graph;
+import kc875.cfg.GraphNode;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ public class IRFlowGraph extends Graph {
     public IRFlowGraph(List<Quadruple> quadruples){
         //TODO: complete
         for (Quadruple q : quadruples){
-            GraphNode n = newNode();
+            GraphNode n = new GraphNode(this);
             nodeMap.put(n, q);
             genMap.put(n, getGen(n));
             killMap.put(n, getKill(n));
