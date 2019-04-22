@@ -2,7 +2,7 @@ package asm.visit;
 
 import java.util.HashSet;
 
-import asm.ASMInstr_2Arg;
+import asm.*;
 import asm.graph.*;
 import polyglot.util.Pair;
 import java.util.List;
@@ -44,10 +44,35 @@ public class RegAllocationColoringVisitor {
     HashMap<GraphNode, String> color;
 
     RegAllocationColoringVisitor(){
-        //TODO
     }
 
-    public void allocate(){
+    public void allocate(List<ASMInstr> instrs){
+        //TODO
+        // initialization goes here because allocate is recursive
+        // some data structures may not need to be reset,
+        // in which case they can be moved up to the constructor
+        precolored = new HashSet<>();
+        initial = new HashSet<>();
+        simplifyWorklist = new HashSet<>();
+        freezeWorklist = new HashSet<>();
+        spillWorklist = new HashSet<>();
+        spilledNodes = new HashSet<>();
+        coalescedNodes = new HashSet<>();
+        coloredNodes = new HashSet<>();
+        selectStack = new HashSet<>();
+
+        coalescedMoves = new HashSet<>();
+        constrainedMoves = new HashSet<>();
+        frozenMoves = new HashSet<>();
+        worklistMoves = new HashSet<>();
+        activeMoves = new HashSet<>();
+
+        adjSet = new HashSet<>();
+        adjList = new HashMap<>();
+        moveList = new HashMap<>();
+        alias = new HashMap<>();
+        color = new HashMap<>();
+
         livenessAnalysis();
         build();
         makeWorkList();
@@ -67,8 +92,8 @@ public class RegAllocationColoringVisitor {
         }
         assignColors();
         if (spilledNodes.size() != 0){
-            rewriteProgram(new ArrayList<GraphNode>(spilledNodes));
-            allocate();
+            List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
+            allocate(new_program);
         }
     }
 
@@ -104,8 +129,9 @@ public class RegAllocationColoringVisitor {
         //TODO
     }
 
-    public void rewriteProgram(List<GraphNode> spilledNodes){
+    public List<ASMInstr> rewriteProgram(List<GraphNode> spilledNodes){
         //TODO
+        return null;
     }
 
 }
