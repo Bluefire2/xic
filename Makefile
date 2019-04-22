@@ -50,10 +50,10 @@ zip: clean	## Zip Xi Compiler source files into xic.zip
 
 clean:	## Clean temporary build files from the directory
 	rm -rf xic.zip build .gradle ~/bin/xic
-	rm -f src/main/java/lexer/XiLexer.java*
-	rm -f src/main/java/xi_parser/XiParser.java* 
-	rm -f src/main/java/xi_parser/IxiParser.java* 
-	rm -f src/main/java/xi_parser/sym.java* 
+	rm -f src/main/java/kc875/lexer/XiLexer.java*
+	rm -f src/main/java/kc875/xi_parser/XiParser.java* 
+	rm -f src/main/java/kc875/xi_parser/IxiParser.java* 
+	rm -f src/main/java/kc875/xi_parser/sym.java* 
 	find . -name "*.lexed" -type f -delete
 	find . -name "*.parsed" -type f -delete
 	find . -name "*.typed" -type f -delete

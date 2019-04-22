@@ -20,7 +20,7 @@ dependencies {
 }
 
 application {
-    mainClassName = 'cli.CLI'
+    mainClassName = 'kc875.cli.CLI'
 }
 
 distributions {
@@ -33,7 +33,7 @@ distributions {
 
 task customFatJar(type: Jar) {
     manifest {
-        attributes 'Main-Class': 'cli.CLI'
+        attributes 'Main-Class': 'kc875.cli.CLI'
     }
     archiveBaseName = 'all-in-one-jar'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

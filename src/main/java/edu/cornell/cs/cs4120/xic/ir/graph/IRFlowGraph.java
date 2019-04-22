@@ -1,8 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir.graph;
 
-import asm.graph.Graph;
-import asm.graph.GraphNode;
 import edu.cornell.cs.cs4120.xic.ir.IRExpr;
+import kc875.asm.graph.Graph;
+import kc875.asm.graph.GraphNode;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;

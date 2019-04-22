@@ -1,9 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
-import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.InsnMapsBuilder;
+import kc875.asm.ASMInstr;
 
 import java.util.List;
 

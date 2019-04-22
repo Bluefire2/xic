@@ -1,7 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import asm.ASMExprRegReplaceable;
 import edu.cornell.cs.cs4120.xic.ir.*;
+import kc875.asm.ASMExprRegReplaceable;
 
 /**
  * Framework to _barely_ visit IRNodes, i.e., only the node is visited, not
