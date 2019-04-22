@@ -2,8 +2,10 @@ package asm.graph;
 import java.util.List;
 
 public class Graph {
+    // TODO: a start node, and a list of other nodes
     List<GraphNode> nodes;
 
+    // TODO: initialize nodes
     public Graph(){ }
 
     public List<GraphNode> getNodes() {

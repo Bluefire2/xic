@@ -1,13 +1,15 @@
 package asm.graph;
+
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 
 public class GraphNode {
     Graph graph;
     HashSet<GraphNode> in;
     HashSet<GraphNode> out;
 
+    // TODO: init in and out
     public GraphNode(Graph g){
         this.graph = g;
     }
