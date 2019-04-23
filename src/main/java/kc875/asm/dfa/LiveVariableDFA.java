@@ -2,6 +2,8 @@ package kc875.asm.dfa;
 
 import kc875.asm.ASMExprRegReplaceable;
 import kc875.asm.ASMInstr;
+import kc875.asm.ASMInstr_1Arg;
+import kc875.asm.ASMInstr_2Arg;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
@@ -23,13 +25,19 @@ public class LiveVariableDFA extends DFAFramework<SetWithInf<ASMExprRegReplaceab
     }
 
     // TODO
-    // I think we might wanna take in ASMInstr for this one (according to the book)
-    public static SetWithInf<ASMExprRegReplaceable> use(ASMInstr i) {
-        return new SetWithInf<>();
+    public static SetWithInf<ASMExprRegReplaceable> use(Graph<ASMInstr>.Node node) {
+        ASMInstr instr = node.getT();
+        if (instr instanceof ASMInstr_1Arg) {
+            // TODO
+        } else if (instr instanceof ASMInstr_2Arg) {
+            // TODO
+        } else {
+            return new SetWithInf<>();
+        }
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> def(ASMInstr i) {
+    public static SetWithInf<ASMExprRegReplaceable> def(Graph.Node node) {
         return new SetWithInf<>();
     }
 }
