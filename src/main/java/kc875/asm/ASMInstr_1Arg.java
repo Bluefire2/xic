@@ -35,4 +35,29 @@ public class ASMInstr_1Arg extends ASMInstr {
         }
         return false;
     }
+
+    @Override
+    public boolean hasNewDef() {
+        if (!(arg instanceof ASMExprRegReplaceable)) {
+            return false;
+        }
+        // arg is reg/temp
+        switch (this.getOpCode()) {
+            case IMUL:
+            case IDIV:
+            case INC:
+            case DEC:
+            case NOT:
+            case POP:
+            case SETE:
+            case SETNE:
+            case SETG:
+            case SETGE:
+            case SETL:
+            case SETLE:
+                return true;
+            default:
+                return false;
+        }
+    }
 }

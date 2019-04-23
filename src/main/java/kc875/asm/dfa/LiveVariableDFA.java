@@ -25,26 +25,47 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
                 (node, l) -> Sets.union(
                         use(node),
                         Sets.difference(l, def(node)).immutableCopy()
-                ),
+                ).immutableCopy(),
                 (l1, l2) -> Sets.union(l1, l2).immutableCopy(),
                 new HashSet<>()
         );
     }
 
-    // TODO
     public static Set<ASMExprRegReplaceable> use(Graph<ASMInstr>.Node node) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstr_1Arg) {
-            // TODO
+            // If the arg gets changed (arg is a reg/temp, the opCode modifies),
+            // then the use set is empty. Otherwise, get vars()
+            return instr.hasNewDef()
+                    ? new HashSet<>()
+                    : ((ASMInstr_1Arg) instr).getArg().vars();
         } else if (instr instanceof ASMInstr_2Arg) {
-            // TODO
+            // If the dest is changed (dest is a reg/temp, opCode modifies),
+            // then the use set is vars(src), else vars(src) U vars(dest)
+            ASMInstr_2Arg ins2 = (ASMInstr_2Arg) instr;
+            Set<ASMExprRegReplaceable> srcVars = ins2.getSrc().vars();
+            return instr.hasNewDef()
+                    ? srcVars
+                    : Sets.union(ins2.getDest().vars(), srcVars).immutableCopy();
         } else {
             return new HashSet<>();
         }
     }
 
-    // TODO
     public static Set<ASMExprRegReplaceable> def(Graph<ASMInstr>.Node node) {
+        ASMInstr instr = node.getT();
+        if (instr.hasNewDef()) {
+            if (instr instanceof ASMInstr_1Arg) {
+                return Set.of(
+                        (ASMExprRegReplaceable) ((ASMInstr_1Arg) instr).getArg()
+                );
+            } else if (instr instanceof ASMInstr_2Arg) {
+                return Set.of(
+                        (ASMExprRegReplaceable) ((ASMInstr_2Arg) instr).getDest()
+                );
+            }
+        }
+        // dest is not changed.
         return new HashSet<>();
     }
 }

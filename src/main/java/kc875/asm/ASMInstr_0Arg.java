@@ -20,4 +20,8 @@ public class ASMInstr_0Arg extends ASMInstr {
         return INDENT_TAB + formatOpCode();
     }
 
+    @Override
+    public boolean hasNewDef() {
+        return false;
+    }
 }
