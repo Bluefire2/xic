@@ -4,12 +4,13 @@ import com.google.common.collect.Sets;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
  * A wrapper on Set, providing support for infinite sets.
  */
-public class SetWithInf<E> {
+public class SetWithInf<E> implements Iterable<E> {
     // Class invariants:
     // - An element s cannot be in both includeSet and excludeSet at the same
     //   time.
@@ -44,6 +45,18 @@ public class SetWithInf<E> {
         return set;
     }
 
+    /**
+     * Returns Integer.MAX_VALUE if the set is infinite, the size of the
+     * wrapped set otherwise.
+     */
+    public int size() {
+        return this.isInf ? Integer.MAX_VALUE : this.set.size();
+    }
+
+    public boolean isInf() {
+        return this.isInf;
+    }
+
     public boolean isEmpty() {
         return !this.isInf && this.set.isEmpty();
     }
@@ -63,6 +76,25 @@ public class SetWithInf<E> {
     public boolean addAll(Collection<? extends E> c) {
         return this.set.addAll(c);
     }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new Iterator<>() {
+            private final Iterator<E> setIter = set.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return !isInf && setIter.hasNext();
+            }
+
+            @Override
+            public E next() {
+                return setIter.next();
+            }
+        };
+    }
+
+    // Set operations with another set
 
     public SetWithInf<E> union(SetWithInf<E> other) {
         Set<E> unionSet = Sets.union(this.set, other.set).immutableCopy();
@@ -108,6 +140,4 @@ public class SetWithInf<E> {
         Set<E> diffSet = Sets.difference(this.set, other.set).immutableCopy();
         return null;
     }
-
-    //TODO MAKE THIS USABLE WITH for (elt : set) {}
 }
