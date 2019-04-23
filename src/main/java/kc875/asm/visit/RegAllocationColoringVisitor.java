@@ -214,7 +214,7 @@ public class RegAllocationColoringVisitor {
                     okColors.remove(color.get(getAlias(w)));
                 }
             }
-            if (okColors.isEmpty()){
+            if (okColors.isEmpty()) {
                 spilledNodes.add(n);
             } else {
                 coloredNodes.add(n);
@@ -224,7 +224,7 @@ public class RegAllocationColoringVisitor {
             }
         }
         //color coalesced nodes according to their alias
-        for (Graph.Node n : coalescedNodes){
+        for (Graph.Node n : coalescedNodes) {
             color.put(n, color.get(getAlias(n)));
         }
     }
@@ -239,12 +239,12 @@ public class RegAllocationColoringVisitor {
         //if (u,v) not in adjSet and u != v
         Graph.Node uNode = interference.tnode(u);
         Graph.Node vNode = interference.tnode(v);
-        if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {//TODO does contains work here
+        if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {
             //adjSet = adjSet + {(u,v), (v,u)}
             adjSet.add(new Pair<>(uNode, vNode));
             adjSet.add(new Pair<>(vNode, uNode));
         }
-        //if u not in precollored
+        //if u not in precolored
         if (!precolored.contains(uNode)) {
             //adjList[u] = adjList[u] + {v}
             adjList.get(uNode).add(vNode);
@@ -315,7 +315,6 @@ public class RegAllocationColoringVisitor {
     }
 
     public boolean ok(Graph.Node t, Graph.Node r) {
-        //TODO is contains ok here?
         return degree.get(t) < K && precolored.contains(t) && adjSet.contains(new Pair<>(t, r));
     }
 
