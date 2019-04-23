@@ -23,12 +23,13 @@ public class LiveVariableDFA extends DFAFramework<SetWithInf<ASMExprRegReplaceab
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> use(Graph.Node node) {
+    // I think we might wanna take in ASMInstr for this one (according to the book)
+    public static SetWithInf<ASMExprRegReplaceable> use(ASMInstr i) {
         return new SetWithInf<>();
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> def(Graph.Node node) {
+    public static SetWithInf<ASMExprRegReplaceable> def(ASMInstr i) {
         return new SetWithInf<>();
     }
 }

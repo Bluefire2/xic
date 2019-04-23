@@ -1,14 +1,12 @@
 package kc875.asm.visit;
 
-import java.util.HashSet;
+import java.util.*;
+
 import kc875.asm.*;
 import kc875.asm.dfa.*;
 import kc875.cfg.*;
+import kc875.utils.SetWithInf;
 import polyglot.util.Pair;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class RegAllocationColoringVisitor {
     //every node is in exactly one of these sets
@@ -24,11 +22,11 @@ public class RegAllocationColoringVisitor {
     HashSet<Graph.Node> selectStack; //stacks w/ temps removed from graph
 
     //every move is in exactly one of these sets
-    HashSet<ASMInstr_2Arg> coalescedMoves; //coalesced moves
-    HashSet<ASMInstr_2Arg> constrainedMoves; //moves whose src/target interfere
-    HashSet<ASMInstr_2Arg> frozenMoves; //moves no longer considered for coalescing
-    HashSet<ASMInstr_2Arg> worklistMoves; //moves enabled for possible coalescing
-    HashSet<ASMInstr_2Arg> activeMoves; //moves not ready for coalescing
+    HashSet<ASMInstr> coalescedMoves; //coalesced moves
+    HashSet<ASMInstr> constrainedMoves; //moves whose src/target interfere
+    HashSet<ASMInstr> frozenMoves; //moves no longer considered for coalescing
+    HashSet<ASMInstr> worklistMoves; //moves enabled for possible coalescing
+    HashSet<ASMInstr> activeMoves; //moves not ready for coalescing
 
     //set of interference edges - reverse edges must always be in the set
     HashSet<Pair<Graph.Node, Graph.Node>> adjSet;
@@ -37,7 +35,7 @@ public class RegAllocationColoringVisitor {
     HashMap<Graph.Node, List<Graph.Node>> adjList;
 
     //map from node -> list of moves it is associated with
-    HashMap<Graph.Node, List<ASMInstr_2Arg>> moveList;
+    HashMap<Graph.Node, HashSet<ASMInstr>> moveList;
 
     //alias - when MOV(u,v) coalesced, then v is in coalescedNodes and alias(v)=u
     HashMap<Graph.Node, Graph.Node> alias;
@@ -45,11 +43,10 @@ public class RegAllocationColoringVisitor {
     //chosen color for each node
     HashMap<Graph.Node, String> color;
 
-    FlowGraph cfg;
+    ASMGraph cfg;
     InterferenceGraph interference;
     LiveVariableDFA liveness;
     List<ASMInstr> instrs;
-    HashMap<Graph.Node, ASMInstr> nodeInstrMap;
 
     RegAllocationColoringVisitor(){
     }
@@ -108,14 +105,28 @@ public class RegAllocationColoringVisitor {
 
     public void livenessAnalysis(){
         //TODO build CFG
-//        liveness = new LiveVariableDFA();
-//        for (Node b : cfg.getAllNodes()){
-//
-//        }
     }
 
     public void build(){
-        //TODO
+        for (Graph<ASMInstr>.Node b : cfg.getAllNodes()){
+            Map<Graph.Node, SetWithInf<ASMExprRegReplaceable>> outs = liveness.getOutMap();
+            SetWithInf<ASMExprRegReplaceable> live = outs.get(b);
+            ASMInstr i = b.getT();
+            if (i.isDestChanged()){
+                live = live.diff(liveness.use(i));
+                for (Graph<ASMInstr>.Node n : liveness.def(i).union(liveness.use(i))){
+                    moveList.get(n).add(i); //ML[n] <- M[n] + {I}
+                }
+                worklistMoves.add(i);
+            }
+            live = live.union(liveness.def(i));
+            for (ASMExprRegReplaceable d : liveness.def(i)){
+                for (ASMExprRegReplaceable l : live) {
+                    interference.addEdge(interference.tnode(l), interference.tnode(d));
+                }
+            }
+            live = liveness.use(i).union(live.diff(liveness.def(i)));
+        }
     }
 
     public void makeWorkList(){

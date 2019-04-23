@@ -108,4 +108,6 @@ public class SetWithInf<E> {
         Set<E> diffSet = Sets.difference(this.set, other.set).immutableCopy();
         return null;
     }
+
+    //TODO MAKE THIS USABLE WITH for (elt : set) {}
 }

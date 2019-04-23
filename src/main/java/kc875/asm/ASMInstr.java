@@ -30,4 +30,34 @@ public abstract class ASMInstr {
         }
         return false;
     }
+
+    public boolean isDestChanged(){
+        switch (this.opCode){
+            case ADD:
+            case SUB:
+            case IMUL:
+            case IDIV:
+            case INC:
+            case DEC:
+            case AND:
+            case OR:
+            case XOR:
+            case NOT:
+            case SHR:
+            case SHL:
+            case SAR:
+            case MOV:
+            case MOVZX:
+            case POP:
+            case SETE:
+            case SETNE:
+            case SETG:
+            case SETGE:
+            case SETL:
+            case SETLE:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
