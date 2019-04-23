@@ -1,3 +1,7 @@
 package kc875.asm;
 
-public abstract class ASMExpr {}
+import java.util.Set;
+
+public abstract class ASMExpr {
+    public abstract Set<ASMExprRegReplaceable> vars();
+}

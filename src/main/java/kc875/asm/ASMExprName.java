@@ -1,5 +1,8 @@
 package kc875.asm;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Wrapper for the name of the label. Used for control flow (jumping etc.)
  */
@@ -25,5 +28,10 @@ public class ASMExprName extends ASMExpr {
             return this.name.equals(((ASMExprName) obj).name);
         }
         return false;
+    }
+
+    @Override
+    public Set<ASMExprRegReplaceable> vars() {
+        return new HashSet<>();
     }
 }

@@ -1,5 +1,7 @@
 package kc875.asm;
 
+import java.util.Set;
+
 public class ASMExprMem extends ASMExpr {
     private ASMExpr addr;
 
@@ -25,5 +27,10 @@ public class ASMExprMem extends ASMExpr {
             return this.addr.equals(((ASMExprMem) obj).addr);
         }
         return false;
+    }
+
+    @Override
+    public Set<ASMExprRegReplaceable> vars() {
+        return addr.vars();
     }
 }
