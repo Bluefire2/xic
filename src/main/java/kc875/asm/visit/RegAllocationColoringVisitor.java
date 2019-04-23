@@ -6,7 +6,7 @@ import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
 import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.Graph;
-import kc875.utils.SetWithInf;
+import com.google.common.collect.Sets;
 import polyglot.util.Pair;
 
 import java.util.*;
@@ -112,23 +112,24 @@ public class RegAllocationColoringVisitor {
 
     public void build(){
         for (Graph<ASMInstr>.Node b : cfg.getAllNodes()){
-            Map<Graph.Node, SetWithInf<ASMExprRegReplaceable>> outs = liveness.getOutMap();
-            SetWithInf<ASMExprRegReplaceable> live = outs.get(b);
+            Map<Graph.Node, Set<ASMExprRegReplaceable>> outs = liveness.getOutMap();
+            Set<ASMExprRegReplaceable> live = outs.get(b);
             ASMInstr i = b.getT();
             if (i.isDestChanged()){
-                live = live.diff(liveness.use(i));
-                for (Graph<ASMInstr>.Node n : liveness.def(i).union(liveness.use(i))){
-                    moveList.get(n).add(i); //ML[n] <- M[n] + {I}
+                live = Sets.difference(live, liveness.use(b));
+                for (ASMExprRegReplaceable n : Sets.union(liveness.def(b), liveness.use(b)).immutableCopy()){
+                    moveList.get(n).add(i); //movelist[n] <- movelist[n] + {I}
                 }
                 worklistMoves.add(i);
             }
-            live = live.union(liveness.def(i));
-            for (ASMExprRegReplaceable d : liveness.def(i)){
+            live = Sets.union(live, liveness.def(b)).immutableCopy();
+            for (ASMExprRegReplaceable d : liveness.def(b)){
                 for (ASMExprRegReplaceable l : live) {
-                    interference.addEdge(interference.tnode(l), interference.tnode(d));
+                    //interference.addEdge(interference.tnode(l), interference.tnode(d));
+                    //TODO
                 }
             }
-            live = liveness.use(i).union(live.diff(liveness.def(i)));
+            live = Sets.union(liveness.use(b), Sets.difference(live, liveness.def(b)).immutableCopy()).immutableCopy();
         }
     }
 

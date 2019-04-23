@@ -90,6 +90,14 @@ public class ASMGraph extends Graph<ASMInstr> {
         return nodeInstrMap;
     }
 
+    public Node getNode(ASMInstr i){
+        return nodeInstrMap.inverse().get(i);
+    }
+
+    public ASMInstr getInstr(Node n){
+        return nodeInstrMap.get(n);
+    }
+
     /**
      * Check if an instruction needs a CFG edge to the instruction immediately
      * following it. This is false if the instruction is non-fallthrough, e.g.
