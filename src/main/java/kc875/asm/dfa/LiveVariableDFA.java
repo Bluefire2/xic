@@ -25,13 +25,12 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
                 (node, l) -> Sets.union(
                         use(node),
                         Sets.difference(l, def(node)).immutableCopy()
-                ),
+                ).immutableCopy(),
                 (l1, l2) -> Sets.union(l1, l2).immutableCopy(),
                 new HashSet<>()
         );
     }
 
-    // TODO
     public static Set<ASMExprRegReplaceable> use(Graph<ASMInstr>.Node node) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstr_1Arg) {
@@ -47,7 +46,7 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
             Set<ASMExprRegReplaceable> srcVars = ins2.getSrc().vars();
             return instr.hasNewDef()
                     ? srcVars
-                    : Sets.union(ins2.getDest().vars(), srcVars);
+                    : Sets.union(ins2.getDest().vars(), srcVars).immutableCopy();
         } else {
             return new HashSet<>();
         }
