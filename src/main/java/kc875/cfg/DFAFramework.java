@@ -7,11 +7,12 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
-public abstract class DFAFramework<T> {
-    // T are the lattice elements.
-
+/**
+ * A DFA Framework with lattice elements T and graph nodes of U.
+ */
+public abstract class DFAFramework<T, U> {
     // Graph associated with this DFA.
-    protected Graph graph;
+    protected Graph<U> graph;
 
     // Direction of the DFA
     public enum Direction {FORWARD, BACKWARD}
@@ -19,7 +20,7 @@ public abstract class DFAFramework<T> {
 
     // Transformer function or F. Takes in the node and a lattice element,
     // and returns a lattice element.
-    protected BiFunction<Graph.Node, T, T> F;
+    protected BiFunction<Graph<U>.Node, T, T> F;
 
     // Meet operator, combining l1 and l2 to produce l. A BinaryOperator<T>
     // is a BiFunction<T, T, T>.
@@ -48,9 +49,9 @@ public abstract class DFAFramework<T> {
      * @param meet meet operator.
      * @param top top lattice element for initialization.
      */
-    public DFAFramework(Graph graph,
+    public DFAFramework(Graph<U> graph,
                         Direction direction,
-                        BiFunction<Graph.Node, T, T> F,
+                        BiFunction<Graph<U>.Node, T, T> F,
                         BinaryOperator<T> meet,
                         T top
                         ) {
