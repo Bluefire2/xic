@@ -1,8 +1,8 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import asm.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import kc875.asm.*;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;

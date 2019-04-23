@@ -1,0 +1,421 @@
+package kc875.xi_parser;
+// A stub for a Xi CUP specification.
+
+import kc875.ast.*;
+import kc875.lexer.XiLexer;
+import kc875.lexer.XiToken;
+import polyglot.util.Pair;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.Collections;
+
+import kc875.lexer.XiTokenFactory;
+import java_cup.runtime.Symbol;
+import kc875.xic_error.LexicalError;
+import kc875.xic_error.SyntaxError;
+
+parser code
+{:
+    XiLexer lexer;
+
+    public XiParser (XiLexer l, XiTokenFactory xtf) {
+        super(l,xtf);
+        this.lexer = l;
+    }
+
+    public void syntax_error(Symbol s) {
+        XiToken t = (XiToken) s;
+        String message = String.format(
+            "Unexpected token %s", t.getValue()
+        );
+        throw new SyntaxError(message, t.getLocation());
+    }
+:};
+
+scan with
+{:
+    Symbol s = lexer.next_token(); // s is an XiToken wrapped as a Symbol
+    XiToken t = (XiToken) s;
+    if (t.sym == sym.ERROR) {
+        throw new LexicalError(t.getValue().toString(), t.getLocation());
+    } else {
+        return s;
+    }
+:};
+
+terminal String ID;
+terminal String STRING_LIT;
+terminal Character CHAR_LIT;
+terminal Long INT_LIT;
+terminal Boolean BOOL_LIT;
+terminal INT_TYPE, BOOL_TYPE;
+
+terminal
+    UNDERSCORE,
+    USE,
+    IF,
+    WHILE,
+    ELSE,
+    RETURN,
+    LENGTH,
+
+    EQ,
+    MINUS,
+    PLUS,
+    NOT,
+    MULT,
+    HI_MULT,
+    DIV,
+    MOD,
+    EQEQ,
+    NEQ,
+    GT,
+    LT,
+    GTEQ,
+    LTEQ,
+    AND,
+    OR,
+    UMINUS, //maybe not necessary
+
+    COLON,
+    SEMICOLON,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRAC,
+    RBRAC,
+    LCURL,
+    RCURL,
+    ERROR;
+
+nonterminal FileProgram program;
+
+nonterminal Pair<String, TypeTTau> annotated_var, decl_annotated_var;
+nonterminal TypeDecl type_decl;
+nonterminal TypeTTau type, basic_type, init_list_type, list_type;
+nonterminal FuncDefn func_defn;
+nonterminal UseInterface use_interface;
+
+nonterminal Expr expr, assignable_indexable_expr;
+nonterminal ExprFunctionCall func_expr;
+nonterminal Assignable assignable;
+
+nonterminal Stmt stmt, matched_stmt, unmatched_stmt, return, block;
+nonterminal StmtDeclAssign decl_assign_stmt;
+
+nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
+nonterminal ArrayList<TypeDecl> type_decl_list;
+nonterminal ArrayList<Expr> expr_list, indices;
+nonterminal ArrayList<Stmt> stmt_list;
+nonterminal ArrayList<UseInterface> import_list;
+nonterminal ArrayList<FuncDefn> func_defn_list;
+nonterminal ArrayList<TypeTTau> type_list;
+
+precedence left COMMA;
+precedence left OR;
+precedence left AND;
+precedence left NEQ, EQEQ;
+precedence left LT, GT, LTEQ, GTEQ;
+precedence left PLUS, MINUS;
+precedence left MULT, DIV, MOD, HI_MULT;
+precedence nonassoc UMINUS, NOT;
+precedence left LBRAC, RBRAC, LPAREN, RPAREN;
+
+start with program;
+
+// TYPES
+
+basic_type ::=
+  BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
+| INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+;
+
+// Types legal for use everywhere
+// Does not allow list types with initialized length
+// No need to unwrap
+type ::=
+  basic_type:b {: RESULT = b; :}
+| list_type:t {: RESULT = t; :}
+;
+
+list_type ::=
+  basic_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
+| list_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
+;
+
+indices ::=
+  LBRAC expr:e RBRAC {: ArrayList<Expr> l = new ArrayList<>(); l.add(e); RESULT = l; :}
+| indices:l LBRAC expr:e RBRAC {: l.add(e); RESULT = l; :}
+;
+
+// List types with initialized lengths, can only be used in decl w/o assign
+// Example: int[3][n]
+init_list_type ::=
+  basic_type:t indices:i {:
+    TypeTTau curr = t;
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
+    }
+    RESULT = curr;
+  :}
+| basic_type:t indices:i LBRAC RBRAC {:
+    TypeTTau curr = new TypeTTauArray(t);
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
+    }
+    RESULT = curr;
+  :}
+| init_list_type:t LBRAC RBRAC {:
+    TypeTTauArray curr = (TypeTTauArray) t;
+    while (curr.getTypeTTau() instanceof TypeTTauArray){
+        curr = (TypeTTauArray) curr.getTypeTTau();
+    }
+    curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
+    RESULT = t;
+  :}
+;
+
+type_list ::=
+  type:t {:
+    ArrayList<TypeTTau> l = new ArrayList<>();
+    l.add(t);
+    RESULT = l; :}
+| type_list:l COMMA type:t {: l.add(t); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+annotated_var_list ::=
+  annotated_var:a {:
+    ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
+    l.add(a);
+    RESULT = l; :}
+| annotated_var_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
+;
+
+decl_annotated_var ::=
+  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+type_decl ::=
+  UNDERSCORE {: RESULT = new TypeDeclUnderscore(); :}
+| annotated_var:a {: RESULT = new TypeDeclVar(a); :}
+;
+
+type_decl_list ::=
+  type_decl:t {:
+    ArrayList<TypeDecl> l = new ArrayList<>();
+    l.add(t); RESULT = l; :}
+| type_decl_list:l COMMA type_decl:t {: l.add(t); RESULT = l; :}
+;
+
+// FUNCTION DEFINITIONS
+
+func_args ::=
+  LPAREN RPAREN {: RESULT = new ArrayList<Pair<String, TypeTTau>>(); :}
+| LPAREN annotated_var_list:a RPAREN {: RESULT = a; :}
+;
+
+func_defn ::=
+  ID:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
+| ID:n func_args:p COLON type_list:r block:b {:
+    // r.size() >= 1
+    TypeT rt;
+    if (r.size() == 1) {
+        rt = r.get(0);
+    } else {
+        rt = new TypeTList(r);
+    }
+    RESULT = new FuncDefn(n, p, rt, b, nxleft); :}
+;
+
+func_defn_list ::=
+  func_defn:d {:
+      ArrayList<FuncDefn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
+| func_defn_list:l func_defn:d {: l.add(d); RESULT = l; :}
+;
+
+// EXPRESSIONS
+
+expr_list ::= // NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  expr:e {:
+       ArrayList<Expr> l = new ArrayList<>();
+       l.add(e);
+       RESULT = l; :}
+| expr_list:l COMMA expr:e {: l.add(e); RESULT = l; :}
+;
+
+// Function call
+func_expr ::=
+  ID:i LPAREN expr_list:el RPAREN {:
+    RESULT = new ExprFunctionCall(i, el, ixleft); :}
+| ID:i LPAREN RPAREN {:
+    RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ixleft); :}
+;
+
+// Exprs without ( or { on LHS
+assignable_indexable_expr ::=
+  STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
+| ID:i {: RESULT = new ExprId(i, ixleft); :}
+| func_expr:f {: RESULT = f; :}
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
+;
+
+expr ::=
+  assignable_indexable_expr:e {: RESULT = e; :}
+// Array literals
+| LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
+| LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft) ; :}
+| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
+// Grouping expressions
+| LPAREN expr:e RPAREN {: RESULT = e; :}
+// Binops
+| expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
+| expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
+| expr:e1 PLUS:o expr:e2 {: RESULT = new ExprBinop(Binop.PLUS, e1, e2, oxleft); :}
+| expr:e1 MINUS:o expr:e2 {: RESULT = new ExprBinop(Binop.MINUS, e1, e2, oxleft); :}
+| expr:e1 DIV:o expr:e2 {: RESULT = new ExprBinop(Binop.DIV, e1, e2, oxleft); :}
+| expr:e1 MOD:o expr:e2 {: RESULT = new ExprBinop(Binop.MOD, e1, e2, oxleft); :}
+| expr:e1 MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.MULT, e1, e2, oxleft); :}
+| expr:e1 HI_MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.HI_MULT, e1, e2, oxleft); :}
+| expr:e1 EQEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.EQEQ, e1, e2, oxleft); :}
+| expr:e1 NEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.NEQ, e1, e2, oxleft); :}
+| expr:e1 GT:o expr:e2 {: RESULT = new ExprBinop(Binop.GT, e1, e2, oxleft); :}
+| expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
+| expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
+| expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
+// Unops
+| MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
+| NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
+// Literals
+| BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
+| INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
+| CHAR_LIT:c {: RESULT = new ExprIntLiteral(c, cxleft); :} // chars are really ints
+| expr:e1 indices:i {:
+    Expr curr = e1;
+    for (Expr e : i) {
+        curr = new ExprIndex(curr, e, ixleft);
+    }
+    RESULT = curr; :}
+;
+
+// STATEMENTS
+
+assignable ::=
+  ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
+| assignable_indexable_expr:e1 indices:l {:
+    Expr idx = e1;
+    for (Expr e : l){
+        idx = new ExprIndex(idx, e, e.getLocation());
+    }
+    RESULT = new AssignableIndex(idx, e1.getLocation());
+    :}
+;
+
+decl_assign_stmt ::=
+// To declare a single variable
+  annotated_var:a EQ expr:e {:
+    ArrayList<TypeDecl> l = new ArrayList<>();
+    l.add(new TypeDeclVar(a));
+    RESULT = new StmtDeclAssign(l, e, axleft); :}
+// To ignore the return value of a single-output function
+| UNDERSCORE:u EQ func_expr:e {:
+    ArrayList<TypeDecl> l = new ArrayList<>();
+    l.add(new TypeDeclUnderscore());
+    RESULT = new StmtDeclAssign(l, e, uxleft); :}
+// To declare multiple variables, with underscores allowed (RHS must be func)
+| type_decl_list:l COMMA type_decl:t EQ func_expr:e {:
+    l.add(t);
+    RESULT = new StmtDeclAssign(l, e, lxleft); :}
+;
+
+matched_stmt ::=
+  IF:i expr:e matched_stmt:s1 ELSE matched_stmt:s2 {:
+    RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
+| WHILE:w expr:e matched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
+| block:b {: RESULT = b; :}
+| assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
+| decl_assign_stmt:d {: RESULT = d; :}
+| decl_annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
+| annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
+| ID:i LPAREN expr_list:el RPAREN {:
+    RESULT = new StmtProcedureCall(i, el, ixleft); :}
+| ID:i LPAREN RPAREN {:
+    RESULT = new StmtProcedureCall(i, new ArrayList<Expr>(), ixleft); :}
+;
+
+
+unmatched_stmt ::=
+  IF:i expr:e unmatched_stmt:s {: RESULT = new StmtIf(e,s, ixleft); :}
+| IF:i expr:e matched_stmt:s {: RESULT = new StmtIf(e,s, ixleft); :}
+| WHILE:w expr:e unmatched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
+;
+
+stmt ::=
+  matched_stmt:m {: RESULT = m; :}
+| unmatched_stmt:u {: RESULT = u; :}
+;
+
+// Enforces return statements being at the end of blocks + cannot replace blocks
+return ::=
+  RETURN:r {: RESULT = new StmtReturn(rxleft); :}
+| RETURN:r expr_list:e {: RESULT = new StmtReturn(e, rxleft); :}
+| RETURN:r SEMICOLON {: RESULT = new StmtReturn(rxleft); :}
+| RETURN:r expr_list:e SEMICOLON {: RESULT = new StmtReturn(e, rxleft); :}
+;
+
+stmt_list ::=
+  stmt:s {:
+     ArrayList<Stmt> l = new ArrayList<>();
+     l.add(s);
+     RESULT = l; :}
+| stmt_list:l SEMICOLON stmt:s {: l.add(s); RESULT = l; :}
+| stmt_list:l stmt:s {: l.add(s); RESULT = l; :}
+;
+
+block ::=
+  LCURL:c return:r RCURL {:
+    ArrayList<Stmt> l = new ArrayList<>(); l.add(r);
+    RESULT = new StmtBlock(l, cxleft) ; :}
+| LCURL:c stmt_list:l RCURL {: RESULT = new StmtBlock(l, cxleft); :}
+| LCURL:c stmt_list:l return:r RCURL {:
+    l.add(r); RESULT = new StmtBlock(l, cxleft); :}
+| LCURL:c stmt_list:l SEMICOLON RCURL {: RESULT = new StmtBlock(l, cxleft); :}
+| LCURL:c stmt_list:l SEMICOLON return:r RCURL {:
+    l.add(r); RESULT = new StmtBlock(l, cxleft); :}
+| LCURL:c RCURL {: RESULT = new StmtBlock(cxleft); :}
+;
+
+// IMPORTS
+
+use_interface ::=
+  USE ID:i {: RESULT = new UseInterface(i, ixleft); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
+;
+
+import_list ::=
+  use_interface:i {:
+      ArrayList<UseInterface> l = new ArrayList<>();
+      l.add(i);
+      RESULT = l; :}
+| import_list:l use_interface:i {: l.add(i); RESULT = l; :}
+;
+
+// PROGRAM
+
+program ::=
+  import_list:il func_defn_list:dl {:
+    RESULT = new FileProgram(il, dl, ilxleft) ; :}
+| func_defn_list:dl {:
+    RESULT = new FileProgram(new ArrayList<UseInterface>(), dl, dlxleft); :}
+;

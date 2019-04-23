@@ -1,8 +1,8 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import asm.*;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import kc875.asm.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class ASMTranslationVisitorTest {
     private ASMTranslationVisitor visitor;

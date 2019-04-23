@@ -1,12 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
-import asm.ASMExprRegReplaceable;
-import asm.ASMInstr;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
+import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMInstr;
 
 import java.util.List;
 import java.util.function.Function;

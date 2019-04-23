@@ -182,10 +182,10 @@ vm/shared/xic
 *.swp
 
 # Auto-generated xic files
-src/main/java/lexer/XiLexer.java
-src/main/java/xi_parser/XiParser.java
-src/main/java/xi_parser/IxiParser.java
-src/main/java/xi_parser/sym.java
+src/main/java/kc875/lexer/XiLexer.java
+src/main/java/kc875/xi_parser/XiParser.java
+src/main/java/kc875/xi_parser/IxiParser.java
+src/main/java/kc875/xi_parser/sym.java
 *.java~
 
 # Auto-generated runtime files
