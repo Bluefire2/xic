@@ -6,7 +6,6 @@ import kc875.cfg.Graph;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 public class IRGraph extends Graph<IRStmt> {
 

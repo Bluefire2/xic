@@ -1,11 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir.dfa;
 
 import edu.cornell.cs.cs4120.xic.ir.IRExpr;
+import edu.cornell.cs.cs4120.xic.ir.IRStmt;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 
-public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>> {
+public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> {
 
     public AvailableExprsDFA(Graph graph) {
         super(
