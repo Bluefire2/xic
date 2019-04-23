@@ -1,5 +1,9 @@
 package kc875.asm;
 
+import com.google.common.collect.Sets;
+
+import java.util.Set;
+
 public abstract class ASMExprBinOp extends ASMExpr {
     private ASMExpr left;
     private ASMExpr right;
@@ -28,5 +32,10 @@ public abstract class ASMExprBinOp extends ASMExpr {
             return this.left.equals(o.left) && this.right.equals(o.right);
         }
         return false;
+    }
+
+    @Override
+    public Set<ASMExprRegReplaceable> vars() {
+        return Sets.union(left.vars(), right.vars()).immutableCopy();
     }
 }
