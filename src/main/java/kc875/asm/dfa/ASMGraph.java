@@ -1,9 +1,6 @@
 package kc875.asm.dfa;
 
-import kc875.asm.ASMExprRegReplaceable;
-import kc875.asm.ASMInstr;
-import kc875.asm.ASMInstrLabel;
-import kc875.asm.ASMOpCode;
+import kc875.asm.*;
 import kc875.cfg.Graph;
 
 import java.util.*;
@@ -11,10 +8,24 @@ import java.util.*;
 public class ASMGraph extends Graph<ASMInstr> {
     private HashMap<Node, List<ASMExprRegReplaceable>> genMap;
     private HashMap<Node, List<ASMExprRegReplaceable>> killMap;
-    private HashMap<ASMInstrLabel, Node> labels;
+    private HashMap<String, Node> labels;
 
     private static Set<ASMOpCode> noFallthrough = new HashSet<>(
-            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET, ASMOpCode.CALL) // TODO
+            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET) // TODO
+    );
+
+    private static Set<ASMOpCode> jumps = new HashSet<>(
+            Arrays.asList(
+                    ASMOpCode.JMP,
+                    ASMOpCode.JE,
+                    ASMOpCode.JG,
+                    ASMOpCode.JGE,
+                    ASMOpCode.JL,
+                    ASMOpCode.JLE,
+                    ASMOpCode.JNE,
+                    ASMOpCode.RET,
+                    ASMOpCode.CALL
+            ) // TODO
     );
 
     public List<ASMExprRegReplaceable> getUse(ASMInstr i) {
@@ -73,7 +84,7 @@ public class ASMGraph extends Graph<ASMInstr> {
 
                 // if the last instruction was a label, this node needs to be pointed to by that label
                 if (previousLabel != null) {
-                    labels.put(previousLabel, node);
+                    labels.put(previousLabel.getName(), node);
 
                     // make sure to set this back to null
                     previousLabel = null;
@@ -84,7 +95,28 @@ public class ASMGraph extends Graph<ASMInstr> {
             }
         }
 
-        // TODO: second pass, add CFG edges for jumps to labelled nodes
+        // SECOND PASS: add CFG edges for jumps to labelled nodes
+
+        for (Node node : this.getAllNodes()) {
+            ASMInstr instr = node.getT();
+            ASMOpCode opCode = instr.getOpCode();
+
+            if (!jumps.contains(opCode)) {
+                continue;
+            }
+
+            // we need to add another edge to the jumped-to node!
+            if (instr instanceof ASMInstr_1Arg) {
+                // TODO: change for A7 since we'll be able to jump to non-labels
+                ASMExprName label = (ASMExprName) ((ASMInstr_1Arg) instr).getArg();
+
+                // get the node we jump to and add an edge to it
+                Node to = labels.get(label.getName());
+                this.addEdge(node, to);
+            } else {
+                // TODO: wtf
+            }
+        }
     }
 
     public ASMInstr instr(Node node) {
