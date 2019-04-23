@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * A DFA Framework with lattice elements T and graph nodes of U.
@@ -78,5 +79,27 @@ public abstract class DFAFramework<T, U> {
 
     public Map<Graph.Node, T> getOutMap() {
         return outMap;
+    }
+
+    public Optional<T> inputToF(Graph<U>.Node node) {
+        switch (direction) {
+            case FORWARD:
+                return applyMeet(node.pred().stream()
+                        .map(outMap::get).collect(Collectors.toSet()));
+            case BACKWARD:
+                return applyMeet(node.succ().stream()
+                        .map(inMap::get).collect(Collectors.toSet()));
+            default:
+                throw new IllegalAccessError("Weird direction in DFA");
+        }
+    }
+
+    public Optional<T> afterF(Graph<U>.Node node) {
+        Optional<T> in = inputToF(node);
+        if (in.isEmpty()) {
+            return in;
+        } else {
+            return Optional.of(F.apply(node, in.get()));
+        }
     }
 }
