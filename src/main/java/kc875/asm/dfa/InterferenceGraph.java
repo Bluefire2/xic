@@ -1,4 +1,4 @@
-package kc875.asm.graph;
+package kc875.asm.dfa;
 
 import kc875.asm.ASMExprTemp;
 import kc875.asm.ASMInstr_2Arg;

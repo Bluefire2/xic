@@ -16,6 +16,7 @@ dependencies {
     compile fileTree(dir: 'lib', include: ['commons-io-2.4.jar'])
     compile fileTree(dir: 'lib', include: ['picocli-3.9.2.jar'])
     compile fileTree(dir: 'lib', include: ['java_cup.jar'])
+    compile fileTree(dir: 'lib', include: ['guava-27.1-jre.jar'])
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 

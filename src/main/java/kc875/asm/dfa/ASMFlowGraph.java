@@ -1,4 +1,4 @@
-package kc875.asm.graph;
+package kc875.asm.dfa;
 
 import kc875.asm.ASMExprRegReplaceable;
 import kc875.asm.ASMInstr;
@@ -26,7 +26,7 @@ public class ASMFlowGraph extends FlowGraph {
     //constructor that returns a new flow graph
     public ASMFlowGraph(List<ASMInstr> instrs){
         for (ASMInstr i : instrs){
-            GraphNode n = newNode();
+            GraphNode n = new GraphNode(this);
             instrMap.put(n, i);
             genMap.put(n, getUse(i));
             killMap.put(n, getDef(i));
