@@ -48,7 +48,7 @@ public class RegAllocationColoringVisitor {
     HashMap<Graph.Node, Graph.Node> alias;
 
     //chosen color for each node
-    HashMap<Graph.Node, String> color;
+    HashMap<Graph.Node, Integer> color;
 
     ASMGraph cfg;
     InterferenceGraph interference;
@@ -198,7 +198,35 @@ public class RegAllocationColoringVisitor {
     }
 
     public void assignColors() {
-        //TODO
+        while (!selectStack.empty()) {
+            Graph.Node n = selectStack.pop();
+            //okColors = {0,...K-1}
+            //TODO right now colors are ints
+            Set<Integer> okColors = new HashSet<>();
+            for (int i = 0; i < K; i++) {
+                okColors.add(i);
+            }
+            for (Graph.Node w : adjList.get(n)) {
+                //if getalias(w) in (coloredNodes + precolored)
+                if (Sets.union(coloredNodes, precolored).immutableCopy()
+                        .contains(getAlias(w))) {
+                    //okColors = okColors\{color[getAlias(w)]}
+                    okColors.remove(color.get(getAlias(w)));
+                }
+            }
+            if (okColors.isEmpty()){
+                spilledNodes.add(n);
+            } else {
+                coloredNodes.add(n);
+                //assign n to one of the ok colors
+                int c = new ArrayList<>(okColors).get(0);
+                color.put(n, c);
+            }
+        }
+        //color coalesced nodes according to their alias
+        for (Graph.Node n : coalescedNodes){
+            color.put(n, color.get(getAlias(n)));
+        }
     }
 
     public List<ASMInstr> rewriteProgram(List<Graph.Node> spilledNodes) {
@@ -299,5 +327,12 @@ public class RegAllocationColoringVisitor {
             }
         }
         return k < K;
+    }
+
+    public Graph.Node getAlias(Graph.Node n) {
+        if (coalescedNodes.contains(n)) {
+            return getAlias(alias.get(n));
+        }
+        return n;
     }
 }
