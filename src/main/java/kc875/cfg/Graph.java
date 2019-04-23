@@ -2,6 +2,7 @@ package kc875.cfg;
 
 import com.google.common.collect.Sets;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,6 +28,22 @@ public class Graph<T> {
 
         public T getT() {
             return t;
+        }
+
+        public void addOut(Node out) {
+            this.out.add(out);
+        }
+
+        public void addAllOut(Collection<? extends Node> c) {
+            this.out.addAll(c);
+        }
+
+        public void addIn(Node in) {
+            this.in.add(in);
+        }
+
+        public void addAllIn(Collection<? extends Node> c) {
+            this.in.addAll(c);
         }
 
         public Set<Node> succ() {
@@ -104,11 +121,24 @@ public class Graph<T> {
         return allNodes;
     }
 
+    /**
+     * Adds an edge from node `from` to node `to`.
+     *
+     * @param from 'sender' node.
+     * @param to 'receiver' node.
+     */
     public void addEdge(Node from, Node to) {
         from.out.add(to);
         to.in.add(from);
     }
 
+    /**
+     * Removes an edge between node `from` and node `to`. Doesn't do anything
+     * if the edge doesn't exist.
+     *
+     * @param from 'sender' node.
+     * @param to 'receiver' node.
+     */
     public void removeEdge(Node from, Node to) {
         from.out.remove(to);
         to.in.remove(from);

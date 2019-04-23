@@ -37,7 +37,7 @@ public class LiveVariableDFA extends DFAFramework<SetWithInf<ASMExprRegReplaceab
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> def(Graph.Node node) {
+    public static SetWithInf<ASMExprRegReplaceable> def(Graph<ASMInstr>.Node node) {
         return new SetWithInf<>();
     }
 }

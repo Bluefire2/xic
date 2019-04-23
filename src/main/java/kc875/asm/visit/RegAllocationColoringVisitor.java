@@ -1,12 +1,15 @@
 package kc875.asm.visit;
 
-import java.util.*;
-
-import kc875.asm.*;
-import kc875.asm.dfa.*;
-import kc875.cfg.*;
+import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMInstr;
+import kc875.asm.dfa.ASMGraph;
+import kc875.asm.dfa.InterferenceGraph;
+import kc875.asm.dfa.LiveVariableDFA;
+import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 import polyglot.util.Pair;
+
+import java.util.*;
 
 public class RegAllocationColoringVisitor {
     //every node is in exactly one of these sets
