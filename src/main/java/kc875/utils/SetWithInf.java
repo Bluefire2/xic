@@ -28,7 +28,7 @@ public class SetWithInf<E> implements Iterable<E> {
         this(new HashSet<>());
     }
 
-    public static<T> SetWithInf<T> infSet() {
+    public static <T> SetWithInf<T> infSet() {
         SetWithInf<T> set = new SetWithInf<>();
         set.isInf = true;
         return set;
@@ -37,9 +37,10 @@ public class SetWithInf<E> implements Iterable<E> {
     /**
      * Returns a SetWithInf of T elements with includeSet as the wrapped set
      * in the returned wrapper.
+     *
      * @param includeSet set to wrap around.
      */
-    private static<T> SetWithInf<T> infSet(Set<T> includeSet) {
+    private static <T> SetWithInf<T> infSet(Set<T> includeSet) {
         SetWithInf<T> set = new SetWithInf<>(includeSet);
         set.isInf = true;
         return set;
