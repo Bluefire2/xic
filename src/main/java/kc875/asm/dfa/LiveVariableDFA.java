@@ -3,7 +3,6 @@ package kc875.asm.dfa;
 import kc875.asm.ASMExprRegReplaceable;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
-import kc875.cfg.GraphNode;
 import kc875.utils.SetWithInf;
 
 /**
@@ -18,17 +17,17 @@ public class LiveVariableDFA extends DFAFramework<SetWithInf<ASMExprRegReplaceab
                 Direction.BACKWARD,
                 (node, l) -> use(node).union(l.diff(def(node))),
                 SetWithInf::union,
-                SetWithInf.infSet()
+                new SetWithInf<>()
         );
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> use(GraphNode node) {
+    public static SetWithInf<ASMExprRegReplaceable> use(Graph.Node node) {
         return new SetWithInf<>();
     }
 
     // TODO
-    public static SetWithInf<ASMExprRegReplaceable> def(GraphNode node) {
+    public static SetWithInf<ASMExprRegReplaceable> def(Graph.Node node) {
         return new SetWithInf<>();
     }
 }

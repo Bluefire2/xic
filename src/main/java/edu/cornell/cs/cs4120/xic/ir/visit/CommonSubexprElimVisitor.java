@@ -2,7 +2,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
-import edu.cornell.cs.cs4120.xic.ir.graph.IRFlowGraph;
+import edu.cornell.cs.cs4120.xic.ir.graph.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.graph.Quadruple;
 import edu.cornell.cs.cs4120.xic.ir.graph.QuadrupleVisitor;
 
@@ -20,7 +20,7 @@ public class CommonSubexprElimVisitor {
         for (Quadruple q : qlist) {
             simpl_qlist.addAll(qv.simplify(q));
         }
-        IRFlowGraph flowGraph = new IRFlowGraph(simpl_qlist);
+        IRGraph flowGraph = new IRGraph(simpl_qlist);
 
 
         //TODO

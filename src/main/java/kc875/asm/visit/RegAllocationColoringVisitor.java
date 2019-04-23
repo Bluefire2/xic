@@ -1,7 +1,6 @@
 package kc875.asm.visit;
 
 import kc875.asm.ASMInstr_2Arg;
-import kc875.cfg.GraphNode;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;

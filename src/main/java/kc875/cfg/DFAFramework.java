@@ -19,7 +19,7 @@ public abstract class DFAFramework<T> {
 
     // Transformer function or F. Takes in the node and a lattice element,
     // and returns a lattice element.
-    protected BiFunction<GraphNode, T, T> F;
+    protected BiFunction<Graph.Node, T, T> F;
 
     // Meet operator, combining l1 and l2 to produce l. A BinaryOperator<T>
     // is a BiFunction<T, T, T>.
@@ -36,8 +36,8 @@ public abstract class DFAFramework<T> {
 
     // Maps from nodes to lattice elements in (after meet if applicable) and
     // out (before meet if applicable) of the node.
-    protected Map<GraphNode, T> inMap = new HashMap<>();
-    protected Map<GraphNode, T> outMap = new HashMap<>();
+    protected Map<Graph.Node, T> inMap = new HashMap<>();
+    protected Map<Graph.Node, T> outMap = new HashMap<>();
 
     /**
      * Initialize the DFA Framework, with all nodes' inMap and outMap
@@ -50,7 +50,7 @@ public abstract class DFAFramework<T> {
      */
     public DFAFramework(Graph graph,
                         Direction direction,
-                        BiFunction<GraphNode, T, T> F,
+                        BiFunction<Graph.Node, T, T> F,
                         BinaryOperator<T> meet,
                         T top
                         ) {
@@ -58,7 +58,7 @@ public abstract class DFAFramework<T> {
         this.direction = direction;
         this.F = F;
         this.meet = meet;
-        for (GraphNode node : graph.getAllNodes()) {
+        for (Graph.Node node : graph.getAllNodes()) {
             inMap.put(node, top);
             outMap.put(node, top);
         }
