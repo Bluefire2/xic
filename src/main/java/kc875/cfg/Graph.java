@@ -1,10 +1,16 @@
 package kc875.cfg;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Stack;
+import java.util.stream.Collectors;
 
 /**
  * A Graph of nodes T.
@@ -144,7 +150,75 @@ public class Graph<T> {
         to.in.remove(from);
     }
 
-    public void show() {
-        //TODO this is for making .dot file
+    /**
+     * Outputs the dot format of the graph to path.dot.
+     *
+     * @param path path for writing the graph.
+     */
+    public void show(String path) throws IOException {
+        if (startNode == null) {
+            throw new IllegalAccessError("No start node for the graph");
+        }
+
+        // Write prologue
+        String INDENT_TAB = "\t";
+        FileWriter f = new FileWriter(path + ".dot");
+        f.write("digraph " + path + "\n");
+        f.write(INDENT_TAB + "node [shape=record];\n");
+        f.write("\n");
+
+        // Assign IDs to all nodes and write them to file
+        BiMap<Node, String> nodeIDMap = HashBiMap.create();
+        int i = 0;
+        for (Node node : getAllNodes()) {
+            // if node already in map, don't assign a new ID
+            if (!nodeIDMap.containsKey(node)) {
+                // add this node to the map
+                String id = "n_" + i;
+                nodeIDMap.put(node, id);
+                f.write(
+                        INDENT_TAB + id + INDENT_TAB
+                        + "[label=\"" + node.getT() + "\"]"
+                        + "\n"
+                );
+                i++;
+            }
+        }
+        f.write("\n");
+
+        BiMap<String, Node> idNodeMap = nodeIDMap.inverse();
+
+        Set<Node> visited = new HashSet<>();
+        Stack<Node> unvisited = new Stack<>();
+        unvisited.push(startNode);
+
+        // add edges to the dot file
+        while (!unvisited.isEmpty()) {
+            // there is an unvisited node, visit it
+            Node node = unvisited.pop();
+            visited.add(node);
+
+            // write edges from this node to successors to the file
+            String succNodes = node.succ().stream()
+                    .map(nodeIDMap::get)
+                    .collect(Collectors.joining(", "));
+            f.write(
+                    INDENT_TAB
+                    + nodeIDMap.get(node)
+                    + INDENT_TAB + "->" + INDENT_TAB
+                    + "{" + succNodes + "}"
+                    + "\n"
+            );
+
+            for (Node succNode : node.succ()) {
+                if (!visited.contains(succNode)) {
+                    // succNode hasn't been visited, add to unvisited stack
+                    unvisited.push(succNode);
+                }
+            }
+        }
+
+        f.write("\n}\n");
+        f.close();
     }
 }

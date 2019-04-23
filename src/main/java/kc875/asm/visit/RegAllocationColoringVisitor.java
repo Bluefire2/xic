@@ -1,7 +1,6 @@
 package kc875.asm.visit;
 
-import kc875.asm.ASMExprRegReplaceable;
-import kc875.asm.ASMInstr;
+import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
 import kc875.asm.dfa.LiveVariableDFA;
@@ -48,7 +47,7 @@ public class RegAllocationColoringVisitor {
     HashMap<Graph.Node, Graph.Node> alias;
 
     //chosen color for each node
-    HashMap<Graph.Node, String> color;
+    HashMap<Graph.Node, Integer> color;
 
     ASMGraph cfg;
     InterferenceGraph interference;
@@ -186,11 +185,126 @@ public class RegAllocationColoringVisitor {
     }
 
     public void coalesce() {
-        //TODO
+        //TODO: implement the invariant that all of these are moves
+        ASMInstr_2Arg move = null;
+        ASMExprTemp x = null;
+        ASMExprTemp y = null;
+        for (ASMInstr instr : worklistMoves) {
+            move = (ASMInstr_2Arg) instr;
+            ASMExpr xE = move.getSrc();
+            ASMExpr yE = move.getDest();
+
+            if (xE instanceof ASMExprTemp && yE instanceof ASMExprTemp) {
+                x = (ASMExprTemp) xE;
+                y = (ASMExprTemp) yE;
+            }
+        }
+
+        if (move == null || x == null) return; // TODO
+
+        Graph.Node xNode = getAlias(interference.tnode(x));
+        Graph.Node yNode = getAlias(interference.tnode(y));
+
+        Graph.Node u;
+        Graph.Node v;
+        if (precolored.contains(yNode)) {
+            u = yNode;
+            v = xNode;
+        } else {
+            u = xNode;
+            v = yNode;
+        }
+
+        worklistMoves.remove(move);
+
+        if (u.equals(v)) {
+            coalescedMoves.add(move);
+            addWorkList(u);
+        } else if (precolored.contains(v) || adjSet.contains(new Pair<>(u, v))) {
+            constrainedMoves.add(move);
+            addWorkList(u);
+            addWorkList(v);
+        } else if (
+                (
+                        precolored.contains(u)
+                                && getAdjacent(v).stream().allMatch(t -> ok(t, u))
+                ) || (
+                        !precolored.contains(u)
+                                && conservative(Sets.union(getAdjacent(u), getAdjacent(v)))
+                )
+        ) {
+            coalescedMoves.add(move);
+            combine(u, v);
+            addWorkList(u);
+        } else {
+            activeMoves.add(move);
+        }
+    }
+
+    public void combine(Graph.Node u, Graph.Node v) {
+        if (freezeWorklist.contains(v)) {
+            freezeWorklist.remove(v);
+        } else {
+            spillWorklist.remove(v);
+        }
+
+        coalescedNodes.add(v);
+        alias.put(v, u);
+        moveList.get(u).addAll(moveList.get(v));
+        enableMoves(v);
+
+        for (Graph.Node t : getAdjacent(v)) {
+            ASMExprRegReplaceable tInstr = interference.gtemp(t);
+            ASMExprRegReplaceable uInstr = interference.gtemp(u);
+            addEdge(tInstr, uInstr);
+            decrementDegree(t);
+        }
+
+        if (degree.get(u) >= K && freezeWorklist.contains(u)) {
+            freezeWorklist.remove(u);
+            spillWorklist.add(u);
+        }
     }
 
     public void freeze() {
-        //TODO
+        Graph.Node u = freezeWorklist.iterator().next();
+        freezeWorklist.remove(u);
+        simplifyWorklist.add(u);
+        freezeMoves(u);
+    }
+
+    private boolean isTempMove(ASMInstr instr) {
+        ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
+        return move.getSrc() instanceof ASMExprTemp
+                && move.getDest() instanceof ASMExprTemp;
+    }
+
+    public void freezeMoves(Graph.Node u) {
+        for (ASMInstr instr : worklistMoves) {
+            ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
+            ASMExpr xE = move.getSrc();
+            ASMExpr yE = move.getDest();
+
+            if (xE instanceof ASMExprTemp && yE instanceof ASMExprTemp) {
+                Graph.Node x = interference.tnode((ASMExprTemp) xE);
+                Graph.Node y = interference.tnode((ASMExprTemp) yE);
+
+                Graph.Node v;
+                if (getAlias(y).equals(getAlias(u))) {
+                    v = getAlias(x);
+                } else {
+                    v = getAlias(y);
+                }
+
+                activeMoves.remove(move);
+                frozenMoves.add(move);
+
+                if (freezeWorklist.contains(v) && nodeMoves(v).isEmpty()) {
+                    freezeWorklist.remove(v);
+                    simplifyWorklist.add(v);
+                }
+            }
+        }
     }
 
     public void selectSpill() {
@@ -198,7 +312,35 @@ public class RegAllocationColoringVisitor {
     }
 
     public void assignColors() {
-        //TODO
+        while (!selectStack.empty()) {
+            Graph.Node n = selectStack.pop();
+            //okColors = {0,...K-1}
+            //TODO right now colors are ints
+            Set<Integer> okColors = new HashSet<>();
+            for (int i = 0; i < K; i++) {
+                okColors.add(i);
+            }
+            for (Graph.Node w : adjList.get(n)) {
+                //if getalias(w) in (coloredNodes + precolored)
+                if (Sets.union(coloredNodes, precolored).immutableCopy()
+                        .contains(getAlias(w))) {
+                    //okColors = okColors\{color[getAlias(w)]}
+                    okColors.remove(color.get(getAlias(w)));
+                }
+            }
+            if (okColors.isEmpty()) {
+                spilledNodes.add(n);
+            } else {
+                coloredNodes.add(n);
+                //assign n to one of the ok colors
+                int c = new ArrayList<>(okColors).get(0);
+                color.put(n, c);
+            }
+        }
+        //color coalesced nodes according to their alias
+        for (Graph.Node n : coalescedNodes) {
+            color.put(n, color.get(getAlias(n)));
+        }
     }
 
     public List<ASMInstr> rewriteProgram(List<Graph.Node> spilledNodes) {
@@ -211,12 +353,12 @@ public class RegAllocationColoringVisitor {
         //if (u,v) not in adjSet and u != v
         Graph.Node uNode = interference.tnode(u);
         Graph.Node vNode = interference.tnode(v);
-        if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {//TODO does contains work here
+        if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {
             //adjSet = adjSet + {(u,v), (v,u)}
             adjSet.add(new Pair<>(uNode, vNode));
             adjSet.add(new Pair<>(vNode, uNode));
         }
-        //if u not in precollored
+        //if u not in precolored
         if (!precolored.contains(uNode)) {
             //adjList[u] = adjList[u] + {v}
             adjList.get(uNode).add(vNode);
@@ -271,12 +413,23 @@ public class RegAllocationColoringVisitor {
     }
 
     public void enableMoves(Set<Graph.Node> nodes) {
-        for (Graph.Node n : nodes) {
-            for (ASMInstr m : activeMoves) {
+        nodes.forEach(this::enableMoves);
+    }
+
+    public void enableMoves(Graph.Node n) {
+        for (ASMInstr m : nodeMoves(n)) {
+            if (activeMoves.contains(m)) {
                 activeMoves.remove(m);
                 worklistMoves.add(m);
             }
         }
+    }
+
+    public Set<ASMInstr> nodeMoves(Graph.Node n) {
+        return Sets.intersection(
+                moveList.get(n),
+                Sets.union(activeMoves, worklistMoves)
+        );
     }
 
     public void addWorkList(Graph.Node u) {
@@ -287,7 +440,6 @@ public class RegAllocationColoringVisitor {
     }
 
     public boolean ok(Graph.Node t, Graph.Node r) {
-        //TODO is contains ok here?
         return degree.get(t) < K && precolored.contains(t) && adjSet.contains(new Pair<>(t, r));
     }
 
@@ -299,5 +451,12 @@ public class RegAllocationColoringVisitor {
             }
         }
         return k < K;
+    }
+
+    public Graph.Node getAlias(Graph.Node n) {
+        if (coalescedNodes.contains(n)) {
+            return getAlias(alias.get(n));
+        }
+        return n;
     }
 }

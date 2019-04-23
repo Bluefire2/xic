@@ -1,11 +1,12 @@
 package kc875.asm.dfa;
 
-import kc875.asm.*;
+import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMInstr;
 import kc875.cfg.Graph;
 
 import java.util.List;
 
-abstract public class InterferenceGraph extends Graph {
+abstract public class InterferenceGraph extends Graph<ASMExprRegReplaceable> {
     abstract public Node tnode(ASMExprRegReplaceable temp);
     //temp->node
 

@@ -90,11 +90,11 @@ public class ASMGraph extends Graph<ASMInstr> {
         return nodeInstrMap;
     }
 
-    public Node getNode(ASMInstr i){
+    public Node getNode(ASMInstr i) {
         return nodeInstrMap.inverse().get(i);
     }
 
-    public ASMInstr getInstr(Node n){
+    public ASMInstr getInstr(Node n) {
         return nodeInstrMap.get(n);
     }
 

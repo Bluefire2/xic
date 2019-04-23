@@ -16,6 +16,7 @@ public abstract class DFAFramework<T, U> {
 
     // Direction of the DFA
     public enum Direction {FORWARD, BACKWARD}
+
     protected Direction direction;
 
     // Transformer function or F. Takes in the node and a lattice element,
@@ -29,6 +30,7 @@ public abstract class DFAFramework<T, U> {
     /**
      * Applies the meet operator on the lattice elements ls. Returns Optional
      * .empty() if ls is empty, otherwise reductively applies the meet operator.
+     *
      * @param ls lattice elements.
      */
     public Optional<T> applyMeet(Collection<T> ls) {
@@ -43,18 +45,19 @@ public abstract class DFAFramework<T, U> {
     /**
      * Initialize the DFA Framework, with all nodes' inMap and outMap
      * initialized to lattice element top.
-     * @param graph graph associated with this DFA.
+     *
+     * @param graph     graph associated with this DFA.
      * @param direction direction of DFA.
-     * @param F transformer function.
-     * @param meet meet operator.
-     * @param top top lattice element for initialization.
+     * @param F         transformer function.
+     * @param meet      meet operator.
+     * @param top       top lattice element for initialization.
      */
     public DFAFramework(Graph<U> graph,
                         Direction direction,
                         BiFunction<Graph<U>.Node, T, T> F,
                         BinaryOperator<T> meet,
                         T top
-                        ) {
+    ) {
         this.graph = graph;
         this.direction = direction;
         this.F = F;
