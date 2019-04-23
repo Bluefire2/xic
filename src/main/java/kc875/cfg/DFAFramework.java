@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * A DFA Framework with lattice elements T and graph nodes of U.
@@ -16,6 +17,7 @@ public abstract class DFAFramework<T, U> {
 
     // Direction of the DFA
     public enum Direction {FORWARD, BACKWARD}
+
     protected Direction direction;
 
     // Transformer function or F. Takes in the node and a lattice element,
@@ -29,6 +31,7 @@ public abstract class DFAFramework<T, U> {
     /**
      * Applies the meet operator on the lattice elements ls. Returns Optional
      * .empty() if ls is empty, otherwise reductively applies the meet operator.
+     *
      * @param ls lattice elements.
      */
     public Optional<T> applyMeet(Collection<T> ls) {
@@ -43,18 +46,19 @@ public abstract class DFAFramework<T, U> {
     /**
      * Initialize the DFA Framework, with all nodes' inMap and outMap
      * initialized to lattice element top.
-     * @param graph graph associated with this DFA.
+     *
+     * @param graph     graph associated with this DFA.
      * @param direction direction of DFA.
-     * @param F transformer function.
-     * @param meet meet operator.
-     * @param top top lattice element for initialization.
+     * @param F         transformer function.
+     * @param meet      meet operator.
+     * @param top       top lattice element for initialization.
      */
     public DFAFramework(Graph<U> graph,
                         Direction direction,
                         BiFunction<Graph<U>.Node, T, T> F,
                         BinaryOperator<T> meet,
                         T top
-                        ) {
+    ) {
         this.graph = graph;
         this.direction = direction;
         this.F = F;
@@ -75,5 +79,27 @@ public abstract class DFAFramework<T, U> {
 
     public Map<Graph.Node, T> getOutMap() {
         return outMap;
+    }
+
+    public Optional<T> inputToF(Graph<U>.Node node) {
+        switch (direction) {
+            case FORWARD:
+                return applyMeet(node.pred().stream()
+                        .map(outMap::get).collect(Collectors.toSet()));
+            case BACKWARD:
+                return applyMeet(node.succ().stream()
+                        .map(inMap::get).collect(Collectors.toSet()));
+            default:
+                throw new IllegalAccessError("Weird direction in DFA");
+        }
+    }
+
+    public Optional<T> afterF(Graph<U>.Node node) {
+        Optional<T> in = inputToF(node);
+        if (in.isEmpty()) {
+            return in;
+        } else {
+            return Optional.of(F.apply(node, in.get()));
+        }
     }
 }
