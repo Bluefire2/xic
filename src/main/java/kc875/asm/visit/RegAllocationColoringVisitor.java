@@ -8,6 +8,7 @@ import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.Graph;
 import com.google.common.collect.Sets;
 import polyglot.util.Pair;
+
 import java.util.*;
 
 public class RegAllocationColoringVisitor {
@@ -56,10 +57,10 @@ public class RegAllocationColoringVisitor {
 
     int K = 16;//num regs I think
 
-    RegAllocationColoringVisitor(){
+    RegAllocationColoringVisitor() {
     }
 
-    public void allocate(List<ASMInstr> instrs){
+    public void allocate(List<ASMInstr> instrs) {
         this.instrs = instrs;
         //TODO
         // initialization goes here because allocate is recursive
@@ -94,42 +95,42 @@ public class RegAllocationColoringVisitor {
                 || worklistMoves.size() != 0
                 || freezeWorklist.size() != 0
                 || spillWorklist.size() != 0) {
-            if (simplifyWorklist.size() != 0){
+            if (simplifyWorklist.size() != 0) {
                 simplify();
-            } else if (worklistMoves.size() != 0){
+            } else if (worklistMoves.size() != 0) {
                 coalesce();
-            } else if (freezeWorklist.size() != 0){
+            } else if (freezeWorklist.size() != 0) {
                 freeze();
-            } else if (spillWorklist.size() != 0){
+            } else if (spillWorklist.size() != 0) {
                 selectSpill();
             }
         }
         assignColors();
-        if (spilledNodes.size() != 0){
+        if (spilledNodes.size() != 0) {
             List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
             allocate(new_program);
         }
     }
 
-    public void livenessAnalysis(){
+    public void livenessAnalysis() {
         //TODO build CFG
     }
 
-    public void build(){
+    public void build() {
         //TODO initialize interference graph
         //foralll blocks b in program
-        for (Graph<ASMInstr>.Node b : cfg.getAllNodes()){
+        for (Graph<ASMInstr>.Node b : cfg.getAllNodes()) {
             //live = liveout(b)
             Map<Graph.Node, Set<ASMExprRegReplaceable>> outs = liveness.getOutMap();
             Set<ASMExprRegReplaceable> live = outs.get(b);
             //forall instructions in b in reverse order (1 instruction in b for us)
             ASMInstr i = b.getT();
             //if ismoveinstr(i)
-            if (i.hasNewDef()){
+            if (i.hasNewDef()) {
                 //live = live\use(i)
                 live = Sets.difference(live, liveness.use(b));
                 //forall n in def(i)+use(i)
-                for (ASMExprRegReplaceable n : Sets.union(liveness.def(b), liveness.use(b)).immutableCopy()){
+                for (ASMExprRegReplaceable n : Sets.union(liveness.def(b), liveness.use(b)).immutableCopy()) {
                     //movelist[n] <- movelist[n] + {I}
                     moveList.get(n).add(i);
                 }
@@ -139,11 +140,11 @@ public class RegAllocationColoringVisitor {
             //live = live + def(i)
             live = Sets.union(live, liveness.def(b)).immutableCopy();
             //forall d in def(i)
-            for (ASMExprRegReplaceable d : liveness.def(b)){
+            for (ASMExprRegReplaceable d : liveness.def(b)) {
                 //forall l in live
                 for (ASMExprRegReplaceable l : live) {
                     //addEdge(l,d)
-                    addEdge(l,d);
+                    addEdge(l, d);
                 }
             }
             //live = use(i)+ (live\def(i)
@@ -152,16 +153,16 @@ public class RegAllocationColoringVisitor {
         }
     }
 
-    public void makeWorkList(){
+    public void makeWorkList() {
         //forall n in initial
-        for (Graph.Node n : initial){
+        for (Graph.Node n : initial) {
             //initial = initial\{n}
             initial.remove(n);
             //if degree[n] >= K
-            if (degree.get(n) >= K){
+            if (degree.get(n) >= K) {
                 //spillWorklist = spillWorklist + {n}
                 spillWorklist.add(n);
-            } else if (isMoveRelated(n)){
+            } else if (isMoveRelated(n)) {
                 //freezeWorklist = freezeWorklist + {n}
                 freezeWorklist.add(n);
             } else {
@@ -171,7 +172,7 @@ public class RegAllocationColoringVisitor {
         }
     }
 
-    public void simplify(){
+    public void simplify() {
         //TODO selecting things from worklist
         //let n be in simplifyWorklist
         Graph.Node n = new ArrayList<>(simplifyWorklist).get(0);
@@ -179,57 +180,57 @@ public class RegAllocationColoringVisitor {
         simplifyWorklist.remove(n);
         //push n to selectStack
         selectStack.push(n);
-        for (Graph.Node m : getAdjacent(n)){
+        for (Graph.Node m : getAdjacent(n)) {
             decrementDegree(m);
         }
     }
 
-    public void coalesce(){
+    public void coalesce() {
         //TODO
     }
 
-    public void freeze(){
+    public void freeze() {
         //TODO
     }
 
-    public void selectSpill(){
+    public void selectSpill() {
         //TODO
     }
 
-    public void assignColors(){
+    public void assignColors() {
         //TODO
     }
 
-    public List<ASMInstr> rewriteProgram(List<Graph.Node> spilledNodes){
+    public List<ASMInstr> rewriteProgram(List<Graph.Node> spilledNodes) {
         //TODO
         return null;
     }
 
     //HELPERS DOWN HERE
-    public void addEdge(ASMExprRegReplaceable u, ASMExprRegReplaceable v){
+    public void addEdge(ASMExprRegReplaceable u, ASMExprRegReplaceable v) {
         //if (u,v) not in adjSet and u != v
         Graph.Node uNode = interference.tnode(u);
         Graph.Node vNode = interference.tnode(v);
-        if (!adjSet.contains(new Pair<>(uNode,vNode)) && !u.equals(v)){//TODO does contains work here
+        if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {//TODO does contains work here
             //adjSet = adjSet + {(u,v), (v,u)}
-            adjSet.add(new Pair<>(uNode,vNode));
-            adjSet.add(new Pair<>(vNode,uNode));
+            adjSet.add(new Pair<>(uNode, vNode));
+            adjSet.add(new Pair<>(vNode, uNode));
         }
         //if u not in precollored
-        if (!precolored.contains(uNode)){
+        if (!precolored.contains(uNode)) {
             //adjList[u] = adjList[u] + {v}
             adjList.get(uNode).add(vNode);
             //degree[u] = degree[u] + 1
             degree.put(uNode, degree.get(uNode) + 1);
         }
         //same for v
-        if (!precolored.contains(vNode)){
+        if (!precolored.contains(vNode)) {
             adjList.get(vNode).add(uNode);
             degree.put(vNode, degree.get(vNode) + 1);
         }
     }
 
-    public Set<Graph.Node> getAdjacent(Graph.Node n){
+    public Set<Graph.Node> getAdjacent(Graph.Node n) {
         //adjList[n]\(activeMoves + coalescedNodes)
         return Sets.difference(
                 adjList.get(n),
@@ -237,7 +238,7 @@ public class RegAllocationColoringVisitor {
         ).immutableCopy();
     }
 
-    public Set<ASMInstr> getNodeMoves(Graph.Node n){
+    public Set<ASMInstr> getNodeMoves(Graph.Node n) {
         //moveList[n] intersection (activeMoves + worklistMoves)
         return Sets.intersection(
                 moveList.get(n),
@@ -245,55 +246,55 @@ public class RegAllocationColoringVisitor {
         ).immutableCopy();
     }
 
-    public boolean isMoveRelated(Graph.Node n){
+    public boolean isMoveRelated(Graph.Node n) {
         return getNodeMoves(n).size() != 0;
     }
 
-    public void decrementDegree(Graph.Node m){
+    public void decrementDegree(Graph.Node m) {
         //let d = degree[m]
         int d = degree.get(m);
         //degree[m] = d-1
         degree.put(m, d - 1);
         //if d == K
-        if (d == K){
+        if (d == K) {
             //enableMoves({m} + adjacent(m))
             Set<Graph.Node> s = new HashSet<>();
             s.add(m);
             enableMoves(Sets.union(s, getAdjacent(m)).immutableCopy());
             spillWorklist.remove(m);
         }
-        if (isMoveRelated(m)){
+        if (isMoveRelated(m)) {
             freezeWorklist.add(m);
         } else {
             simplifyWorklist.add(m);
         }
     }
 
-    public void enableMoves(Set<Graph.Node> nodes){
-        for (Graph.Node n : nodes){
-            for (ASMInstr m : activeMoves){
+    public void enableMoves(Set<Graph.Node> nodes) {
+        for (Graph.Node n : nodes) {
+            for (ASMInstr m : activeMoves) {
                 activeMoves.remove(m);
                 worklistMoves.add(m);
             }
         }
     }
 
-    public void addWorkList(Graph.Node u){
+    public void addWorkList(Graph.Node u) {
         if (!precolored.contains(u) && !(isMoveRelated(u)) && degree.get(u) < K) {
             freezeWorklist.remove(u);
             simplifyWorklist.add(u);
         }
     }
 
-    public boolean ok(Graph.Node t, Graph.Node r){
+    public boolean ok(Graph.Node t, Graph.Node r) {
         //TODO is contains ok here?
-        return degree.get(t) < K && precolored.contains(t) && adjSet.contains(new Pair<>(t,r));
+        return degree.get(t) < K && precolored.contains(t) && adjSet.contains(new Pair<>(t, r));
     }
 
-    public boolean conservative(Set<Graph.Node> nodes){
+    public boolean conservative(Set<Graph.Node> nodes) {
         int k = 0;
-        for (Graph.Node n : nodes){
-            if (degree.get(n) >= K){
+        for (Graph.Node n : nodes) {
+            if (degree.get(n) >= K) {
                 k = k + 1;
             }
         }
