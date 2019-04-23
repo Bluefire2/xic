@@ -32,4 +32,9 @@ public class ASMInstrLabel extends ASMInstr {
     public boolean isFunction() {
         return name.startsWith("_I"); // based on the ABI spec
     }
+
+    @Override
+    public boolean hasNewDef() {
+        return false;
+    }
 }

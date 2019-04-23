@@ -30,4 +30,9 @@ public class ASMInstrComment extends ASMInstr {
     public List<ASMInstr> accept(ASMinstrBareVisitor<List<ASMInstr>> v) {
         return new ArrayList<>();
     }
+
+    @Override
+    public boolean hasNewDef() {
+        return false;
+    }
 }

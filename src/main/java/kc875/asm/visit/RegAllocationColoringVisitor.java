@@ -115,7 +115,7 @@ public class RegAllocationColoringVisitor {
             Map<Graph.Node, SetWithInf<ASMExprRegReplaceable>> outs = liveness.getOutMap();
             SetWithInf<ASMExprRegReplaceable> live = outs.get(b);
             ASMInstr i = b.getT();
-            if (i.isDestChanged()){
+            if (i.hasNewDef()){
                 live = live.diff(liveness.use(i));
                 for (Graph<ASMInstr>.Node n : liveness.def(i).union(liveness.use(i))){
                     moveList.get(n).add(i); //ML[n] <- M[n] + {I}

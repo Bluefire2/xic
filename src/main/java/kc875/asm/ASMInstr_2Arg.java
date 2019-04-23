@@ -43,4 +43,29 @@ public class ASMInstr_2Arg extends ASMInstr {
     public ASMExpr getSrc() {
         return src;
     }
+
+    @Override
+    public boolean hasNewDef() {
+        if (!(dest instanceof ASMExprRegReplaceable)) {
+            return false;
+        }
+        // dest is reg/temp
+        switch (this.getOpCode()) {
+            case ADD:
+            case SUB:
+            case IMUL:
+            case IDIV:
+            case AND:
+            case OR:
+            case XOR:
+            case SHR:
+            case SHL:
+            case SAR:
+            case MOV:
+            case MOVZX:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
