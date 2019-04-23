@@ -14,7 +14,7 @@ public class ASMGraph extends Graph<ASMInstr> {
     private HashMap<ASMInstrLabel, Node> labels;
 
     private static Set<ASMOpCode> noFallthrough = new HashSet<>(
-            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET, ASMOpCode.CALL) // TODO
+            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET) // TODO
     );
 
     public List<ASMExprRegReplaceable> getUse(ASMInstr i) {
