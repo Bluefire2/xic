@@ -1,5 +1,8 @@
 package kc875.asm;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ASMExprConst extends ASMExpr {
     private Long val;
 
@@ -22,5 +25,10 @@ public class ASMExprConst extends ASMExpr {
             return this.val.longValue() == ((ASMExprConst) obj).val.longValue();
         }
         return false;
+    }
+
+    @Override
+    public Set<ASMExprRegReplaceable> vars() {
+        return new HashSet<>();
     }
 }

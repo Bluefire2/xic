@@ -63,4 +63,16 @@ public abstract class DFAFramework<T> {
             outMap.put(node, top);
         }
     }
+
+    public Graph getGraph() {
+        return graph;
+    }
+
+    public Map<Graph.Node, T> getInMap() {
+        return inMap;
+    }
+
+    public Map<Graph.Node, T> getOutMap() {
+        return outMap;
+    }
 }
