@@ -267,7 +267,44 @@ public class RegAllocationColoringVisitor {
     }
 
     public void freeze() {
-        //TODO
+        Graph.Node u = freezeWorklist.iterator().next();
+        freezeWorklist.remove(u);
+        simplifyWorklist.add(u);
+        freezeMoves(u);
+    }
+
+    private boolean isTempMove(ASMInstr instr) {
+        ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
+        return move.getSrc() instanceof ASMExprTemp
+                && move.getDest() instanceof ASMExprTemp;
+    }
+
+    public void freezeMoves(Graph.Node u) {
+        for (ASMInstr instr : worklistMoves) {
+            ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
+            ASMExpr xE = move.getSrc();
+            ASMExpr yE = move.getDest();
+
+            if (xE instanceof ASMExprTemp && yE instanceof ASMExprTemp) {
+                Graph.Node x = interference.tnode((ASMExprTemp) xE);
+                Graph.Node y = interference.tnode((ASMExprTemp) yE);
+
+                Graph.Node v;
+                if (getAlias(y).equals(getAlias(u))) {
+                    v = getAlias(x);
+                } else {
+                    v = getAlias(y);
+                }
+
+                activeMoves.remove(move);
+                frozenMoves.add(move);
+
+                if (freezeWorklist.contains(v) && nodeMoves(v).isEmpty()) {
+                    freezeWorklist.remove(v);
+                    simplifyWorklist.add(v);
+                }
+            }
+        }
     }
 
     public void selectSpill() {
