@@ -1,11 +1,9 @@
 package kc875.cfg;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +22,10 @@ public abstract class DFAFramework<T, U> {
     // and returns a lattice element.
     protected BiFunction<Graph<U>.Node, T, T> F;
 
+    // Accumulator generating function for when meet operator is applied on
+    // multiple lattice elements.
+    protected Supplier<T> meetAcc;
+
     // Meet operator, combining l1 and l2 to produce l. A BinaryOperator<T>
     // is a BiFunction<T, T, T>.
     protected BinaryOperator<T> meet;
@@ -34,14 +36,14 @@ public abstract class DFAFramework<T, U> {
      *
      * @param ls lattice elements.
      */
-    public Optional<T> applyMeet(Collection<T> ls) {
-        return ls.stream().reduce(meet);
+    public T applyMeet(Collection<T> ls) {
+        return ls.stream().reduce(meetAcc.get(), meet);
     }
 
     // Maps from nodes to lattice elements in (after meet if applicable) and
     // out (before meet if applicable) of the node.
-    protected Map<Graph.Node, T> inMap = new HashMap<>();
-    protected Map<Graph.Node, T> outMap = new HashMap<>();
+    protected Map<Graph<U>.Node, T> inMap = new HashMap<>();
+    protected Map<Graph<U>.Node, T> outMap = new HashMap<>();
 
     /**
      * Initialize the DFA Framework, with all nodes' inMap and outMap
@@ -50,20 +52,23 @@ public abstract class DFAFramework<T, U> {
      * @param graph     graph associated with this DFA.
      * @param direction direction of DFA.
      * @param F         transformer function.
+     * @param meetAcc   function that creates an accumulator when applying meet.
      * @param meet      meet operator.
      * @param top       top lattice element for initialization.
      */
     public DFAFramework(Graph<U> graph,
                         Direction direction,
                         BiFunction<Graph<U>.Node, T, T> F,
+                        Supplier<T> meetAcc,
                         BinaryOperator<T> meet,
                         T top
     ) {
         this.graph = graph;
         this.direction = direction;
         this.F = F;
+        this.meetAcc = meetAcc;
         this.meet = meet;
-        for (Graph.Node node : graph.getAllNodes()) {
+        for (Graph<U>.Node node : graph.getAllNodes()) {
             inMap.put(node, top);
             outMap.put(node, top);
         }
@@ -73,15 +78,15 @@ public abstract class DFAFramework<T, U> {
         return graph;
     }
 
-    public Map<Graph.Node, T> getInMap() {
+    public Map<Graph<U>.Node, T> getInMap() {
         return inMap;
     }
 
-    public Map<Graph.Node, T> getOutMap() {
+    public Map<Graph<U>.Node, T> getOutMap() {
         return outMap;
     }
 
-    public Optional<T> inputToF(Graph<U>.Node node) {
+    public T inputToF(Graph<U>.Node node) {
         switch (direction) {
             case FORWARD:
                 return applyMeet(node.pred().stream()
@@ -94,12 +99,38 @@ public abstract class DFAFramework<T, U> {
         }
     }
 
-    public Optional<T> afterF(Graph<U>.Node node) {
-        Optional<T> in = inputToF(node);
-        if (in.isEmpty()) {
-            return in;
-        } else {
-            return Optional.of(F.apply(node, in.get()));
+    public T afterF(Graph<U>.Node node) {
+        return F.apply(node, inputToF(node));
+    }
+
+    public void runWorklistAlgo() {
+        // already initialized to top
+
+        // worklist <- { all nodes }
+        Set<Graph<U>.Node> worklist = graph.getAllNodes();
+
+        // Invariant: all nodes with unsatisfied eqns in worklist
+        for (Iterator<Graph<U>.Node> iter = worklist.iterator(); iter.hasNext();) {
+            Graph<U>.Node node = iter.next();
+            iter.remove();
+
+            switch (direction) {
+                case FORWARD:
+                    T outBeforeUpdate = outMap.get(node);
+                    T outAfterUpdate = this.afterF(node);
+                    if (!outBeforeUpdate.equals(outAfterUpdate)) {
+                        // out has changed, push succs of node to worklist
+                        worklist.addAll(node.succ());
+                    }
+                    break;
+                case BACKWARD:
+                    T inBeforeUpdate = inMap.get(node);
+                    T inAfterUpdate = this.afterF(node);
+                    if (!inBeforeUpdate.equals(inAfterUpdate)) {
+                        // in has changed, push preds of node to worklist
+                        worklist.addAll(node.pred());
+                    }
+            }
         }
     }
 }

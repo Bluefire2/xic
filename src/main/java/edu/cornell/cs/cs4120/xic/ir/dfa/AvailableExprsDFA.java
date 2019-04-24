@@ -8,11 +8,12 @@ import kc875.utils.SetWithInf;
 
 public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> {
 
-    public AvailableExprsDFA(Graph graph) {
+    public AvailableExprsDFA(IRGraph graph) {
         super(
                 graph,
                 Direction.FORWARD,
                 (node, l) -> l.union(exprs(node).diff(kill(node))),
+                SetWithInf::new,
                 SetWithInf::intersect,
                 SetWithInf.infSet()
         );

@@ -1,11 +1,11 @@
 package kc875.asm.visit;
 
+import com.google.common.collect.Sets;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
 import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.Graph;
-import com.google.common.collect.Sets;
 import polyglot.util.Pair;
 
 import java.util.*;
@@ -120,7 +120,8 @@ public class RegAllocationColoringVisitor {
         //foralll blocks b in program
         for (Graph<ASMInstr>.Node b : cfg.getAllNodes()) {
             //live = liveout(b)
-            Map<Graph.Node, Set<ASMExprRegReplaceable>> outs = liveness.getOutMap();
+            Map<Graph<ASMInstr>.Node, Set<ASMExprRegReplaceable>> outs =
+                    liveness.getOutMap();
             Set<ASMExprRegReplaceable> live = outs.get(b);
             //forall instructions in b in reverse order (1 instruction in b for us)
             ASMInstr i = b.getT();
