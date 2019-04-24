@@ -9,56 +9,58 @@ import kc875.cfg.Graph;
 import polyglot.util.Pair;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class RegAllocationColoringVisitor {
     //every node is in exactly one of these sets
-    HashSet<Graph.Node> precolored; // machine registers, pre-assigned
-    HashSet<Graph.Node> initial; // temps, not processed yet
-    HashSet<Graph.Node> simplifyWorklist; //low degree, non move related nodes
-    HashSet<Graph.Node> freezeWorklist;//low degree, move related nodes
-    HashSet<Graph.Node> spillWorklist;//high degree nodes
-    HashSet<Graph.Node> spilledNodes;//marked for spilling this round, initially empty
-    HashSet<Graph.Node> coalescedNodes;//registers which are coalesced
+    private HashSet<Graph.Node> precolored; // machine registers, pre-assigned
+    private HashSet<Graph.Node> initial; // temps, not processed yet
+    private HashSet<Graph.Node> simplifyWorklist; //low degree, non move related nodes
+    private HashSet<Graph.Node> freezeWorklist;//low degree, move related nodes
+    private HashSet<Graph.Node> spillWorklist;//high degree nodes
+    private HashSet<Graph.Node> spilledNodes;//marked for spilling this round, initially empty
+    private HashSet<Graph.Node> coalescedNodes;//registers which are coalesced
     //u <- v coalesced then v is added to this set, u is moved to work list
-    HashSet<Graph.Node> coloredNodes; //successfully colored
-    Stack<Graph.Node> selectStack; //stacks w/ temps removed from graph
+    private HashSet<Graph.Node> coloredNodes; //successfully colored
+    private Stack<Graph.Node> selectStack; //stacks w/ temps removed from graph
 
     //every move is in exactly one of these sets
-    HashSet<ASMInstr> coalescedMoves; //coalesced moves
-    HashSet<ASMInstr> constrainedMoves; //moves whose src/target interfere
-    HashSet<ASMInstr> frozenMoves; //moves no longer considered for coalescing
-    HashSet<ASMInstr> worklistMoves; //moves enabled for possible coalescing
-    HashSet<ASMInstr> activeMoves; //moves not ready for coalescing
+    private HashSet<ASMInstr> coalescedMoves; //coalesced moves
+    private HashSet<ASMInstr> constrainedMoves; //moves whose src/target interfere
+    private HashSet<ASMInstr> frozenMoves; //moves no longer considered for coalescing
+    private HashSet<ASMInstr> worklistMoves; //moves enabled for possible coalescing
+    private HashSet<ASMInstr> activeMoves; //moves not ready for coalescing
 
     //set of interference edges - reverse edges must always be in the set
-    HashSet<Pair<Graph.Node, Graph.Node>> adjSet;
+    private HashSet<Pair<Graph.Node, Graph.Node>> adjSet;
 
     //list repr of the graph, node -> list of interfering nodes
-    HashMap<Graph.Node, Set<Graph.Node>> adjList;
+    private HashMap<Graph.Node, Set<Graph.Node>> adjList;
 
     //Degree of each node
-    HashMap<Graph.Node, Integer> degree;
+    private HashMap<Graph.Node, Integer> degree;
 
     //map from node -> list of moves it is associated with
-    HashMap<Graph.Node, HashSet<ASMInstr>> moveList;
+    private HashMap<Graph.Node, HashSet<ASMInstr>> moveList;
 
     //alias - when MOV(u,v) coalesced, then v is in coalescedNodes and alias(v)=u
-    HashMap<Graph.Node, Graph.Node> alias;
+    private HashMap<Graph.Node, Graph.Node> alias;
 
     //chosen color for each node
-    HashMap<Graph.Node, Integer> color;
+    private HashMap<Graph.Node, Integer> color;
 
-    ASMGraph cfg;
-    InterferenceGraph interference;
-    LiveVariableDFA liveness;
-    List<ASMInstr> instrs;
+    private ASMGraph cfg;
+    private InterferenceGraph interference;
+    private LiveVariableDFA liveness;
+    private List<ASMInstr> instrs;
 
-    int K = 16;//num regs I think
+    private int K = 16;//num regs I think
 
     RegAllocationColoringVisitor() {
     }
 
-    public void allocate(List<ASMInstr> instrs) {
+    private void allocate(List<ASMInstr> instrs) {
         this.instrs = instrs;
         //TODO
         // initialization goes here because allocate is recursive
@@ -99,7 +101,7 @@ public class RegAllocationColoringVisitor {
                 coalesce();
             } else if (freezeWorklist.size() != 0) {
                 freeze();
-            } else if (spillWorklist.size() != 0) {
+            } else {
                 selectSpill();
             }
         }
@@ -127,9 +129,11 @@ public class RegAllocationColoringVisitor {
             //if ismoveinstr(i)
             if (i.hasNewDef()) {
                 //live = live\use(i)
-                live = Sets.difference(live, liveness.use(b));
+                live = Sets.difference(live, LiveVariableDFA.use(b));
                 //forall n in def(i)+use(i)
-                for (ASMExprRegReplaceable n : new HashSet<>(Sets.union(liveness.def(b), liveness.use(b)))) {
+                for (ASMExprRegReplaceable n : new HashSet<>(
+                        Sets.union(LiveVariableDFA.def(b), LiveVariableDFA.use(b)))
+                ) {
                     //movelist[n] <- movelist[n] + {I}
                     moveList.get(n).add(i);
                 }
@@ -137,9 +141,9 @@ public class RegAllocationColoringVisitor {
                 worklistMoves.add(i);
             }
             //live = live + def(i)
-            live = new HashSet<>(Sets.union(live, liveness.def(b)));
+            live = new HashSet<>(Sets.union(live, LiveVariableDFA.def(b)));
             //forall d in def(i)
-            for (ASMExprRegReplaceable d : liveness.def(b)) {
+            for (ASMExprRegReplaceable d : LiveVariableDFA.def(b)) {
                 //forall l in live
                 for (ASMExprRegReplaceable l : live) {
                     //addEdge(l,d)
@@ -147,7 +151,7 @@ public class RegAllocationColoringVisitor {
                 }
             }
             //live = use(i)+ (live\def(i)
-            live = new HashSet<>(Sets.union(liveness.use(b), Sets.difference(live, liveness.def(b))));
+            live = new HashSet<>(Sets.union(LiveVariableDFA.use(b), Sets.difference(live, LiveVariableDFA.def(b))));
             //TODO what do we do with live? store it back into liveness outmap?
         }
     }
@@ -310,10 +314,9 @@ public class RegAllocationColoringVisitor {
             Graph.Node n = selectStack.pop();
             //okColors = {0,...K-1}
             //TODO right now colors are ints
-            Set<Integer> okColors = new HashSet<>();
-            for (int i = 0; i < K; i++) {
-                okColors.add(i);
-            }
+            Set<Integer> okColors = IntStream.range(0, K)
+                    .boxed()
+                    .collect(Collectors.toSet());
             for (Graph.Node w : adjList.get(n)) {
                 //if getalias(w) in (coloredNodes + precolored)
                 if (Sets.union(coloredNodes, precolored)
