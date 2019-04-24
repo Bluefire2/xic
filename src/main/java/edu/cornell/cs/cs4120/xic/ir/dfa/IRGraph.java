@@ -67,6 +67,8 @@ public class IRGraph extends Graph<IRStmt> {
 
     public IRStmt getStmt(Node n) { return nodeMap.get(n); }
 
+    public void setStmt(Node n, IRStmt s) { nodeMap.replace(n,s); }
+
 
 
 
