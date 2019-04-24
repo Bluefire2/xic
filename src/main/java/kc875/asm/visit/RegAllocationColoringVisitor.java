@@ -120,7 +120,6 @@ public class RegAllocationColoringVisitor {
     }
 
     private void build() {
-        //TODO initialize interference graph
         interference = new InterferenceGraph();
         //foralll blocks b in program
         for (Graph<ASMInstr>.Node b : cfg.getAllNodes()) {
@@ -129,6 +128,7 @@ public class RegAllocationColoringVisitor {
                     liveness.getOutMap();
             Set<ASMExprRegReplaceable> live = outs.get(b);
             for (ASMExprRegReplaceable temp : live){
+                //add nodes to interference graph
                 if (!interference.checkTemp(temp)){
                     Graph<ASMExprRegReplaceable>.Node node = interference.addNode(temp);
                     degree.put(node, 0);
