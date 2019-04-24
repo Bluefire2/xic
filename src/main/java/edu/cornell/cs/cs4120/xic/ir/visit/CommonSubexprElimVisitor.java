@@ -64,7 +64,7 @@ public class CommonSubexprElimVisitor {
 
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            Graph irGraph = buildCFG(funcDecl);
+            IRGraph irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
 
 
@@ -74,88 +74,7 @@ public class CommonSubexprElimVisitor {
         return null;
     }
 
-    /**
-     * Get the subexpressions of a given IR node
-     * @param irNode An IR node with 0 or more children
-     * @return A set of all the children of irNode that are of type IRExpr.
-     */
-    public SetWithInf<IRExpr> getSubExpressions(IRNode irNode) {
-        ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
 
-        for (IRNode n : lcv.visit(irNode)) {
-                if (n instanceof IRExpr) {
-                    exprSet.add((IRExpr) n);
-                }
-            }
-
-        return new SetWithInf<>(exprSet);
-    }
-
-    /**
-     * Return the subset of a list of IR expressions that reference a given temp.
-     * @param t IR level temporary variable
-     * @param exprList the list of IR expressions to be searched
-     * @return the subset of exprlst containing references to t
-     */
-    public SetWithInf<IRExpr> exprsContainingTemp(IRTemp t, List<IRExpr> exprList) {
-        ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
-
-        for (IRExpr expr : exprList) {
-            List<IRNode> children = lcv.visit(expr);
-            for (IRNode n : children) {
-                if (n instanceof IRTemp) {
-                    IRTemp tn = (IRTemp) n;
-                    if (tn.name().equals(t.name())) exprSet.add(expr);
-                }
-            }
-        }
-
-        return new SetWithInf<>(exprSet);
-    }
-
-    /**
-     * Returns the set of expressions used in a mem that may be an alias for e.
-     * Two memory operands are considered aliases unless:
-     *  1. One is a stack location and the other is a heap location
-     *  2. The operands are of format [rbp + i] and [rbp + j], and i =/= j
-     *  3. The operand points to immutable memory
-     *  4. The types of the operands are incompatible
-     * @param e IR expression used in a mem: [e]
-     * @param exprList the list of IR expression to be searched
-     * @return the subset of exprlst containing any expression [e'] that may be
-     * an alias for [e]
-     */
-    public SetWithInf<IRExpr> possibleAliasExprs(IRExpr e, List<IRExpr> exprList) {
-        //TODO: how to do this at the IR level??
-        return null;
-    }
-
-    /**
-     * Returns the set of expressions that can be modified by a function call
-     * to f.
-     * @param f An IR function declaration
-     * @param exprList List of expressions to be searched
-     * @return The subset of exprlist containing any expression [e[ that could
-     * be modified by a call to f.
-     */
-    public SetWithInf<IRExpr> exprsCanBeModified(IRFuncDecl f, List<IRExpr> exprList) {
-        //TODO: use mem aliasing
-        ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
-
-        for (IRExpr expr : exprList) {
-            List<IRNode> children = lcv.visit(expr);
-            for (IRNode n : children) {
-                if (n instanceof IRMem) {
-                    exprSet.add(expr);
-                }
-            }
-        }
-
-        return new SetWithInf<>(exprSet);
-    }
 
 
 }
