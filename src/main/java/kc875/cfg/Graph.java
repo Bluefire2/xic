@@ -6,10 +6,7 @@ import com.google.common.collect.Sets;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -123,7 +120,9 @@ public class Graph<T> {
 
     public Set<Node> getAllNodes() {
         Set<Node> allNodes = new HashSet<>(otherNodes);
-        allNodes.add(startNode);
+        if (startNode != null) {
+            allNodes.add(startNode);
+        }
         return allNodes;
     }
 
