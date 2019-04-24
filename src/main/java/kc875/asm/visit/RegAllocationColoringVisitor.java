@@ -135,7 +135,7 @@ public class RegAllocationColoringVisitor {
                         Sets.union(LiveVariableDFA.def(b), LiveVariableDFA.use(b)))
                 ) {
                     //movelist[n] <- movelist[n] + {I}
-                    moveList.get(n).add(i);
+                    moveList.get(interference.tnode(n)).add(i);
                 }
                 //worklistMoves = workListMoves + {I}
                 worklistMoves.add(i);
