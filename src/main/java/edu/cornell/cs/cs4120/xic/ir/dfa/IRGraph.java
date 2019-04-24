@@ -10,7 +10,7 @@ import java.util.List;
 
 public class IRGraph extends Graph<IRStmt> {
 
-    private BiMap<Node, IRStmt> nodeMap;
+    private BiMap<IRStmt, Node> nodeMap;
 
     public IRGraph(List<IRStmt> stmts){
         nodeMap = HashBiMap.create();
@@ -53,11 +53,19 @@ public class IRGraph extends Graph<IRStmt> {
                 setStartNode(n);
             }
             else addOtherNode(n);
+            nodeMap.put(bb, n);
         }
 
-        //TODO: add edges
+        for (Integer i : jumps.keySet()) {
+            for (String s : jumps.get(i)) {
+                addEdge(nodeMap.get(basicBlocks.get(i)),
+                        nodeMap.get(basicBlocks.get(nodeLabelMap.get(s))));
+            }
+        }
 
     }
+
+
 
 
 }
