@@ -273,12 +273,6 @@ public class RegAllocationColoringVisitor {
         freezeMoves(u);
     }
 
-    private boolean isTempMove(ASMInstr instr) {
-        ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
-        return move.getSrc() instanceof ASMExprTemp
-                && move.getDest() instanceof ASMExprTemp;
-    }
-
     public void freezeMoves(Graph.Node u) {
         for (ASMInstr instr : worklistMoves) {
             ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
