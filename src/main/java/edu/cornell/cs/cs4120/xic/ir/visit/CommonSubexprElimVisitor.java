@@ -38,7 +38,11 @@ public class CommonSubexprElimVisitor {
             IRGraph irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
-
+            /*TODO:
+            For each node, if it computes an expression (node.exprs) that is
+            available in following nodes (out[n] for all n after node), add t=e
+            and replace e with t. In following nodes,replace e with t.
+            */
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
                     flattenCFG((IRGraph) availableExprsDFA.getGraph()));
