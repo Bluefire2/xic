@@ -11,6 +11,11 @@ public class CommonSubexprElimVisitor {
 
     public CommonSubexprElimVisitor() { }
 
+    private int tempcounter;
+    public String newTemp() {
+        return String.format("cse_t%d", tempcounter++);
+    }
+
     /**
      * Build the per-function control graph.
      * @param irnode The root IR node of the function declaration
@@ -38,11 +43,35 @@ public class CommonSubexprElimVisitor {
             IRGraph irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
-            /*TODO:
-            For each node, if it computes an expression (node.exprs) that is
-            available in following nodes (out[n] for all n after node), add t=e
-            and replace e with t. In following nodes,replace e with t.
-            */
+
+            HashMap<IRExpr, String> tempExprMap = new HashMap<>();
+            for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
+                IRSeq seq = new IRSeq();
+                for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
+                    String tmp = newTemp();
+                    tempExprMap.put(e, tmp);
+                    seq.stmts().add(new IRMove(new IRTemp(tmp), e));
+                    IRStmt nodestmt = irGraph.getStmt(n);
+                    if (nodestmt instanceof IRSeq) {
+                        seq.stmts().addAll(((IRSeq) nodestmt).stmts());
+                    }
+                    else seq.stmts().add(nodestmt);
+                }
+
+                IRSeq currNodeStmts;
+                IRStmt currs = irGraph.getStmt(n);
+                if (currs instanceof IRSeq) {
+                    currNodeStmts = (IRSeq) currs;
+                }
+                else currNodeStmts = new IRSeq(currs);
+
+                for (IRStmt s : currNodeStmts.stmts()) {
+                    //TODO: look up child exprs in tempExprMap and replace if possible
+                }
+
+                irGraph.setStmt(n, seq);
+
+            }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
                     flattenCFG((IRGraph) availableExprsDFA.getGraph()));
