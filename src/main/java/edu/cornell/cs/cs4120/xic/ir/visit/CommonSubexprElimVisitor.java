@@ -33,6 +33,24 @@ public class CommonSubexprElimVisitor {
     }
 
     /**
+     * Flatten control flow graph back into IR
+     * @param irGraph
+     * @return an IR statement (IRSeq) constructed from irGraph
+     */
+    public IRStmt flattenCFG(IRGraph irGraph) {
+        IRSeq retseq = new IRSeq();
+        for (Graph.Node n : irGraph.getAllNodes()) {
+            IRStmt s = irGraph.getStmt(n);
+            if (s instanceof IRSeq) {
+                retseq.stmts().addAll(((IRSeq) s).stmts());
+            }
+            else retseq.stmts().add(s);
+        }
+        return retseq;
+    }
+
+
+    /**
      * Perform common subexpression elimination
      * @param irnode
      * @return irnode with common subexpressions hoisted and replaced by temps.
@@ -58,19 +76,8 @@ public class CommonSubexprElimVisitor {
                     else seq.stmts().add(nodestmt);
                 }
 
-                IRSeq currNodeStmts;
-                IRStmt currs = irGraph.getStmt(n);
-                if (currs instanceof IRSeq) {
-                    currNodeStmts = (IRSeq) currs;
-                }
-                else currNodeStmts = new IRSeq(currs);
-
-                for (IRStmt s : currNodeStmts.stmts()) {
-                    //TODO: look up child exprs in tempExprMap and replace if possible
-                }
-
+                seq.stmts().add(visit(irGraph.getStmt(n), tempExprMap));
                 irGraph.setStmt(n, seq);
-
             }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
@@ -80,23 +87,48 @@ public class CommonSubexprElimVisitor {
         return optimizedCompUnit;
     }
 
-    /**
-     * Flatten control flow graph back into IR
-     * @param irGraph
-     * @return an IR statement (IRSeq) constructed from irGraph
-     */
-    public IRStmt flattenCFG(IRGraph irGraph) {
+    public IRStmt visit(IRStmt stmt, HashMap<IRExpr, String> exprTempMap) {
+        if (stmt instanceof IRCJump) return visit((IRCJump) stmt, exprTempMap);
+        if (stmt instanceof IRExp) return visit((IRExp) stmt, exprTempMap);
+        if (stmt instanceof IRJump) return visit((IRJump) stmt, exprTempMap);
+        if (stmt instanceof IRMove) return visit((IRMove) stmt, exprTempMap);
+        if (stmt instanceof IRReturn) return visit((IRReturn) stmt, exprTempMap);
+        if (stmt instanceof IRSeq) return visit((IRSeq) stmt, exprTempMap);
+        return stmt;
+    }
+
+    public IRStmt visit(IRCJump stmt, HashMap<IRExpr, String> exprTempMap) {
+        //TODO
+        return null;
+    }
+
+    public IRStmt visit(IRExp stmt, HashMap<IRExpr, String> exprTempMap) {
+        //TODO
+        return null;
+    }
+
+    public IRStmt visit(IRJump stmt, HashMap<IRExpr, String> exprTempMap) {
+        //TODO
+        return null;
+    }
+
+    public IRStmt visit(IRMove stmt, HashMap<IRExpr, String> exprTempMap) {
+        //TODO
+        return null;
+    }
+
+    public IRStmt visit(IRReturn stmt, HashMap<IRExpr, String> exprTempMap) {
+        //TODO
+        return null;
+    }
+
+    public IRStmt visit(IRSeq stmt, HashMap<IRExpr, String> exprTempMap) {
         IRSeq retseq = new IRSeq();
-        for (Graph.Node n : irGraph.getAllNodes()) {
-            IRStmt s = irGraph.getStmt(n);
-            if (s instanceof IRSeq) {
-                retseq.stmts().addAll(((IRSeq) s).stmts());
-            }
-            else retseq.stmts().add(s);
+        for (IRStmt s : stmt.stmts()) {
+            retseq.stmts().add(visit(s, exprTempMap));
         }
         return retseq;
     }
-
 
 
 
