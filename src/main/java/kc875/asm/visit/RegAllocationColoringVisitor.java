@@ -21,7 +21,6 @@ public class RegAllocationColoringVisitor {
     HashSet<Graph.Node> coalescedNodes;//registers which are coalesced
     //u <- v coalesced then v is added to this set, u is moved to work list
     HashSet<Graph.Node> coloredNodes; //successfully colored
-    //TODO maybe we need a stack for this...
     Stack<Graph.Node> selectStack; //stacks w/ temps removed from graph
 
     //every move is in exactly one of these sets
@@ -130,7 +129,7 @@ public class RegAllocationColoringVisitor {
                 //live = live\use(i)
                 live = Sets.difference(live, liveness.use(b));
                 //forall n in def(i)+use(i)
-                for (ASMExprRegReplaceable n : Sets.union(liveness.def(b), liveness.use(b)).immutableCopy()) {
+                for (ASMExprRegReplaceable n : new HashSet<>(Sets.union(liveness.def(b), liveness.use(b)))) {
                     //movelist[n] <- movelist[n] + {I}
                     moveList.get(n).add(i);
                 }
@@ -138,7 +137,7 @@ public class RegAllocationColoringVisitor {
                 worklistMoves.add(i);
             }
             //live = live + def(i)
-            live = Sets.union(live, liveness.def(b)).immutableCopy();
+            live = new HashSet<>(Sets.union(live, liveness.def(b)));
             //forall d in def(i)
             for (ASMExprRegReplaceable d : liveness.def(b)) {
                 //forall l in live
@@ -148,7 +147,7 @@ public class RegAllocationColoringVisitor {
                 }
             }
             //live = use(i)+ (live\def(i)
-            live = Sets.union(liveness.use(b), Sets.difference(live, liveness.def(b)).immutableCopy()).immutableCopy();
+            live = new HashSet<>(Sets.union(liveness.use(b), Sets.difference(live, liveness.def(b))));
             //TODO what do we do with live? store it back into liveness outmap?
         }
     }
@@ -323,7 +322,7 @@ public class RegAllocationColoringVisitor {
             }
             for (Graph.Node w : adjList.get(n)) {
                 //if getalias(w) in (coloredNodes + precolored)
-                if (Sets.union(coloredNodes, precolored).immutableCopy()
+                if (Sets.union(coloredNodes, precolored)
                         .contains(getAlias(w))) {
                     //okColors = okColors\{color[getAlias(w)]}
                     okColors.remove(color.get(getAlias(w)));
@@ -375,18 +374,18 @@ public class RegAllocationColoringVisitor {
 
     public Set<Graph.Node> getAdjacent(Graph.Node n) {
         //adjList[n]\(activeMoves + coalescedNodes)
-        return Sets.difference(
+        return new HashSet<>(Sets.difference(
                 adjList.get(n),
-                Sets.union(new HashSet<>(selectStack), coalescedNodes).immutableCopy()
-        ).immutableCopy();
+                Sets.union(new HashSet<>(selectStack), coalescedNodes)
+        ));
     }
 
     public Set<ASMInstr> getNodeMoves(Graph.Node n) {
         //moveList[n] intersection (activeMoves + worklistMoves)
-        return Sets.intersection(
+        return new HashSet<>(Sets.intersection(
                 moveList.get(n),
-                Sets.union(activeMoves, worklistMoves).immutableCopy()
-        ).immutableCopy();
+                Sets.union(activeMoves, worklistMoves)
+        ));
     }
 
     public boolean isMoveRelated(Graph.Node n) {
@@ -403,7 +402,7 @@ public class RegAllocationColoringVisitor {
             //enableMoves({m} + adjacent(m))
             Set<Graph.Node> s = new HashSet<>();
             s.add(m);
-            enableMoves(Sets.union(s, getAdjacent(m)).immutableCopy());
+            enableMoves(new HashSet<>(Sets.union(s, getAdjacent(m))));
             spillWorklist.remove(m);
         }
         if (isMoveRelated(m)) {
