@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
+import kc875.cfg.Graph;
 
 import java.util.*;
 
@@ -26,16 +27,41 @@ public class CommonSubexprElimVisitor {
         return new IRGraph(stmts);
     }
 
+    /**
+     * Perform common subexpression elimination
+     * @param irnode
+     * @return irnode with common subexpressions hoisted and replaced by temps.
+     */
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
+        IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
             IRGraph irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
+            availableExprsDFA.runWorklistAlgo();
 
 
-
+            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
+                    flattenCFG((IRGraph) availableExprsDFA.getGraph()));
+            optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
         }
-        //TODO
-        return null;
+        return optimizedCompUnit;
+    }
+
+    /**
+     * Flatten control flow graph back into IR
+     * @param irGraph
+     * @return an IR statement (IRSeq) constructed from irGraph
+     */
+    public IRStmt flattenCFG(IRGraph irGraph) {
+        IRSeq retseq = new IRSeq();
+        for (Graph.Node n : irGraph.getAllNodes()) {
+            IRStmt s = irGraph.getStmt(n);
+            if (s instanceof IRSeq) {
+                retseq.stmts().addAll(((IRSeq) s).stmts());
+            }
+            else retseq.stmts().add(s);
+        }
+        return retseq;
     }
 
 
