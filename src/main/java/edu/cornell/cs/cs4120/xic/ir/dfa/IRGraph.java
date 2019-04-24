@@ -29,9 +29,4 @@ public class IRGraph extends Graph<IRStmt> {
     public List<IRExpr> getKill(Node n) {
         return killMap.get(n);
     }
-
-    @Override
-    public void show() {
-        //TODO
-    }
 }
