@@ -127,7 +127,9 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             for (IRNode n : children) {
                 if (n instanceof IRTemp) {
                     IRTemp tn = (IRTemp) n;
-                    if (tn.name().equals(t.name())) exprSet.add(expr);
+                    if (tn.name().equals(t.name())) {
+                        exprSet.add(expr);
+                    }
                 }
             }
         }

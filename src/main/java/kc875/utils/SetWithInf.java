@@ -2,10 +2,7 @@ package kc875.utils;
 
 import com.google.common.collect.Sets;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A wrapper on Set, providing support for infinite sets.
@@ -140,5 +137,13 @@ public class SetWithInf<E> implements Iterable<E> {
     public SetWithInf<E> diff(SetWithInf<E> other) {
         Set<E> diffSet = Sets.difference(this.set, other.set).immutableCopy();
         return null;
+    }
+
+    public List<E> toList() {
+        List<E> lst = new ArrayList<>();
+        for (E e: this) {
+            lst.add(e);
+        }
+        return lst;
     }
 }
