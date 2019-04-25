@@ -9,6 +9,8 @@ import java.util.*;
 
 public class CommonSubexprElimVisitor {
 
+    private IRGraph irGraph;
+
     public CommonSubexprElimVisitor() { }
 
     private int tempcounter;
@@ -58,7 +60,7 @@ public class CommonSubexprElimVisitor {
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            IRGraph irGraph = buildCFG(funcDecl);
+            irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
 
@@ -184,6 +186,7 @@ public class CommonSubexprElimVisitor {
         return retseq;
     }
 
-
-
+    public IRGraph getIrGraph() {
+        return irGraph;
+    }
 }
