@@ -136,7 +136,7 @@ public class SetWithInf<E> implements Iterable<E> {
     // TODO
     public SetWithInf<E> diff(SetWithInf<E> other) {
         Set<E> diffSet = Sets.difference(this.set, other.set).immutableCopy();
-        return null;
+        return new SetWithInf<>(diffSet);
     }
 
     public List<E> toList() {
