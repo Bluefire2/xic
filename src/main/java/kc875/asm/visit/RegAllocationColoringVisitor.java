@@ -379,17 +379,21 @@ public class RegAllocationColoringVisitor {
     }
 
     private void assignColors() {
+        // while SelectStack not empty
         while (!selectStack.empty()) {
+            // let n = pop(SelectStack)
             Graph<ASMExprRT>.Node n = selectStack.pop();
             // okColors = {0,...K-1}
             Set<Integer> okColors = IntStream.range(0, K)
                     .boxed()
                     .collect(Collectors.toSet());
+
+            // forall w in adjList[n]
             for (Graph<ASMExprRT>.Node w : adjList.get(n)) {
-                //if getalias(w) in (coloredNodes + precolored)
+                // if getalias(w) in (coloredNodes + precolored)
                 if (Sets.union(coloredNodes, precolored)
                         .contains(getAlias(w))) {
-                    //okColors = okColors\{color[getAlias(w)]}
+                    // okColors = okColors \ {color[getAlias(w)]}
                     okColors.remove(color.get(getAlias(w)));
                 }
             }
@@ -397,12 +401,14 @@ public class RegAllocationColoringVisitor {
                 spilledNodes.add(n);
             } else {
                 coloredNodes.add(n);
-                //assign n to one of the ok colors
-                int c = new ArrayList<>(okColors).get(0);
+                // let c in okColors
+                int c = okColors.iterator().next();
+                // color[n] <- c
                 color.put(n, c);
             }
         }
-        //color coalesced nodes according to their alias
+
+        // color coalesced nodes according to their alias
         for (Graph<ASMExprRT>.Node n : coalescedNodes) {
             color.put(n, color.get(getAlias(n)));
         }
