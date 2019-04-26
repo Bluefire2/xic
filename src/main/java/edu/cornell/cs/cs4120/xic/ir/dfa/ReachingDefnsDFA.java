@@ -1,13 +1,13 @@
 package edu.cornell.cs.cs4120.xic.ir.dfa;
 
 import com.google.common.collect.Sets;
-import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.IRExpr;
+import edu.cornell.cs.cs4120.xic.ir.IRMove;
+import edu.cornell.cs.cs4120.xic.ir.IRStmt;
+import edu.cornell.cs.cs4120.xic.ir.IRTemp;
 import kc875.cfg.DFAFramework;
-import kc875.cfg.Graph;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class ReachingDefnsDFA extends DFAFramework<Set<IRGraph.Node>, IRStmt> {
