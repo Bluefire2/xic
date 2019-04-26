@@ -11,24 +11,24 @@ import java.util.stream.Collectors;
  */
 public abstract class DFAFramework<T, U> {
     // Graph associated with this DFA.
-    protected Graph<U> graph;
+    private Graph<U> graph;
 
     // Direction of the DFA
     public enum Direction {FORWARD, BACKWARD}
 
-    protected Direction direction;
+    private Direction direction;
 
     // Transformer function or F. Takes in the node and a lattice element,
     // and returns a lattice element.
-    protected BiFunction<Graph<U>.Node, T, T> F;
+    private BiFunction<Graph<U>.Node, T, T> F;
 
     // Accumulator generating function for when meet operator is applied on
     // multiple lattice elements.
-    protected Supplier<T> meetAcc;
+    private Supplier<T> meetAcc;
 
     // Meet operator, combining l1 and l2 to produce l. A BinaryOperator<T>
     // is a BiFunction<T, T, T>.
-    protected BinaryOperator<T> meet;
+    private BinaryOperator<T> meet;
 
     /**
      * Applies the meet operator on the lattice elements ls. Returns Optional
@@ -42,8 +42,8 @@ public abstract class DFAFramework<T, U> {
 
     // Maps from nodes to lattice elements in (after meet if applicable) and
     // out (before meet if applicable) of the node.
-    protected Map<Graph<U>.Node, T> inMap = new HashMap<>();
-    protected Map<Graph<U>.Node, T> outMap = new HashMap<>();
+    private Map<Graph<U>.Node, T> inMap = new HashMap<>();
+    private Map<Graph<U>.Node, T> outMap = new HashMap<>();
 
     /**
      * Initialize the DFA Framework, with all nodes' inMap and outMap
