@@ -574,8 +574,11 @@ public class RegAllocationColoringVisitor {
             if (spilledNodes.contains(m)){
                 return e;
             } else {
-                //TODO
-                return null;
+                //replace temp with reg
+                Graph<ASMExprRT>.Node n = interference.getNode(m);
+                String c = usableRegisters[color.get(n)];
+                ASMExprReg r = new ASMExprReg(c);
+                return r;
             }
         } else {
             return e;
