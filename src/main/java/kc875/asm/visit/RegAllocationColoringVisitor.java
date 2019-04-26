@@ -59,14 +59,6 @@ public class RegAllocationColoringVisitor {
     private int K = 16;//num regs I think
 
     RegAllocationColoringVisitor() {
-    }
-
-    private void allocate(List<ASMInstr> instrs) {
-        this.instrs = instrs;
-        //TODO
-        // initialization goes here because allocate is recursive
-        // some data structures may not need to be reset,
-        // in which case they can be moved up to the constructor
         precolored = new HashSet<>();
         initial = new HashSet<>();
         simplifyWorklist = new HashSet<>();
@@ -88,7 +80,14 @@ public class RegAllocationColoringVisitor {
         moveList = new HashMap<>();
         alias = new HashMap<>();
         color = new HashMap<>();
+    }
 
+    private void allocate(List<ASMInstr> instrs) {
+        this.instrs = instrs;
+        //TODO
+        // initialization goes here because allocate is recursive
+        // some data structures may not need to be reset,
+        // in which case they can be moved up to the constructor
         livenessAnalysis(instrs);
         build();
         makeWorkList();
@@ -109,6 +108,7 @@ public class RegAllocationColoringVisitor {
         assignColors();
         if (spilledNodes.size() != 0) {
             List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
+            //TODO reallocate? or switch to naive
             allocate(new_program);
         }
     }
@@ -133,6 +133,12 @@ public class RegAllocationColoringVisitor {
                     Graph<ASMExprRT>.Node node = interference.addNode(temp);
                     degree.put(node, 0);
                     adjList.put(node, new HashSet<>());
+                    //add nodes to correct initial set
+                    if (temp instanceof ASMExprReg){
+                        precolored.add(node);
+                    } else {
+                        initial.add(node);
+                    }
                 }
             }
             //forall instructions in b in reverse order (1 instruction in b for us)
@@ -369,7 +375,11 @@ public class RegAllocationColoringVisitor {
     }
 
     private void selectSpill() {
-        //TODO
+        //TODO heuristic to choose nodes with large live-ranges
+        Graph<ASMExprRT>.Node m = new ArrayList<>(spillWorklist).get(0);
+        spillWorklist.remove(m);
+        simplifyWorklist.add(m);
+        freezeMoves(m);
     }
 
     private void assignColors() {
@@ -404,8 +414,13 @@ public class RegAllocationColoringVisitor {
     }
 
     private List<ASMInstr> rewriteProgram(List<Graph<ASMExprRT>.Node> spilledNodes) {
-        //TODO
-        return null;
+        List<ASMInstr> new_instrs = new ArrayList<>();
+        Set<Graph<ASMExprRT>.Node> spills = new HashSet<>(spilledNodes);
+        for (ASMInstr i : instrs) {
+            ASMInstr new_instr = rewriteInstr(i, spills);
+            new_instrs.add(new_instr);
+        }
+        return new_instrs;
     }
 
     //HELPERS DOWN HERE
@@ -522,4 +537,38 @@ public class RegAllocationColoringVisitor {
         }
         return n;
     }
+
+    private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes){
+        List<ASMInstr> instrs  = new ArrayList<>();
+        if (i instanceof ASMInstr_1Arg){
+            ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
+            return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes);
+        } else if (i instanceof ASMInstr_2Arg){
+            ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
+            return new ASMInstr_2Arg(i2.getOpCode(),
+                    rewriteExpr(i2.getDest(), spilledNodes),
+                    rewriteExpr(i2.getSrc(), spilledNodes)
+            );
+        } else {
+            return i;
+        }
+    }
+
+    private ASMExpr rewriteExpr(ASMExpr e, Set<Graph<ASMExprRT>.Node> spilledNodes) {
+        if (e instanceof ASMExprMem) {
+            ASMExprMem m = (ASMExprMem) e;
+            return new ASMExprMem(rewriteExpr(m.getAddr(), spilledNodes));
+        } else if (e instanceof ASMExprTemp){
+            ASMExprTemp m = (ASMExprTemp) e;
+            if (spilledNodes.contains(m)){
+                return e;
+            } else {
+                //TODO
+                return null;
+            }
+        } else {
+            return e;
+        }
+    }
+
 }
