@@ -189,11 +189,12 @@ public class RegAllocationColoringVisitor {
     }
 
     private void simplify() {
-        //let n be in simplifyWorklist
+        // let n be in simplifyWorklist
+        // simplifyWorklist is guaranteed to be non-empty by a precondition!
         Graph<ASMExprRT>.Node n = simplifyWorklist.iterator().next();
-        //simplifyWorklist = simplifyWorklist \ {n}
+        // simplifyWorklist = simplifyWorklist \ {n}
         simplifyWorklist.remove(n);
-        //push n to selectStack
+        // push n to selectStack
         selectStack.push(n);
         for (Graph<ASMExprRT>.Node m : getAdjacent(n)) {
             decrementDegree(m);
