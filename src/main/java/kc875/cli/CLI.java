@@ -24,7 +24,6 @@ import kc875.xic_error.SemanticError;
 import kc875.xic_error.SyntaxError;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
-import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
@@ -36,7 +35,11 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
-@Command (name = "xic", version = "Xi compiler 0.0")
+@CommandLine.Command(
+        name = "xic",
+        version = "Xi compiler 0.0",
+        sortOptions = false
+)
 public class CLI implements Runnable {
     @Option(names = {"-h", "--help"}, usageHelp = true,
             description = "Print a synopsis of options.")
@@ -46,27 +49,23 @@ public class CLI implements Runnable {
             "reg", "cse", "cf", "mc", "copy", "dce"
     );
 
+    private final Set<String> optimPhases = Set.of("initial", "final");
+
     @Option(names = {"--report-opts"},
             description = "Output the allowed compiler optimizations.")
     private boolean optReportOptimizations = false;
 
-    @Option (names = {"-l", "--lex"},
+    @Option(names = {"--debug"}, hidden = true,
+            description = "Optional flag which prints to terminal instead of outputting files.")
+    private boolean optDebug = false;
+
+    @Option(names = {"-l", "--lex"},
             description = "Generate output from lexical analysis.")
     private boolean optLex = false;
 
     @Option(names = {"--parse"},
             description = "Generate output from syntactic analysis.")
     private boolean optParse = false;
-
-    @Option(names = {"--debug"},
-            description = "Optional flag which prints to terminal instead of outputting files.")
-    private boolean optDebug = false;
-
-    @Option(names = {"--commentASM"},
-            description = "Optional flag which adds a comment with the abstract assembly instruction" +
-                    "right above the instructions generated from register allocation"
-    )
-    private boolean optCommentASM = false;
 
     @Option(names = {"--typecheck"},
             description = "Generate output from semantic analysis.")
@@ -80,29 +79,20 @@ public class CLI implements Runnable {
             description = "Generate and interpret intermediate code.")
     private boolean optIRRun = false;
 
-    @Option(names = {"-O"},
-            description = "Disable optimizations.")
-    private boolean optDisableOptimization = false;
-
-    @Option(names = {"--mir"},
+    @Option(names = {"--mir"}, hidden = true,
             description = "Do not lower the IR.")
     private boolean optMIR = false;
 
-    @Option(names = {"--asm-no-reg"},
-            description = "Do not do register allocation in the asm.")
-    private boolean optASMDisableRegAllocation = false;
+    // TODO: implement --optir <phase> in code
+    @Option(names = {"--optir"},
+            description = "Report the intermediate code at the specified " +
+                    "phase of optimization")
+    private String[] optimIRPhases;
 
-    @Parameters(arity = "0..*", paramLabel = "FILE",
-            description = "File(s) to process.")
-    private File[] optInputFiles;
-
-    @Option(names = "-D", defaultValue = ".",
-            description = "Specify where to place generated diagnostic files.")
-    private Path path;
-
-    @Option(names = "-d", defaultValue = ".",
-            description = "Specify where to place generated assembly files.")
-    private Path asmPath;
+    @Option(names = {"--optcfg"},
+            description = "Report the control-flow graph at the specified " +
+                    "phase of optimization.")
+    private String[] optimCFGPhases;
 
     @Option(names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
@@ -112,10 +102,38 @@ public class CLI implements Runnable {
             description = "Specify where to find input library/interface files.")
     private Path libpath;
 
+    @Option(names = "-D", defaultValue = ".",
+            description = "Specify where to place generated diagnostic files.")
+    private Path path;
+
+    @Option(names = "-d", defaultValue = ".",
+            description = "Specify where to place generated assembly files.")
+    private Path asmPath;
+
     @Option(names = {"-target"},
             description = "Specify the operating system for which to generate code." +
                     "Supported options: linux.")
-    private String target = null;
+    private String OS = null;
+
+    @Option(names = {"--commentASM"}, hidden = true,
+            description = "Optional flag which adds a comment with the abstract assembly instruction" +
+                    "right above the instructions generated from register allocation"
+    )
+    private boolean optCommentASM = false;
+
+    @Option(names = {"--asm-no-reg"}, hidden = true,
+            description = "Do not do register allocation in the asm.")
+    private boolean optASMDisableRegAllocation = false;
+
+    @Option(names = {"-O"},
+            description = "Disable optimizations.")
+    private boolean optDisableOptimization = false;
+
+    // TODO: -O-no-<opt>
+
+    @Parameters(arity = "0..*", paramLabel = "FILE",
+            description = "File(s) to process.")
+    private File[] optInputFiles;
 
     @Override
     public void run() {
@@ -145,7 +163,7 @@ public class CLI implements Runnable {
                         if (optIRRun) {
                             IRRun();
                         }
-                        if (target != null && target.equals("linux")) {
+                        if (OS != null && OS.equals("linux")) {
                             asmGen();
                         }
                     } else {
