@@ -123,7 +123,7 @@ public class CLI implements Runnable {
             compilerOptims.forEach(System.out::println);
         } else {
             if (optInputFiles == null) {
-                System.out.println(
+                System.err.println(
                         "Error: no files given"
                 );
                 CommandLine.usage(new CLI(), System.out);
@@ -149,12 +149,12 @@ public class CLI implements Runnable {
                             asmGen();
                         }
                     } else {
-                        System.out.println(String.format(
+                        System.err.println(String.format(
                                 "Error: directory %s not found", sourcepath
                         ));
                     }
                 } else {
-                    System.out.println(String.format("Error: directory %s not found", path));
+                    System.err.println(String.format("Error: directory %s not found", path));
                 }
             }
         }
