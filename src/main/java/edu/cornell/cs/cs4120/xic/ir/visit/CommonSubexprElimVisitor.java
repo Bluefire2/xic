@@ -9,6 +9,8 @@ import java.util.*;
 
 public class CommonSubexprElimVisitor {
 
+    private IRGraph irGraph;
+
     public CommonSubexprElimVisitor() { }
 
     private int tempcounter;
@@ -58,7 +60,7 @@ public class CommonSubexprElimVisitor {
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            IRGraph irGraph = buildCFG(funcDecl);
+            irGraph = buildCFG(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
 
@@ -97,29 +99,83 @@ public class CommonSubexprElimVisitor {
         return stmt;
     }
 
+    public IRExpr visit(IRExpr expr, HashMap<IRExpr, String> exprTempMap) {
+        if (expr instanceof IRBinOp) return visit((IRBinOp) expr, exprTempMap);
+        if (expr instanceof IRCall) return visit((IRCall) expr, exprTempMap);
+        if (expr instanceof IRESeq) return visit((IRESeq) expr, exprTempMap);
+        if (expr instanceof IRMem) return visit((IRMem) expr, exprTempMap);
+        return expr;
+    }
+
+    public IRExpr visit(IRBinOp expr, HashMap<IRExpr, String> exprTempMap) {
+        IRExpr newleft;
+        IRExpr newright;
+        if (exprTempMap.containsKey(expr.left())) {
+            newleft = new IRTemp(exprTempMap.get(expr.left()));
+        }
+        else newleft = visit(expr.left(), exprTempMap);
+        if (exprTempMap.containsKey(expr.right())) {
+            newright = new IRTemp(exprTempMap.get(expr.right()));
+        }
+        else newright = visit(expr.right(), exprTempMap);
+        return new IRBinOp(expr.opType(), newleft, newright);
+    }
+
+    public IRExpr visit(IRCall expr, HashMap<IRExpr, String> exprTempMap) {
+        if (exprTempMap.containsKey(expr.target())) {
+            return new IRCall(new IRTemp(exprTempMap.get(expr.target())));
+        }
+        else return new IRCall(visit(expr.target(), exprTempMap));
+    }
+
     public IRStmt visit(IRCJump stmt, HashMap<IRExpr, String> exprTempMap) {
-        //TODO
-        return null;
+            return stmt.hasFalseLabel() ?
+                    new IRCJump(visit(stmt.cond(), exprTempMap),
+                        stmt.trueLabel(), stmt.falseLabel())
+                    :
+                    new IRCJump(visit(stmt.cond(), exprTempMap),
+                            stmt.trueLabel())
+                    ;
+    }
+
+
+    public IRExpr visit(IRESeq expr, HashMap<IRExpr, String> exprTempMap) {
+        if (exprTempMap.containsKey(expr.expr())) {
+            return new IRESeq(visit(expr.stmt(), exprTempMap),
+                    new IRTemp(exprTempMap.get(expr.expr())));
+        }
+        else {
+            return new IRESeq(visit(expr.stmt(), exprTempMap),
+                    visit(expr.expr(), exprTempMap));
+        }
     }
 
     public IRStmt visit(IRExp stmt, HashMap<IRExpr, String> exprTempMap) {
-        //TODO
-        return null;
+        return new IRExp(visit(stmt.expr(), exprTempMap));
     }
 
     public IRStmt visit(IRJump stmt, HashMap<IRExpr, String> exprTempMap) {
-        //TODO
-        return null;
+        return new IRJump(visit(stmt.target(), exprTempMap));
+    }
+
+    public IRExpr visit(IRMem expr, HashMap<IRExpr, String> exprTempMap) {
+        if (exprTempMap.containsKey(expr.expr())) {
+            return new IRMem(new IRTemp(exprTempMap.get(expr.expr())));
+        }
+        else return new IRMem(visit(expr.expr(), exprTempMap));
     }
 
     public IRStmt visit(IRMove stmt, HashMap<IRExpr, String> exprTempMap) {
-        //TODO
-        return null;
+        return new IRMove(visit(stmt.target(), exprTempMap),
+                visit(stmt.source(), exprTempMap));
     }
 
     public IRStmt visit(IRReturn stmt, HashMap<IRExpr, String> exprTempMap) {
-        //TODO
-        return null;
+        List<IRExpr> rets = new ArrayList<>();
+        for (IRExpr e : stmt.rets()) {
+            rets.add(visit(e, exprTempMap));
+        }
+        return new IRReturn(rets);
     }
 
     public IRStmt visit(IRSeq stmt, HashMap<IRExpr, String> exprTempMap) {
@@ -130,6 +186,7 @@ public class CommonSubexprElimVisitor {
         return retseq;
     }
 
-
-
+    public IRGraph getIrGraph() {
+        return irGraph;
+    }
 }

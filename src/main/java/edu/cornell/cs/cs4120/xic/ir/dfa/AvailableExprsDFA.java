@@ -127,7 +127,9 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             for (IRNode n : children) {
                 if (n instanceof IRTemp) {
                     IRTemp tn = (IRTemp) n;
-                    if (tn.name().equals(t.name())) exprSet.add(expr);
+                    if (tn.name().equals(t.name())) {
+                        exprSet.add(expr);
+                    }
                 }
             }
         }
@@ -148,8 +150,17 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * an alias for [e]
      */
     public static SetWithInf<IRExpr> possibleAliasExprs(IRExpr e, List<IRExpr> exprList) {
-        //TODO: how to do this at the IR level??
-        return null;
+        //TODO: how to do other heuristics at IR level?
+        HashSet<IRExpr> exprSet = new HashSet<>();
+
+        for (IRExpr expr : exprList) {
+            if (expr instanceof IRConst && e instanceof IRConst) {
+                if (((IRConst) expr).value() != ((IRConst) e).value()) continue;
+            }
+            exprSet.add(expr);
+        }
+
+        return new SetWithInf<>(exprSet);
     }
 
     /**
@@ -157,18 +168,18 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * to f.
      * @param fname An IR function declaration
      * @param exprList List of expressions to be searched
-     * @return The subset of exprlist containing any expression [e[ that could
+     * @return The subset of exprlist containing any expression [e] that could
      * be modified by a call to f.
      */
     public static SetWithInf<IRExpr> exprsCanBeModified(String fname, List<IRExpr> exprList) {
-        //TODO: use mem aliasing
         ListChildrenVisitor lcv = new ListChildrenVisitor();
         HashSet<IRExpr> exprSet = new HashSet<>();
 
         for (IRExpr expr : exprList) {
             List<IRNode> children = lcv.visit(expr);
             for (IRNode n : children) {
-                if (n instanceof IRMem) {
+                if (n instanceof IRMem && !(possibleAliasExprs(
+                                ((IRMem) n).expr(), exprList).isEmpty())) {
                     exprSet.add(expr);
                 }
             }

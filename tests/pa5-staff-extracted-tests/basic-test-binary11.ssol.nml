@@ -1,0 +1,60 @@
+f() called: 1
+1
+f() called: 2
+2
+5
+f() called: 3
+3
+f() called: 4
+2
+-1
+f() called: 5
+4
+f() called: 6
+2
+42
+f() called: 7
+5
+f() called: 8
+2
+0
+f() called: 9
+6
+f() called: 10
+2
+0
+f() called: 11
+7
+f() called: 12
+2
+12
+f() called: 13
+1
+f() called: 14
+2
+true
+f() called: 15
+3
+f() called: 16
+2
+true
+f() called: 17
+4
+f() called: 18
+2
+false
+f() called: 19
+5
+f() called: 20
+2
+false
+f() called: 21
+6
+f() called: 22
+2
+false
+f() called: 23
+7
+f() called: 24
+2
+true

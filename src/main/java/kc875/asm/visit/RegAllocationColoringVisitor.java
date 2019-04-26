@@ -139,7 +139,7 @@ public class RegAllocationColoringVisitor {
             ASMInstr i = b.getT();
             //if ismoveinstr(i)
             if (i.hasNewDef()) {
-                //live = live\use(i)
+                //live = live/use(i)
                 live = Sets.difference(live, LiveVariableDFA.use(b));
                 //forall n in def(i)+use(i)
                 for (ASMExprRegReplaceable n : new HashSet<>(

@@ -62,8 +62,8 @@ public class RegAllocationNaiveVisitorTest {
         ASMOpCode[] ops = new ASMOpCode[] {
                 ASMOpCode.ADD,
                 ASMOpCode.SUB,
-                ASMOpCode.MUL,
-                ASMOpCode.DIV,
+                ASMOpCode.IMUL,
+                ASMOpCode.IDIV,
                 ASMOpCode.MOV,
                 ASMOpCode.AND,
                 ASMOpCode.OR
@@ -119,8 +119,8 @@ public class RegAllocationNaiveVisitorTest {
         ASMOpCode[] ops = new ASMOpCode[] {
                 ASMOpCode.ADD,
                 ASMOpCode.SUB,
-                ASMOpCode.MUL,
-                ASMOpCode.DIV,
+                ASMOpCode.IMUL,
+                ASMOpCode.IDIV,
                 ASMOpCode.MOV,
                 ASMOpCode.AND,
                 ASMOpCode.OR

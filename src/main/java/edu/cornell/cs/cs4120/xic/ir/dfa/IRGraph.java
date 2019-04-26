@@ -19,9 +19,8 @@ public class IRGraph extends Graph<IRStmt> {
         HashMap<String, Integer> nodeLabelMap = new HashMap<>();
         HashMap<Integer, List<String>> jumps = new HashMap<>();
 
-        for (IRStmt q : stmts) {
 
-            IRSeq curr = new IRSeq();
+        IRSeq curr = new IRSeq();
 
             for (IRStmt s : stmts) {
                 if (s instanceof IRLabel) {
@@ -45,10 +44,9 @@ public class IRGraph extends Graph<IRStmt> {
                     jumps.put(basicBlocks.size(), blockjumps);
                 }
             }
-        }
 
         for (IRStmt bb : basicBlocks) {
-            Graph.Node n = new Graph.Node(bb);
+            Graph<IRStmt>.Node n = new Graph<IRStmt>.Node(bb);
             if (getStartNode() == null) {
                 setStartNode(n);
             }
@@ -58,8 +56,10 @@ public class IRGraph extends Graph<IRStmt> {
 
         for (Integer i : jumps.keySet()) {
             for (String s : jumps.get(i)) {
-                addEdge(nodeMap.inverse().get(basicBlocks.get(i)),
-                        nodeMap.inverse().get(basicBlocks.get(nodeLabelMap.get(s))));
+                if (nodeLabelMap.containsKey(s)) {
+                    addEdge(nodeMap.inverse().get(basicBlocks.get(i)),
+                            nodeMap.inverse().get(basicBlocks.get(nodeLabelMap.get(s))));
+                }
             }
         }
 
