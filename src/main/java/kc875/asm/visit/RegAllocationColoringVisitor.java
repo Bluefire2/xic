@@ -554,7 +554,7 @@ public class RegAllocationColoringVisitor {
         List<ASMInstr> instrs  = new ArrayList<>();
         if (i instanceof ASMInstr_1Arg){
             ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
-            return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes);
+            return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));
         } else if (i instanceof ASMInstr_2Arg){
             ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
             return new ASMInstr_2Arg(i2.getOpCode(),
@@ -572,14 +572,13 @@ public class RegAllocationColoringVisitor {
             return new ASMExprMem(rewriteExpr(m.getAddr(), spilledNodes));
         } else if (e instanceof ASMExprTemp){
             ASMExprTemp m = (ASMExprTemp) e;
-            if (spilledNodes.contains(m)){
+            Graph<ASMExprRT>.Node n = interference.getNode(m);
+            if (spilledNodes.contains(n)){
                 return e;
             } else {
                 //replace temp with reg
-                Graph<ASMExprRT>.Node n = interference.getNode(m);
                 String c = usableRegisters[color.get(n)];
-                ASMExprReg r = new ASMExprReg(c);
-                return r;
+                return new ASMExprReg(c);
             }
         } else {
             return e;
