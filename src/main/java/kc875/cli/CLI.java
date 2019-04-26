@@ -24,6 +24,7 @@ import kc875.xic_error.SemanticError;
 import kc875.xic_error.SyntaxError;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import polyglot.util.OptimalCodeWriter;
@@ -35,7 +36,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
-@CommandLine.Command(name = "xic", version = "Xi compiler 0.0")
+@Command (name = "xic", version = "Xi compiler 0.0")
 public class CLI implements Runnable {
     @Option(names = {"-h", "--help"}, usageHelp = true,
             description = "Print a synopsis of options.")
@@ -49,7 +50,7 @@ public class CLI implements Runnable {
             description = "Output the allowed compiler optimizations.")
     private boolean optReportOptimizations = false;
 
-    @Option(names = {"-l", "--lex"},
+    @Option (names = {"-l", "--lex"},
             description = "Generate output from lexical analysis.")
     private boolean optLex = false;
 
@@ -91,7 +92,7 @@ public class CLI implements Runnable {
             description = "Do not do register allocation in the asm.")
     private boolean optASMDisableRegAllocation = false;
 
-    @Parameters(arity = "1..*", paramLabel = "FILE",
+    @Parameters(arity = "0..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
 
@@ -121,33 +122,40 @@ public class CLI implements Runnable {
         if (optReportOptimizations) {
             compilerOptims.forEach(System.out::println);
         } else {
-            if (Files.exists(path)) {
-                if (Files.exists(sourcepath)) {
-                    if (optLex) {
-                        lex();
-                    }
-                    if (optParse) {
-                        parse();
-                    }
-                    if (optTypeCheck) {
-                        typeCheck();
-                    }
-                    if (optIRGen) {
-                        IRGen();
-                    }
-                    if (optIRRun) {
-                        IRRun();
-                    }
-                    if (target != null && target.equals("linux")) {
-                        asmGen();
+            if (optInputFiles == null) {
+                System.out.println(
+                        "Error: no files given"
+                );
+                CommandLine.usage(new CLI(), System.out);
+            } else {
+                if (Files.exists(path)) {
+                    if (Files.exists(sourcepath)) {
+                        if (optLex) {
+                            lex();
+                        }
+                        if (optParse) {
+                            parse();
+                        }
+                        if (optTypeCheck) {
+                            typeCheck();
+                        }
+                        if (optIRGen) {
+                            IRGen();
+                        }
+                        if (optIRRun) {
+                            IRRun();
+                        }
+                        if (target != null && target.equals("linux")) {
+                            asmGen();
+                        }
+                    } else {
+                        System.out.println(String.format(
+                                "Error: directory %s not found", sourcepath
+                        ));
                     }
                 } else {
-                    System.out.println(String.format(
-                            "Error: directory %s not found", sourcepath
-                    ));
+                    System.out.println(String.format("Error: directory %s not found", path));
                 }
-            } else {
-                System.out.println(String.format("Error: directory %s not found", path));
             }
         }
     }
