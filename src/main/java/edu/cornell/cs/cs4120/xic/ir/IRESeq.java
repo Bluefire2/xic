@@ -5,7 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.CheckCanonicalIRVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
-import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMExprRT;
 import kc875.asm.ASMInstr;
 
 import java.util.List;
@@ -75,7 +75,7 @@ public class IRESeq extends IRExpr_c {
     }
 
     @Override
-    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t) {
+    public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRT t) {
         throw new IllegalAccessError("IRESeq should not be visited by ASM " +
                 "Translator");
     }

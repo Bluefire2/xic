@@ -35,7 +35,7 @@ public abstract class ASMExprBinOp extends ASMExpr {
     }
 
     @Override
-    public Set<ASMExprRegReplaceable> vars() {
+    public Set<ASMExprRT> vars() {
         return Sets.union(left.vars(), right.vars()).immutableCopy();
     }
 }

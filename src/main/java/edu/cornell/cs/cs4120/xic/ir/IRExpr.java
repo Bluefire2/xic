@@ -1,7 +1,7 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
-import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMExprRT;
 import kc875.asm.ASMInstr;
 
 import java.util.List;
@@ -12,7 +12,7 @@ public interface IRExpr extends IRNode {
 
     long constant();
 
-    List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRegReplaceable t);
+    List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRT t);
 
     /**
      * A matcher for IR expressions that can be nested inside an IR

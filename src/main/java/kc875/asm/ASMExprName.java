@@ -31,7 +31,7 @@ public class ASMExprName extends ASMExpr {
     }
 
     @Override
-    public Set<ASMExprRegReplaceable> vars() {
+    public Set<ASMExprRT> vars() {
         return new HashSet<>();
     }
 }

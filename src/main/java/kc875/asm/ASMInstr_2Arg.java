@@ -46,7 +46,7 @@ public class ASMInstr_2Arg extends ASMInstr {
 
     @Override
     public boolean hasNewDef() {
-        if (!(dest instanceof ASMExprRegReplaceable)) {
+        if (!(dest instanceof ASMExprRT)) {
             return false;
         }
         // dest is reg/temp

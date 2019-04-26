@@ -2,35 +2,33 @@ package kc875.asm.dfa;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMExprRT;
 import kc875.asm.ASMInstr;
 import kc875.cfg.Graph;
-import polyglot.util.Pair;
 
 import java.util.List;
-import java.util.Set;
 import java.util.HashSet;
 
-public class InterferenceGraph extends Graph<ASMExprRegReplaceable> {
-    private BiMap<Node, ASMExprRegReplaceable> nodeRegMap;
+public class InterferenceGraph extends Graph<ASMExprRT> {
+    private BiMap<Node, ASMExprRT> nodeRegMap;
 
     public InterferenceGraph() {
         super(null, new HashSet<>());
         nodeRegMap = HashBiMap.create();
     }
 
-    public Node getNode(ASMExprRegReplaceable temp) {
+    public Node getNode(ASMExprRT temp) {
         return nodeRegMap.inverse().get(temp);
     }
     //temp->node
 
-    public ASMExprRegReplaceable getTemp(Node node) {
+    public ASMExprRT getTemp(Node node) {
         return nodeRegMap.get(node);
     }
     //node->temp
 
     //check if temp is in graph already
-    public boolean checkTemp(ASMExprRegReplaceable temp){
+    public boolean checkTemp(ASMExprRT temp){
         return nodeRegMap.inverse().containsKey(temp);
     }
 
@@ -39,7 +37,7 @@ public class InterferenceGraph extends Graph<ASMExprRegReplaceable> {
         return null;
     }
 
-    public Node addNode(ASMExprRegReplaceable t){
+    public Node addNode(ASMExprRT t){
         Node n = new Node(t);
         nodeRegMap.put(n, t);
         addOtherNode(n);

@@ -30,7 +30,7 @@ public class ASMExprMem extends ASMExpr {
     }
 
     @Override
-    public Set<ASMExprRegReplaceable> vars() {
+    public Set<ASMExprRT> vars() {
         return addr.vars();
     }
 }

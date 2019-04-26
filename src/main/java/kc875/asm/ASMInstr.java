@@ -32,7 +32,7 @@ public abstract class ASMInstr {
     }
 
     /**
-     * Returns true if the destination is a ASMExprRegReplaceable and is
+     * Returns true if the destination is a ASMExprRT and is
      * changed.
      */
     public abstract boolean hasNewDef();

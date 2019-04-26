@@ -1,7 +1,7 @@
 package kc875.asm.dfa;
 
 import com.google.common.collect.Sets;
-import kc875.asm.ASMExprRegReplaceable;
+import kc875.asm.ASMExprRT;
 import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstr_1Arg;
 import kc875.asm.ASMInstr_2Arg;
@@ -15,7 +15,7 @@ import java.util.Set;
  * Live variable DFA (used in reg allocation). The lattice elements are sets
  * of Temps/Regs.
  */
-public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
+public class LiveVariableDFA extends DFAFramework<Set<ASMExprRT>,
         ASMInstr> {
 
     public LiveVariableDFA(ASMGraph asmGraph) {
@@ -32,7 +32,7 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
         );
     }
 
-    public static Set<ASMExprRegReplaceable> use(Graph<ASMInstr>.Node node) {
+    public static Set<ASMExprRT> use(Graph<ASMInstr>.Node node) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstr_1Arg) {
             // If the arg gets changed (arg is a reg/temp, the opCode modifies),
@@ -44,7 +44,7 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
             // If the dest is changed (dest is a reg/temp, opCode modifies),
             // then the use set is vars(src), else vars(src) U vars(dest)
             ASMInstr_2Arg ins2 = (ASMInstr_2Arg) instr;
-            Set<ASMExprRegReplaceable> srcVars = ins2.getSrc().vars();
+            Set<ASMExprRT> srcVars = ins2.getSrc().vars();
             return instr.hasNewDef()
                     ? srcVars
                     : new HashSet<>(Sets.union(ins2.getDest().vars(), srcVars));
@@ -53,16 +53,16 @@ public class LiveVariableDFA extends DFAFramework<Set<ASMExprRegReplaceable>,
         }
     }
 
-    public static Set<ASMExprRegReplaceable> def(Graph<ASMInstr>.Node node) {
+    public static Set<ASMExprRT> def(Graph<ASMInstr>.Node node) {
         ASMInstr instr = node.getT();
         if (instr.hasNewDef()) {
             if (instr instanceof ASMInstr_1Arg) {
                 return Set.of(
-                        (ASMExprRegReplaceable) ((ASMInstr_1Arg) instr).getArg()
+                        (ASMExprRT) ((ASMInstr_1Arg) instr).getArg()
                 );
             } else if (instr instanceof ASMInstr_2Arg) {
                 return Set.of(
-                        (ASMExprRegReplaceable) ((ASMInstr_2Arg) instr).getDest()
+                        (ASMExprRT) ((ASMInstr_2Arg) instr).getDest()
                 );
             }
         }

@@ -1,6 +1,6 @@
 package kc875.asm;
 
-public class ASMExprReg extends ASMExprRegReplaceable {
+public class ASMExprReg extends ASMExprRT {
     private String reg;
 
     public ASMExprReg(String reg) {

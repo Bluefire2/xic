@@ -28,7 +28,7 @@ public class ASMExprConst extends ASMExpr {
     }
 
     @Override
-    public Set<ASMExprRegReplaceable> vars() {
+    public Set<ASMExprRT> vars() {
         return new HashSet<>();
     }
 }
