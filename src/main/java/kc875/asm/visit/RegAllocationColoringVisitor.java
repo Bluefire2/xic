@@ -14,6 +14,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RegAllocationColoringVisitor {
+    private static String[] usableRegisters = new String[] {
+            "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
+    };
+
     //every node is in exactly one of these sets
     private HashSet<Graph<ASMExprRT>.Node> precolored; // machine registers, pre-assigned
     private HashSet<Graph<ASMExprRT>.Node> initial; // temps, not processed yet
@@ -57,7 +61,7 @@ public class RegAllocationColoringVisitor {
     private LiveVariableDFA liveness;
     private List<ASMInstr> instrs;
 
-    private int K = 16;//num regs I think
+    private static int K = usableRegisters.length; // number of usable registers
 
     RegAllocationColoringVisitor() {
     }
@@ -377,8 +381,7 @@ public class RegAllocationColoringVisitor {
     private void assignColors() {
         while (!selectStack.empty()) {
             Graph<ASMExprRT>.Node n = selectStack.pop();
-            //okColors = {0,...K-1}
-            //TODO right now colors are ints
+            // okColors = {0,...K-1}
             Set<Integer> okColors = IntStream.range(0, K)
                     .boxed()
                     .collect(Collectors.toSet());
