@@ -431,6 +431,7 @@ public class RegAllocationColoringVisitor {
             ASMInstr new_instr = rewriteInstr(i, spills);
             new_instrs.add(new_instr);
         }
+        //TODO maybe reset the appropriate data structures
         return new_instrs;
     }
 
