@@ -189,9 +189,8 @@ public class RegAllocationColoringVisitor {
     }
 
     private void simplify() {
-        //TODO selecting things from worklist
         //let n be in simplifyWorklist
-        Graph<ASMExprRT>.Node n = new ArrayList<>(simplifyWorklist).get(0);
+        Graph<ASMExprRT>.Node n = simplifyWorklist.iterator().next();
         //simplifyWorklist = simplifyWorklist \ {n}
         simplifyWorklist.remove(n);
         //push n to selectStack
