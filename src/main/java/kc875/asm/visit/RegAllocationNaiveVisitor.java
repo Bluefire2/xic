@@ -4,7 +4,6 @@ import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,15 +24,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     public RegAllocationNaiveVisitor(boolean addComment) {
         this.addComments = addComment;
-    }
-
-    /**
-     * Returns true if instruction ins is a function label.
-     *
-     * @param ins instruction to test.
-     */
-    private boolean instrIsFunction(ASMInstr ins) {
-        return ins instanceof ASMInstrLabel && ((ASMInstrLabel) ins).isFunction();
     }
 
     /**
@@ -233,48 +223,11 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
-    /**
-     * Executes function f for each function in the list of instructions ins.
-     * The input instrs is not changed. The result of f on each function is
-     * what replaces the function f instructions in instrs.
-     *
-     * @param instrs instructions.
-     */
-    private List<ASMInstr> execPerFunc(
-            List<ASMInstr> instrs, Function<List<ASMInstr>, List<ASMInstr>> f
-    ) {
-        List<ASMInstr> optimInstrs = new ArrayList<>();
-        for (int i = 0; i < instrs.size();) {
-            ASMInstr insi = instrs.get(i);
-            if (instrIsFunction(insi)) {
-                int startFunc = i, endFunc = i+1;
-                for (int j = startFunc+1; j < instrs.size(); ++j) {
-                    ASMInstr insj = instrs.get(j);
-                    if (j == instrs.size() - 1) {
-                        // reached the end of the file
-                        endFunc = instrs.size();
-                        break;
-                    } else if (instrIsFunction(insj)) {
-                        endFunc = j;
-                        break;
-                    }
-                }
-                optimInstrs.addAll(f.apply(instrs.subList(startFunc, endFunc)));
-                i = endFunc;
-            } else {
-                // instruction not a function
-                optimInstrs.add(insi);
-                i++;
-            }
-        }
-        return optimInstrs;
-    }
-
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
-        input = execPerFunc(input, this::createTempSpaceOnStack);
-        input = execPerFunc(input, this::saveAllCalleeRegsInFunc);
-        input = execPerFunc(input, this::alignStackInFunc);
+        input = ASMUtils.execPerFunc(input, this::createTempSpaceOnStack);
+        input = ASMUtils.execPerFunc(input, this::saveAllCalleeRegsInFunc);
+        input = ASMUtils.execPerFunc(input, this::alignStackInFunc);
         for (ASMInstr instr : input) {
             instrs.addAll(instr.accept(this));
         }
