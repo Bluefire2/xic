@@ -201,6 +201,9 @@ public class RegAllocationColoringVisitor {
 
     private void coalesce() {
         //TODO: implement the invariant that all of these are moves
+
+        // let m (= copy(x, y)) \in worklistMoves
+        // here, we use move instead of m
         ASMInstr_2Arg move = null;
         ASMExprTemp x = null;
         ASMExprTemp y = null;
@@ -217,27 +220,40 @@ public class RegAllocationColoringVisitor {
 
         if (move == null || x == null) return; // TODO
 
+        // x <- GetAlias(x)
         Graph<ASMExprRegReplaceable>.Node xNode = getAlias(interference.getNode(x));
+        // y <- GetAlias(y)
         Graph<ASMExprRegReplaceable>.Node yNode = getAlias(interference.getNode(y));
 
         Graph<ASMExprRegReplaceable>.Node u;
         Graph<ASMExprRegReplaceable>.Node v;
+        // if y \in precolored
         if (precolored.contains(yNode)) {
+            // let (u, v) = (y, x)
             u = yNode;
             v = xNode;
         } else {
+            // let (u, v) = (x, y)
             u = xNode;
             v = yNode;
         }
 
+        // worklistMoves <- worklistMoves \ {m}
         worklistMoves.remove(move);
 
-        if (u.equals(v)) {
+        if (u.equals(v)) { // if u == v
+            // coalescedMoves <- coalescedMoves \union {m}
             coalescedMoves.add(move);
+            // AddWorkList(u)
             addWorkList(u);
         } else if (precolored.contains(v) || adjSet.contains(new Pair<>(u, v))) {
+            // else if v \in precolored OR (u, v) \in adjSet
+
+            // constrainedMoves <- constrainedMoves \union {m}
             constrainedMoves.add(move);
+            // AddWorkList(u)
             addWorkList(u);
+            // AddWorkList(v)
             addWorkList(v);
         } else if (
                 (
@@ -248,48 +264,73 @@ public class RegAllocationColoringVisitor {
                                 && conservative(Sets.union(getAdjacent(u), getAdjacent(v)))
                 )
         ) {
+            // else if u \in precolored AND (\forall t \in Adjacent(v), OK(t, u))
+            // OR u \not \in precolored AND Conservative(Adjacent(u) \union Adjacent(v))
+
+            // coalescedMoves <- coalescedMoves \union {m}
             coalescedMoves.add(move);
+            // Combine(u, v)
             combine(u, v);
+            // AddWorkList(u)
             addWorkList(u);
         } else {
+            // activeMoves <- activeMoves \union {m}
             activeMoves.add(move);
         }
     }
 
     private void combine(Graph<ASMExprRegReplaceable>.Node u,
                          Graph<ASMExprRegReplaceable>.Node v) {
-        if (freezeWorklist.contains(v)) {
+        if (freezeWorklist.contains(v)) { // if v \in freezeWorklist
+            // freezeWorklist <- freezeWorklist \ {v}
             freezeWorklist.remove(v);
         } else {
+            // spillWorklist <- spillWorklist \ {v}
             spillWorklist.remove(v);
         }
 
+        // coalescedNodes <- coalescedNodes \union {v}
         coalescedNodes.add(v);
+        // alias[v] <- u
         alias.put(v, u);
+        // moveList[u] <- moveList[u] \union moveList[v]
         moveList.get(u).addAll(moveList.get(v));
+        // EnableMoves(v)
         enableMoves(v);
 
+        // forall t \in Adjacent(v)
         for (Graph<ASMExprRegReplaceable>.Node t : getAdjacent(v)) {
             ASMExprRegReplaceable tInstr = interference.getTemp(t);
             ASMExprRegReplaceable uInstr = interference.getTemp(u);
+
+            // AddEdge(t, u)
             addEdge(tInstr, uInstr);
+            // DecrementDegree(t)
             decrementDegree(t);
         }
 
+        // if degree[u] >= K AND u \in freezeWorklist
         if (degree.get(u) >= K && freezeWorklist.contains(u)) {
+            // freezeWorklist <- freezeWorklist \ {u}
             freezeWorklist.remove(u);
+            // spillWorklist <- spillWorklist \union {u}
             spillWorklist.add(u);
         }
     }
 
     private void freeze() {
+        // let u \in freezeWorklist
         Graph<ASMExprRegReplaceable>.Node u = freezeWorklist.iterator().next();
+        // freezeWorklist <- freezeWorklist \ {u}
         freezeWorklist.remove(u);
+        // simplifyWorklist <- simplifyWorklist \union {u}
         simplifyWorklist.add(u);
+        // FreezeMoves(u)
         freezeMoves(u);
     }
 
     private void freezeMoves(Graph<ASMExprRegReplaceable>.Node u) {
+        // forall m (= copy(x, y)) \in NodeMoves(u)
         for (ASMInstr instr : worklistMoves) {
             ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
             ASMExpr xE = move.getSrc();
@@ -300,17 +341,27 @@ public class RegAllocationColoringVisitor {
                 Graph<ASMExprRegReplaceable>.Node y = interference.getNode((ASMExprTemp) yE);
 
                 Graph<ASMExprRegReplaceable>.Node v;
+
+
+                // if GetAlias(y) = GetAlias(u)
                 if (getAlias(y).equals(getAlias(u))) {
+                    // v <- GetAlias(x)
                     v = getAlias(x);
                 } else {
+                    // v <- GetAlias(y)
                     v = getAlias(y);
                 }
 
+                // activeMoves <- activeMoves \ {m}
                 activeMoves.remove(move);
+                // frozenMoves <- frozenMoves \union {m}
                 frozenMoves.add(move);
 
+                // if v \in freezeWorklist AND NodeMoves(v) = {}
                 if (freezeWorklist.contains(v) && nodeMoves(v).isEmpty()) {
+                    // freezeWorklist <- freezeWorklist \ {v}
                     freezeWorklist.remove(v);
+                    // simplifyWorklist <- simplifyWorklist \union {v}
                     simplifyWorklist.add(v);
                 }
             }
