@@ -1,6 +1,7 @@
 package kc875.asm.visit;
 
 import com.google.common.collect.Sets;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
@@ -220,7 +221,8 @@ public class RegAllocationColoringVisitor {
             }
         }
 
-        if (move == null || x == null) return; // TODO
+        // precondition guarantees that worklistMoves contains at least one element of this type
+        if (move == null || x == null) throw new InternalCompilerError("Violated precondition");
 
         // x <- GetAlias(x)
         Graph<ASMExprRT>.Node xNode = getAlias(interference.getNode(x));
