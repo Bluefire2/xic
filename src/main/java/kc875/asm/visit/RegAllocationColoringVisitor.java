@@ -1,6 +1,7 @@
 package kc875.asm.visit;
 
 import com.google.common.collect.Sets;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
@@ -13,6 +14,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RegAllocationColoringVisitor {
+    private static String[] usableRegisters = new String[] {
+            "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
+    };
+
     //every node is in exactly one of these sets
     private HashSet<Graph<ASMExprRT>.Node> precolored; // machine registers, pre-assigned
     private HashSet<Graph<ASMExprRT>.Node> initial; // temps, not processed yet
@@ -56,7 +61,7 @@ public class RegAllocationColoringVisitor {
     private LiveVariableDFA liveness;
     private List<ASMInstr> instrs;
 
-    private int K = 16;//num regs I think
+    private static int K = usableRegisters.length; // number of usable registers
 
     RegAllocationColoringVisitor() {
         precolored = new HashSet<>();
@@ -195,12 +200,12 @@ public class RegAllocationColoringVisitor {
     }
 
     private void simplify() {
-        //TODO selecting things from worklist
-        //let n be in simplifyWorklist
-        Graph<ASMExprRT>.Node n = new ArrayList<>(simplifyWorklist).get(0);
-        //simplifyWorklist = simplifyWorklist \ {n}
+        // let n be in simplifyWorklist
+        // simplifyWorklist is guaranteed to be non-empty by a precondition!
+        Graph<ASMExprRT>.Node n = simplifyWorklist.iterator().next();
+        // simplifyWorklist = simplifyWorklist \ {n}
         simplifyWorklist.remove(n);
-        //push n to selectStack
+        // push n to selectStack
         selectStack.push(n);
         for (Graph<ASMExprRT>.Node m : getAdjacent(n)) {
             decrementDegree(m);
@@ -226,7 +231,8 @@ public class RegAllocationColoringVisitor {
             }
         }
 
-        if (move == null || x == null) return; // TODO
+        // precondition guarantees that worklistMoves contains at least one element of this type
+        if (move == null || x == null) throw new InternalCompilerError("Violated precondition");
 
         // x <- GetAlias(x)
         Graph<ASMExprRT>.Node xNode = getAlias(interference.getNode(x));
@@ -383,18 +389,21 @@ public class RegAllocationColoringVisitor {
     }
 
     private void assignColors() {
+        // while SelectStack not empty
         while (!selectStack.empty()) {
+            // let n = pop(SelectStack)
             Graph<ASMExprRT>.Node n = selectStack.pop();
-            //okColors = {0,...K-1}
-            //TODO right now colors are ints
+            // okColors = {0,...K-1}
             Set<Integer> okColors = IntStream.range(0, K)
                     .boxed()
                     .collect(Collectors.toSet());
+
+            // forall w in adjList[n]
             for (Graph<ASMExprRT>.Node w : adjList.get(n)) {
-                //if getalias(w) in (coloredNodes + precolored)
+                // if getalias(w) in (coloredNodes + precolored)
                 if (Sets.union(coloredNodes, precolored)
                         .contains(getAlias(w))) {
-                    //okColors = okColors\{color[getAlias(w)]}
+                    // okColors = okColors \ {color[getAlias(w)]}
                     okColors.remove(color.get(getAlias(w)));
                 }
             }
@@ -402,12 +411,14 @@ public class RegAllocationColoringVisitor {
                 spilledNodes.add(n);
             } else {
                 coloredNodes.add(n);
-                //assign n to one of the ok colors
-                int c = new ArrayList<>(okColors).get(0);
+                // let c in okColors
+                int c = okColors.iterator().next();
+                // color[n] <- c
                 color.put(n, c);
             }
         }
-        //color coalesced nodes according to their alias
+
+        // color coalesced nodes according to their alias
         for (Graph<ASMExprRT>.Node n : coalescedNodes) {
             color.put(n, color.get(getAlias(n)));
         }

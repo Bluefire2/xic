@@ -33,107 +33,148 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
-@CommandLine.Command (name = "xic", version = "Xi compiler 0.0")
+@CommandLine.Command(
+        name = "xic",
+        version = "Xi compiler 0.0",
+        sortOptions = false
+)
 public class CLI implements Runnable {
-    @Option (names = {"-h", "--help"}, usageHelp = true,
+    @Option(names = {"-h", "--help"}, usageHelp = true,
             description = "Print a synopsis of options.")
     private boolean optHelp = false;
 
-    @Option (names = {"-l", "--lex"},
-            description = "Generate output from lexical analysis.")
-    private boolean optLex = false;
+    private final Set<String> compilerOptims = Set.of(
+            "reg", "cse", "cf", "mc", "copy", "dce"
+    );
 
-    @Option (names = {"--parse"},
-            description = "Generate output from syntactic analysis.")
-    private boolean optParse = false;
+    private final Set<String> optimPhases = Set.of("initial", "final");
 
-    @Option (names = {"--debug"},
+    @Option(names = {"--report-opts"},
+            description = "Output the allowed compiler optimizations.")
+    private boolean optReportOptimizations = false;
+
+    @Option(names = {"--debug"}, hidden = true,
             description = "Optional flag which prints to terminal instead of outputting files.")
     private boolean optDebug = false;
 
-    @Option (names = {"--commentASM"},
-            description = "Optional flag which adds a comment with the abstract assembly instruction"+
+    @Option(names = {"-l", "--lex"},
+            description = "Generate output from lexical analysis.")
+    private boolean optLex = false;
+
+    @Option(names = {"--parse"},
+            description = "Generate output from syntactic analysis.")
+    private boolean optParse = false;
+
+    @Option(names = {"--typecheck"},
+            description = "Generate output from semantic analysis.")
+    private boolean optTypeCheck = false;
+
+    @Option(names = {"--irgen"},
+            description = "Generate intermediate code.")
+    private boolean optIRGen = false;
+
+    @Option(names = {"--irrun"},
+            description = "Generate and interpret intermediate code.")
+    private boolean optIRRun = false;
+
+    @Option(names = {"--mir"}, hidden = true,
+            description = "Do not lower the IR.")
+    private boolean optMIR = false;
+
+    // TODO: implement --optir <phase> in code
+    @Option(names = {"--optir"},
+            description = "Report the intermediate code at the specified " +
+                    "phase of optimization")
+    private String[] optimIRPhases;
+
+    @Option(names = {"--optcfg"},
+            description = "Report the control-flow graph at the specified " +
+                    "phase of optimization.")
+    private String[] optimCFGPhases;
+
+    @Option(names = "-sourcepath", defaultValue = ".",
+            description = "Specify where to find input source files.")
+    private Path sourcepath;
+
+    @Option(names = "-libpath", defaultValue = ".",
+            description = "Specify where to find input library/interface files.")
+    private Path libpath;
+
+    @Option(names = "-D", defaultValue = ".",
+            description = "Specify where to place generated diagnostic files.")
+    private Path path;
+
+    @Option(names = "-d", defaultValue = ".",
+            description = "Specify where to place generated assembly files.")
+    private Path asmPath;
+
+    @Option(names = {"-target"},
+            description = "Specify the operating system for which to generate code." +
+                    "Supported options: linux.")
+    private String OS = null;
+
+    @Option(names = {"--commentASM"}, hidden = true,
+            description = "Optional flag which adds a comment with the abstract assembly instruction" +
                     "right above the instructions generated from register allocation"
     )
     private boolean optCommentASM = false;
 
-    @Option (names = {"--typecheck"},
-            description = "Generate output from semantic analysis.")
-    private boolean optTypeCheck = false;
-
-    @Option (names = {"--irgen"},
-            description = "Generate intermediate code.")
-    private boolean optIRGen = false;
-
-    @Option (names = {"--irrun"},
-            description = "Generate and interpret intermediate code.")
-    private boolean optIRRun = false;
-
-    @Option (names = {"-O"},
-            description = "Disable optimizations.")
-    private boolean optDisableOptimization = false;
-
-    @Option (names = {"--mir"},
-            description = "Do not lower the IR.")
-    private boolean optMIR = false;
-
-    @Option (names = {"--asm-no-reg"},
+    @Option(names = {"--asm-no-reg"}, hidden = true,
             description = "Do not do register allocation in the asm.")
     private boolean optASMDisableRegAllocation = false;
 
-    @Parameters (arity = "1..*", paramLabel = "FILE",
+    @Option(names = {"-O"},
+            description = "Disable optimizations.")
+    private boolean optDisableOptimization = false;
+
+    // TODO: -O-no-<opt>
+
+    @Parameters(arity = "0..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
 
-    @Option (names = "-D", defaultValue = ".",
-            description = "Specify where to place generated diagnostic files.")
-    private Path path;
-
-    @Option (names = "-d", defaultValue = ".",
-            description = "Specify where to place generated assembly files.")
-    private Path asmPath;
-
-    @Option (names = "-sourcepath", defaultValue = ".",
-            description = "Specify where to find input source files.")
-    private Path sourcepath;
-
-    @Option (names = "-libpath", defaultValue = ".",
-            description = "Specify where to find input library/interface files.")
-    private Path libpath;
-
-    @Option (names = {"-target"},
-            description = "Specify the operating system for which to generate code." +
-                    "Supported options: linux.")
-    private String target = null;
-
     @Override
     public void run() {
-        if (Files.exists(path)) {
-            if (Files.exists(sourcepath)) {
-                if (optLex) {
-                    lex();
-                }
-                if (optParse) {
-                    parse();
-                }
-                if(optTypeCheck) {
-                    typeCheck();
-                }
-                if (optIRGen) {
-                    IRGen();
-                }
-                if (optIRRun) {
-                    IRRun();
-                }
-                if (target != null && target.equals("linux")) {
-                    asmGen();
-                }
-            } else {
-                System.out.println(String.format("Error: directory %s not found", sourcepath));
-            }
+        if (optReportOptimizations) {
+            compilerOptims.forEach(System.out::println);
         } else {
-            System.out.println(String.format("Error: directory %s not found", path));
+            if (optInputFiles == null) {
+                System.err.println(
+                        "Error: no files given"
+                );
+                CommandLine.usage(new CLI(), System.out);
+            } else {
+                if (Files.exists(path)) {
+                    if (Files.exists(sourcepath)) {
+                        if (optLex) {
+                            lex();
+                        }
+                        if (optParse) {
+                            parse();
+                        }
+                        if (optTypeCheck) {
+                            typeCheck();
+                        }
+                        if (optIRGen) {
+                            IRGen();
+                        }
+                        if (optIRRun) {
+                            IRRun();
+                        }
+                        if (OS != null && OS.equals("linux")) {
+                            asmGen();
+                        }
+                    } else {
+                        System.err.println(String.format(
+                                "Error: directory %s not found", sourcepath
+                        ));
+                    }
+                } else {
+                    System.err.println(String.format("Error: directory %s not found", path));
+                }
+            }
         }
     }
 
@@ -366,8 +407,9 @@ public class CLI implements Runnable {
 
     /**
      * Writes the error message in the file.
+     *
      * @param outputFilePath path of the file to write in.
-     * @param errMessage error message.
+     * @param errMessage     error message.
      */
     private void fileoutError(String outputFilePath, String errMessage) {
         try {
@@ -383,7 +425,3 @@ public class CLI implements Runnable {
         CommandLine.run(new CLI(), args);
     }
 }
-
-/*
-
-*/

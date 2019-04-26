@@ -2,13 +2,14 @@ package kc875.asm.dfa;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.cfg.Graph;
 
 import java.util.*;
 
 public class ASMGraph extends Graph<ASMInstr> {
-    private BiMap<Node, ASMInstr> nodeInstrMap;
+    private BiMap<Graph<ASMInstr>.Node, ASMInstr> nodeInstrMap;
 
     private static Set<ASMOpCode> noFallthrough = new HashSet<>(
             Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET) // TODO
@@ -81,7 +82,8 @@ public class ASMGraph extends Graph<ASMInstr> {
                 Node to = labelToNodeMap.get(label.getName());
                 this.addEdge(node, to);
             } else {
-                // TODO: wtf
+                throw new InternalCompilerError("Jmp instructions can't be " +
+                        "2Arg");
             }
         }
     }
