@@ -6,7 +6,10 @@ import com.google.common.collect.Sets;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Stack;
 import java.util.stream.Collectors;
 
 /**
@@ -160,7 +163,7 @@ public class Graph<T> {
         }
 
         // Write prologue
-        String INDENT_TAB = "\t";
+        String INDENT_TAB = "    ";
         FileWriter f = new FileWriter(path + ".dot");
         f.write("digraph " + path + "\n");
         f.write(INDENT_TAB + "node [shape=record];\n");

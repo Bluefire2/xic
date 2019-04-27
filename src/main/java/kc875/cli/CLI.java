@@ -32,8 +32,10 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @CommandLine.Command(
         name = "xic",
@@ -45,15 +47,27 @@ public class CLI implements Runnable {
             description = "Print a synopsis of options.")
     private boolean optHelp = false;
 
-    private final Set<String> compilerOptims = Set.of(
-            "reg", "cse", "cf", "mc", "copy", "dce"
-    );
-
-    private final Set<String> optimPhases = Set.of("initial", "final");
-
     @Option(names = {"--report-opts"},
             description = "Output the allowed compiler optimizations.")
     private boolean optReportOptimizations = false;
+
+    enum Optims {REG, CSE, CF, MC, COPY, DCE}
+    enum OptimPhases {INITIAL, FINAL}
+
+    // Map's value is true if user switches on the optimization/phase
+    // Initialize values to false for now
+    private Map<Optims, Boolean> activeOptims =
+            new EnumMap<>(Optims.class) {{
+                EnumSet.allOf(Optims.class).forEach(o -> put(o, false));
+    }};
+    private Map<OptimPhases, Boolean> activeOptimIRPhases =
+            new EnumMap<>(OptimPhases.class) {{
+                EnumSet.allOf(OptimPhases.class).forEach(p -> put(p, false));
+    }};
+    private Map<OptimPhases, Boolean> activeOptimCFGPhases =
+            new EnumMap<>(OptimPhases.class) {{
+                EnumSet.allOf(OptimPhases.class).forEach(p -> put(p, false));
+    }};
 
     @Option(names = {"--debug"}, hidden = true,
             description = "Optional flag which prints to terminal instead of outputting files.")
@@ -87,24 +101,24 @@ public class CLI implements Runnable {
     @Option(names = {"--optir"},
             description = "Report the intermediate code at the specified " +
                     "phase of optimization")
-    private String[] optimIRPhases;
+    private String[] givenOptimIRPhases;
 
     @Option(names = {"--optcfg"},
             description = "Report the control-flow graph at the specified " +
                     "phase of optimization.")
-    private String[] optimCFGPhases;
+    private String[] givenOptimCFGPhases;
 
     @Option(names = "-sourcepath", defaultValue = ".",
             description = "Specify where to find input source files.")
-    private Path sourcepath;
+    private Path sourcePath;
 
     @Option(names = "-libpath", defaultValue = ".",
             description = "Specify where to find input library/interface files.")
-    private Path libpath;
+    private Path libPath;
 
     @Option(names = "-D", defaultValue = ".",
             description = "Specify where to place generated diagnostic files.")
-    private Path path;
+    private Path diagnosticPath;
 
     @Option(names = "-d", defaultValue = ".",
             description = "Specify where to place generated assembly files.")
@@ -135,55 +149,94 @@ public class CLI implements Runnable {
             description = "File(s) to process.")
     private File[] optInputFiles;
 
+    /**
+     * Returns -1 if path not found, 0 otherwise.
+     */
+    private int pathExists(Path path) {
+        if (!Files.exists(path)) {
+            System.err.println("Error: path " + path + " not found");
+            return -1;
+        }
+        return 0;
+    }
+
     @Override
     public void run() {
+        // Check for flags that don't require files first
         if (optReportOptimizations) {
-            compilerOptims.forEach(System.out::println);
+            for (Optims o : Optims.values()) {
+                System.out.println(o.toString().toLowerCase());
+            }
         } else {
+            // files required now; check supplied values are valid
             if (optInputFiles == null) {
                 System.err.println(
                         "Error: no files given"
                 );
                 CommandLine.usage(new CLI(), System.out);
-            } else {
-                if (Files.exists(path)) {
-                    if (Files.exists(sourcepath)) {
-                        if (optLex) {
-                            lex();
-                        }
-                        if (optParse) {
-                            parse();
-                        }
-                        if (optTypeCheck) {
-                            typeCheck();
-                        }
-                        if (optIRGen) {
-                            IRGen();
-                        }
-                        if (optIRRun) {
-                            IRRun();
-                        }
-                        if (OS != null && OS.equals("linux")) {
-                            asmGen();
-                        }
-                    } else {
+                return;
+            }
+            if (pathExists(diagnosticPath) != 0) return;
+            if (pathExists(sourcePath) != 0) return;
+
+            // Check if supplied optimizations and phases are supported
+            if (givenOptimIRPhases != null) {
+                for (String o : givenOptimIRPhases) {
+                    try {
+                        activeOptimIRPhases.put(
+                                OptimPhases.valueOf(o.toUpperCase()), true
+                        );
+                    } catch (IllegalArgumentException e) {
+                        // Could not convert o to an enum ==> incorrect phase
                         System.err.println(String.format(
-                                "Error: directory %s not found", sourcepath
+                                "Error: phase %s with --optir not supported", o
                         ));
+                        return;
                     }
-                } else {
-                    System.err.println(String.format("Error: directory %s not found", path));
                 }
+            }
+            if (givenOptimCFGPhases != null) {
+                for (String o : givenOptimCFGPhases) {
+                    try {
+                        activeOptimCFGPhases.put(
+                                OptimPhases.valueOf(o.toUpperCase()), true
+                        );
+                    } catch (IllegalArgumentException e) {
+                        // Could not convert o to an enum ==> incorrect phase
+                        System.err.println(String.format(
+                                "Error: phase %s with --optcfg not supported", o
+                        ));
+                        return;
+                    }
+                }
+            }
+            if (optLex) {
+                lex();
+            }
+            if (optParse) {
+                parse();
+            }
+            if (optTypeCheck) {
+                typeCheck();
+            }
+            if (optIRGen) {
+                IRGen();
+            }
+            if (optIRRun) {
+                IRRun();
+            }
+            if (OS != null && OS.equals("linux")) {
+                asmGen();
             }
         }
     }
 
     private void lex() {
         for (File f : optInputFiles) {
-            String outputFilePath = Paths.get(path.toString(),
+            String outputFilePath = Paths.get(diagnosticPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".lexed")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
@@ -206,10 +259,10 @@ public class CLI implements Runnable {
 
     private void parse() {
         for (File f : optInputFiles) {
-            String outputFilePath = Paths.get(path.toString(),
+            String outputFilePath = Paths.get(diagnosticPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".parsed")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
@@ -243,18 +296,26 @@ public class CLI implements Runnable {
         }
     }
 
+    private ASTNode buildAST(FileReader fileReader) throws Exception {
+        XiTokenFactory xtf = new XiTokenFactory();
+        XiLexer lexer = new XiLexer(fileReader, xtf);
+        XiParser parser = new XiParser(lexer, xtf);
+        ASTNode root = (ASTNode) parser.parse().value;
+        root.accept(new TypeCheckVisitor(new HashMapSymbolTable<>(), libPath.toString()));
+        return root;
+    }
 
     private void typeCheck() {
         for (File f : optInputFiles) {
-            String outputFilePath = Paths.get(path.toString(),
+            String outputFilePath = Paths.get(diagnosticPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".typed")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                ASTNode root = buildAST(fileReader);
+                buildAST(fileReader);
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -265,12 +326,26 @@ public class CLI implements Runnable {
         }
     }
 
+    private IRNode buildIR(File f, FileReader fileReader) throws Exception {
+        ASTNode root = buildAST(fileReader);
+        //IR translation and lowering
+        IRTranslationVisitor tv = new IRTranslationVisitor(
+                !optDisableOptimization,
+                FilenameUtils.removeExtension(f.getName())
+        );
+        IRNode mir = root.accept(tv);
+        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+        IRNode checkedIR = optMIR ? mir : lv.visit(mir);
+        ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
+        return optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+    }
+
     private void IRGen() {
         for (File f : optInputFiles) {
-            String outputFilePath = Paths.get(path.toString(),
+            String outputFilePath = Paths.get(diagnosticPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".ir")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
@@ -311,10 +386,10 @@ public class CLI implements Runnable {
 
     private void IRRun() {
         for (File f : optInputFiles) {
-            String outputFilePath = Paths.get(path.toString(),
+            String outputFilePath = Paths.get(diagnosticPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".ir.nml")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileOutputStream fos = new FileOutputStream(outputFilePath)) {
@@ -325,7 +400,7 @@ public class CLI implements Runnable {
                     System.setOut(new PrintStream(fos)); // make stdout go to a file
                 }
                 IRSimulator sim = new IRSimulator((IRCompUnit) foldedIR);
-                long result = sim.call("_Imain_paai", 0);
+                sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
                 fileoutError(outputFilePath, e.getMessage());
@@ -338,12 +413,27 @@ public class CLI implements Runnable {
         }
     }
 
+    private static final String INDENT_ASM = "   ";
+
+    /**
+     * Writes the asm file prologue (intel syntax, global func etc.) to the
+     * file writer.
+     *
+     * @param fileWriter file writer.
+     * @throws IOException when problems with fileWriter.
+     */
+    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
+        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
+        fileWriter.write(INDENT_ASM + ".text\n");
+        fileWriter.write(INDENT_ASM + ".globl" + INDENT_ASM + "_Imain_paai\n");
+    }
+
     private void asmGen() {
         for (File f : optInputFiles) {
             String outputFilePath = Paths.get(asmPath.toString(),
                     FilenameUtils.removeExtension(f.getName()) + ".s")
                     .toString();
-            String inputFilePath = Paths.get(sourcepath.toString(),
+            String inputFilePath = Paths.get(sourcePath.toString(),
                     f.getPath()).toString();
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
@@ -366,43 +456,6 @@ public class CLI implements Runnable {
                 e.printStackTrace();
             }
         }
-    }
-
-    private static final String INDENT_ASM = "   ";
-
-    /**
-     * Writes the asm file prologue (intel syntax, global func etc.) to the
-     * file writer.
-     *
-     * @param fileWriter file writer.
-     * @throws IOException
-     */
-    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
-        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
-        fileWriter.write(INDENT_ASM + ".text\n");
-        fileWriter.write(INDENT_ASM + ".globl" + INDENT_ASM + "_Imain_paai\n");
-    }
-
-    private IRNode buildIR(File f, FileReader fileReader) throws Exception {
-        ASTNode root = buildAST(fileReader);
-        //IR translation and lowering
-        IRTranslationVisitor tv = new IRTranslationVisitor(
-                !optDisableOptimization,
-                FilenameUtils.removeExtension(f.getName()));
-        IRNode mir = root.accept(tv);
-        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-        IRNode checkedIR = optMIR ? mir : lv.visit(mir);
-        ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
-        return optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
-    }
-
-    private ASTNode buildAST(FileReader fileReader) throws Exception {
-        XiTokenFactory xtf = new XiTokenFactory();
-        XiLexer lexer = new XiLexer(fileReader, xtf);
-        XiParser parser = new XiParser(lexer, xtf);
-        ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new TypeCheckVisitor(new HashMapSymbolTable<>(), libpath.toString()));
-        return root;
     }
 
     /**
