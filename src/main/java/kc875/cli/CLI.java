@@ -140,9 +140,9 @@ public class CLI implements Runnable {
             description = "Do not do register allocation in the asm.")
     private boolean optASMDisableRegAllocation = false;
 
-    @Option(names = {"-O"},
-            description = "Disable optimizations.")
-    private boolean optDisableOptimization = false;
+    @Option(names = {"-O"}, arity="0..1",
+            description = "Enable/Disable optimizations.")
+    private String[] optims;
 
     // TODO: -O-no-<opt>
 
@@ -174,7 +174,6 @@ public class CLI implements Runnable {
                 System.err.println(
                         "Error: no files given"
                 );
-                CommandLine.usage(new CLI(), System.out);
                 return;
             }
             if (pathExists(diagnosticPath) != 0) return;
@@ -182,35 +181,63 @@ public class CLI implements Runnable {
 
             // Check if supplied optimizations and phases are supported
             if (givenOptimIRPhases != null) {
-                for (String o : givenOptimIRPhases) {
+                for (String p : givenOptimIRPhases) {
                     try {
                         activeOptimIRPhases.put(
-                                OptimPhases.valueOf(o.toUpperCase()), true
+                                OptimPhases.valueOf(p.toUpperCase()), true
                         );
                     } catch (IllegalArgumentException e) {
-                        // Could not convert o to an enum ==> incorrect phase
+                        // Could not convert p to an enum ==> invalid phase
                         System.err.println(String.format(
-                                "Error: phase %s with --optir not supported", o
+                                "Error: phase %s with --optir not supported", p
                         ));
                         return;
                     }
                 }
             }
             if (givenOptimCFGPhases != null) {
-                for (String o : givenOptimCFGPhases) {
+                for (String p : givenOptimCFGPhases) {
                     try {
                         activeOptimCFGPhases.put(
-                                OptimPhases.valueOf(o.toUpperCase()), true
+                                OptimPhases.valueOf(p.toUpperCase()), true
                         );
                     } catch (IllegalArgumentException e) {
-                        // Could not convert o to an enum ==> incorrect phase
+                        // Could not convert p to an enum ==> invalid phase
                         System.err.println(String.format(
-                                "Error: phase %s with --optcfg not supported", o
+                                "Error: phase %s with --optcfg not supported", p
                         ));
                         return;
                     }
                 }
             }
+            if (optims == null) {
+                // -O not specified, switch on all optims
+                EnumSet.allOf(Optims.class).forEach(
+                        o -> activeOptims.put(o, true)
+                );
+            } else {
+                // Some `-O foo` specified, could also be just `-O`
+                // All optims are off by default in this implementation, so
+                // if `-O` appears in the optims array, ignore and proceed to
+                // the next one
+                for (String o : optims) {
+                    try {
+                        if (o.equals("")) continue; // `-O`
+                        // `-O foo`
+                        activeOptims.put(Optims.valueOf(o.toUpperCase()), true);
+                    } catch (IllegalArgumentException e) {
+                        // Could not convert o to an enum ==> invalid optim
+                        System.err.println(String.format(
+                                "Error: opt %s with -O not supported", o
+                        ));
+                        return;
+                    }
+                }
+            }
+//            activeOptimIRPhases.entrySet().forEach(System.out::println);
+//            activeOptimCFGPhases.entrySet().forEach(System.out::println);
+//            activeOptims.entrySet().forEach(System.out::println);
+//            System.exit(0);
             if (optLex) {
                 lex();
             }
