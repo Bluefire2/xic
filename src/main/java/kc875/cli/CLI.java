@@ -52,6 +52,7 @@ public class CLI implements Runnable {
     private boolean optReportOptimizations = false;
 
     enum Optims {REG, CSE, CF, MC, COPY, DCE}
+
     enum OptimPhases {INITIAL, FINAL}
 
     // Map's value is true if user switches on the optimization/phase
@@ -59,15 +60,15 @@ public class CLI implements Runnable {
     private Map<Optims, Boolean> activeOptims =
             new EnumMap<>(Optims.class) {{
                 EnumSet.allOf(Optims.class).forEach(o -> put(o, false));
-    }};
+            }};
     private Map<OptimPhases, Boolean> activeOptimIRPhases =
             new EnumMap<>(OptimPhases.class) {{
                 EnumSet.allOf(OptimPhases.class).forEach(p -> put(p, false));
-    }};
+            }};
     private Map<OptimPhases, Boolean> activeOptimCFGPhases =
             new EnumMap<>(OptimPhases.class) {{
                 EnumSet.allOf(OptimPhases.class).forEach(p -> put(p, false));
-    }};
+            }};
 
     @Option(names = {"--debug"}, hidden = true,
             description = "Optional flag which prints to terminal instead of outputting files.")
@@ -281,7 +282,8 @@ public class CLI implements Runnable {
                     root = parser.debug_parse().value;
                     printer = new CodeWriterSExpPrinter(cw);
                 } else {
-                    OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
+                    OptimalCodeWriter cw =
+                            new OptimalCodeWriter(fileWriter, 80);
                     root = parser.parse().value;
                     printer = new CodeWriterSExpPrinter(cw);
                 }
@@ -301,7 +303,9 @@ public class CLI implements Runnable {
         XiLexer lexer = new XiLexer(fileReader, xtf);
         XiParser parser = new XiParser(lexer, xtf);
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new TypeCheckVisitor(new HashMapSymbolTable<>(), libPath.toString()));
+        root.accept(new TypeCheckVisitor(
+                new HashMapSymbolTable<>(), libPath.toString()
+        ));
         return root;
     }
 
@@ -329,15 +333,14 @@ public class CLI implements Runnable {
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
         ASTNode root = buildAST(fileReader);
         //IR translation and lowering
-        IRTranslationVisitor tv = new IRTranslationVisitor(
-                !optDisableOptimization,
+        IRNode mir = root.accept(new IRTranslationVisitor(
+                activeOptims.get(Optims.CF),
                 FilenameUtils.removeExtension(f.getName())
-        );
-        IRNode mir = root.accept(tv);
+        ));
         LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
         IRNode checkedIR = optMIR ? mir : lv.visit(mir);
         ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
-        return optDisableOptimization ? checkedIR : cfv.visit(checkedIR);
+        return activeOptims.get(Optims.CF) ? cfv.visit(checkedIR) : checkedIR;
     }
 
     private void IRGen() {
@@ -358,19 +361,22 @@ public class CLI implements Runnable {
                     printer = new CodeWriterSExpPrinter(cw);
                     // IR canonical checker
                     {
-                        CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
+                        CheckCanonicalIRVisitor cv =
+                                new CheckCanonicalIRVisitor();
                         System.out.print("Canonical?: ");
                         System.out.println(cv.visit(foldedIR));
                     }
 
                     // IR constant-folding checker
                     {
-                        CheckConstFoldedIRVisitor cv = new CheckConstFoldedIRVisitor();
+                        CheckConstFoldedIRVisitor cv =
+                                new CheckConstFoldedIRVisitor();
                         System.out.print("Constant-folded?: ");
                         System.out.println(cv.visit(foldedIR));
                     }
                 } else {
-                    OptimalCodeWriter cw = new OptimalCodeWriter(fileWriter, 80);
+                    OptimalCodeWriter cw =
+                            new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
                 foldedIR.printSExp(printer);
@@ -397,7 +403,7 @@ public class CLI implements Runnable {
                 IRNode foldedIR = buildIR(f, fileReader);
                 //Interpreting
                 if (!optDebug) {
-                    System.setOut(new PrintStream(fos)); // make stdout go to a file
+                    System.setOut(new PrintStream(fos)); // stdout --> file
                 }
                 IRSimulator sim = new IRSimulator((IRCompUnit) foldedIR);
                 sim.call("_Imain_paai", 0);
@@ -408,7 +414,9 @@ public class CLI implements Runnable {
                 e.printStackTrace();
             } finally {
                 // reset the standard output stream
-                System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+                System.setOut(new PrintStream(new FileOutputStream(
+                        FileDescriptor.out
+                )));
             }
         }
     }
@@ -425,7 +433,8 @@ public class CLI implements Runnable {
     private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
         fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
         fileWriter.write(INDENT_ASM + ".text\n");
-        fileWriter.write(INDENT_ASM + ".globl" + INDENT_ASM + "_Imain_paai\n");
+        fileWriter.write(INDENT_ASM + ".globl" +
+                INDENT_ASM + "_Imain_paai\n");
     }
 
     private void asmGen() {
@@ -440,7 +449,8 @@ public class CLI implements Runnable {
 
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
-                RegAllocationNaiveVisitor regVisitor = new RegAllocationNaiveVisitor(optCommentASM);
+                RegAllocationNaiveVisitor regVisitor =
+                        new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
                 if (!optASMDisableRegAllocation) {
                     instrs = regVisitor.allocate(instrs);

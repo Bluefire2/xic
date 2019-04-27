@@ -17,8 +17,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private static final int WORD_NUM_BYTES = 8;
     private int labelcounter;
     private int tempcounter;
-    private boolean optimize;
-    private String name;
+    private boolean optimCF; // whether constant folding should be switched on
+    private String name; //name of the comp unit
 
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
@@ -28,11 +28,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public IRTranslationVisitor(boolean opt, String name) {
+    public IRTranslationVisitor(boolean optimCF, String name) {
         this.labelcounter = 0;
         this.tempcounter = 0;
-        this.optimize = opt;
-        this.name = name; //name of the comp unit
+        this.optimCF = optimCF;
+        this.name = name;
     }
 
     private String returnValueName(int i) {
@@ -482,7 +482,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             return new IRESeq(seq, new IRTemp(tempNewArray));
         }
         //constant folding the booleans before they get screwed up
-        if (l instanceof IRConst && r instanceof IRConst && optimize) {
+        if (l instanceof IRConst && r instanceof IRConst && optimCF) {
             long lval = ((IRConst) l).value();
             long rval = ((IRConst) r).value();
             switch (op) {
@@ -628,14 +628,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         switch (op) {
             //NOT(e)  -> XOR(1,e)
             case NOT:
-                if (e instanceof IRConst && optimize) {
+                if (e instanceof IRConst && optimCF) {
                     long e_val = ((IRConst) e).value();
                     return new IRConst((e_val == 0) ? 1 : 0);
                 }
                 return new IRBinOp(OpType.XOR, new IRConst(1), e);
             //UMINUS(e) -> SUB(0, e)
             case UMINUS:
-                if (e instanceof IRConst && optimize) {
+                if (e instanceof IRConst && optimCF) {
                     long e_val = ((IRConst) e).value();
                     return new IRConst(0 - e_val);
                 }
