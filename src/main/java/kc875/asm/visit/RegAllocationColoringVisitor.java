@@ -87,7 +87,7 @@ public class RegAllocationColoringVisitor {
         color = new HashMap<>();
     }
 
-    private void allocate(List<ASMInstr> instrs) {
+    private List<ASMInstr> allocate(List<ASMInstr> instrs) {
         this.instrs = instrs;
         //TODO
         // initialization goes here because allocate is recursive
@@ -111,17 +111,14 @@ public class RegAllocationColoringVisitor {
             }
         }
         assignColors();
-        if (spilledNodes.size() != 0) {
-            List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
-            //TODO reallocate? or switch to naive
-            allocate(new_program);
-        }
+        List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
+        return new_program;
     }
 
     private void livenessAnalysis(List<ASMInstr> instrs) {
         cfg = new ASMGraph(instrs);
         liveness = new LiveVariableDFA(cfg);
-        //TODO run LVA
+        liveness.runWorklistAlgo();
     }
 
     private void build() {
@@ -431,7 +428,7 @@ public class RegAllocationColoringVisitor {
             ASMInstr new_instr = rewriteInstr(i, spills);
             new_instrs.add(new_instr);
         }
-        //TODO maybe reset the appropriate data structures
+        //no need to reset data structures bc we only run coloring once
         return new_instrs;
     }
 

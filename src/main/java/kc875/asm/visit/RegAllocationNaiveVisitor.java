@@ -8,6 +8,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
+
+    enum SpillMode {
+        Naive, //naive reg allocation
+        Reserved, //r13,14,15 reserved for spilling
+        Restore, //can use any register, borrowed register's contents are saved in stack
+    }
+
     private final HashMap<String, Integer> tempToStackAddrMap = new HashMap<>();
     private final HashMap<String, Set<String>> funcToRefTempMap =
             new HashMap<>();
@@ -22,8 +29,16 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             "rbx", "r12", "r13", "r14", "r15"
     ).collect(Collectors.toSet());
 
+    private SpillMode mode;
+
+    public RegAllocationNaiveVisitor(boolean addComment, SpillMode mode) {
+        this.addComments = addComment;
+        this.mode = mode;
+    }
+
     public RegAllocationNaiveVisitor(boolean addComment) {
         this.addComments = addComment;
+        this.mode = SpillMode.Naive;
     }
 
     /**
@@ -275,18 +290,24 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param excludeRegs registers to exclude.
      */
     private List<String> getAvailRegs(List<String> excludeRegs) {
-        // copy registers
-        Set<String> availCallerRegs = new HashSet<>(CALLER_SAVE_REGS);
-        Set<String> availCalleeRegs = new HashSet<>(CALLEE_SAVE_REGS);
+        if (mode == SpillMode.Reserved) {
+            return Stream.of(
+                    "r13", "r14", "r15"
+            ).collect(Collectors.toList());
+        } else {
+            // copy registers
+            Set<String> availCallerRegs = new HashSet<>(CALLER_SAVE_REGS);
+            Set<String> availCalleeRegs = new HashSet<>(CALLEE_SAVE_REGS);
 
-        availCallerRegs.removeAll(excludeRegs);
-        availCalleeRegs.removeAll(excludeRegs);
+            availCallerRegs.removeAll(excludeRegs);
+            availCalleeRegs.removeAll(excludeRegs);
 
-        // create list with caller regs first, then add callee regs
-        // ==> follows function's postcondition
-        List<String> availRegs = new ArrayList<>(availCallerRegs);
-        availRegs.addAll(availCalleeRegs);
-        return availRegs;
+            // create list with caller regs first, then add callee regs
+            // ==> follows function's postcondition
+            List<String> availRegs = new ArrayList<>(availCallerRegs);
+            availRegs.addAll(availCalleeRegs);
+            return availRegs;
+        }
     }
 
     /**
@@ -329,6 +350,17 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             regs.add(((ASMExprReg) e).getReg());
         } else if (e instanceof ASMExprMem) {
             regs.addAll(getRegsInExpr(((ASMExprMem) e).getAddr()));
+        }
+        return regs;
+    }
+
+    private List<String> getRegsInInstr(ASMInstr i) {
+        List<String> regs = new ArrayList<>();
+        if (i instanceof ASMInstr_1Arg) {
+            regs.addAll(getRegsInExpr(((ASMInstr_1Arg) i).getArg()));
+        } else if (i instanceof ASMInstr_2Arg) {
+            regs.addAll(getRegsInExpr(((ASMInstr_2Arg) i).getSrc()));
+            regs.addAll(getRegsInExpr(((ASMInstr_2Arg) i).getDest()));
         }
         return regs;
     }
@@ -483,10 +515,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     public List<ASMInstr> visit(ASMInstr_1Arg i) {
         ASMExpr arg = i.getArg();
         List<ASMInstr> instrs = new ArrayList<>();
-        if (addComments) {
-            instrs.add(new ASMInstrComment("                           "
-                    +i.toString()));
-        }
         if (arg instanceof ASMExprTemp) {
             instrs.add(new ASMInstr_1Arg(
                     i.getOpCode(),
@@ -504,6 +532,23 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // does not change
             instrs.add(i);
         }
+        if (mode == SpillMode.Restore) {
+            Set<String> saveRegs = new HashSet<>();
+            for (ASMInstr instr : instrs) {
+                saveRegs.addAll(getRegsInInstr(instr));
+            }
+            saveRegs.removeAll(getRegsInInstr(i));
+            //saveRegs is the set of registers we need to save/restore
+            for (String reg : saveRegs) {
+                //add(0) means the pushes and pops will be in reversed order from each other
+                instrs.add(0, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(reg)));
+                instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(reg)));
+            }
+        }
+        if (addComments) {
+            instrs.add(0, new ASMInstrComment("                           "
+                    +i.toString()));
+        }
         return instrs;
     }
 
@@ -512,10 +557,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         ASMExpr l = i.getDest();
         ASMExpr r = i.getSrc();
         List<ASMInstr> instrs = new ArrayList<>();
-        if (addComments){
-            instrs.add(new ASMInstrComment("                           "
-                    +i.toString()));
-        }
         ASMExpr dest;
         if (l instanceof ASMExprTemp) {//if LHS is a temp it gets turned into a mem
             dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
@@ -587,6 +628,23 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                     dest,
                     src
             ));
+        }
+        if (mode == SpillMode.Restore) {
+            Set<String> saveRegs = new HashSet<>();
+            for (ASMInstr instr : instrs) {
+                saveRegs.addAll(getRegsInInstr(instr));
+            }
+            saveRegs.removeAll(getRegsInInstr(i));
+            //saveRegs is the set of registers we need to save/restore
+            for (String reg : saveRegs) {
+                //add(0) means the pushes and pops will be in reversed order from each other
+                instrs.add(0, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(reg)));
+                instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(reg)));
+            }
+        }
+        if (addComments) {
+            instrs.add(0, new ASMInstrComment("                           "
+                    +i.toString()));
         }
         return instrs;
     }
