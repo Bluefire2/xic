@@ -140,11 +140,44 @@ public class CLI implements Runnable {
             description = "Do not do register allocation in the asm.")
     private boolean optASMDisableRegAllocation = false;
 
-    @Option(names = {"-O"}, arity="0..1",
-            description = "Enable/Disable optimizations.")
-    private String[] optims;
+    @Option(names = {"-Oreg"}, hidden = true)
+    private boolean Oreg = false;
 
-    // TODO: -O-no-<opt>
+    @Option(names = {"-Ocse"}, hidden = true)
+    private boolean Ocse = false;
+
+    @Option(names = {"-Ocf"}, hidden = true)
+    private boolean Ocf = false;
+
+    @Option(names = {"-Omc"}, hidden = true)
+    private boolean Omc = false;
+
+    @Option(names = {"-Ocopy"}, hidden = true)
+    private boolean Ocopy = false;
+
+    @Option(names = {"-Odce"}, hidden = true)
+    private boolean Odce = false;
+
+    @Option(names = {"-O"}, description = "Disable optimizations.")
+    private boolean disableOptim = false;
+
+    @Option(names = {"-O-no-reg"}, hidden = true)
+    private boolean Onoreg = false;
+
+    @Option(names = {"-O-no-cse"}, hidden = true)
+    private boolean Onocse = false;
+
+    @Option(names = {"-O-no-cf"}, hidden = true)
+    private boolean Onocf = false;
+
+    @Option(names = {"-O-no-mc"}, hidden = true)
+    private boolean Onomc = false;
+
+    @Option(names = {"-O-no-copy"}, hidden = true)
+    private boolean Onocopy = false;
+
+    @Option(names = {"-O-no-dce"}, hidden = true)
+    private boolean Onodce = false;
 
     @Parameters(arity = "0..*", paramLabel = "FILE",
             description = "File(s) to process.")
@@ -158,6 +191,46 @@ public class CLI implements Runnable {
             System.err.println("Error: path " + path + " not found");
             return -1;
         }
+        return 0;
+    }
+
+    /**
+     * Returns -1 on any error, 0 otherwise.
+     */
+    private int handleOptimFlags() {
+        if (!Oreg && !Ocse && !Ocf && !Omc && !Ocopy && !Odce
+                && !disableOptim) {
+            // single flags are off and `-O` is not given ==> switch on all
+            EnumSet.allOf(Optims.class).forEach(
+                    o -> activeOptims.put(o, true)
+            );
+        } else {
+            // either some single flags are on or `-O` given. All optims
+            // are off in the map by default, so ignore `-O`.
+            if (Oreg || Omc) {
+                // activating any flag activates both optimizations
+                activeOptims.put(Optims.REG, true);
+                activeOptims.put(Optims.MC, true);
+            }
+            if (Ocse) activeOptims.put(Optims.CSE, true);
+            if (Ocf) activeOptims.put(Optims.CF, true);
+            if (Ocopy) activeOptims.put(Optims.COPY, true);
+            if (Odce) activeOptims.put(Optims.DCE, true);
+        }
+        if (Onoreg || Onomc) {
+            // deactivating any flag deactivates both optimizations
+            activeOptims.put(Optims.REG, false);
+            activeOptims.put(Optims.MC, false);
+        }
+        if (Onocse) activeOptims.put(Optims.CSE, false);
+        if (Onocf) activeOptims.put(Optims.CF, false);
+        if (Onocopy) activeOptims.put(Optims.COPY, false);
+        if (Onodce) activeOptims.put(Optims.DCE, false);
+        activeOptimIRPhases.entrySet().forEach(System.out::println);
+        activeOptimCFGPhases.entrySet().forEach(System.out::println);
+        activeOptims.entrySet().forEach(System.out::println);
+        System.exit(0);
+
         return 0;
     }
 
@@ -210,34 +283,9 @@ public class CLI implements Runnable {
                     }
                 }
             }
-            if (optims == null) {
-                // -O not specified, switch on all optims
-                EnumSet.allOf(Optims.class).forEach(
-                        o -> activeOptims.put(o, true)
-                );
-            } else {
-                // Some `-O foo` specified, could also be just `-O`
-                // All optims are off by default in this implementation, so
-                // if `-O` appears in the optims array, ignore and proceed to
-                // the next one
-                for (String o : optims) {
-                    try {
-                        if (o.equals("")) continue; // `-O`
-                        // `-O foo`
-                        activeOptims.put(Optims.valueOf(o.toUpperCase()), true);
-                    } catch (IllegalArgumentException e) {
-                        // Could not convert o to an enum ==> invalid optim
-                        System.err.println(String.format(
-                                "Error: opt %s with -O not supported", o
-                        ));
-                        return;
-                    }
-                }
-            }
-//            activeOptimIRPhases.entrySet().forEach(System.out::println);
-//            activeOptimCFGPhases.entrySet().forEach(System.out::println);
-//            activeOptims.entrySet().forEach(System.out::println);
-//            System.exit(0);
+
+            if (handleOptimFlags() != 0) return;
+
             if (optLex) {
                 lex();
             }
