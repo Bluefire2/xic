@@ -13,42 +13,48 @@ public class IRGraph extends Graph<IRStmt> {
 
     private BiMap<Node, IRStmt> nodeMap;
 
-    public IRGraph(IRFuncDecl node) {
-        nodeMap = HashBiMap.create();
+    private List<IRStmt> basicBlocks;
+    private HashMap<String, Integer> nodeLabelMap;
+    private HashMap<Integer, List<String>> jumps;
 
-        List<IRStmt> stmts = new ArrayList<>();
-        IRStmt topstmt = node.body();
-        if (topstmt instanceof IRSeq) {
-            stmts.addAll(((IRSeq) topstmt).stmts());
-        } else stmts.add(topstmt);
+    private IRSeq curr;
 
-        List<IRStmt> basicBlocks = new ArrayList<>();
-        HashMap<String, Integer> nodeLabelMap = new HashMap<>();
-        HashMap<Integer, List<String>> jumps = new HashMap<>();
-
-        IRSeq curr = new IRSeq();
-
-        for (IRStmt s : stmts) {
-            if (s instanceof IRLabel) {
-                basicBlocks.add(curr);
-                curr = new IRSeq();
-                curr.stmts().add(s);
-                nodeLabelMap.put(((IRLabel) s).name(), basicBlocks.size());
-            } else curr.stmts().add(s);
-            if (s instanceof IRJump ||
-                    s instanceof IRCJump ||
-                    s instanceof IRReturn) {
-                basicBlocks.add(curr);
-                curr = new IRSeq();
-                List<String> blockjumps = new ArrayList<>();
-                if (s instanceof IRCJump) {
-                    IRCJump sj = (IRCJump) s;
-                    blockjumps.add(sj.trueLabel());
-                    blockjumps.add(sj.falseLabel());
-                }
-                jumps.put(basicBlocks.size(), blockjumps);
+    private void stmtsToBasicBlocks(IRStmt s) {
+        if (s instanceof IRSeq) {
+            for (IRStmt stmt : ((IRSeq) s).stmts()) {
+                stmtsToBasicBlocks(stmt);
             }
         }
+        else if (s instanceof IRLabel) {
+            basicBlocks.add(curr);
+            curr = new IRSeq();
+            curr.stmts().add(s);
+            nodeLabelMap.put(((IRLabel) s).name(), basicBlocks.size());
+        } else curr.stmts().add(s);
+        if (s instanceof IRJump ||
+                s instanceof IRCJump ||
+                s instanceof IRReturn) {
+            basicBlocks.add(curr);
+            curr = new IRSeq();
+            List<String> blockjumps = new ArrayList<>();
+            if (s instanceof IRCJump) {
+                IRCJump sj = (IRCJump) s;
+                blockjumps.add(sj.trueLabel());
+                blockjumps.add(sj.falseLabel());
+            }
+            jumps.put(basicBlocks.size(), blockjumps);
+        }
+
+    }
+
+    public IRGraph(IRFuncDecl node) {
+        nodeMap = HashBiMap.create();
+        basicBlocks = new ArrayList<>();
+        nodeLabelMap = new HashMap<>();
+        jumps = new HashMap<>();
+
+        curr = new IRSeq();
+        stmtsToBasicBlocks(node.body());
 
         for (IRStmt bb : basicBlocks) {
             Graph<IRStmt>.Node n = new Graph<IRStmt>.Node(bb);
