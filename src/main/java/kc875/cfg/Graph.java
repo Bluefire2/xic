@@ -7,10 +7,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -96,6 +93,19 @@ public class Graph<T> {
                     ", in=" + in +
                     ", out=" + out +
                     '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Node node = (Node) o;
+            return Objects.equals(t, node.t);
+        }
+
+        @Override
+        public int hashCode() {
+            return t.hashCode();
         }
     }
 

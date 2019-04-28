@@ -23,4 +23,9 @@ public class ASMExprTemp extends ASMExprRT {
         }
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        return ("temp_"+name).hashCode();
+    }
 }

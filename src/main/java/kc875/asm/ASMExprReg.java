@@ -23,4 +23,9 @@ public class ASMExprReg extends ASMExprRT {
         }
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        return ("reg_"+reg).hashCode();
+    }
 }
