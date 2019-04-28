@@ -2,8 +2,10 @@ package kc875.cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
+import edu.cornell.cs.cs4120.xic.ir.IRConst;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
+import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
@@ -484,6 +486,10 @@ public class CLI implements Runnable {
                     printer = new CodeWriterSExpPrinter(cw);
                 }
                 foldedIR.printSExp(printer);
+                //TODO: test: remove
+                /*CommonSubexprElimVisitor cse = new CommonSubexprElimVisitor();
+                cse.removeCommonSubExpressions((IRCompUnit) foldedIR);
+                cse.getIrGraph().show("irgraph.ir");*/
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
