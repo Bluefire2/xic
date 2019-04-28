@@ -3,6 +3,7 @@ package kc875.cfg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -87,6 +88,15 @@ public class Graph<T> {
         public boolean isAdj(Node n) {
             return in.contains(n) || out.contains(n);
         }
+
+        @Override
+        public String toString() {
+            return "Node{" +
+                    "t=" + t +
+                    ", in=" + in +
+                    ", out=" + out +
+                    '}';
+        }
     }
 
     private Node startNode;
@@ -163,9 +173,12 @@ public class Graph<T> {
         }
 
         // Write prologue
-        String INDENT_TAB = "    ";
+        String INDENT_TAB = "\t";
         FileWriter f = new FileWriter(path);
-        f.write("digraph " + path + "\n");
+        String rawPath = FilenameUtils.getName(
+                FilenameUtils.removeExtension(path)
+        );
+        f.write("digraph " + rawPath + " {\n");
         f.write(INDENT_TAB + "node [shape=record];\n");
         f.write("\n");
 
@@ -187,8 +200,6 @@ public class Graph<T> {
             }
         }
         f.write("\n");
-
-        BiMap<String, Node> idNodeMap = nodeIDMap.inverse();
 
         Set<Node> visited = new HashSet<>();
         Stack<Node> unvisited = new Stack<>();

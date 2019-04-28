@@ -4,6 +4,7 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.ReachingDefnsDFA;
 import kc875.cfg.Graph;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ public class CopyPropagationVisitor {
     public IRCompUnit propagateCopies(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            irGraph = IRGraph.buildCFG(funcDecl);
+            irGraph = new IRGraph(funcDecl);
             //TODO: is reaching definitions analysis necessary here?
             ReachingDefnsDFA reachingDefnsDFA = new ReachingDefnsDFA(irGraph);
             reachingDefnsDFA.runWorklistAlgo();
