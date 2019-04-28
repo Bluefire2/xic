@@ -14,9 +14,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RegAllocationColoringVisitor {
-    private static String[] usableRegisters = new String[] {
-            "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
-    };
+    enum SpillMode {
+        Reserve,//r13,14,15 reserved for spilling
+        Restore //can use any register
+    }
+
+    private String[] usableRegisters;
 
     //every node is in exactly one of these sets
     private HashSet<Graph<ASMExprRT>.Node> precolored; // machine registers, pre-assigned
@@ -61,9 +64,13 @@ public class RegAllocationColoringVisitor {
     private LiveVariableDFA liveness;
     private List<ASMInstr> instrs;
 
-    private static int K = usableRegisters.length; // number of usable registers
+    private int K;// number of usable registers
 
     RegAllocationColoringVisitor() {
+        this(SpillMode.Reserve); //default to reserve mode
+    }
+
+    RegAllocationColoringVisitor(SpillMode s) {
         precolored = new HashSet<>();
         initial = new HashSet<>();
         simplifyWorklist = new HashSet<>();
@@ -85,15 +92,21 @@ public class RegAllocationColoringVisitor {
         moveList = new HashMap<>();
         alias = new HashMap<>();
         color = new HashMap<>();
+        if (s == SpillMode.Reserve) {
+            usableRegisters = new String[]{
+                    "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12",
+            };
+        } else {
+            usableRegisters = new String[]{
+                    "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
+            };
+        }
+        K = usableRegisters.length;
     }
 
-    private List<ASMInstr> allocate(List<ASMInstr> instrs) {
+    public List<ASMInstr> allocate(List<ASMInstr> instrs) {
         this.instrs = instrs;
-        //TODO
-        // initialization goes here because allocate is recursive
-        // some data structures may not need to be reset,
-        // in which case they can be moved up to the constructor
-        livenessAnalysis(instrs);
+        livenessAnalysis();
         build();
         makeWorkList();
         while (simplifyWorklist.size() != 0
@@ -115,7 +128,7 @@ public class RegAllocationColoringVisitor {
         return new_program;
     }
 
-    private void livenessAnalysis(List<ASMInstr> instrs) {
+    private void livenessAnalysis() {
         cfg = new ASMGraph(instrs);
         liveness = new LiveVariableDFA(cfg);
         liveness.runWorklistAlgo();
@@ -129,14 +142,14 @@ public class RegAllocationColoringVisitor {
             Map<Graph<ASMInstr>.Node, Set<ASMExprRT>> outs =
                     liveness.getOutMap();
             Set<ASMExprRT> live = outs.get(b);
-            for (ASMExprRT temp : live){
+            for (ASMExprRT temp : live) {
                 //add nodes to interference graph
-                if (!interference.checkTemp(temp)){
+                if (!interference.checkTemp(temp)) {
                     Graph<ASMExprRT>.Node node = interference.addNode(temp);
                     degree.put(node, 0);
                     adjList.put(node, new HashSet<>());
                     //add nodes to correct initial set
-                    if (temp instanceof ASMExprReg){
+                    if (temp instanceof ASMExprReg) {
                         precolored.add(node);
                     } else {
                         initial.add(node);
@@ -229,7 +242,8 @@ public class RegAllocationColoringVisitor {
         }
 
         // precondition guarantees that worklistMoves contains at least one element of this type
-        if (move == null || x == null) throw new InternalCompilerError("Violated precondition");
+        if (move == null || x == null)
+            throw new InternalCompilerError("Violated precondition");
 
         // x <- GetAlias(x)
         Graph<ASMExprRT>.Node xNode = getAlias(interference.getNode(x));
@@ -547,12 +561,12 @@ public class RegAllocationColoringVisitor {
         return n;
     }
 
-    private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes){
-        List<ASMInstr> instrs  = new ArrayList<>();
-        if (i instanceof ASMInstr_1Arg){
+    private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes) {
+        List<ASMInstr> instrs = new ArrayList<>();
+        if (i instanceof ASMInstr_1Arg) {
             ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
             return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));
-        } else if (i instanceof ASMInstr_2Arg){
+        } else if (i instanceof ASMInstr_2Arg) {
             ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
             return new ASMInstr_2Arg(i2.getOpCode(),
                     rewriteExpr(i2.getDest(), spilledNodes),
@@ -567,10 +581,10 @@ public class RegAllocationColoringVisitor {
         if (e instanceof ASMExprMem) {
             ASMExprMem m = (ASMExprMem) e;
             return new ASMExprMem(rewriteExpr(m.getAddr(), spilledNodes));
-        } else if (e instanceof ASMExprTemp){
+        } else if (e instanceof ASMExprTemp) {
             ASMExprTemp m = (ASMExprTemp) e;
             Graph<ASMExprRT>.Node n = interference.getNode(m);
-            if (spilledNodes.contains(n)){
+            if (spilledNodes.contains(n)) {
                 return e;
             } else {
                 //replace temp with reg
@@ -582,4 +596,172 @@ public class RegAllocationColoringVisitor {
         }
     }
 
+    //GETTERS (for testing)
+
+    public String[] getUsableRegisters() {
+        return usableRegisters;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getPrecolored() {
+        return precolored;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getInitial() {
+        return initial;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getSimplifyWorklist() {
+        return simplifyWorklist;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getFreezeWorklist() {
+        return freezeWorklist;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getSpillWorklist() {
+        return spillWorklist;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getSpilledNodes() {
+        return spilledNodes;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getCoalescedNodes() {
+        return coalescedNodes;
+    }
+
+    public HashSet<Graph<ASMExprRT>.Node> getColoredNodes() {
+        return coloredNodes;
+    }
+
+    public Stack<Graph<ASMExprRT>.Node> getSelectStack() {
+        return selectStack;
+    }
+
+    public HashSet<ASMInstr> getCoalescedMoves() {
+        return coalescedMoves;
+    }
+
+    public HashSet<ASMInstr> getConstrainedMoves() {
+        return constrainedMoves;
+    }
+
+    public HashSet<ASMInstr> getFrozenMoves() {
+        return frozenMoves;
+    }
+
+    public HashSet<ASMInstr> getWorklistMoves() {
+        return worklistMoves;
+    }
+
+    public HashSet<ASMInstr> getActiveMoves() {
+        return activeMoves;
+    }
+
+    public HashSet<Pair<Graph<ASMExprRT>.Node, Graph<ASMExprRT>.Node>> getAdjSet() {
+        return adjSet;
+    }
+
+    public HashMap<Graph<ASMExprRT>.Node, Set<Graph<ASMExprRT>.Node>> getAdjList() {
+        return adjList;
+    }
+
+    public HashMap<Graph<ASMExprRT>.Node, Integer> getDegree() {
+        return degree;
+    }
+
+    public HashMap<Graph<ASMExprRT>.Node, HashSet<ASMInstr>> getMoveList() {
+        return moveList;
+    }
+
+    public HashMap<Graph<ASMExprRT>.Node, Graph<ASMExprRT>.Node> getAlias() {
+        return alias;
+    }
+
+    public HashMap<Graph<ASMExprRT>.Node, Integer> getColor() {
+        return color;
+    }
+
+    public ASMGraph getCfg() {
+        return cfg;
+    }
+
+    public InterferenceGraph getInterference() {
+        return interference;
+    }
+
+    public LiveVariableDFA getLiveness() {
+        return liveness;
+    }
+
+    public List<ASMInstr> getInstrs() {
+        return instrs;
+    }
+
+    public int getK() {
+        return K;
+    }
+
+    //FOR TESTING ONLY!
+    //USED FOR TESTING ONLY - stops after build graph step so we can test for invariants
+    public void buildInterferenceGraph(List<ASMInstr> instrs) {
+        this.instrs = instrs;
+        livenessAnalysis();
+        build();
+    }
+
+    //check invariants which are true after build step
+
+    public boolean checkDegreeInv() {
+        //s = simplifyWL + freezeWL + spillWL
+        HashSet<Graph<ASMExprRT>.Node> s = new HashSet<>();
+        s.addAll(simplifyWorklist);
+        s.addAll(freezeWorklist);
+        s.addAll(spillWorklist);
+        for (Graph<ASMExprRT>.Node u : s) {
+            HashSet<Graph<ASMExprRT>.Node> s2 = new HashSet<>();
+            s2.addAll(s);
+            s2.addAll(precolored);
+            //s2 = adjList(u) intersection (precolored + simplifyWL + freezeWL + spillWL)
+            s2 = new HashSet<>(Sets.intersection(s2, adjList.get(u)));
+            if (degree.get(u) != s2.size()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean checkSimplifyWorklistInv() {
+        for (Graph<ASMExprRT>.Node u : simplifyWorklist) {
+            if (degree.get(u) >= K) {
+                return false;
+            }
+            //movelist[u] intersection (activeMoves + worklistMoves)
+            Set<ASMInstr> s = new HashSet<>();
+            s.addAll(activeMoves);
+            s.addAll(worklistMoves);
+            s = new HashSet<>(Sets.intersection(moveList.get(u), s));
+            if (s.size() != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean checkfreezeWorklistInv() {
+        for (Graph<ASMExprRT>.Node u : freezeWorklist) {
+            if (degree.get(u) >= K) {
+                return false;
+            }
+            //movelist[u] intersection (activeMoves + worklistMoves)
+            Set<ASMInstr> s = new HashSet<>();
+            s.addAll(activeMoves);
+            s.addAll(worklistMoves);
+            s = new HashSet<>(Sets.intersection(moveList.get(u), s));
+            if (s.size() == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
