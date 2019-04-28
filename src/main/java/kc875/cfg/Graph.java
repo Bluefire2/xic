@@ -153,7 +153,7 @@ public class Graph<T> {
     }
 
     /**
-     * Outputs the dot format of the graph to path.dot.
+     * Outputs the dot format of the graph to path.
      *
      * @param path path for writing the graph.
      */
@@ -164,7 +164,7 @@ public class Graph<T> {
 
         // Write prologue
         String INDENT_TAB = "    ";
-        FileWriter f = new FileWriter(path + ".dot");
+        FileWriter f = new FileWriter(path);
         f.write("digraph " + path + "\n");
         f.write(INDENT_TAB + "node [shape=record];\n");
         f.write("\n");

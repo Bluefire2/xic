@@ -5,7 +5,9 @@ import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import kc875.cfg.Graph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class CommonSubexprElimVisitor {
 
@@ -27,7 +29,7 @@ public class CommonSubexprElimVisitor {
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            irGraph = IRGraph.buildCFG(funcDecl);
+            irGraph = new IRGraph(funcDecl);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
 

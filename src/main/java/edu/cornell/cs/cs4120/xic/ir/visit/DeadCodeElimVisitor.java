@@ -4,6 +4,7 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
 import kc875.cfg.Graph;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class DeadCodeElimVisitor {
     public IRCompUnit removeDeadCode(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            irGraph = IRGraph.buildCFG(funcDecl);
+            irGraph = new IRGraph(funcDecl);
             LivenessDFA livenessDFA = new LivenessDFA(irGraph);
             livenessDFA.runWorklistAlgo();
 

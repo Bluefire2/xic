@@ -117,8 +117,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     /**
      * Check bounds of array access
      *
-     * @param temp_array   name of temp that points to head of array
-     * @param temp_index   name of temp that points to index
+     * @param temp_array name of temp that points to head of array
+     * @param temp_index name of temp that points to index
      * @return a list of IR statements for performing this check.
      */
     private IRStmt checkIndex(String temp_array, String temp_index) {
@@ -206,17 +206,17 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     //unfolds the sizes of the array and converts them all into IRTemps
-    private Pair<List<IRStmt>,List<String>> unfoldSizes(TypeTTauArray arr){
+    private Pair<List<IRStmt>, List<String>> unfoldSizes(TypeTTauArray arr) {
         List<IRStmt> moves = new ArrayList<>();
         List<String> sizeTemps = new ArrayList<>();
         Expr size = arr.getSize();
         TypeTTauArray curr = arr;
-        while (size != null && curr != null){
+        while (size != null && curr != null) {
             IRExpr sizeIR = (IRExpr) size.accept(this);
             String sizeTemp = newTemp();
             moves.add(new IRMove(new IRTemp(sizeTemp), sizeIR));
             sizeTemps.add(sizeTemp);
-            if (curr.getTypeTTau() instanceof TypeTTauArray){
+            if (curr.getTypeTTau() instanceof TypeTTauArray) {
                 curr = (TypeTTauArray) curr.getTypeTTau();
                 size = curr.getSize();
             } else {
@@ -224,15 +224,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 size = null;
             }
         }
-        return new Pair(moves, sizeTemps);
+        return new Pair<>(moves, sizeTemps);
     }
 
     /**
      * Allocates a multi dimensional array of type arr starting at
      * temporary/memory location t.
      *
-     * @param t   temporary or memory address.
-     * @param arr type of multi dim array.
+     * @param t         temporary or memory address.
+     * @param arr       type of multi dim array.
      * @param sizeTemps list of temp names where the array sizes are stored
      *                  need to pre-calculate and store them elsewhere
      * @return a list of IR statements for performing this array allocation.
@@ -282,7 +282,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                                 )
                         )),
                         itArray,
-                        sizeTemps.subList(1,sizeTemps.size()))));
+                        sizeTemps.subList(1, sizeTemps.size()))));
                 // i++
                 allocIR.add(new IRMove(
                         new IRTemp(i),
@@ -465,11 +465,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     new IRMove(
                             new IRTemp(newRStart),
                             new IRBinOp(OpType.ADD,
-                                new IRTemp(tempNewArray),
-                                new IRBinOp(OpType.MUL,
-                                        new IRConst(WORD_NUM_BYTES),
-                                        new IRTemp(tempLLength)
-                                )
+                                    new IRTemp(tempNewArray),
+                                    new IRBinOp(OpType.MUL,
+                                            new IRConst(WORD_NUM_BYTES),
+                                            new IRTemp(tempLLength)
+                                    )
                             )
                     )
             );
@@ -685,7 +685,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private IRStmt initDecl(String declName, TypeTTau declType) {
         if (declType instanceof TypeTTauArray) {
             TypeTTauArray declArray = (TypeTTauArray) declType;
-            Pair<List<IRStmt>,List<String>> unfoldedSizes = unfoldSizes(declArray);
+            Pair<List<IRStmt>, List<String>> unfoldedSizes = unfoldSizes(declArray);
             List<IRStmt> stmts = new ArrayList<>(unfoldedSizes.part1());
             stmts.addAll(
                     allocateMultiDimArray(new IRTemp(declName),

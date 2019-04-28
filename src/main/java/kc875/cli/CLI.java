@@ -51,9 +51,6 @@ public class CLI implements Runnable {
             description = "Output the allowed compiler optimizations.")
     private boolean optReportOptimizations = false;
 
-    enum Optims {REG, CSE, CF, MC, COPY, DCE}
-
-    enum OptimPhases {INITIAL, FINAL}
 
     // Map's value is true if user switches on the optimization/phase
     // Initialize values to false for now
@@ -226,10 +223,6 @@ public class CLI implements Runnable {
         if (Onocf) activeOptims.put(Optims.CF, false);
         if (Onocopy) activeOptims.put(Optims.COPY, false);
         if (Onodce) activeOptims.put(Optims.DCE, false);
-        activeOptimIRPhases.entrySet().forEach(System.out::println);
-        activeOptimCFGPhases.entrySet().forEach(System.out::println);
-        activeOptims.entrySet().forEach(System.out::println);
-        System.exit(0);
 
         return 0;
     }
@@ -366,7 +359,7 @@ public class CLI implements Runnable {
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
-                fileoutError(outputFilePath, e.getMessage());
+                CLIUtils.fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -398,7 +391,7 @@ public class CLI implements Runnable {
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
-                fileoutError(outputFilePath, e.getMessage());
+                CLIUtils.fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -407,15 +400,50 @@ public class CLI implements Runnable {
 
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
         ASTNode root = buildAST(fileReader);
-        //IR translation and lowering
+        String fPath = FilenameUtils.removeExtension(f.getName());
+
+        // Initial flags
+        if (activeOptims.get(Optims.CF) && (
+                activeOptimIRPhases.get(OptimPhases.INITIAL)
+                        || activeOptimCFGPhases.get(OptimPhases.INITIAL)
+        )) {
+            // CF on, as well as an initial phase for either --optir or --optcfg
+            // Since the IRTranslationVisitor does CF optimization
+            // internally, output the required diagnostic file for initial
+            // phase by constructing the MIR with CF switched off. This means
+            // we are doing repetitive work, but it's a work around to avoid
+            // decoupling CF in IRTranslationVisitor.
+            IRNode mirNoCF = root.accept(new IRTranslationVisitor(
+                    false, fPath
+            ));
+            if (activeOptimIRPhases.get(OptimPhases.INITIAL))
+                CLIUtils.fileoutIRPhase(mirNoCF, OptimPhases.INITIAL, fPath);
+
+            if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
+                CLIUtils.fileoutCFGPhase(
+                        (IRCompUnit) mirNoCF, OptimPhases.INITIAL, fPath
+                );
+        }
+
+        // Normal IR translation and lowering
         IRNode mir = root.accept(new IRTranslationVisitor(
                 activeOptims.get(Optims.CF),
                 FilenameUtils.removeExtension(f.getName())
         ));
         LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-        IRNode checkedIR = optMIR ? mir : lv.visit(mir);
-        ConstantFoldVisitor cfv = new ConstantFoldVisitor(new IRNodeFactory_c());
-        return activeOptims.get(Optims.CF) ? cfv.visit(checkedIR) : checkedIR;
+        IRNode ir = optMIR ? mir : lv.visit(mir);
+
+        // Optimizations
+        if (activeOptims.get(Optims.CF)) {
+            ConstantFoldVisitor v =
+                    new ConstantFoldVisitor(new IRNodeFactory_c());
+            ir = v.visit(ir);
+        }
+        // TODO: add other optimizations here
+
+        if (activeOptimIRPhases.get(OptimPhases.FINAL))
+            CLIUtils.fileoutIRPhase(ir, OptimPhases.FINAL, fPath);
+        return ir;
     }
 
     private void IRGen() {
@@ -458,7 +486,7 @@ public class CLI implements Runnable {
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
-                fileoutError(outputFilePath, e.getMessage());
+                CLIUtils.fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -484,7 +512,7 @@ public class CLI implements Runnable {
                 sim.call("_Imain_paai", 0);
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
-                fileoutError(outputFilePath, e.getMessage());
+                CLIUtils.fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -522,40 +550,40 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
+                // Get ASM
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 RegAllocationNaiveVisitor regVisitor =
                         new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
+
                 if (!optASMDisableRegAllocation) {
+                    // reg allocation enabled
                     instrs = regVisitor.allocate(instrs);
                 }
+
+                // Write ASM
                 asmFilePrologueWrite(fileWriter);
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
                 }
+
+                // Output the FINAL CFG graph is needed
+                if (activeOptimCFGPhases.get(OptimPhases.FINAL)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGPhase(
+                            instrs, OptimPhases.FINAL, diagPath
+                    );
+                }
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
-                fileoutError(outputFilePath, e.getMessage());
+                CLIUtils.fileoutError(outputFilePath, e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    /**
-     * Writes the error message in the file.
-     *
-     * @param outputFilePath path of the file to write in.
-     * @param errMessage     error message.
-     */
-    private void fileoutError(String outputFilePath, String errMessage) {
-        try {
-            FileWriter fw = new FileWriter(outputFilePath);
-            fw.write(errMessage);
-            fw.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
         }
     }
 
