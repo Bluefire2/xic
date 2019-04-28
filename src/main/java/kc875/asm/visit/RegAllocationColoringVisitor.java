@@ -124,8 +124,7 @@ public class RegAllocationColoringVisitor {
             }
         }
         assignColors();
-        List<ASMInstr> new_program = rewriteProgram(new ArrayList<>(spilledNodes));
-        return new_program;
+        return rewriteProgram(new ArrayList<>(spilledNodes));
     }
 
     private void livenessAnalysis() {
@@ -148,6 +147,7 @@ public class RegAllocationColoringVisitor {
                     Graph<ASMExprRT>.Node node = interference.addNode(temp);
                     degree.put(node, 0);
                     adjList.put(node, new HashSet<>());
+                    moveList.put(node, new HashSet<>());
                     //add nodes to correct initial set
                     if (temp instanceof ASMExprReg) {
                         precolored.add(node);
@@ -162,12 +162,14 @@ public class RegAllocationColoringVisitor {
             if (i.hasNewDef()) {
                 //live = live/use(i)
                 live = Sets.difference(live, LiveVariableDFA.use(b));
-                //forall n in def(i)+use(i)
-                for (ASMExprRT n : new HashSet<>(
+                //forall t in def(i)+use(i)
+                for (ASMExprRT t : new HashSet<>(
                         Sets.union(LiveVariableDFA.def(b), LiveVariableDFA.use(b)))
                 ) {
                     //movelist[n] <- movelist[n] + {I}
-                    moveList.get(interference.getNode(n)).add(i);
+                    //where n is the node associated with t
+                    Graph<ASMExprRT>.Node n = interference.getNode(t);
+                    moveList.get(n).add(i);
                 }
                 //worklistMoves = workListMoves + {I}
                 worklistMoves.add(i);
