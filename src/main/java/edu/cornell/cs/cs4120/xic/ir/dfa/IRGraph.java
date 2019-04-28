@@ -56,12 +56,16 @@ public class IRGraph extends Graph<IRStmt> {
         curr = new IRSeq();
         stmtsToBasicBlocks(node.body());
 
+        IRGraph.Node prev = null;
+
         for (IRStmt bb : basicBlocks) {
-            Graph<IRStmt>.Node n = new Graph<IRStmt>.Node(bb);
+            IRGraph.Node n = new IRGraph.Node(bb);
             if (getStartNode() == null) {
                 setStartNode(n);
             } else addOtherNode(n);
             nodeMap.put(n, bb);
+            if (prev != null) addEdge(prev, n);
+            prev = n;
         }
 
         for (Integer i : jumps.keySet()) {
