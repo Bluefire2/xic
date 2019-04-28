@@ -1,5 +1,7 @@
 package kc875.cfg;
 
+import kc875.utils.QueueSet;
+
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -107,10 +109,12 @@ public abstract class DFAFramework<T, U> {
         // already initialized to top
 
         // worklist <- { all nodes }
-        Set<Graph<U>.Node> worklist = graph.getAllNodes();
+        QueueSet<Graph<U>.Node> worklist = new QueueSet<>();
+        worklist.addAll(graph.getAllNodes());
 
         // Invariant: all nodes with unsatisfied eqns in worklist
-        for (Iterator<Graph<U>.Node> iter = worklist.iterator(); iter.hasNext();) {
+        Iterator<Graph<U>.Node> iter = worklist.iterator();
+        while (iter.hasNext()) {
             Graph<U>.Node node = iter.next();
             iter.remove();
 
