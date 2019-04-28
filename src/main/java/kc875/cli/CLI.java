@@ -410,18 +410,19 @@ public class CLI implements Runnable {
             // CF on, as well as an initial phase for either --optir or --optcfg
             // Since the IRTranslationVisitor does CF optimization
             // internally, output the required diagnostic file for initial
-            // phase by constructing the MIR with CF switched off. This means
+            // phase by constructing the LIR with CF switched off. This means
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
-            IRNode mirNoCF = root.accept(new IRTranslationVisitor(
+            IRNode ir = root.accept(new IRTranslationVisitor(
                     false, fPath
             ));
+            ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
             if (activeOptimIRPhases.get(OptimPhases.INITIAL))
-                CLIUtils.fileoutIRPhase(mirNoCF, OptimPhases.INITIAL, fPath);
+                CLIUtils.fileoutIRPhase(ir, OptimPhases.INITIAL, fPath);
 
             if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
                 CLIUtils.fileoutCFGPhase(
-                        (IRCompUnit) mirNoCF, OptimPhases.INITIAL, fPath
+                        (IRCompUnit) ir, OptimPhases.INITIAL, fPath
                 );
         }
 
