@@ -1,7 +1,6 @@
 package kc875.cfg;
 
-import kc875.utils.QueueSet;
-
+import java.io.IOException;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -109,14 +108,18 @@ public abstract class DFAFramework<T, U> {
         // already initialized to top
 
         // worklist <- { all nodes }
-        QueueSet<Graph<U>.Node> worklist = new QueueSet<>();
-        worklist.addAll(graph.getAllNodes());
+        // Maintaining a set and list to avoid concurrentModificationException
+        // occurring when elts are removed/added to the set while iterating.
+        // ListIterator on list avoids this problem, and set is needed to avoid
+        // linear time contains lookups.
+        Set<Graph<U>.Node> wlSet = new HashSet<>(graph.getAllNodes());
 
         // Invariant: all nodes with unsatisfied eqns in worklist
-        Iterator<Graph<U>.Node> iter = worklist.iterator();
-        while (iter.hasNext()) {
-            Graph<U>.Node node = iter.next();
-            iter.remove();
+        ListIterator<Graph<U>.Node> it = new LinkedList<>(wlSet).listIterator();
+        while (it.hasNext()) {
+            Graph<U>.Node node = it.next();
+            it.remove();// remove from queue
+            wlSet.remove(node);// remove from set
 
             switch (direction) {
                 case FORWARD:
@@ -124,7 +127,12 @@ public abstract class DFAFramework<T, U> {
                     T outAfterUpdate = this.afterF(node);
                     if (!outBeforeUpdate.equals(outAfterUpdate)) {
                         // out has changed, push succs of node to worklist
-                        worklist.addAll(node.succ());
+                        for (Graph<U>.Node sNode : node.succ()) {
+                            if (!(wlSet.contains(sNode))) {
+                                wlSet.add(sNode);
+                                it.add(sNode);
+                            }
+                        }
                     }
                     break;
                 case BACKWARD:
@@ -132,9 +140,30 @@ public abstract class DFAFramework<T, U> {
                     T inAfterUpdate = this.afterF(node);
                     if (!inBeforeUpdate.equals(inAfterUpdate)) {
                         // in has changed, push preds of node to worklist
-                        worklist.addAll(node.pred());
+                        for (Graph<U>.Node pNode : node.pred()) {
+                            if (!(wlSet.contains(pNode))) {
+                                wlSet.add(pNode);
+                                it.add(pNode);
+                            }
+                        }
                     }
             }
         }
+    }
+
+    /**
+     * Outputs the dot format of the graph to path with ins and outs
+     * annotated in the graph.
+     *
+     * @param path path for writing the graph.
+     */
+    public void show(String path) throws IOException {
+        Map<Graph<U>.Node, String> annotationsBefore = new HashMap<>();
+        Map<Graph<U>.Node, String> annotationsAfter = new HashMap<>();
+        for (Graph<U>.Node node : graph.getAllNodes()) {
+            annotationsBefore.put(node, "in=" + inMap.get(node));
+            annotationsAfter.put(node, "out=" + outMap.get(node));
+        }
+        graph.show(path, annotationsBefore, annotationsAfter);
     }
 }

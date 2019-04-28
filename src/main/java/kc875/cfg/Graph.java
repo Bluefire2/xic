@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 
 /**
  * A Graph of nodes T.
+ *
  * @param <T> Wrapped graph node (such as ASMInstr, IRStmt, List<ASMInstr> etc.).
  */
 public class Graph<T> {
@@ -97,10 +99,11 @@ public class Graph<T> {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Node node = (Node) o;
-            return Objects.equals(t, node.t);
+            if (!(o instanceof Graph<?>.Node))
+                return false;
+            Graph<?>.Node onode = (Graph<?>.Node) o;
+            return t.equals(onode.getT())
+                    && in.equals(onode.in) && out.equals(onode.out);
         }
 
         @Override
@@ -153,7 +156,7 @@ public class Graph<T> {
      * Adds an edge from node `from` to node `to`.
      *
      * @param from 'sender' node.
-     * @param to 'receiver' node.
+     * @param to   'receiver' node.
      */
     public void addEdge(Node from, Node to) {
         from.out.add(to);
@@ -165,7 +168,7 @@ public class Graph<T> {
      * if the edge doesn't exist.
      *
      * @param from 'sender' node.
-     * @param to 'receiver' node.
+     * @param to   'receiver' node.
      */
     public void removeEdge(Node from, Node to) {
         from.out.remove(to);
@@ -173,11 +176,20 @@ public class Graph<T> {
     }
 
     /**
-     * Outputs the dot format of the graph to path.
+     * Outputs the dot format of the graph to path. String annotations just
+     * before and after nodes in the graph are obtained from
+     * annotationsBefore and annotationsAfter respectively, if they exist.
      *
-     * @param path path for writing the graph.
+     * @param path              path for writing the graph.
+     * @param annotationsBefore map of nodes to strings to be displayed
+     *                          before each node.
+     * @param annotationsAfter  map of nodes to strings to be displayed after
+     *                          each node.
      */
-    public void show(String path) throws IOException {
+    public void show(String path,
+                     Map<Graph<T>.Node, String> annotationsBefore,
+                     Map<Graph<T>.Node, String> annotationsAfter)
+            throws IOException {
         if (startNode == null) {
             throw new IllegalAccessError("No start node for the graph");
         }
@@ -190,6 +202,7 @@ public class Graph<T> {
         );
         f.write("digraph " + rawPath + " {\n");
         f.write(INDENT_TAB + "node [shape=record];\n");
+        f.write(INDENT_TAB + "forcelabels=true;\n");
         f.write("\n");
 
         // Assign IDs to all nodes and write them to file
@@ -201,10 +214,22 @@ public class Graph<T> {
                 // add this node to the map
                 String id = "n_" + i;
                 nodeIDMap.put(node, id);
-                f.write(
-                        INDENT_TAB + id + INDENT_TAB
-                        + "[label=\"" + node.getT() + "\"]"
+
+                // label="..."
+                String nodeLabel = node.getT().toString();
+                // xlabel="<before...>\n<after...>"
+                String nodeXLabel = annotationsBefore.getOrDefault(node, "")
                         + "\n"
+                        + annotationsAfter.getOrDefault(node, "");
+                f.write(
+                        INDENT_TAB + id + INDENT_TAB + "["
+                                + "label=\""
+                                + StringEscapeUtils.escapeJava(nodeLabel)
+                                + "\", "
+                                + "xlabel=\""
+                                + StringEscapeUtils.escapeJava(nodeXLabel)
+                                + "\""
+                                + "]\n"
                 );
                 i++;
             }
@@ -227,10 +252,10 @@ public class Graph<T> {
                     .collect(Collectors.joining(", "));
             f.write(
                     INDENT_TAB
-                    + nodeIDMap.get(node)
-                    + INDENT_TAB + "->" + INDENT_TAB
-                    + "{" + succNodes + "}"
-                    + "\n"
+                            + nodeIDMap.get(node)
+                            + INDENT_TAB + "->" + INDENT_TAB
+                            + "{" + succNodes + "}"
+                            + "\n"
             );
 
             for (Node succNode : node.succ()) {
@@ -243,5 +268,15 @@ public class Graph<T> {
 
         f.write("\n}\n");
         f.close();
+    }
+
+    /**
+     * Outputs the dot format of the graph to path.
+     *
+     * @param path path for writing the graph.
+     */
+    public void show(String path) throws IOException {
+        // Use the show without any annotations
+        show(path, new HashMap<>(), new HashMap<>());
     }
 }

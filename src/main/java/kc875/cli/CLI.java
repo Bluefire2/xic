@@ -558,6 +558,17 @@ public class CLI implements Runnable {
                         new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
+                // Output the LIVEVAR CFG graph is needed
+                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGDFAPhase(
+                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+                    );
+                }
+
                 if (!optASMDisableRegAllocation) {
                     // reg allocation enabled
                     instrs = regVisitor.allocate(instrs);

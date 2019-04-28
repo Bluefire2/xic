@@ -9,6 +9,8 @@ import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstrLabel;
 import kc875.asm.ASMUtils;
 import kc875.asm.dfa.ASMGraph;
+import kc875.asm.dfa.LiveVariableDFA;
+import kc875.cfg.DFAFramework;
 import kc875.utils.XiUtils;
 import polyglot.util.OptimalCodeWriter;
 
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 class CLIUtils {
     /**
@@ -102,6 +105,58 @@ class CLIUtils {
             );
             try {
                 funcGraph.show(filename);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        };
+        ASMUtils.execPerFunc(ins, cPerFunc);
+    }
+
+    /**
+     * Outputs the CFGs for all functions f in list of ASM instructions with
+     * paths of the form `path_f_p1_p2_..._pn.dot` after running DFAs p1, p2,
+     * ..., pn on f.
+     * Preconditions:
+     * - Phases pi must not be INITIAL or FINAL.
+     *
+     * @param ins  ASM instructions to extract functions from.
+     * @param ps   list of optimization phases, in order for running.
+     * @param path path to write at.
+     */
+    static void fileoutCFGDFAPhase(List<ASMInstr> ins, List<OptimPhases> ps,
+                                   String path) {
+        // Get all functions out of ir
+
+        Consumer<List<ASMInstr>> cPerFunc = listASM -> {
+            // Get name of function
+            String fName = ((ASMInstrLabel) listASM.get(0)).getName();
+
+            // Build the CFG for f and output to file
+            ASMGraph funcGraph = new ASMGraph(listASM);
+            String filename = String.format(
+                    "%s_%s_%s.dot",
+                    path,
+                    XiUtils.fNameFromABIName(fName),
+                    ps.stream()
+                            .map(p -> p.toString().toLowerCase())
+                            .collect(Collectors.joining("_"))
+            );
+            try {
+                // Run the DFAs specified by ps
+                for (OptimPhases p : ps) {
+                    DFAFramework framework;
+                    switch (p) {
+                        case ASMLIVEVAR:
+                            framework = new LiveVariableDFA(funcGraph);
+                            break;
+                        default:
+                            throw new IllegalAccessError(
+                                    "Can't run " + p + " DFA on ASM"
+                            );
+                    }
+                    framework.runWorklistAlgo();
+                    framework.show(filename);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }

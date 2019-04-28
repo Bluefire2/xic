@@ -1,3 +1,7 @@
 package kc875.cli;
 
-enum OptimPhases {INITIAL, FINAL}
+enum OptimPhases {
+    INITIAL,
+    FINAL,
+    ASMLIVEVAR
+}
