@@ -23,10 +23,8 @@ public class ASMGraph extends Graph<ASMInstr> {
                     ASMOpCode.JGE,
                     ASMOpCode.JL,
                     ASMOpCode.JLE,
-                    ASMOpCode.JNE,
-                    ASMOpCode.RET,
-                    ASMOpCode.CALL
-            ) // TODO
+                    ASMOpCode.JNE
+            )
     );
 
     /**
@@ -45,11 +43,12 @@ public class ASMGraph extends Graph<ASMInstr> {
         // set the start node
         Iterator<ASMInstr> iter = instrs.iterator();
         Node previous = new Node(iter.next());
+        setStartNode(previous);
 
         while (iter.hasNext()) {
             ASMInstr instr = iter.next();
             Node node = new Node(instr);
-            this.addOtherNode(node);
+            addOtherNode(node);
             nodeInstrMap.put(node, instr);
 
             if (instr instanceof ASMInstrLabel) {
@@ -58,29 +57,33 @@ public class ASMGraph extends Graph<ASMInstr> {
 
             // add an edge from the previous instruction's node if we need to
             if (hasEdgeToNextInstr(previous.getT())) {
-                this.addEdge(previous, node);
+                addEdge(previous, node);
             }
             previous = node;
         }
 
         // SECOND PASS: add CFG edges for jumps to labelled nodes
 
-        for (Node node : this.getAllNodes()) {
+        for (Node node : getAllNodes()) {
             ASMInstr instr = node.getT();
 
             if (!jumps.contains(instr.getOpCode())) {
-                // this instr is not a jump node, continue to next node
+                // instr is not a jump node, continue to next node
                 continue;
             }
 
             // we need to add another edge to the jumped-to node!
             if (instr instanceof ASMInstr_1Arg) {
                 // TODO: change for A7 since we'll be able to jump to non-labels
-                ASMExprName label = (ASMExprName) ((ASMInstr_1Arg) instr).getArg();
+                ASMExprName arg = (ASMExprName) ((ASMInstr_1Arg) instr).getArg();
 
+                // If the arg is not for a function, then we can jump to it
+                // inside this function
                 // get the node we jump to and add an edge to it
-                Node to = labelToNodeMap.get(label.getName());
-                this.addEdge(node, to);
+                if (!arg.isFunction()) {
+                    Node to = labelToNodeMap.get(arg.getName());
+                    addEdge(node, to);
+                }
             } else {
                 throw new InternalCompilerError("Jmp instructions can't be " +
                         "2Arg");

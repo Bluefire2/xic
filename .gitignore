@@ -175,6 +175,7 @@ vm/shared/xic
 *.typed
 *.ir
 *.s
+*.dot
 
 ## Misc ignores
 # Platform-specific and editor temporaries

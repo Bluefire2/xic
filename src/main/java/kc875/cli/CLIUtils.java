@@ -45,7 +45,7 @@ class CLIUtils {
     static void fileoutIRPhase(IRNode ir, OptimPhases p, String path)
             throws Exception {
         // Get output file name and write the IR
-        String fName = path + "_initial.ir";
+        String fName = path + "_" + p.toString().toLowerCase() + ".ir";
         FileWriter writer = new FileWriter(fName);
         OptimalCodeWriter cw = new OptimalCodeWriter(writer, 80);
         CodeWriterSExpPrinter printer = new CodeWriterSExpPrinter(cw);
