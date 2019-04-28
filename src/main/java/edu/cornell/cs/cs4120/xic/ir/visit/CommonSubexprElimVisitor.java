@@ -50,7 +50,7 @@ public class CommonSubexprElimVisitor {
             }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    IRGraph.flattenCFG((IRGraph) availableExprsDFA.getGraph()));
+                    IRGraph.flattenCFG((IRGraph) irGraph));
             optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
