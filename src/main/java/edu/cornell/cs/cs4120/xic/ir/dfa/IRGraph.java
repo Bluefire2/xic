@@ -4,79 +4,94 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import kc875.cfg.Graph;
+import kc875.utils.XiUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 
 public class IRGraph extends Graph<IRStmt> {
 
-    private BiMap<Node, IRStmt> nodeMap;
+    private BiMap<Node, IRStmt> nodeStmtMap;
 
-    private List<IRStmt> basicBlocks;
-    private HashMap<String, Integer> nodeLabelMap;
-    private HashMap<Integer, List<String>> jumps;
+    /**
+     * Graph for lowered IR representation of a function.
+     *
+     * @param func function.
+     */
+    public IRGraph(IRFuncDecl func) {
+        nodeStmtMap = HashBiMap.create();
+        HashMap<String, Node> labelToNodeMap = new HashMap<>();
 
-    private IRSeq curr;
+        // FIRST PASS: add all instructions as nodes
+        IRStmt body = func.body();
+        IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+        if (stmts.stmts().isEmpty()) return;
 
-    private void stmtsToBasicBlocks(IRStmt s) {
-        if (s instanceof IRSeq) {
-            for (IRStmt stmt : ((IRSeq) s).stmts()) {
-                stmtsToBasicBlocks(stmt);
+        // set the start node
+        Iterator<IRStmt> iter = stmts.stmts().iterator();
+        Node previous = new Node(iter.next());
+        setStartNode(previous);
+
+        while (iter.hasNext()) {
+            IRStmt stmt = iter.next();
+            Node node = new Node(stmt);
+            addOtherNode(node);
+            nodeStmtMap.put(node, stmt);
+
+            if (stmt instanceof IRLabel) {
+                labelToNodeMap.put(((IRLabel) stmt).name(), node);
             }
-        }
-        else if (s instanceof IRLabel) {
-            basicBlocks.add(curr);
-            curr = new IRSeq();
-            curr.stmts().add(s);
-            nodeLabelMap.put(((IRLabel) s).name(), basicBlocks.size());
-        } else curr.stmts().add(s);
-        if (s instanceof IRJump ||
-                s instanceof IRCJump ||
-                s instanceof IRReturn) {
-            basicBlocks.add(curr);
-            curr = new IRSeq();
-            List<String> blockjumps = new ArrayList<>();
-            if (s instanceof IRCJump) {
-                IRCJump sj = (IRCJump) s;
-                blockjumps.add(sj.trueLabel());
-                blockjumps.add(sj.falseLabel());
+
+            // add an edge from the previous instruction's node if we need to
+            if (!(previous.getT() instanceof IRJump
+                    || previous.getT() instanceof IRReturn)) {
+                // not an unconditional jump or return, add an edge
+                addEdge(previous, node);
             }
-            jumps.put(basicBlocks.size(), blockjumps);
+            previous = node;
         }
 
-    }
+        // SECOND PASS: add CFG edges for jumps to labelled nodes
 
-    public IRGraph(IRFuncDecl node) {
-        nodeMap = HashBiMap.create();
-        basicBlocks = new ArrayList<>();
-        nodeLabelMap = new HashMap<>();
-        jumps = new HashMap<>();
+        for (Node node : getAllNodes()) {
+            IRStmt stmt = node.getT();
 
-        curr = new IRSeq();
-        stmtsToBasicBlocks(node.body());
+            if (!(stmt instanceof IRJump || stmt instanceof IRCJump)) {
+                // stmt is not a jump node, continue to next node
+                continue;
+            }
 
-        IRGraph.Node prev = null;
+            // we need to add another edge to the jumped-to node
+            if (stmt instanceof IRJump) {
+                // TODO: change for A7 since we'll be able to jump to non-labels
+                IRName arg = (IRName) ((IRJump) stmt).target();
 
-        for (IRStmt bb : basicBlocks) {
-            IRGraph.Node n = new IRGraph.Node(bb);
-            if (getStartNode() == null) {
-                setStartNode(n);
-            } else addOtherNode(n);
-            nodeMap.put(n, bb);
-            if (prev != null) addEdge(prev, n);
-            prev = n;
-        }
+                // If the arg is not for a function, then we can jump to it
+                // inside this function
+                // get the node we jump to and add an edge to it
+                if (!XiUtils.isFunction(arg.name())) {
+                    Node to = labelToNodeMap.get(arg.name());
+                    addEdge(node, to);
+                }
+            } else {
+                // stmt is CJUMP
+                String trueLabel = ((IRCJump) stmt).trueLabel();
 
-        for (Integer i : jumps.keySet()) {
-            for (String s : jumps.get(i)) {
-                if (nodeLabelMap.containsKey(s)) {
-                    addEdge(nodeMap.inverse().get(basicBlocks.get(i)),
-                            nodeMap.inverse().get(basicBlocks.get(nodeLabelMap.get(s))));
+                if (!XiUtils.isFunction(trueLabel)) {
+                    Node to = labelToNodeMap.get(trueLabel);
+                    addEdge(node, to);
+                }
+
+                // May have false label
+                if (((IRCJump) stmt).hasFalseLabel()) {
+                    String falseLabel = ((IRCJump) stmt).falseLabel();
+                    if (!XiUtils.isFunction(falseLabel)) {
+                        Node to = labelToNodeMap.get(falseLabel);
+                        addEdge(node, to);
+                    }
                 }
             }
         }
-
     }
 
     /**
@@ -97,10 +112,10 @@ public class IRGraph extends Graph<IRStmt> {
     }
 
     public IRStmt getStmt(Node n) {
-        return nodeMap.get(n);
+        return nodeStmtMap.get(n);
     }
 
     public void setStmt(Node n, IRStmt s) {
-        nodeMap.replace(n, s);
+        nodeStmtMap.replace(n, s);
     }
 }

@@ -11,4 +11,11 @@ public class XiUtils {
         int _idx = nameWithout_I.indexOf('_');
         return _idx == -1 ? nameWithout_I : nameWithout_I.substring(0, _idx);
     }
+
+    /**
+     * Returns true if name is for a function, false otherwise.
+     */
+    public static boolean isFunction(String name) {
+        return name.startsWith("_I"); // based on the ABI spec
+    }
 }
