@@ -110,6 +110,7 @@ public class RegAllocationColoringVisitor {
         livenessAnalysis();
         build();
         makeWorkList();
+        int c = 0;
         while (simplifyWorklist.size() != 0
                 || worklistMoves.size() != 0
                 || freezeWorklist.size() != 0
@@ -117,12 +118,16 @@ public class RegAllocationColoringVisitor {
             if (simplifyWorklist.size() != 0) {
                 simplify();
             } else if (worklistMoves.size() != 0) {
+                System.out.println(worklistMoves.size());
                 coalesce();
+                System.out.println(worklistMoves.size());
             } else if (freezeWorklist.size() != 0) {
                 freeze();
             } else {
                 selectSpill();
             }
+            c++;
+            if (c > 100) break;
         }
         assignColors();
         return rewriteProgram(new ArrayList<>(spilledNodes));
@@ -226,27 +231,21 @@ public class RegAllocationColoringVisitor {
     }
 
     private void coalesce() {
-        //TODO: implement the invariant that all of these are moves
-
         // let m (= copy(x, y)) in worklistMoves
         // here, we use move instead of m
         ASMInstr_2Arg move = null;
-        ASMExprTemp x = null;
-        ASMExprTemp y = null;
-        for (ASMInstr instr : worklistMoves) {
-            move = (ASMInstr_2Arg) instr;
-            ASMExpr xE = move.getSrc();
-            ASMExpr yE = move.getDest();
-
-            if (xE instanceof ASMExprTemp && yE instanceof ASMExprTemp) {
-                x = (ASMExprTemp) xE;
-                y = (ASMExprTemp) yE;
+        for (ASMInstr instr : new HashSet<>(worklistMoves)) {
+            if (isCopy(instr)) {
+                move = (ASMInstr_2Arg) instr;
+                break;
             }
         }
 
-        // precondition guarantees that worklistMoves contains at least one element of this type
-        if (move == null || x == null)
-            throw new InternalCompilerError("Violated precondition");
+        // can't do anything
+        if (move == null) return;
+
+        ASMExprRT x = (ASMExprRT) move.getDest();
+        ASMExprRT y = (ASMExprRT) move.getSrc();
 
         // x <- GetAlias(x)
         Graph<ASMExprRT>.Node xNode = getAlias(interference.getNode(x));
@@ -289,7 +288,7 @@ public class RegAllocationColoringVisitor {
                                 && getAdjacent(v).stream().allMatch(t -> ok(t, u))
                 ) || (
                         !precolored.contains(u)
-                                && conservative(Sets.union(getAdjacent(u), getAdjacent(v)))
+                                && conservative(new HashSet<>(Sets.union(getAdjacent(u), getAdjacent(v))))
                 )
         ) {
             // else if u in precolored AND (\forall t in Adjacent(v), OK(t, u))
@@ -328,11 +327,11 @@ public class RegAllocationColoringVisitor {
 
         // forall t in Adjacent(v)
         for (Graph<ASMExprRT>.Node t : getAdjacent(v)) {
-            ASMExprRT tInstr = interference.getTemp(t);
-            ASMExprRT uInstr = interference.getTemp(u);
+            ASMExprRT tTemp = interference.getTemp(t);
+            ASMExprRT uTemp = interference.getTemp(u);
 
             // AddEdge(t, u)
-            addEdge(tInstr, uInstr);
+            addEdge(tTemp, uTemp);
             // DecrementDegree(t)
             decrementDegree(t);
         }
@@ -359,14 +358,11 @@ public class RegAllocationColoringVisitor {
 
     private void freezeMoves(Graph<ASMExprRT>.Node u) {
         // forall m (= copy(x, y)) in NodeMoves(u)
-        for (ASMInstr instr : worklistMoves) {
+        for (ASMInstr instr : nodeMoves(u)) {
             ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
-            ASMExpr xE = move.getSrc();
-            ASMExpr yE = move.getDest();
-
-            if (xE instanceof ASMExprTemp && yE instanceof ASMExprTemp) {
-                Graph<ASMExprRT>.Node x = interference.getNode((ASMExprTemp) xE);
-                Graph<ASMExprRT>.Node y = interference.getNode((ASMExprTemp) yE);
+            if (isCopy(move)) {
+                Graph<ASMExprRT>.Node x = interference.getNode((ASMExprRT) move.getDest());
+                Graph<ASMExprRT>.Node y = interference.getNode((ASMExprRT) move.getSrc());
 
                 Graph<ASMExprRT>.Node v;
                 // if GetAlias(y) = GetAlias(u)
@@ -766,5 +762,15 @@ public class RegAllocationColoringVisitor {
             }
         }
         return true;
+    }
+
+    //return true if instruction is COPY(x,y)
+    public boolean isCopy(ASMInstr instr){
+        if (instr instanceof ASMInstr_2Arg) {
+            ASMInstr_2Arg i = (ASMInstr_2Arg) instr;
+            boolean checkOpCode = (i.getOpCode() == ASMOpCode.MOV || i.getOpCode() == ASMOpCode.MOVZX);
+            return (checkOpCode && i.getDest() instanceof ASMExprRT && i.getSrc() instanceof ASMExprRT);
+        }
+        return false;
     }
 }
