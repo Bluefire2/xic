@@ -92,6 +92,7 @@ public class RegAllocationColoringVisitor {
         moveList = new HashMap<>();
         alias = new HashMap<>();
         color = new HashMap<>();
+        degree = new HashMap<>();
         if (s == SpillMode.Reserve) {
             usableRegisters = new String[]{
                     "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12",
@@ -194,7 +195,7 @@ public class RegAllocationColoringVisitor {
 
     private void makeWorkList() {
         //forall n in initial
-        for (Graph<ASMExprRT>.Node n : initial) {
+        for (Graph<ASMExprRT>.Node n : new HashSet<>(initial)) {
             //initial = initial\{n}
             initial.remove(n);
             //if degree[n] >= K
