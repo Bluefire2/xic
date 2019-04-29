@@ -42,8 +42,7 @@ public class CommonSubexprElimVisitor {
             for (int i = 0; i < listStmt.size(); ++i) {
                 // optimize each stmt in the body
                 IRStmt stmt = listStmt.get(i);
-                Graph<IRStmt>.Node n =
-                        irGraph.getNodeStmtMap().inverse().get(stmt);
+                Graph<IRStmt>.Node n = irGraph.getNode(stmt);
                 IRSeq seq = new IRSeq();
                 for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
                     String tmp = newTemp();
