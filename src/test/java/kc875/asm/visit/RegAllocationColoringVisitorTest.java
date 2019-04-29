@@ -224,6 +224,27 @@ public class RegAllocationColoringVisitorTest {
         return count;
     }
 
+    /**
+     * Count the number of <b>unique</b> temps in a list of instructions.
+     *
+     * @param instrs The instructions.
+     * @return The number of unique temps.
+     */
+    private int countUniqueTemps(List<ASMInstr> instrs) {
+        Set<String> temps = new HashSet<>();
+        for (ASMInstr i : instrs) {
+            System.out.println(i);
+            if (i instanceof ASMInstr_1Arg) {
+                addUniqueTemps(((ASMInstr_1Arg) i).getArg(), temps);
+            } else if (i instanceof ASMInstr_2Arg) {
+                ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
+                addUniqueTemps(i2.getDest(), temps);
+                addUniqueTemps(i2.getSrc(), temps);
+            }
+        }
+        return temps.size();
+    }
+
     private int countTempsExpr(ASMExpr e) {
         if (e instanceof ASMExprBinOp) {
             ASMExprBinOp b = (ASMExprBinOp) e;
@@ -234,6 +255,24 @@ public class RegAllocationColoringVisitorTest {
             return countTempsExpr(((ASMExprMem) e).getAddr());
         } else {
             return 0;
+        }
+    }
+
+    /**
+     * Add the <b>unique</b> temps in a given instruction to a set of temps.
+     *
+     * @param e The assembly instruction.
+     * @param temps The current set of temps.
+     */
+    private void addUniqueTemps(ASMExpr e, Set<String> temps) {
+        if (e instanceof ASMExprBinOp) {
+            ASMExprBinOp b = (ASMExprBinOp) e;
+            addUniqueTemps(b.getLeft(), temps);
+            addUniqueTemps(b.getRight(), temps);
+        } else if (e instanceof ASMExprTemp) {
+            temps.add(((ASMExprTemp) e).getName());
+        } else if (e instanceof ASMExprMem) {
+            addUniqueTemps(((ASMExprMem) e).getAddr(), temps);
         }
     }
 
