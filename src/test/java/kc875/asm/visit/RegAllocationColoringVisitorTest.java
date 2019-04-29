@@ -45,6 +45,7 @@ public class RegAllocationColoringVisitorTest {
     private int countTemps(List<ASMInstr> instrs) {
         int count = 0;
         for (ASMInstr i : instrs) {
+            System.out.println(i.toString());
             if (i instanceof ASMInstr_1Arg) {
                 count += countTempsExpr(((ASMInstr_1Arg) i).getArg());
             } else if (i instanceof ASMInstr_2Arg) {
@@ -52,6 +53,7 @@ public class RegAllocationColoringVisitorTest {
                 count += countTempsExpr(i2.getDest());
                 count += countTempsExpr(i2.getSrc());
             }
+            System.out.println(count);
         }
         return count;
     }
@@ -100,7 +102,7 @@ public class RegAllocationColoringVisitorTest {
 
     @Test
     public void testFailedColoringSimpleReserve() {
-        //should fail to color 12 live vars
+        //should fail to color 12 live vars - 3 unique temps spilled?
         RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
         List<ASMInstr> abstract_asm = getTestInstrs(12);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
