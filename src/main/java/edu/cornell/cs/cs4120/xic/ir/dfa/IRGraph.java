@@ -115,6 +115,10 @@ public class IRGraph extends Graph<IRStmt> {
         return nodeStmtMap.get(n);
     }
 
+    public BiMap<Node, IRStmt> getNodeStmtMap() {
+        return HashBiMap.create(nodeStmtMap);
+    }
+
     public void setStmt(Node n, IRStmt s) {
         nodeStmtMap.replace(n, s);
     }
