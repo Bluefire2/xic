@@ -61,12 +61,22 @@ public class CommonSubexprElimVisitor {
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(
                     func.name(),
-                    // TODO: lower listStmt since it has nested IR
-                    new IRSeq(listStmt)
+                    removeNestedIRSeqs(new IRSeq(listStmt))
             );
             optimizedCompUnit.functions().put(func.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
+    }
+
+    private IRSeq removeNestedIRSeqs(IRSeq stmt) {
+        List<IRStmt> stmts = new ArrayList<>();
+        for (IRStmt s : stmt.stmts()) {
+            if (s instanceof IRSeq) {
+                stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
+            }
+            else stmts.add(s);
+        }
+        return new IRSeq(stmts);
     }
 
     public IRStmt visit(IRStmt stmt, HashMap<IRExpr, String> exprTempMap) {
