@@ -110,7 +110,6 @@ public class RegAllocationColoringVisitor {
         livenessAnalysis();
         build();
         makeWorkList();
-        int c = 0;
         while (simplifyWorklist.size() != 0
                 || worklistMoves.size() != 0
                 || freezeWorklist.size() != 0
@@ -118,16 +117,12 @@ public class RegAllocationColoringVisitor {
             if (simplifyWorklist.size() != 0) {
                 simplify();
             } else if (worklistMoves.size() != 0) {
-                System.out.println(worklistMoves.size());
                 coalesce();
-                System.out.println(worklistMoves.size());
             } else if (freezeWorklist.size() != 0) {
                 freeze();
             } else {
                 selectSpill();
             }
-            c++;
-            if (c > 100) break;
         }
         assignColors();
         return rewriteProgram(new ArrayList<>(spilledNodes));
@@ -165,9 +160,9 @@ public class RegAllocationColoringVisitor {
             //forall instructions in b in reverse order (1 instruction in b for us)
             ASMInstr i = b.getT();
             //if ismoveinstr(i)
-            if (i.destIsDefButNoUse()) {
+            if (isMoveInstruction(i)) {
                 //live = live/use(i)
-                live = Sets.difference(live, LiveVariableDFA.use(b));
+                live = new HashSet<>(Sets.difference(live, LiveVariableDFA.use(b)));
                 //forall t in def(i)+use(i)
                 for (ASMExprRT t : new HashSet<>(
                         Sets.union(LiveVariableDFA.def(b), LiveVariableDFA.use(b)))
@@ -190,7 +185,7 @@ public class RegAllocationColoringVisitor {
                     addEdge(l, d);
                 }
             }
-            //live = use(i)+ (live\def(i)
+            //live = use(i)+ (live \ def(i))
             live = new HashSet<>(
                     Sets.union(LiveVariableDFA.use(b),
                             Sets.difference(live, LiveVariableDFA.def(b))));
@@ -234,7 +229,7 @@ public class RegAllocationColoringVisitor {
         // let m (= copy(x, y)) in worklistMoves
         // here, we use move instead of m
         ASMInstr_2Arg move = null;
-        for (ASMInstr instr : new HashSet<>(worklistMoves)) {
+        for (ASMInstr instr : worklistMoves) {
             if (isCopy(instr)) {
                 move = (ASMInstr_2Arg) instr;
                 break;
@@ -439,7 +434,7 @@ public class RegAllocationColoringVisitor {
         Set<Graph<ASMExprRT>.Node> spills = new HashSet<>(spilledNodes);
         for (ASMInstr i : instrs) {
             ASMInstr new_instr = rewriteInstr(i, spills);
-            new_instrs.add(new_instr);
+            if (new_instr != null) new_instrs.add(new_instr);
         }
         //no need to reset data structures bc we only run coloring once
         return new_instrs;
@@ -567,10 +562,15 @@ public class RegAllocationColoringVisitor {
             return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));
         } else if (i instanceof ASMInstr_2Arg) {
             ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
-            return new ASMInstr_2Arg(i2.getOpCode(),
-                    rewriteExpr(i2.getDest(), spilledNodes),
-                    rewriteExpr(i2.getSrc(), spilledNodes)
-            );
+            ASMExpr dest = rewriteExpr(i2.getDest(), spilledNodes);
+            ASMExpr src = rewriteExpr(i2.getSrc(), spilledNodes);
+            if (dest.equals(src) &&
+                    (i.getOpCode() == ASMOpCode.MOV || i.getOpCode() == ASMOpCode.MOVZX)
+            ){
+                return null;
+            } else {
+                return new ASMInstr_2Arg(i2.getOpCode(),dest,src);
+            }
         } else {
             return i;
         }
@@ -593,6 +593,11 @@ public class RegAllocationColoringVisitor {
         } else {
             return e;
         }
+    }
+
+    private boolean isMoveInstruction(ASMInstr i) {
+        return isCopy(i);
+        //return i.destIsDefButNoUse();
     }
 
     //GETTERS (for testing)
