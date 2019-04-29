@@ -90,10 +90,16 @@ public class Graph<T> {
 
         @Override
         public String toString() {
+            String inNodes = "[" + in.stream()
+                    .map(n -> "<" + n.getT().toString() + ">")
+                    .collect(Collectors.joining(", ")) + "]";
+            String outNodes = "[" + out.stream()
+                    .map(n -> "<" + n.getT().toString() + ">")
+                    .collect(Collectors.joining(", ")) + "]";
             return "Node{" +
                     "t=" + t +
-                    ", in=" + in +
-                    ", out=" + out +
+                    ", in=" + inNodes +
+                    ", out=" + outNodes +
                     '}';
         }
 

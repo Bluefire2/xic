@@ -159,7 +159,7 @@ public class RegAllocationColoringVisitor {
             //forall instructions in b in reverse order (1 instruction in b for us)
             ASMInstr i = b.getT();
             //if ismoveinstr(i)
-            if (i.hasNewDef()) {
+            if (i.destIsDefButNoUse()) {
                 //live = live/use(i)
                 live = Sets.difference(live, LiveVariableDFA.use(b));
                 //forall t in def(i)+use(i)

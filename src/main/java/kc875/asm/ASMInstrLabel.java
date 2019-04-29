@@ -34,7 +34,7 @@ public class ASMInstrLabel extends ASMInstr {
     }
 
     @Override
-    public boolean hasNewDef() {
+    public boolean destIsDefButNoUse() {
         return false;
     }
 }

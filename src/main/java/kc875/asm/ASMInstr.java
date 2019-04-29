@@ -32,8 +32,8 @@ public abstract class ASMInstr {
     }
 
     /**
-     * Returns true if the destination is a ASMExprRT and is
-     * changed.
+     * Returns true if the destination is a ASMExprRT and is defined but not
+     * used.
      */
-    public abstract boolean hasNewDef();
+    public abstract boolean destIsDefButNoUse();
 }

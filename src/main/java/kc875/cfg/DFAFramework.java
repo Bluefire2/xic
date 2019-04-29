@@ -37,7 +37,7 @@ public abstract class DFAFramework<T, U> {
      *
      * @param ls lattice elements.
      */
-    public T applyMeet(Collection<T> ls) {
+    private T applyMeet(Collection<T> ls) {
         return ls.stream().reduce(meetAcc.get(), meet);
     }
 
@@ -80,28 +80,42 @@ public abstract class DFAFramework<T, U> {
     }
 
     public Map<Graph<U>.Node, T> getInMap() {
-        return inMap;
+        return new HashMap<>(inMap);
     }
 
     public Map<Graph<U>.Node, T> getOutMap() {
-        return outMap;
+        return new HashMap<>(outMap);
     }
 
-    public T inputToF(Graph<U>.Node node) {
+    private T inputToF(Graph<U>.Node node) {
         switch (direction) {
             case FORWARD:
-                return applyMeet(node.pred().stream()
+                T newIn = applyMeet(node.pred().stream()
                         .map(outMap::get).collect(Collectors.toSet()));
+                inMap.put(node, newIn);
+                return newIn;
             case BACKWARD:
-                return applyMeet(node.succ().stream()
+                T newOut = applyMeet(node.succ().stream()
                         .map(inMap::get).collect(Collectors.toSet()));
+                outMap.put(node, newOut);
+                return newOut;
             default:
                 throw new IllegalAccessError("Weird direction in DFA");
         }
     }
 
-    public T afterF(Graph<U>.Node node) {
-        return F.apply(node, inputToF(node));
+    private T afterF(Graph<U>.Node node) {
+        T lAfterF = F.apply(node, inputToF(node));
+        switch (direction) {
+            case FORWARD:
+                outMap.put(node, lAfterF);
+                return lAfterF;
+            case BACKWARD:
+                inMap.put(node, lAfterF);
+                return lAfterF;
+            default:
+                throw new IllegalAccessError("Weird direction in DFA");
+        }
     }
 
     public void runWorklistAlgo() {
@@ -113,37 +127,36 @@ public abstract class DFAFramework<T, U> {
         // ListIterator on list avoids this problem, and set is needed to avoid
         // linear time contains lookups.
         Set<Graph<U>.Node> wlSet = new HashSet<>(graph.getAllNodes());
+        Queue<Graph<U>.Node> wlQueue = new LinkedList<>(wlSet);
 
         // Invariant: all nodes with unsatisfied eqns in worklist
-        ListIterator<Graph<U>.Node> it = new LinkedList<>(wlSet).listIterator();
-        while (it.hasNext()) {
-            Graph<U>.Node node = it.next();
-            it.remove();// remove from queue
+        while (wlQueue.size() != 0) {
+            Graph<U>.Node node = wlQueue.poll();// remove from queue
             wlSet.remove(node);// remove from set
 
             switch (direction) {
                 case FORWARD:
                     T outBeforeUpdate = outMap.get(node);
-                    T outAfterUpdate = this.afterF(node);
+                    T outAfterUpdate = afterF(node);
                     if (!outBeforeUpdate.equals(outAfterUpdate)) {
                         // out has changed, push succs of node to worklist
                         for (Graph<U>.Node sNode : node.succ()) {
                             if (!(wlSet.contains(sNode))) {
                                 wlSet.add(sNode);
-                                it.add(sNode);
+                                wlQueue.add(sNode);
                             }
                         }
                     }
                     break;
                 case BACKWARD:
                     T inBeforeUpdate = inMap.get(node);
-                    T inAfterUpdate = this.afterF(node);
+                    T inAfterUpdate = afterF(node);
                     if (!inBeforeUpdate.equals(inAfterUpdate)) {
                         // in has changed, push preds of node to worklist
                         for (Graph<U>.Node pNode : node.pred()) {
                             if (!(wlSet.contains(pNode))) {
                                 wlSet.add(pNode);
-                                it.add(pNode);
+                                wlQueue.add(pNode);
                             }
                         }
                     }

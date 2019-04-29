@@ -32,7 +32,7 @@ public class ASMInstrComment extends ASMInstr {
     }
 
     @Override
-    public boolean hasNewDef() {
+    public boolean destIsDefButNoUse() {
         return false;
     }
 }

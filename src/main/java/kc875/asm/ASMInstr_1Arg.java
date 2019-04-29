@@ -37,17 +37,12 @@ public class ASMInstr_1Arg extends ASMInstr {
     }
 
     @Override
-    public boolean hasNewDef() {
+    public boolean destIsDefButNoUse() {
         if (!(arg instanceof ASMExprRT)) {
             return false;
         }
         // arg is reg/temp
         switch (this.getOpCode()) {
-            case IMUL:
-            case IDIV:
-            case INC:
-            case DEC:
-            case NOT:
             case POP:
             case SETE:
             case SETNE:

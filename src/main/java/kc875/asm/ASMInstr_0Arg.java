@@ -21,7 +21,7 @@ public class ASMInstr_0Arg extends ASMInstr {
     }
 
     @Override
-    public boolean hasNewDef() {
+    public boolean destIsDefButNoUse() {
         return false;
     }
 }
