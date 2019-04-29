@@ -34,11 +34,4 @@ public class ASMExprName extends ASMExpr {
     public Set<ASMExprRT> vars() {
         return new HashSet<>();
     }
-
-    /**
-     * Returns true if this is for a function, false otherwise.
-     */
-    public boolean isFunction() {
-        return name.startsWith("_I"); // based on the ABI spec
-    }
 }

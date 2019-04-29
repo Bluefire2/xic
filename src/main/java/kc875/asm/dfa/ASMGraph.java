@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.cfg.Graph;
+import kc875.utils.XiUtils;
 
 import java.util.*;
 
@@ -80,7 +81,7 @@ public class ASMGraph extends Graph<ASMInstr> {
                 // If the arg is not for a function, then we can jump to it
                 // inside this function
                 // get the node we jump to and add an edge to it
-                if (!arg.isFunction()) {
+                if (!XiUtils.isFunction(arg.getName())) {
                     Node to = labelToNodeMap.get(arg.getName());
                     addEdge(node, to);
                 }
