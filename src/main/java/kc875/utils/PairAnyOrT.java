@@ -69,6 +69,10 @@ public class PairAnyOrT<T, U> {
 
     @Override
     public int hashCode() {
+        if (this.fstIsAny() && this.sndIsAny())
+            return "(*, *)".hashCode();
+        if (!this.fstIsAny() && !this.sndIsAny())
+            return fst.hashCode() + snd.hashCode();
         // Don't change this. contains for these objects should default to
         // equals() and so all hashcodes return 0
         return 0;
