@@ -37,8 +37,8 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
         }
         else stmts.add(stmt);
 
-        SetWithInf sourceKillSet = new SetWithInf();
-        SetWithInf destKillSet = new SetWithInf();
+        SetWithInf<IRExpr> sourceKillSet = new SetWithInf<>();
+        SetWithInf<IRExpr> destKillSet = new SetWithInf<>();
 
         for (IRStmt s : stmts) {
             List<IRExpr> subexpressions = Lists.newArrayList(getSubExpressions(s));
@@ -90,7 +90,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * @param node
      * @return the set of generated expressions
      */
-    public SetWithInf<IRExpr> exprsGeneratedBy(Graph.Node node) {
+    public SetWithInf<IRExpr> exprsGeneratedBy(IRGraph.Node node) {
         return exprs(node).diff(getInMap().get(node));
     }
 
