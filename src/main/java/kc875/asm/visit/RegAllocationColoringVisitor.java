@@ -7,14 +7,11 @@ import kc875.asm.dfa.InterferenceGraph;
 import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.Graph;
 import polyglot.util.Pair;
+import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 
 import java.util.*;
 
 public class RegAllocationColoringVisitor {
-    enum SpillMode {
-        Reserve,//r13,14,15 reserved for spilling
-        Restore //can use any register
-    }
 
     private List<String> usableRegisters;
 

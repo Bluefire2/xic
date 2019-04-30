@@ -1,6 +1,6 @@
 package kc875.asm.visit;
 
-import kc875.asm.visit.RegAllocationColoringVisitor.SpillMode;
+import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 import kc875.asm.*;
 import org.junit.Test;
 
@@ -286,8 +286,8 @@ public class RegAllocationColoringVisitorTest {
 
     @Test
     public void testBuildInvariantsRestore() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Restore);
         List<ASMInstr> abstract_asm = getTestInstrs(15);
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Restore);
         visitor.buildInterferenceGraph(abstract_asm);
         assertTrue(visitor.checkDegreeInv());
         assertTrue(visitor.checkSimplifyWorklistInv());

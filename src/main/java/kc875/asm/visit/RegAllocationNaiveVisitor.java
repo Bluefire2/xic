@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
-    enum SpillMode {
+    public enum NaiveSpillMode {
         Naive, //naive reg allocation
         Reserved, //r13,14,15 reserved for spilling
         Restore, //can use any register, borrowed register's contents are saved in stack
@@ -29,16 +29,16 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             "rbx", "r12", "r13", "r14", "r15"
     ).collect(Collectors.toSet());
 
-    private SpillMode mode;
+    private NaiveSpillMode mode;
 
-    public RegAllocationNaiveVisitor(boolean addComment, SpillMode mode) {
+    public RegAllocationNaiveVisitor(boolean addComment, NaiveSpillMode mode) {
         this.addComments = addComment;
         this.mode = mode;
     }
 
     public RegAllocationNaiveVisitor(boolean addComment) {
         this.addComments = addComment;
-        this.mode = SpillMode.Naive;
+        this.mode = NaiveSpillMode.Naive;
     }
 
     /**
@@ -290,7 +290,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      * @param excludeRegs registers to exclude.
      */
     private List<String> getAvailRegs(List<String> excludeRegs) {
-        if (mode == SpillMode.Reserved) {
+        if (mode == NaiveSpillMode.Reserved) {
             return Stream.of(
                     "r13", "r14", "r15"
             ).collect(Collectors.toList());
@@ -532,7 +532,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // does not change
             instrs.add(i);
         }
-        if (mode == SpillMode.Restore) {
+        if (mode == NaiveSpillMode.Restore) {
             Set<String> saveRegs = new HashSet<>();
             for (ASMInstr instr : instrs) {
                 saveRegs.addAll(getRegsInInstr(instr));
@@ -629,7 +629,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                     src
             ));
         }
-        if (mode == SpillMode.Restore) {
+        if (mode == NaiveSpillMode.Restore) {
             Set<String> saveRegs = new HashSet<>();
             for (ASMInstr instr : instrs) {
                 saveRegs.addAll(getRegsInInstr(instr));

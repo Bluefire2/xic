@@ -560,8 +560,6 @@ public class CLI implements Runnable {
                 // Get ASM
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
-                RegAllocationNaiveVisitor regVisitor =
-                        new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
                 // Output the LIVEVAR CFG graph is needed
@@ -574,6 +572,10 @@ public class CLI implements Runnable {
                             instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
                     );
                 }
+                //TODO hookup RegAllocationOptimVisitor when REG or MC is enabled
+                //DO NOT use naive visitor, OptimVisitor already does spilling
+                RegAllocationNaiveVisitor regVisitor =
+                        new RegAllocationNaiveVisitor(optCommentASM);
 
                 if (!optASMDisableRegAllocation) {
                     // reg allocation enabled
