@@ -3,20 +3,19 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
-import kc875.cfg.Graph;
-
-import java.util.ArrayList;
 import java.util.List;
 
 public class DeadCodeElimVisitor {
 
     private IRGraph irGraph;
 
-    public DeadCodeElimVisitor() {}
+    public DeadCodeElimVisitor() {
+    }
 
     /**
      * Removes dead code, defined as any assignment x = e where x is not live
      * out of the node.
+     *
      * @param irnode
      * @return irnode with all dead code removed.
      */
@@ -27,35 +26,33 @@ public class DeadCodeElimVisitor {
             LivenessDFA livenessDFA = new LivenessDFA(irGraph);
             livenessDFA.runWorklistAlgo();
 
-            IRSeq seq = new IRSeq();
+            IRStmt body = funcDecl.body();
+            IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
 
-            for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
-                IRStmt stmt = n.getT();
-                List<IRStmt> stmts = new ArrayList<>();
-                if (stmt instanceof IRSeq) {
-                    stmts.addAll(((IRSeq) stmt).stmts());
-                }
-                else stmts.add(stmt);
+            List<IRStmt> listStmts = stmts.stmts();
 
-                for (IRStmt s : stmts) {
-                    if (s instanceof IRMove) {
-                        if (((IRMove) s).target() instanceof IRTemp) {
-                            IRTemp tmp = (IRTemp) ((IRMove) s).target();
-                            if(!(livenessDFA.getOutMap().get(n).contains(tmp))) {
-                                continue;
-                            }
+            for (int i = 0; i < listStmts.size(); i++) {
+                IRSeq seq = new IRSeq();
+                IRStmt s = listStmts.get(i);
+                IRGraph.Node n = irGraph.getNode(s);
+
+                if (s instanceof IRMove) {
+                    if (((IRMove) s).target() instanceof IRTemp) {
+                        IRTemp tmp = (IRTemp) ((IRMove) s).target();
+                        if (!(livenessDFA.getOutMap().get(n).contains(tmp))) {
+                            continue;
                         }
                     }
                     seq.stmts().add(s);
                 }
 
-                irGraph.setStmt(n, seq);
+                listStmts.set(i, seq);
             }
 
-        IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                IRGraph.flattenCFG(irGraph));
-        optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
-    }
+            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
+                    new IRSeq(listStmts));
+            optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
+        }
         return optimizedCompUnit;
     }
 }
