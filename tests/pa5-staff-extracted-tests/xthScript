@@ -28,32 +28,7 @@
 #
 # xth runs the commands in order of appearance.
 
-xic ("Test -target linux") "-libpath $(testpath) -target linux" {
-  basic-test-binary01.xi;
-  basic-test-binary02.xi;
-  basic-test-binary02.xi;
-  basic-test-binary11.xi;
-  basic-test-binary11.xi;
-  contest-group_of_anonymous02__euler.xi;
-  contest-group_of_anonymous02__euler.xi;
-  contest-group_of_anonymous05__ir_hi_mult.xi;
-  contest-group_of_anonymous05__ir_hi_mult.xi;
-  contest-group_of_anonymous06__matrix.xi;
-  contest-group_of_anonymous06__matrix.xi;
-  contest-group_of_anonymous06__multiassign4.xi;
-  contest-group_of_anonymous06__multiassign4.xi;
-  contest-group_of_anonymous07__attack_loops.xi;
-  contest-group_of_anonymous07__attack_loops.xi;
-  contest-group_of_anonymous07__attack_sum.xi;
-  contest-group_of_anonymous08__easytest.xi;
-  contest-group_of_anonymous08__easytest.xi;
-  contest-group_of_anonymous08__trivialtest.xi;
-  contest-group_of_anonymous08__trivialtest.xi;
-  contest-group_of_anonymous09__divideext.xi;
-  contest-group_of_anonymous09__divideext.xi;
-  contest-group_of_anonymous09__hanoi.xi;
-  contest-group_of_anonymous09__hanoi.xi;
-}
+
 
 xic ("Test -target linux -O") "-libpath $(testpath) -target linux -O" {
   basic-test-binary01.xi;
