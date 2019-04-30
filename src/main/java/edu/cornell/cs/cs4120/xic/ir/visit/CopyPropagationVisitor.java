@@ -3,8 +3,6 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.ReachingDefnsDFA;
-import kc875.cfg.Graph;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +15,7 @@ public class CopyPropagationVisitor {
     /**
      * Perform copy propagation: given an assignment x=y, replace all subsequent
      * uses of x with y until next definition of x.
+     *
      * @param irnode
      * @return irnode with copies of variables propagated.
      */
@@ -24,44 +23,49 @@ public class CopyPropagationVisitor {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
             irGraph = new IRGraph(funcDecl);
-            //TODO: is reaching definitions analysis necessary here?
             ReachingDefnsDFA reachingDefnsDFA = new ReachingDefnsDFA(irGraph);
             reachingDefnsDFA.runWorklistAlgo();
 
+            HashMap<String, IRGraph.Node> defnNodeMap = new HashMap<>();
             HashMap<String, String> copyMap = new HashMap<>();
-            
-            for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
+
+            IRStmt body = funcDecl.body();
+            IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+
+            List<IRStmt> listStmts = stmts.stmts();
+            for (int i = 0; i < listStmts.size(); i++) {
                 IRSeq seq = new IRSeq();
-
-                IRStmt stmt = n.getT();
-                List<IRStmt> stmts = new ArrayList<>();
-                if (stmt instanceof IRSeq) {
-                    stmts.addAll(((IRSeq) stmt).stmts());
-                }
-                else stmts.add(stmt);
-
-                for (IRStmt s : stmts) {
-                    
-                    if (s instanceof IRMove ) {
-                        IRExpr target = ((IRMove) s).target();
-                        IRExpr source = ((IRMove) s).source();
-                        if (target instanceof IRTemp && source instanceof IRTemp) {
-                            copyMap.put(((IRTemp) target).name(),
-                                    ((IRTemp) source).name());
-                        }
-                        else if (target instanceof IRTemp) {
-                            copyMap.remove(((IRTemp) target).name());
+                IRStmt s = listStmts.get(i);
+                IRGraph.Node n = irGraph.getNode(s);
+                if (s instanceof IRMove) {
+                    IRExpr target = ((IRMove) s).target();
+                    IRExpr source = ((IRMove) s).source();
+                    if (target instanceof IRTemp) {
+                        String tname = ((IRTemp) target).name();
+                        defnNodeMap.put(tname, n);
+                        if (source instanceof IRTemp) {
+                            copyMap.put(tname, ((IRTemp) source).name());
+                        } else {
+                            copyMap.remove(tname);
                         }
                     }
-                    
-                    seq.stmts().add(visit(s, copyMap));
                 }
-                
-                irGraph.setStmt(n, seq);
+
+                HashMap<String, String> perNodeCopyMap = new HashMap<>();
+                for (String str : copyMap.keySet()) {
+                    if (defnNodeMap.containsKey(str)) {
+                        IRGraph.Node nprime = defnNodeMap.get(str);
+                        if (nprime.equals(n) || nprime.goesTo(n)) {
+                            perNodeCopyMap.put(str, copyMap.get(str));
+                        }
+                    }
+                }
+                seq.stmts().add(visit(s, perNodeCopyMap));
+                listStmts.set(i, seq);
             }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    IRGraph.flattenCFG(irGraph));
+                    new IRSeq(listStmts));
             optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
@@ -93,13 +97,11 @@ public class CopyPropagationVisitor {
         if (left instanceof IRTemp &&
                 copyMap.containsKey(((IRTemp) left).name())) {
             newleft = new IRTemp(copyMap.get(((IRTemp) left).name()));
-        }
-        else newleft = visit(left, copyMap);
+        } else newleft = visit(left, copyMap);
         if (right instanceof IRTemp &&
                 copyMap.containsKey(((IRTemp) right).name())) {
             newright = new IRTemp(copyMap.get(((IRTemp) right).name()));
-        }
-        else newright = visit(right, copyMap);
+        } else newright = visit(right, copyMap);
         return new IRBinOp(expr.opType(), newleft, newright);
     }
 
@@ -108,8 +110,7 @@ public class CopyPropagationVisitor {
         if (target instanceof IRTemp &&
                 copyMap.containsKey(((IRTemp) target).name())) {
             return new IRCall(new IRTemp(copyMap.get(((IRTemp) target).name())));
-        }
-        else return new IRCall(visit(target, copyMap));
+        } else return new IRCall(visit(target, copyMap));
     }
 
     public IRStmt visit(IRCJump stmt, HashMap<String, String> copyMap) {
@@ -129,8 +130,7 @@ public class CopyPropagationVisitor {
                 copyMap.containsKey(((IRTemp) nestedExpr).name())) {
             return new IRESeq(visit(expr.stmt(), copyMap),
                     new IRTemp(copyMap.get(((IRTemp) nestedExpr).name())));
-        }
-        else {
+        } else {
             return new IRESeq(visit(expr.stmt(), copyMap),
                     visit(nestedExpr, copyMap));
         }
@@ -149,8 +149,7 @@ public class CopyPropagationVisitor {
         if (target instanceof IRTemp &&
                 copyMap.containsKey(((IRTemp) target).name())) {
             return new IRMem(new IRTemp(copyMap.get(((IRTemp) target).name())));
-        }
-        else return new IRMem(visit(target, copyMap));
+        } else return new IRMem(visit(target, copyMap));
     }
 
     public IRStmt visit(IRMove stmt, HashMap<String, String> copyMap) {
@@ -172,9 +171,5 @@ public class CopyPropagationVisitor {
             retseq.stmts().add(visit(s, copyMap));
         }
         return retseq;
-    }
-
-    public IRGraph getIrGraph() {
-        return irGraph;
     }
 }
