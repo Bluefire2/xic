@@ -43,5 +43,29 @@ public class AvailableExprsDFATest {
         );
         assert(twoListsEqual(exprs.subList(0, 4), availableExprsDFA.exprsContainingTemp(temp, exprs).toList()));
     }
+
+    @Test
+    public void testPossibleAliasExprs() {
+        IRExpr e = new IRTemp("e");
+        List<IRExpr> exprs = Arrays.asList(
+                new IRBinOp(IRBinOp.OpType.ADD, new IRMem(new IRConst(4)), new IRConst(0)),
+                new IRMem(new IRTemp("y")),
+                new IRBinOp(IRBinOp.OpType.ADD, new IRTemp("e"), new IRConst(1)),
+                new IRBinOp(IRBinOp.OpType.SUB, new IRConst(7), new IRConst(8))
+        );
+        assert(twoListsEqual(exprs.subList(0, 2), AvailableExprsDFA.possibleAliasExprs(e, exprs).toList()));
+
+    }
+
+    @Test
+    public void testExprsCanBeModified() {
+        List<IRExpr> exprs = Arrays.asList(
+                new IRBinOp(IRBinOp.OpType.ADD, new IRMem(new IRConst(4)), new IRConst(0)),
+                new IRMem(new IRTemp("y")),
+                new IRBinOp(IRBinOp.OpType.ADD, new IRTemp("e"), new IRConst(1)),
+                new IRBinOp(IRBinOp.OpType.SUB, new IRConst(7), new IRConst(8))
+        );
+        assert(twoListsEqual(exprs.subList(0, 2), AvailableExprsDFA.exprsCanBeModified("f", exprs).toList()));
+    }
 }
 

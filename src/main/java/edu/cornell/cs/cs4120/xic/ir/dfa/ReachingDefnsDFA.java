@@ -19,7 +19,7 @@ public class ReachingDefnsDFA extends DFAFramework<Set<IRGraph.Node>, IRStmt> {
                 (node, l) -> new HashSet<>(Sets.union(gen(node),
                         Sets.difference(l, kill(node, graph)))),
                 HashSet::new,
-                (l1, l2) -> new HashSet<IRGraph.Node>(Sets.union(l1, l2)),
+                (l1, l2) -> new HashSet<>(Sets.union(l1, l2)),
                 new HashSet<>()
         );
     }

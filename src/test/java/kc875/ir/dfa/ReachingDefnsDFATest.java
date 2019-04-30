@@ -1,11 +1,8 @@
 package kc875.ir.dfa;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.ReachingDefnsDFA;
-import kc875.cfg.Graph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
