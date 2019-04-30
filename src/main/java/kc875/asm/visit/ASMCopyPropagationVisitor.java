@@ -28,7 +28,7 @@ public class ASMCopyPropagationVisitor {
             // exist
             Graph<ASMInstr>.Node node = graph.getNode(instr);
             optimFunc.add(replaceExprTempsWithCopiesInInstr(
-                    instr, setToMap(nodeToCopies.get(node).getIncludeSet())
+                    instr, setToMapNaive(nodeToCopies.get(node).getIncludeSet())
             ));
 
         }
@@ -92,6 +92,24 @@ public class ASMCopyPropagationVisitor {
                 // only put in the map if the lhs is a specific value, not *
                 // Find the final copy for replacement
                 ASMExprTemp lastRHS = findFinalCopy(copy.getFst(), copies, map);
+                if (lastRHS != null) {
+                    // RHS found
+                    map.put(copy.getFst(), lastRHS);
+                }
+            }
+        }
+        return map;
+    }
+
+    private Map<ASMExprTemp, ASMExprTemp> setToMapNaive(
+            Set<PairAnyOrT<ASMExprTemp, ASMExprTemp>> copies
+    ) {
+        Map<ASMExprTemp, ASMExprTemp> map = new HashMap<>();
+        for (PairAnyOrT<ASMExprTemp, ASMExprTemp> copy : copies) {
+            if (!copy.fstIsAny()) {
+                // only put in the map if the lhs is a specific value, not *
+                // Find the final copy for replacement
+                ASMExprTemp lastRHS = findCopy(copy.getFst(), copies);
                 if (lastRHS != null) {
                     // RHS found
                     map.put(copy.getFst(), lastRHS);
