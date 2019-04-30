@@ -4,11 +4,12 @@ import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 import kc875.asm.*;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-import java.util.*;
+import static org.junit.Assert.*;
 
 public class RegAllocationColoringVisitorTest {
 
@@ -54,7 +55,7 @@ public class RegAllocationColoringVisitorTest {
     MOV r11 t0
     MOV [tn] tn, for all n
     */
-    private List<ASMInstr> getTestInstrsPrecolored(int n) {
+    public static List<ASMInstr> getTestInstrsPrecolored(int n) {
         List<ASMInstr> instrs = new ArrayList<>();
         String[] precolored = {"r9", "r10", "r11"};
         for (String r : precolored) {

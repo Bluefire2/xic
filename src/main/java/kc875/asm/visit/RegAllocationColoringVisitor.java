@@ -60,11 +60,11 @@ public class RegAllocationColoringVisitor {
 
     private int K;// number of usable registers
 
-    RegAllocationColoringVisitor() {
+    public RegAllocationColoringVisitor() {
         this(SpillMode.Reserve); //default to reserve mode
     }
 
-    RegAllocationColoringVisitor(SpillMode s) {
+    public RegAllocationColoringVisitor(SpillMode s) {
         precolored = new HashSet<>();
         initial = new HashSet<>();
         simplifyWorklist = new HashSet<>();
