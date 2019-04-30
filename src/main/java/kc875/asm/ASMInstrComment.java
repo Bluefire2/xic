@@ -3,7 +3,9 @@ package kc875.asm;
 import kc875.asm.visit.ASMinstrBareVisitor;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ASMInstrComment extends ASMInstr {
     private String comment;
@@ -34,6 +36,11 @@ public class ASMInstrComment extends ASMInstr {
     @Override
     public boolean destHasNewDef() {
         return false;
+    }
+
+    @Override
+    public Set<ASMExprReg> implicitRegs() {
+        return new HashSet<>();
     }
 
     @Override

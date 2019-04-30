@@ -2,7 +2,9 @@ package kc875.asm;
 
 import kc875.asm.visit.ASMinstrBareVisitor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ASMInstrLabel extends ASMInstr {
     private String name;
@@ -31,6 +33,11 @@ public class ASMInstrLabel extends ASMInstr {
      */
     public boolean isFunction() {
         return name.startsWith("_I"); // based on the ABI spec
+    }
+
+    @Override
+    public Set<ASMExprReg> implicitRegs() {
+        return new HashSet<>();
     }
 
     @Override

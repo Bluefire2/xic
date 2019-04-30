@@ -2,7 +2,9 @@ package kc875.asm;
 
 import kc875.asm.visit.ASMinstrBareVisitor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ASMInstr_2Arg extends ASMInstr {
     private ASMExpr dest;
@@ -67,6 +69,11 @@ public class ASMInstr_2Arg extends ASMInstr {
             default:
                 return false;
         }
+    }
+
+    @Override
+    public Set<ASMExprReg> implicitRegs() {
+        return new HashSet<>();
     }
 
     @Override

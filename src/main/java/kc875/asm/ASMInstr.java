@@ -3,6 +3,7 @@ package kc875.asm;
 import kc875.asm.visit.ASMinstrBareVisitor;
 
 import java.util.List;
+import java.util.Set;
 
 public abstract class ASMInstr {
     private ASMOpCode opCode;
@@ -42,5 +43,11 @@ public abstract class ASMInstr {
      * exists), false otherwise.
      */
     public abstract boolean destHasNewDef();
+
+    /**
+     * Returns the set of all implicitly defined regs defined by this
+     * instruction.
+     */
+    public abstract Set<ASMExprReg> implicitRegs();
 
 }
