@@ -176,7 +176,4 @@ public class CommonSubexprElimVisitor {
         return retseq;
     }
 
-    public IRGraph getIrGraph() {
-        return irGraph;
-    }
 }

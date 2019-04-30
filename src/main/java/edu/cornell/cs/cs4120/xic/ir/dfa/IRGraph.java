@@ -96,22 +96,6 @@ public class IRGraph extends Graph<IRStmt> {
         }
     }
 
-    /**
-     * Flatten control flow graph back into IR
-     *
-     * @param irGraph graph to be flattened.
-     * @return an IR statement (IRSeq) constructed from irGraph
-     */
-    public static IRStmt flattenCFG(IRGraph irGraph) {
-        IRSeq retseq = new IRSeq();
-        for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
-            IRStmt s = irGraph.getStmt(n);
-            if (s instanceof IRSeq) {
-                retseq.stmts().addAll(((IRSeq) s).stmts());
-            } else retseq.stmts().add(s);
-        }
-        return retseq;
-    }
 
     public IRStmt getStmt(Node n) {
         return nodeStmtMap.get(n);
@@ -128,4 +112,5 @@ public class IRGraph extends Graph<IRStmt> {
     public void setStmt(Node n, IRStmt s) {
         nodeStmtMap.replace(n, s);
     }
+
 }

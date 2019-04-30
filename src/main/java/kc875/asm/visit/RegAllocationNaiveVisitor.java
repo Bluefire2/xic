@@ -172,7 +172,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 new ASMExprConst(8 * tempsInFunc.size()),
                 new ASMExprConst(0)
         ));
-
         funcToRefTempMap.put(
                 ((ASMInstrLabel) updatedFunc.get(0)).getName(), tempsInFunc
         );
@@ -497,6 +496,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // the temp t must exist in the currMap because t is
             // referenced inside this mem expression. Get the k_t
             Integer k_t = tempToStackAddrMap.get(entry.getKey());
+            if (k_t == null) {
+                System.out.println(entry);
+            }
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprReg(entry.getValue()),
@@ -602,6 +604,22 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 src = new ASMExprReg(availRegs.get(0));
                 instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
                 usedRegs.add(availRegs.get(0));
+            } else if (r instanceof ASMExprConst) {
+                //if imm is > 64 bits, move to a register
+                long v = ((ASMExprConst) r).getVal();
+                if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
+                    List<String> availRegs = getAvailRegs(usedRegs);
+                    if (availRegs.size() == 0){
+                        throw new InternalCompilerError("Allocating regs naively: not " +
+                                "enough regs for RHS of 2 argument expr");
+                    }
+                    src = new ASMExprReg(availRegs.get(0));
+                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
+                    usedRegs.add(availRegs.get(0));
+                } else {
+                    src = r;
+                }
+
             } else {
                 src = r;
             }

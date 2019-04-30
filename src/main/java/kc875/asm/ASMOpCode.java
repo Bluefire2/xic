@@ -26,6 +26,7 @@ public enum ASMOpCode {
 
     //Data transfer
     MOV,
+    MOVABS,
     MOVZX,
     PUSH,
     POP,
