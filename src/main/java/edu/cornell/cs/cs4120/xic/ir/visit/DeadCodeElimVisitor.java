@@ -9,8 +9,7 @@ public class DeadCodeElimVisitor {
 
     private IRGraph irGraph;
 
-    public DeadCodeElimVisitor() {
-    }
+    public DeadCodeElimVisitor() { }
 
     /**
      * Removes dead code, defined as any assignment x = e where x is not live

@@ -10,8 +10,7 @@ import java.util.List;
 public class CopyPropagationVisitor {
     private IRGraph irGraph;
 
-    public CopyPropagationVisitor() {
-    }
+    public CopyPropagationVisitor() { }
 
     /**
      * Perform copy propagation: given an assignment x=y, replace all subsequent
@@ -172,9 +171,5 @@ public class CopyPropagationVisitor {
             retseq.stmts().add(visit(s, copyMap));
         }
         return retseq;
-    }
-
-    public IRGraph getIrGraph() {
-        return irGraph;
     }
 }
