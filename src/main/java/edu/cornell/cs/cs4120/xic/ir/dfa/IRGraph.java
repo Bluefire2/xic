@@ -29,7 +29,9 @@ public class IRGraph extends Graph<IRStmt> {
 
         // set the start node
         Iterator<IRStmt> iter = stmts.stmts().iterator();
-        Node previous = new Node(iter.next());
+        IRStmt startStmt = iter.next();
+        Node previous = new Node(startStmt);
+        nodeStmtMap.put(previous, startStmt);
         setStartNode(previous);
 
         while (iter.hasNext()) {
