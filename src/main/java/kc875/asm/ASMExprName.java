@@ -53,7 +53,7 @@ public class ASMExprName extends ASMExpr {
             if (ASMUtils.getNumReturns(name) > 2)
                 // more than 2 rets, extra parameter passed to func
                 nParams++;
-            return paramRegs.subList(0, nParams).stream()
+            return paramRegs.subList(0, nParams > 6 ? 6 : nParams).stream()
                     .map(ASMExprReg::new).collect(Collectors.toSet());
         } else {
             return new HashSet<>();
