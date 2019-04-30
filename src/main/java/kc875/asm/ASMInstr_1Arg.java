@@ -37,6 +37,26 @@ public class ASMInstr_1Arg extends ASMInstr {
     }
 
     @Override
+    public boolean destHasNewDef() {
+        if (!(arg instanceof ASMExprRT)) {
+            return false;
+        }
+        // arg is reg/temp
+        switch (this.getOpCode()) {
+            case POP:
+            case SETE:
+            case SETNE:
+            case SETG:
+            case SETGE:
+            case SETL:
+            case SETLE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
     public boolean destIsDefButNoUse() {
         if (!(arg instanceof ASMExprRT)) {
             return false;

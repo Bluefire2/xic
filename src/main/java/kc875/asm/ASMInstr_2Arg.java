@@ -45,6 +45,31 @@ public class ASMInstr_2Arg extends ASMInstr {
     }
 
     @Override
+    public boolean destHasNewDef() {
+        if (!(dest instanceof ASMExprRT)) {
+            return false;
+        }
+        // dest is reg/temp
+        switch (getOpCode()) {
+            case ADD:
+            case SUB:
+            case IMUL:
+            case IDIV:
+            case AND:
+            case OR:
+            case XOR:
+            case SHR:
+            case SHL:
+            case SAR:
+            case MOV:
+            case MOVZX:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
     public boolean destIsDefButNoUse() {
         if (!(dest instanceof ASMExprRT)) {
             return false;

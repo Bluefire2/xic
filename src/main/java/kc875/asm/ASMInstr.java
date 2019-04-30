@@ -36,4 +36,11 @@ public abstract class ASMInstr {
      * used.
      */
     public abstract boolean destIsDefButNoUse();
+
+    /**
+     * Returns true if instr creates a new definition on the destination (if
+     * exists), false otherwise.
+     */
+    public abstract boolean destHasNewDef();
+
 }

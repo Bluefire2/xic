@@ -29,11 +29,13 @@ public class IRGraph extends Graph<IRStmt> {
 
         // set the start node
         Iterator<IRStmt> iter = stmts.stmts().iterator();
-        Node previous = new Node(iter.next());
+        IRStmt stmt = iter.next();
+        Node previous = new Node(stmt);
+        nodeStmtMap.put(previous, stmt);
         setStartNode(previous);
 
         while (iter.hasNext()) {
-            IRStmt stmt = iter.next();
+            stmt = iter.next();
             Node node = new Node(stmt);
             addOtherNode(node);
             nodeStmtMap.put(node, stmt);
@@ -54,7 +56,7 @@ public class IRGraph extends Graph<IRStmt> {
         // SECOND PASS: add CFG edges for jumps to labelled nodes
 
         for (Node node : getAllNodes()) {
-            IRStmt stmt = node.getT();
+            stmt = node.getT();
 
             if (!(stmt instanceof IRJump || stmt instanceof IRCJump)) {
                 // stmt is not a jump node, continue to next node
