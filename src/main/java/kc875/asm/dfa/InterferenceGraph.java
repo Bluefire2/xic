@@ -32,11 +32,6 @@ public class InterferenceGraph extends Graph<ASMExprRT> {
         return nodeRegMap.inverse().containsKey(temp);
     }
 
-    public List<ASMInstr> moves(){
-        //TODO
-        return null;
-    }
-
     public Node addNode(ASMExprRT t){
         Node n = new Node(t);
         nodeRegMap.put(n, t);
