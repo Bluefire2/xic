@@ -614,7 +614,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                                 "enough regs for RHS of 2 argument expr");
                     }
                     src = new ASMExprReg(availRegs.get(0));
-                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, r));
+                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
                     usedRegs.add(availRegs.get(0));
                 } else {
                     src = r;

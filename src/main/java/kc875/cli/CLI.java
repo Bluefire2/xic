@@ -598,10 +598,10 @@ public class CLI implements Runnable {
                         instrs = regVisitor.allocate(instrs);
                     }
                 }
-                for (ASMInstr in : instrs) {
-                    System.out.println(in);
-                }
-                System.out.println();
+//                for (ASMInstr in : instrs) {
+//                    System.out.println(in);
+//                }
+//                System.out.println();
 
                 // Write ASM
                 asmFilePrologueWrite(fileWriter);
