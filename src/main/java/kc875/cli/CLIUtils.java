@@ -9,6 +9,7 @@ import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstrLabel;
 import kc875.asm.ASMUtils;
 import kc875.asm.dfa.ASMGraph;
+import kc875.asm.dfa.AvailableCopiesDFA;
 import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.DFAFramework;
 import kc875.utils.XiUtils;
@@ -148,6 +149,9 @@ class CLIUtils {
                     switch (p) {
                         case ASMLIVEVAR:
                             framework = new LiveVariableDFA(funcGraph);
+                            break;
+                        case ASMAVAILCOPY:
+                            framework = new AvailableCopiesDFA(funcGraph);
                             break;
                         default:
                             throw new IllegalAccessError(

@@ -2,14 +2,13 @@ package kc875.cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
-import edu.cornell.cs.cs4120.xic.ir.IRConst;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
-import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
+import kc875.asm.visit.RegAllocationColoringVisitor;
 import kc875.asm.visit.RegAllocationNaiveVisitor;
 import kc875.ast.ASTNode;
 import kc875.ast.Printable;
@@ -560,9 +559,18 @@ public class CLI implements Runnable {
                 // Get ASM
                 IRNode foldedIR = buildIR(f, fileReader);
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
-                RegAllocationNaiveVisitor regVisitor =
-                        new RegAllocationNaiveVisitor(optCommentASM);
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
+
+                // Output the AVAILCOPY CFG graph is needed
+                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGDFAPhase(
+                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
+                    );
+                }
 
                 // Output the LIVEVAR CFG graph is needed
                 if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
@@ -575,9 +583,21 @@ public class CLI implements Runnable {
                     );
                 }
 
+                // Do reg allocation
                 if (!optASMDisableRegAllocation) {
                     // reg allocation enabled
-                    instrs = regVisitor.allocate(instrs);
+                    if (activeOptims.get(Optims.REG) || activeOptims.get(Optims.MC)) {
+                        RegAllocationColoringVisitor coloringVisitor =
+                                new RegAllocationColoringVisitor(RegAllocationColoringVisitor.SpillMode.Reserve);
+                        instrs = coloringVisitor.allocate(instrs);
+                        RegAllocationNaiveVisitor naiveVisitor =
+                                new RegAllocationNaiveVisitor(optCommentASM);
+                        // TODO not hooked up yet
+                    } else {
+                        RegAllocationNaiveVisitor regVisitor =
+                                new RegAllocationNaiveVisitor(optCommentASM);
+                        instrs = regVisitor.allocate(instrs);
+                    }
                 }
 
                 // Write ASM

@@ -8,17 +8,19 @@ import java.util.*;
  * A wrapper on Set, providing support for infinite sets.
  */
 public class SetWithInf<E> implements Iterable<E> {
-    // Class invariants:
-    // - An element s cannot be in both includeSet and excludeSet at the same
-    //   time.
-    // - A set can be infinite and still have non-empty excludeSet. If a set
-    //   is infinite, then we don't care about the includeSet.
-    private Set<E> set;
+
+    private Set<E> includeSet;
+    private Set<E> excludeSet;
     private boolean isInf;
 
-    public SetWithInf(Set<E> set) {
-        this.set = set;
+    public SetWithInf(Set<E> includeSet) {
+        this.includeSet = includeSet;
+        this.excludeSet = new HashSet<>();
         isInf = false;
+    }
+
+    public SetWithInf(E... es) {
+        this(new HashSet<>(Arrays.asList(es)));
     }
 
     public SetWithInf() {
@@ -43,42 +45,63 @@ public class SetWithInf<E> implements Iterable<E> {
         return set;
     }
 
-    /**
-     * Returns Integer.MAX_VALUE if the set is infinite, the size of the
-     * wrapped set otherwise.
-     */
-    public int size() {
-        return this.isInf ? Integer.MAX_VALUE : this.set.size();
-    }
-
     public boolean isInf() {
         return this.isInf;
     }
 
+    /**
+     * If the set is infinite, then throws IllegalAccessError.
+     */
+    public int size() {
+        if (this.isInf) throw new IllegalAccessError("inf set");
+        else return this.includeSet.size();
+    }
+
     public boolean isEmpty() {
-        return !this.isInf && this.set.isEmpty();
+        return !this.isInf && this.includeSet.isEmpty();
     }
 
     public boolean contains(E e) {
-        return this.isInf || this.set.contains(e);
+        // Either set is inf, return true if e not excluded
+        // Or set is not inf, check if included
+        return (this.isInf && !this.excludeSet.contains(e))
+                || (!this.isInf && this.includeSet.contains(e));
     }
 
     public boolean containsAll(Collection<? extends E> c) {
-        return this.isInf || this.set.containsAll(c);
+        return c.stream().allMatch(this::contains);
     }
 
-    public boolean add(E e) {
-        return this.set.add(e);
+    public void add(E e) {
+        this.includeSet.add(e);
+        this.excludeSet.add(e);
     }
 
-    public boolean addAll(Collection<? extends E> c) {
-        return this.set.addAll(c);
+    public void addAll(Collection<? extends E> c) {
+        c.forEach(this::add);
+    }
+
+    public void addAll(E... es) {
+        addAll(Arrays.asList(es));
+    }
+
+    public void remove(E e) {
+        this.includeSet.remove(e);
+        this.excludeSet.add(e);
+    }
+
+    public void removeAll(Collection<? extends E> c) {
+        c.forEach(this::remove);
+    }
+
+    public void removeAll(E... es) {
+        removeAll(Arrays.asList(es));
     }
 
     @Override
     public Iterator<E> iterator() {
         return new Iterator<>() {
-            private final Iterator<E> setIter = set.iterator();
+            private final Iterator<E> setIter = includeSet.iterator();
 
             @Override
             public boolean hasNext() {
@@ -93,50 +116,60 @@ public class SetWithInf<E> implements Iterable<E> {
     }
 
     // Set operations with another set
+    private static <E> SetWithInf<E> newSetWithInf(
+            boolean isInf, Set<E> incSet, Set<E> excSet
+    ) {
+        SetWithInf<E> set = new SetWithInf<>();
+        set.isInf = isInf;
+        set.includeSet = new HashSet<>(incSet);
+        set.excludeSet = new HashSet<>(excSet);
+        return set;
+    }
 
     public SetWithInf<E> union(SetWithInf<E> other) {
-        Set<E> unionSet = Sets.union(this.set, other.set).immutableCopy();
-        if (this.isInf || other.isInf) {
-            // return an inf set but with the wrapped sets combined
-            return infSet(unionSet);
-        } else {
-            // both are non-inf sets
-            return new SetWithInf<>(unionSet);
-        }
+        Set<E> incSet = Sets.union(this.includeSet, other.includeSet);
+        Set<E> excSet = Sets.intersection(this.excludeSet, other.excludeSet);
+        return newSetWithInf(this.isInf || other.isInf, incSet, excSet);
     }
 
     public SetWithInf<E> intersect(SetWithInf<E> other) {
-        SetWithInf<E> fst, snd;
-        if (this.set.size() < other.set.size()) {
-            fst = this;
-            snd = other;
-        } else {
-            // switch order for faster intersection operation; see doc
-            // https://google.github.io/guava/releases/27.1-jre/api/docs/
-            fst = other;
-            snd = this;
-        }
-
-        Set<E> interSet = Sets.intersection(fst.set, snd.set).immutableCopy();
-        if (fst.isInf && snd.isInf) {
-            // both are inf, return an inf set
-            return infSet(interSet);
-        } else if (fst.isInf) {
-            // fst is inf, but snd isn't; return snd
-            return snd;
-        } else if (snd.isInf) {
-            // snd is inf, but fst isn't; return fst
-            return fst;
-        } else {
-            // both are non-inf, return the intersection
-            return new SetWithInf<>(interSet);
-        }
+        Set<E> incSet = this.isInf || other.isInf
+                ? Sets.union(this.includeSet, other.includeSet)
+                : Sets.intersection(this.includeSet, other.includeSet);
+        Set<E> excSet = Sets.union(this.excludeSet, other.excludeSet);
+        return newSetWithInf(this.isInf && other.isInf, incSet, excSet);
     }
 
-    // TODO
     public SetWithInf<E> diff(SetWithInf<E> other) {
-        Set<E> diffSet = Sets.difference(this.set, other.set).immutableCopy();
-        return new SetWithInf<>(diffSet);
+        // if inf set is subtracted, result is an empty set
+        if (other.isInf) return new SetWithInf<>();
+
+        // other is not inf
+        // add all elements from this.include
+        SetWithInf<E> set = newSetWithInf(
+                this.isInf, this.includeSet, this.excludeSet
+        );
+        set.removeAll(other.includeSet);
+        // don't care about other.exclude since they might (or not) be in
+        // this.include
+        return set;
+    }
+
+    @Override
+    public String toString() {
+        if (this.isInf)
+            return "[*] + "
+                    + this.includeSet.toString() + " - "
+                    + this.excludeSet.toString();
+        return this.includeSet.toString() + " - " + this.excludeSet.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof SetWithInf<?>)) return false;
+        SetWithInf<?> other = (SetWithInf<?>) o;
+        return (this.isInf && other.isInf)
+                || (!this.isInf && !other.isInf && this.includeSet.equals(other.includeSet));
     }
 
     public List<E> toList() {

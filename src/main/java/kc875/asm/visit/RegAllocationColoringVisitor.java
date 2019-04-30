@@ -1,7 +1,6 @@
 package kc875.asm.visit;
 
 import com.google.common.collect.Sets;
-import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.InterferenceGraph;
@@ -14,7 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RegAllocationColoringVisitor {
-    enum SpillMode {
+    public enum SpillMode {
         Reserve,//r13,14,15 reserved for spilling
         Restore //can use any register
     }
@@ -66,11 +65,11 @@ public class RegAllocationColoringVisitor {
 
     private int K;// number of usable registers
 
-    RegAllocationColoringVisitor() {
+    public RegAllocationColoringVisitor() {
         this(SpillMode.Reserve); //default to reserve mode
     }
 
-    RegAllocationColoringVisitor(SpillMode s) {
+    public RegAllocationColoringVisitor(SpillMode s) {
         precolored = new HashSet<>();
         initial = new HashSet<>();
         simplifyWorklist = new HashSet<>();
