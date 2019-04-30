@@ -17,9 +17,8 @@ public class CommonSubexprElimVisitor {
 
     private int tempcounter;
     public String newTemp() {
-        return String.format("cse_t%d", tempcounter++);
+        return String.format("_cse_t%d", tempcounter++);
     }
-
 
     /**
      * Perform common subexpression elimination
@@ -28,34 +27,56 @@ public class CommonSubexprElimVisitor {
      */
     public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
-        for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            irGraph = new IRGraph(funcDecl);
+        for (IRFuncDecl func : irnode.functions().values()) {
+            // Get the stmts in body of this func
+            IRStmt body = func.body();
+            IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+
+            // Get the IR graph and run avail expr
+            irGraph = new IRGraph(func);
             AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
             availableExprsDFA.runWorklistAlgo();
 
             HashMap<IRExpr, String> tempExprMap = new HashMap<>();
-            for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
+            List<IRStmt> listStmt = stmts.stmts();
+            for (int i = 0; i < listStmt.size(); ++i) {
+                // optimize each stmt in the body
+                IRStmt stmt = listStmt.get(i);
+                Graph<IRStmt>.Node n = irGraph.getNode(stmt);
                 IRSeq seq = new IRSeq();
                 for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
                     String tmp = newTemp();
                     tempExprMap.put(e, tmp);
                     seq.stmts().add(new IRMove(new IRTemp(tmp), e));
-                    IRStmt nodestmt = irGraph.getStmt(n);
-                    if (nodestmt instanceof IRSeq) {
-                        seq.stmts().addAll(((IRSeq) nodestmt).stmts());
+                    if (stmt instanceof IRSeq) {
+                        seq.stmts().addAll(((IRSeq) stmt).stmts());
                     }
-                    else seq.stmts().add(nodestmt);
+                    else seq.stmts().add(stmt);
                 }
 
-                seq.stmts().add(visit(irGraph.getStmt(n), tempExprMap));
-                irGraph.setStmt(n, seq);
+                seq.stmts().add(visit(stmt, tempExprMap));
+                // replace this stmt with the new one
+                listStmt.set(i, seq);
             }
 
-            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    IRGraph.flattenCFG(irGraph));
-            optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
+            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(
+                    func.name(),
+                    removeNestedIRSeqs(new IRSeq(listStmt))
+            );
+            optimizedCompUnit.functions().put(func.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
+    }
+
+    private IRSeq removeNestedIRSeqs(IRSeq stmt) {
+        List<IRStmt> stmts = new ArrayList<>();
+        for (IRStmt s : stmt.stmts()) {
+            if (s instanceof IRSeq) {
+                stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
+            }
+            else stmts.add(s);
+        }
+        return new IRSeq(stmts);
     }
 
     public IRStmt visit(IRStmt stmt, HashMap<IRExpr, String> exprTempMap) {
