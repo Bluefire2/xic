@@ -150,14 +150,21 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * an alias for [e]
      */
     public static SetWithInf<IRExpr> possibleAliasExprs(IRExpr e, List<IRExpr> exprList) {
-        //TODO: how to do other heuristics at IR level?
         HashSet<IRExpr> exprSet = new HashSet<>();
+        ListChildrenVisitor lcv = new ListChildrenVisitor();
 
         for (IRExpr expr : exprList) {
-            if (expr instanceof IRConst && e instanceof IRConst) {
-                if (((IRConst) expr).value() != ((IRConst) e).value()) continue;
+            List<IRNode> children = lcv.visit(expr);
+            for (IRNode c : children) {
+                if (c instanceof IRMem) {
+                    if (((IRMem) c).expr() instanceof IRConst && e instanceof IRConst) {
+                        if (((IRConst) ((IRMem) c).expr()).value() != ((IRConst) e).value()) {
+                            continue;
+                        }
+                    }
+                    exprSet.add(expr);
+                }
             }
-            exprSet.add(expr);
         }
 
         return new SetWithInf<>(exprSet);
@@ -178,8 +185,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
         for (IRExpr expr : exprList) {
             List<IRNode> children = lcv.visit(expr);
             for (IRNode n : children) {
-                if (n instanceof IRMem && !(possibleAliasExprs(
-                                ((IRMem) n).expr(), exprList).isEmpty())) {
+                if (n instanceof IRMem) {
                     exprSet.add(expr);
                 }
             }
