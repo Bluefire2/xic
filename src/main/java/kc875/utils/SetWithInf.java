@@ -129,7 +129,12 @@ public class SetWithInf<E> implements Iterable<E> {
     public SetWithInf<E> union(SetWithInf<E> other) {
         Set<E> incSet = Sets.union(this.includeSet, other.includeSet);
         Set<E> excSet = Sets.intersection(this.excludeSet, other.excludeSet);
-        return newSetWithInf(this.isInf || other.isInf, incSet, excSet);
+
+        SetWithInf<E> set = newSetWithInf(
+                this.isInf || other.isInf, incSet, new HashSet<>()
+        );
+        set.removeAll(excSet);
+        return set;
     }
 
     public SetWithInf<E> intersect(SetWithInf<E> other) {
@@ -137,7 +142,12 @@ public class SetWithInf<E> implements Iterable<E> {
                 ? Sets.union(this.includeSet, other.includeSet)
                 : Sets.intersection(this.includeSet, other.includeSet);
         Set<E> excSet = Sets.union(this.excludeSet, other.excludeSet);
-        return newSetWithInf(this.isInf && other.isInf, incSet, excSet);
+
+        SetWithInf<E> set = newSetWithInf(
+                this.isInf && other.isInf, incSet, new HashSet<>()
+        );
+        set.removeAll(excSet);
+        return set;
     }
 
     public SetWithInf<E> diff(SetWithInf<E> other) {
@@ -174,7 +184,7 @@ public class SetWithInf<E> implements Iterable<E> {
 
     public List<E> toList() {
         List<E> lst = new ArrayList<>();
-        for (E e: this) {
+        for (E e : this) {
             lst.add(e);
         }
         return lst;

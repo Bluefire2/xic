@@ -10,6 +10,7 @@ import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
 import kc875.asm.visit.RegAllocationColoringVisitor;
 import kc875.asm.visit.RegAllocationNaiveVisitor;
+import kc875.asm.visit.RegAllocationOptimVisitor;
 import kc875.ast.ASTNode;
 import kc875.ast.Printable;
 import kc875.ast.visit.IRTranslationVisitor;
@@ -582,17 +583,13 @@ public class CLI implements Runnable {
                             instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
                     );
                 }
-                //TODO hookup RegAllocationOptimVisitor when REG or MC is enabled
-                //DO NOT use naive visitor, OptimVisitor already does spilling
-                RegAllocationNaiveVisitor regVisitor =
-                        new RegAllocationNaiveVisitor(optCommentASM);
 
                 // Do reg allocation
                 if (!optASMDisableRegAllocation) {
                     // reg allocation enabled
                     if (activeOptims.get(Optims.REG) || activeOptims.get(Optims.MC)) {
                         RegAllocationColoringVisitor coloringVisitor =
-                                new RegAllocationColoringVisitor(RegAllocationColoringVisitor.SpillMode.Reserve);
+                                new RegAllocationColoringVisitor(RegAllocationOptimVisitor.SpillMode.Reserve);
                         instrs = coloringVisitor.allocate(instrs);
                         RegAllocationNaiveVisitor naiveVisitor =
                                 new RegAllocationNaiveVisitor(optCommentASM);

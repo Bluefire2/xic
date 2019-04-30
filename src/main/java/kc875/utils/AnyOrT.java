@@ -15,14 +15,14 @@ public class AnyOrT<T> {
     /**
      * Constructs an 'any' representation of T.
      */
-    AnyOrT() {
+    public AnyOrT() {
         t = null;
     }
 
     /**
      * Specific value of T given by t.
      */
-    AnyOrT(T t) {
+    public AnyOrT(T t) {
         this.t = t;
     }
 
@@ -45,7 +45,9 @@ public class AnyOrT<T> {
 
     @Override
     public int hashCode() {
-        return this.isAny() ? "any".hashCode() : t.hashCode();
+        // Don't change this. contains for these objects should default to
+        // equals() and so all hashcodes return 0
+        return 0;
     }
 
     @Override

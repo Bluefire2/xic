@@ -72,5 +72,34 @@ public class AvailableCopiesDFATest {
         System.out.println();
     }
 
+    @Test
+    public void simpleASMTest2() {
+        List<ASMInstr> instrs = new ArrayList<>();
+        instrs.add(new ASMInstrLabel("_If"));
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.MOV,
+                new ASMExprTemp("c"),
+                new ASMExprTemp("d")
+        ));
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.ADD,
+                new ASMExprTemp("c"),
+                new ASMExprTemp("d")
+        ));
+
+        ASMGraph graph = new ASMGraph(instrs);
+        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        dfa.runWorklistAlgo();
+
+        instrs.forEach(System.out::println);
+        System.out.println("results:");
+        for (Graph<ASMInstr>.Node node : graph.getAllNodes()) {
+            System.out.println(node);
+            System.out.println("\tAC in=" + dfa.getInMap().get(node));
+            System.out.println("\tAC out=" + dfa.getOutMap().get(node));
+        }
+        System.out.println();
+    }
+
 }
 

@@ -1,13 +1,14 @@
 package kc875.asm.visit;
-import kc875.asm.*;
-import kc875.asm.visit.*;
+
+import kc875.asm.ASMInstr;
+import kc875.asm.ASMUtils;
 import kc875.asm.visit.RegAllocationNaiveVisitor.NaiveSpillMode;
+
 import java.util.List;
-import java.util.ArrayList;
 
 
 public class RegAllocationOptimVisitor {
-    enum SpillMode {
+    public enum SpillMode {
         Reserve,//r13,14,15 reserved for spilling
         Restore //can use any register
     }

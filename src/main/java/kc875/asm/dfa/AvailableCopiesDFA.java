@@ -19,16 +19,7 @@ public class AvailableCopiesDFA extends
         super(
                 asmGraph,
                 Direction.FORWARD,
-                (node, l) -> {
-//                    System.out.println(node);
-//                    System.out.println("gen=" + gen(node));
-//                    System.out.println("l=" + l);
-//                    System.out.println("kill=" + kill(node));
-//                    System.out.println("l diff kill=" + l.diff(kill(node)));
-//                    System.out.println("after union=" +
-//                            gen(node).union(l.diff(kill(node))));
-                    return gen(node).union(l.diff(kill(node)));
-                },
+                (node, l) -> gen(node).union(l.diff(kill(node))),
                 SetWithInf::infSet,
                 SetWithInf::intersect,
                 SetWithInf.infSet()
