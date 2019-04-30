@@ -534,8 +534,8 @@ public class RegAllocationColoringVisitor {
     private boolean ok(Graph<ASMExprRT>.Node t,
                        Graph<ASMExprRT>.Node r) {
         return degree.get(t) < K
-                && precolored.contains(t)
-                && adjSet.contains(new Pair<>(t, r));
+                || precolored.contains(t)
+                || adjSet.contains(new Pair<>(t, r));
     }
 
     private boolean conservative(Set<Graph<ASMExprRT>.Node> nodes) {
@@ -556,7 +556,6 @@ public class RegAllocationColoringVisitor {
     }
 
     private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes) {
-        List<ASMInstr> instrs = new ArrayList<>();
         if (i instanceof ASMInstr_1Arg) {
             ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
             return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));

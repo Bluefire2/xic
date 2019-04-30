@@ -271,7 +271,7 @@ public class RegAllocationColoringVisitorTest {
     //TODO spilling too many temps
     @Test
     public void testColoringSimpleSpillReserve() {
-        //should fail to color 12 live vars - 3 unique temps spilled?
+        //should fail to color 12 live vars - 3 unique temps spilled
         RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
         List<ASMInstr> abstract_asm = getTestInstrs(12);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
