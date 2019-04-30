@@ -24,10 +24,10 @@ public class CopyPropagationVisitor {
         IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
         for (IRFuncDecl funcDecl : irnode.functions().values()) {
             irGraph = new IRGraph(funcDecl);
-            //TODO: is reaching definitions analysis necessary here?
             ReachingDefnsDFA reachingDefnsDFA = new ReachingDefnsDFA(irGraph);
             reachingDefnsDFA.runWorklistAlgo();
 
+            HashMap<String, IRGraph.Node> defnNodeMap = new HashMap<>();
             HashMap<String, String> copyMap = new HashMap<>();
             
             for (Graph<IRStmt>.Node n : irGraph.getAllNodes()) {
@@ -45,16 +45,27 @@ public class CopyPropagationVisitor {
                     if (s instanceof IRMove ) {
                         IRExpr target = ((IRMove) s).target();
                         IRExpr source = ((IRMove) s).source();
-                        if (target instanceof IRTemp && source instanceof IRTemp) {
-                            copyMap.put(((IRTemp) target).name(),
-                                    ((IRTemp) source).name());
-                        }
-                        else if (target instanceof IRTemp) {
-                            copyMap.remove(((IRTemp) target).name());
+                        if (target instanceof IRTemp) {
+                            String tname = ((IRTemp) target).name();
+                            defnNodeMap.put(tname, n);
+                            if (source instanceof IRTemp) {
+                                copyMap.put(tname, ((IRTemp) source).name());
+                            }
+                            else {
+                                copyMap.remove(tname);
+                            }
+                    }}
+
+                    HashMap<String, String> perNodeCopyMap = new HashMap<>();
+                    for (String str : copyMap.keySet()) {
+                        if (defnNodeMap.containsKey(str)) {
+                            IRGraph.Node nprime = defnNodeMap.get(str);
+                                if (nprime.equals(n) || nprime.goesTo(n)) {
+                                    perNodeCopyMap.put(str, copyMap.get(str));
+                                }
                         }
                     }
-                    
-                    seq.stmts().add(visit(s, copyMap));
+                    seq.stmts().add(visit(s, perNodeCopyMap));
                 }
                 
                 irGraph.setStmt(n, seq);
