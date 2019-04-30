@@ -83,7 +83,7 @@ public class ASMGraph extends Graph<ASMInstr> {
                 // If the arg is not for a function, then we can jump to it
                 // inside this function
                 // get the node we jump to and add an edge to it
-                if (!XiUtils.isFunction(arg.getName())) {
+                if (!XiUtils.isNonLibFunction(arg.getName())) {
                     Node to = labelToNodeMap.get(arg.getName());
                     addEdge(node, to);
                 }

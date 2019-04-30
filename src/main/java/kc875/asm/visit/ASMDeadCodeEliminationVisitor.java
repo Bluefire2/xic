@@ -30,15 +30,23 @@ public class ASMDeadCodeEliminationVisitor {
             if (instr.destHasNewDef()) {
                 if (instr instanceof ASMInstr_2Arg) {
                     allDefs.add((ASMExprRT) ((ASMInstr_2Arg) instr).getDest());
+                    boolean allDefsUseless = allDefs.stream()
+                            .noneMatch(def -> nodeToLiveVars.get(node).contains(def));
+                    if (!allDefsUseless)
+                        optimFunc.add(instr);
+
                 } else if (instr instanceof ASMInstr_1Arg) {
                     allDefs.add((ASMExprRT) ((ASMInstr_1Arg) instr).getArg());
+                    boolean allDefsUseless = allDefs.stream()
+                            .noneMatch(def -> nodeToLiveVars.get(node).contains(def));
+                    if (!allDefsUseless)
+                        optimFunc.add(instr);
+                } else {
+                    optimFunc.add(instr);
                 }
-            }
-
-            boolean allDefsUseless = allDefs.stream()
-                    .noneMatch(def -> nodeToLiveVars.get(node).contains(def));
-            if (!allDefsUseless)
+            } else {
                 optimFunc.add(instr);
+            }
         }
 
         return optimFunc;
