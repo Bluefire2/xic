@@ -49,6 +49,10 @@ public class SetWithInf<E> implements Iterable<E> {
         return this.isInf;
     }
 
+    public Set<E> getIncludeSet() {
+        return includeSet;
+    }
+
     /**
      * If the set is infinite, then throws IllegalAccessError.
      */
@@ -74,7 +78,7 @@ public class SetWithInf<E> implements Iterable<E> {
 
     public void add(E e) {
         this.includeSet.add(e);
-        this.excludeSet.add(e);
+        this.excludeSet.remove(e);
     }
 
     public void addAll(Collection<? extends E> c) {

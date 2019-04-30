@@ -2,7 +2,9 @@ package kc875.asm;
 
 import kc875.asm.visit.ASMinstrBareVisitor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ASMInstr_2Arg extends ASMInstr {
     private ASMExpr dest;
@@ -42,6 +44,36 @@ public class ASMInstr_2Arg extends ASMInstr {
 
     public ASMExpr getSrc() {
         return src;
+    }
+
+    @Override
+    public boolean destHasNewDef() {
+        if (!(dest instanceof ASMExprRT)) {
+            return false;
+        }
+        // dest is reg/temp
+        switch (getOpCode()) {
+            case ADD:
+            case SUB:
+            case IMUL:
+            case IDIV:
+            case AND:
+            case OR:
+            case XOR:
+            case SHR:
+            case SHL:
+            case SAR:
+            case MOV:
+            case MOVZX:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
+    public Set<ASMExprReg> implicitRegs() {
+        return new HashSet<>();
     }
 
     @Override

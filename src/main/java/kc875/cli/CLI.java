@@ -8,6 +8,7 @@ import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
+import kc875.asm.visit.ASMCopyPropagationVisitor;
 import kc875.asm.visit.RegAllocationNaiveVisitor;
 import kc875.asm.visit.RegAllocationOptimVisitor;
 import kc875.ast.ASTNode;
@@ -561,6 +562,17 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
+                // Output the LIVEVAR CFG graph is needed
+                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGDFAPhase(
+                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+                    );
+                }
+
                 // Output the AVAILCOPY CFG graph is needed
                 if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
                     String diagPath = Paths.get(
@@ -572,14 +584,17 @@ public class CLI implements Runnable {
                     );
                 }
 
-                // Output the LIVEVAR CFG graph is needed
-                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+                if (activeOptims.get(Optims.COPY)) {
+                    ASMCopyPropagationVisitor v =
+                            new ASMCopyPropagationVisitor();
+                    instrs = v.run(instrs);
                     String diagPath = Paths.get(
                             diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
+                            FilenameUtils.removeExtension(f.getName()) +
+                                    "_afterCOPY"
                     ).toString();
                     CLIUtils.fileoutCFGDFAPhase(
-                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
                     );
                 }
 
