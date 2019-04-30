@@ -358,6 +358,8 @@ matched_stmt ::=
 unmatched_stmt ::=
   IF:i expr:e unmatched_stmt:s {: RESULT = new StmtIf(e,s, ixleft); :}
 | IF:i expr:e matched_stmt:s {: RESULT = new StmtIf(e,s, ixleft); :}
+| IF:i expr:e matched_stmt:s1 ELSE unmatched_stmt:s2 {:
+    RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e unmatched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 ;
 
