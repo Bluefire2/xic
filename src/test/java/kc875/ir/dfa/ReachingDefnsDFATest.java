@@ -21,4 +21,10 @@ public class ReachingDefnsDFATest {
     @After
     public void tearDown() {
     }
-}
+
+    @Test
+    public void testDefs() {
+        //TODO
+        assert(false);
+    }
+ }
