@@ -8,7 +8,6 @@ import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
-import kc875.asm.visit.RegAllocationColoringVisitor;
 import kc875.asm.visit.RegAllocationNaiveVisitor;
 import kc875.asm.visit.RegAllocationOptimVisitor;
 import kc875.ast.ASTNode;
@@ -588,12 +587,11 @@ public class CLI implements Runnable {
                 if (!optASMDisableRegAllocation) {
                     // reg allocation enabled
                     if (activeOptims.get(Optims.REG) || activeOptims.get(Optims.MC)) {
-                        RegAllocationColoringVisitor coloringVisitor =
-                                new RegAllocationColoringVisitor(RegAllocationOptimVisitor.SpillMode.Reserve);
-                        instrs = coloringVisitor.allocate(instrs);
-                        RegAllocationNaiveVisitor naiveVisitor =
-                                new RegAllocationNaiveVisitor(optCommentASM);
-                        // TODO not hooked up yet
+                        RegAllocationOptimVisitor optimVisitor =
+                                new RegAllocationOptimVisitor(
+                                        RegAllocationOptimVisitor.SpillMode.Reserve
+                                );
+                        instrs = optimVisitor.allocate(instrs);
                     } else {
                         RegAllocationNaiveVisitor regVisitor =
                                 new RegAllocationNaiveVisitor(optCommentASM);
