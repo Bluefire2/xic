@@ -8,6 +8,7 @@ import kc875.asm.dfa.AvailableCopiesDFA;
 import kc875.cfg.Graph;
 import kc875.utils.PairAnyOrT;
 import kc875.utils.SetWithInf;
+import kc875.utils.UnionFind;
 import polyglot.util.Pair;
 
 import java.util.*;
