@@ -76,7 +76,7 @@ public class IRConst extends IRExpr_c {
     }
 
     public int hashCode() {
-        String hs = "3" + value;
+        String hs = "3" + Math.abs(value);
         Long hl;
         try {
             hl = Long.parseLong(hs);

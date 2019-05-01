@@ -1,13 +1,11 @@
 package kc875.asm.dfa;
 
+import com.google.common.collect.Sets;
 import kc875.asm.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 import polyglot.util.Pair;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Available copies DFA (used in copy and dce). The lattice elements are
@@ -20,23 +18,21 @@ public class AvailableCopiesDFA extends
         super(
                 asmGraph,
                 Direction.FORWARD,
-                (node, l) -> {
-                    Pair<Set<ASMExprTemp>, Set<ASMExprTemp>> kill = kill(node);
-                    // Remove all elements from l with l.part1() = k for
-                    // all k in kill.part1()
-                    kill.part1().forEach(k ->
-                            l.removeIf(p -> p.part1().equals(k))
-                    );
-                    // Remove all elements from l with l.part2() = k for
-                    // all k in kill.part2()
-                    kill.part2().forEach(k ->
-                            l.removeIf(p -> p.part2().equals(k))
-                    );
-                    return gen(node).union(l);
+                // lDiffKill is not inf (postcondition), so the
+                // precondition of union is met
+                (node, l) -> gen(node).union(lDiffKill(l, node)),
+                SetWithInf::infSet,// meet acc
+                (l1, l2) -> {
+                    if (l1.isInf()) // l1 is top
+                        return l2;
+                    if (l2.isInf()) // l2 is top
+                        return l1;
+                    // l1 and l2 are not top, take the normal intersection
+                    return new SetWithInf<>(Sets.intersection(
+                            l1.getSet(), l2.getSet()
+                    ));
                 },
-                SetWithInf::infSet,
-                SetWithInf::intersect,
-                SetWithInf.infSet()
+                SetWithInf.infSet()// top
         );
     }
 
@@ -51,10 +47,13 @@ public class AvailableCopiesDFA extends
                 if (ins2.getDest() instanceof ASMExprTemp
                         && ins2.getSrc() instanceof ASMExprTemp) {
                     // x = y; gen (x, y)
-                    return new SetWithInf<>(new Pair<>(
+                    SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> s =
+                            new SetWithInf<>();
+                    s.add(new Pair<>(
                             (ASMExprTemp) ins2.getDest(),
                             (ASMExprTemp) ins2.getSrc()
                     ));
+                    return s;
                 }
             }
         }
@@ -62,19 +61,28 @@ public class AvailableCopiesDFA extends
     }
 
     /**
-     * Returns a pair (s1, s2) of sets, where s1 represents the set of temps t
-     * that will kill copies (t, *). Similarly for s2.
+     * Returns the result of l.diff(kill(node)) for this analysis.
+     * Postconditions:
+     * - The returned set is not infinite.
      */
-    private static Pair<Set<ASMExprTemp>, Set<ASMExprTemp>> kill(
+    private static SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> lDiffKill(
+            SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> l,
             Graph<ASMInstr>.Node node
     ) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstrLabel
                 && ((ASMInstrLabel) instr).isFunction()) {
             // this label is for a function ==> must be the top-level
-            // function's label ==> start node
-            return new Pair<>(new HashSet<>(), new HashSet<>());
+            // function's label ==> start node; return empty set
+            return new SetWithInf<>();
         }
+
+        if (l.isInf())// l is top
+            // Note: in this analysis, the meet function is intersection and
+            // the start node kills everything. So all nodes except the start
+            // node effectively have their tops initialized to empty set
+            // Ask Anmol if more explanation needed
+            return new SetWithInf<>();// kill everything
 
         if (instr.destHasNewDef()) {
             // dest gets defined (by 2Arg and 1Arg), kill the def
@@ -83,24 +91,26 @@ public class AvailableCopiesDFA extends
                 if (ins2.getDest() instanceof ASMExprTemp) {
                     // x = e; kill (x, z), (z, x) for any z
                     ASMExprTemp x = (ASMExprTemp) ins2.getDest();
-                    return new Pair<>(
-                            new HashSet<>(Set.of(x)),
-                            new HashSet<>(Set.of(x))
-                    );
+                    // Remove all elements from l with l.part1() = x
+                    l.removeIf(p -> p.part1().equals(x));
+                    // Remove all elements from l with l.part2() = x
+                    l.removeIf(p -> p.part2().equals(x));
+                    return l;
                 }
             } else if (instr instanceof ASMInstr_1Arg) {
                 ASMInstr_1Arg ins1 = (ASMInstr_1Arg) instr;
                 if (ins1.getArg() instanceof ASMExprTemp) {
                     // x = e; kill (x, z), (z, x) for any z
                     ASMExprTemp x = (ASMExprTemp) ins1.getArg();
-                    return new Pair<>(
-                            new HashSet<>(Set.of(x)),
-                            new HashSet<>(Set.of(x))
-                    );
+                    // Remove all elements from l with l.part1() = x
+                    l.removeIf(p -> p.part1().equals(x));
+                    // Remove all elements from l with l.part2() = x
+                    l.removeIf(p -> p.part2().equals(x));
+                    return l;
                 }
             }
         }
-        return new Pair<>(new HashSet<>(), new HashSet<>());// kill nothing
+        return l;// kill nothing
     }
 
 }

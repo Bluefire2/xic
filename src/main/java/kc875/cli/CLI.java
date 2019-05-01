@@ -486,11 +486,22 @@ public class CLI implements Runnable {
                             new OptimalCodeWriter(fileWriter, 80);
                     printer = new CodeWriterSExpPrinter(cw);
                 }
+
+                //Optimizations
+                if (activeOptims.get(Optims.CSE)) {
+                    CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
+                    foldedIR = csev.removeCommonSubExpressions((IRCompUnit) foldedIR);
+                }
+                if (activeOptims.get(Optims.COPY)) {
+                    CopyPropagationVisitor cpv = new CopyPropagationVisitor();
+                    foldedIR = cpv.propagateCopies((IRCompUnit) foldedIR);
+                }
+                if (activeOptims.get(Optims.DCE)) {
+                    DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
+                    foldedIR = dcv.removeDeadCode((IRCompUnit) foldedIR);
+                }
+
                 foldedIR.printSExp(printer);
-                //TODO: test: remove
-                /*CommonSubexprElimVisitor cse = new CommonSubexprElimVisitor();
-                cse.removeCommonSubExpressions((IRCompUnit) foldedIR);
-                cse.getIrGraph().show("irgraph.ir");*/
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -512,6 +523,21 @@ public class CLI implements Runnable {
                  FileOutputStream fos = new FileOutputStream(outputFilePath)) {
 
                 IRNode foldedIR = buildIR(f, fileReader);
+
+                //Optimizations
+                if (activeOptimIRPhases.get(Optims.CSE)) {
+                    CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
+                    foldedIR = csev.removeCommonSubExpressions((IRCompUnit) foldedIR);
+                }
+                if (activeOptimIRPhases.get(Optims.COPY)) {
+                    CopyPropagationVisitor cpv = new CopyPropagationVisitor();
+                    foldedIR = cpv.propagateCopies((IRCompUnit) foldedIR);
+                }
+                if (activeOptimIRPhases.get(Optims.DCE)) {
+                    DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
+                    foldedIR = dcv.removeDeadCode((IRCompUnit) foldedIR);
+                }
+
                 //Interpreting
                 if (!optDebug) {
                     System.setOut(new PrintStream(fos)); // stdout --> file
@@ -563,32 +589,35 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
-                // Output the LIVEVAR CFG graph is needed
-                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGDFAPhase(
-                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
-                    );
-                }
+                // TODO: these interfere with optimizations after
+//                // Output the LIVEVAR CFG graph if needed
+//                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+//                    String diagPath = Paths.get(
+//                            diagnosticPath.toString(),
+//                            FilenameUtils.removeExtension(f.getName())
+//                    ).toString();
+//                    CLIUtils.fileoutCFGDFAPhase(
+//                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+//                    );
+//                }
 
-                // Output the AVAILCOPY CFG graph is needed
-                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGDFAPhase(
-                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
-                    );
-                }
+//                // Output the AVAILCOPY CFG graph if needed
+//                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
+//                    String diagPath = Paths.get(
+//                            diagnosticPath.toString(),
+//                            FilenameUtils.removeExtension(f.getName())
+//                    ).toString();
+//                    CLIUtils.fileoutCFGDFAPhase(
+//                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
+//                    );
+//                }
 
                 if (activeOptims.get(Optims.COPY)) {
+
                     ASMCopyPropagationVisitor v =
                             new ASMCopyPropagationVisitor();
                     instrs = v.run(instrs);
+
                     if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERCOPY)) {
                         String diagPath = Paths.get(
                                 diagnosticPath.toString(),
@@ -601,9 +630,11 @@ public class CLI implements Runnable {
                 }
 
                 if (activeOptims.get(Optims.DCE)) {
+
                     ASMDeadCodeEliminationVisitor v =
                             new ASMDeadCodeEliminationVisitor();
                     instrs = v.run(instrs);
+
                     if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERDCE)) {
                         String diagPath = Paths.get(
                                 diagnosticPath.toString(),

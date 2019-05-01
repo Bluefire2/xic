@@ -57,7 +57,7 @@ public class IRLabel extends IRStmt {
 
     @Override
     public int hashCode() {
-        String hs = "7" + name.hashCode();
+        String hs = "7" + Math.abs(name.hashCode());
         Long hl;
         try {
             hl = Long.parseLong(hs);
