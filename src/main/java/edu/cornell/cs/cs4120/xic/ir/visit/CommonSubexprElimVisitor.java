@@ -4,8 +4,6 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import kc875.cfg.Graph;
-
-import java.io.IOException;
 import java.util.*;
 
 public class CommonSubexprElimVisitor {
