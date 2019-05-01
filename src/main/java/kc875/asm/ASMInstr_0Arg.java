@@ -28,7 +28,12 @@ public class ASMInstr_0Arg extends ASMInstr {
     }
 
     @Override
-    public Set<ASMExprReg> implicitRegs() {
+    public Set<ASMExprReg> implicitDefRegs() {
+        return new HashSet<>();
+    }
+
+    @Override
+    public Set<ASMExprReg> implicitUsedRegs() {
         return new HashSet<>();
     }
 
