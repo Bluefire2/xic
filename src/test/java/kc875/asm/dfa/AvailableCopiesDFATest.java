@@ -2,7 +2,9 @@ package kc875.asm.dfa;
 
 import kc875.asm.*;
 import kc875.cfg.Graph;
+import kc875.utils.SetWithInf;
 import org.junit.Test;
+import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +101,18 @@ public class AvailableCopiesDFATest {
             System.out.println("\tAC out=" + dfa.getOutMap().get(node));
         }
         System.out.println();
+
+
+        System.out.println();
+        SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> s = new SetWithInf<>();
+        Pair<ASMExprTemp, ASMExprTemp> p1 = new Pair<>(
+                new ASMExprTemp("a"), new ASMExprTemp("b")
+        );
+        s.add(p1);
+
+        System.out.println("after adding p1=" + s);
+        s.removeIf(p -> p.part1().equals(new ASMExprTemp("a")));
+        System.out.println("after removing p2=" + s);
     }
 
     @Test

@@ -6,7 +6,6 @@ import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.AvailableCopiesDFA;
 import kc875.cfg.Graph;
-import kc875.utils.PairAnyOrT;
 import kc875.utils.SetWithInf;
 import kc875.utils.UnionFind;
 import polyglot.util.Pair;
@@ -23,7 +22,7 @@ public class ASMCopyPropagationVisitor {
         AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
-        Map<Graph<ASMInstr>.Node, SetWithInf<PairAnyOrT<ASMExprTemp, ASMExprTemp>>>
+        Map<Graph<ASMInstr>.Node, SetWithInf<Pair<ASMExprTemp, ASMExprTemp>>>
                 nodeToCopies = dfa.getInMap();
 
         List<ASMInstr> optimFunc = new ArrayList<>();
@@ -39,24 +38,8 @@ public class ASMCopyPropagationVisitor {
         return optimFunc;
     }
 
-    /**
-     * Returns the first copy of lhs. Null if none found in copies.
-     */
-    private ASMExprTemp findCopy(
-            ASMExprTemp lhs, Set<PairAnyOrT<ASMExprTemp, ASMExprTemp>> copies
-    ) {
-        for (PairAnyOrT<ASMExprTemp, ASMExprTemp> copy : copies) {
-            if (!copy.fstIsAny() && lhs.equals(copy.getFst())) {
-                // found a match
-                return copy.sndIsAny() ? null : copy.getSnd();
-            }
-        }
-        // match not found in list
-        return null;
-    }
-
     // https://www.geeksforgeeks.org/find-a-mother-vertex-in-a-graph/
-    @SuppressWarnings ("UnstableApiUsage")
+    @SuppressWarnings("UnstableApiUsage")
     private static <T> void dfsUtil(MutableGraph<T> graph, T node, HashSet<T> visited) {
         visited.add(node);
         for (T succ : graph.successors(node)) {
@@ -66,7 +49,7 @@ public class ASMCopyPropagationVisitor {
         }
     }
 
-    @SuppressWarnings ("UnstableApiUsage")
+    @SuppressWarnings("UnstableApiUsage")
     public static <T> T findMother(MutableGraph<T> graph) {
         HashSet<T> visited = new HashSet<>();
 
@@ -90,30 +73,22 @@ public class ASMCopyPropagationVisitor {
      * Clearly, b can replace a, but its <b>final</b> copy is c, since c can
      * replace both a and b.
      *
-     * Preconditions:
-     *  - The pairs are pure: they all contain two non-null values.
-     *  - TODO: anmol fill these in pls I can't remember
-     *
      * @param copies The set of copies, represented as pairs.
-     * @param <T> The type of the pair elements.
+     * @param <T>    The type of the pair elements.
      * @return A map from elements to their final copies.
      */
-    @SuppressWarnings ("UnstableApiUsage")
-    public static <T> Map<T, T> setToMap(Set<PairAnyOrT<T, T>> copies) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static <T> Map<T, T> setToMap(Set<Pair<T, T>> copies) {
         // get all the unique elements
         Set<T> temps = new HashSet<>();
         Set<Pair<T, T>> pairs = new HashSet<>();
-        for (PairAnyOrT<T, T> copy : copies) {
-            if (!copy.fstIsAny() && !copy.sndIsAny()) {
-                // both elements are values
-                T fst = copy.getFst();
-                T snd = copy.getSnd();
-                temps.add(fst);
-                temps.add(snd);
-                pairs.add(new Pair<>(fst, snd));
-            } else {
-                // TODO: I think this can't happen... right?
-            }
+        for (Pair<T, T> copy : copies) {
+            // both elements are values
+            T fst = copy.part1();
+            T snd = copy.part2();
+            temps.add(fst);
+            temps.add(snd);
+            pairs.add(new Pair<>(fst, snd));
         }
 
         // mwahahahaha
@@ -163,24 +138,6 @@ public class ASMCopyPropagationVisitor {
         }
 
         return mothers;
-    }
-
-    private Map<ASMExprTemp, ASMExprTemp> setToMapNaive(
-            Set<PairAnyOrT<ASMExprTemp, ASMExprTemp>> copies
-    ) {
-        Map<ASMExprTemp, ASMExprTemp> map = new HashMap<>();
-        for (PairAnyOrT<ASMExprTemp, ASMExprTemp> copy : copies) {
-            if (!copy.fstIsAny()) {
-                // only put in the map if the lhs is a specific value, not *
-                // Find the final copy for replacement
-                ASMExprTemp lastRHS = findCopy(copy.getFst(), copies);
-                if (lastRHS != null) {
-                    // RHS found
-                    map.put(copy.getFst(), lastRHS);
-                }
-            }
-        }
-        return map;
     }
 
     private ASMInstr replaceExprTempsWithCopiesInInstr(

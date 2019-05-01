@@ -1,0 +1,185 @@
+# xth test script
+#
+# This file is a test script for xth (xic Test Harness).  It
+# conforms to the following grammar:
+#
+#   ScriptFile      ::= Commands+
+#   Command         ::= build
+#                     | CompilerTest
+#   CompilerTest    ::= TestKind (\(TestName\))? ([TestPath])? ("CmdLineArgs")?
+#                           { (FileTest;)* }
+#   TestKind        ::= xic
+#   TestName        ::= LitString
+#   FileTest        ::= Filenames Description? FailureSet?
+#   Filenames       ::= Filename+
+#   Description     ::= LitString
+#   FailureSet      ::= Failure (, Failure)*
+#   Failure         ::= \( ErrorKind \)
+#                     | \( ErrorKind, LitString \)
+#
+#   TestPath        :   the path to the test files, enclosed in quotes,
+#                       relative to the path given in xth's -testpath flag.
+#   CmdLineArgs     :   command-line arguments for xic
+#   Filename        :   the name of a file, interpreted from TestPath.
+#   LitString       :   a literal string, enclosed in quotes.
+#   ErrorKind       :   one of, or a unique prefix of one of the following
+#                       strings: "Lexical Error", "Syntax Error", or
+#                       "Semantic Error".
+#
+# xth runs the commands in order of appearance.
+
+xic ("Test -target linux") "-libpath $(testpath) -target linux" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}
+
+xic ("Test -target linux -O -Ocopy") "-libpath $(testpath) -target linux -O -Ocopy" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}
+
+xic ("Test -target linux -O -Odce") "-libpath $(testpath) -target linux -O -Odce" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}
+
+xic ("Test -target linux -O -Ocopy -Odce") "-libpath $(testpath) -target linux -O -Ocopy -Odce" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}

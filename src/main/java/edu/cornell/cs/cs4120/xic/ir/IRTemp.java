@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import kc875.asm.ASMExprRT;
@@ -58,5 +59,18 @@ public class IRTemp extends IRExpr_c {
     @Override
     public boolean equals(Object node) {
         return node instanceof IRTemp && ((IRTemp) node).name() == this.name;
+    }
+
+    @Override
+    public int hashCode() {
+        String hs = "13" + name.hashCode();
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

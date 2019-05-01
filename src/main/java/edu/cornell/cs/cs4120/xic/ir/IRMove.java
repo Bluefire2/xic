@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
@@ -7,6 +8,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 import kc875.asm.ASMInstr;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * An intermediate representation for a move statement
@@ -93,5 +95,18 @@ public class IRMove extends IRStmt {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        String hs = "9" + Math.abs(target.hashCode()) + "" + Math.abs(source().hashCode());
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

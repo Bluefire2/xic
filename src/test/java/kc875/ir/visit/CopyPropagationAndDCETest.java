@@ -32,4 +32,19 @@ public class CopyPropagationAndDCETest {
         deadCodeElimVisitor.removeDeadCode(new IRCompUnit("name", new LinkedHashMap<>()));
         assertTrue(true);
     }
+
+    @Test
+    public void cpEndToEnd() {
+
+    }
+
+    @Test
+    public void dceEndToEnd() {
+
+    }
+
+    @Test
+    public void cpWithDce() {
+
+    }
 }

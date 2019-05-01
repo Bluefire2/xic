@@ -589,26 +589,30 @@ public class CLI implements Runnable {
                     ASMCopyPropagationVisitor v =
                             new ASMCopyPropagationVisitor();
                     instrs = v.run(instrs);
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGPhase(
-                            instrs, OptimPhases.ASMAFTERCOPY, diagPath
-                    );
+                    if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERCOPY)) {
+                        String diagPath = Paths.get(
+                                diagnosticPath.toString(),
+                                FilenameUtils.removeExtension(f.getName())
+                        ).toString();
+                        CLIUtils.fileoutCFGPhase(
+                                instrs, OptimPhases.ASMAFTERCOPY, diagPath
+                        );
+                    }
                 }
 
                 if (activeOptims.get(Optims.DCE)) {
                     ASMDeadCodeEliminationVisitor v =
                             new ASMDeadCodeEliminationVisitor();
                     instrs = v.run(instrs);
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGPhase(
-                            instrs, OptimPhases.ASMAFTERDCE, diagPath
-                    );
+                    if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERDCE)) {
+                        String diagPath = Paths.get(
+                                diagnosticPath.toString(),
+                                FilenameUtils.removeExtension(f.getName())
+                        ).toString();
+                        CLIUtils.fileoutCFGPhase(
+                                instrs, OptimPhases.ASMAFTERDCE, diagPath
+                        );
+                    }
                 }
 
                 // Do reg allocation

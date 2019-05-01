@@ -94,6 +94,16 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
         return exprs(node).diff(getInMap().get(node));
     }
 
+    public SetWithInf<IRGraph.Node> nodesUsingExpr(IRExpr e) {
+        HashSet<IRGraph.Node> nodeSet = new HashSet<>();
+        for (IRGraph.Node n : ((IRGraph) getGraph()).getAllNodes()) {
+            if (exprs(n).contains(e)) {
+                nodeSet.add(n);
+            }
+        }
+        return new SetWithInf<>(nodeSet);
+    }
+
     /**
      * Get the subexpressions of a given IR node
      * @param irNode An IR node with 0 or more children
