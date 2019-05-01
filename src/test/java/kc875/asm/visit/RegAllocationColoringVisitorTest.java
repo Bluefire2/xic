@@ -391,7 +391,6 @@ public class RegAllocationColoringVisitorTest {
         assertEquals(countTemps(colored), 0);
     }
 
-    //TODO NPE for precolored
     //test precolored nodes
     @Test
     public void testColoringPrecoloredReserve() {

@@ -496,9 +496,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             // the temp t must exist in the currMap because t is
             // referenced inside this mem expression. Get the k_t
             Integer k_t = tempToStackAddrMap.get(entry.getKey());
-            if (k_t == null) {
-                System.out.println(entry);
-            }
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprReg(entry.getValue()),
