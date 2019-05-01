@@ -20,14 +20,14 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             new HashMap<>();
     private boolean addComments;
 
-    private static final Set<String> CALLER_SAVE_REGS = Stream.of(
+    private static final List<String> CALLER_SAVE_REGS = Arrays.asList(
             "r8", "r9", "r10", "r11", "rax","rcx", "rdx", "rsi", "rdi"
-    ).collect(Collectors.toSet());
+    );
 
     // rbp can't be used for data transfer, so not included here
-    private static final Set<String> CALLEE_SAVE_REGS = Stream.of(
+    private static final List<String> CALLEE_SAVE_REGS = Arrays.asList(
             "rbx", "r12", "r13", "r14", "r15"
-    ).collect(Collectors.toSet());
+    );
 
     private NaiveSpillMode mode;
 
@@ -57,6 +57,20 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return false;
     }
 
+    private void pushCallerSavedRegs(List<ASMInstr> instrs) {
+        List<String> caller_saved = new ArrayList<>(CALLER_SAVE_REGS);
+        Collections.reverse(caller_saved);
+        for (String r : caller_saved) {
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(r)));
+        }
+    }
+
+    private void popCallerSavedRegs(List<ASMInstr> instrs) {
+        List<String> caller_saved = new ArrayList<>(CALLER_SAVE_REGS);
+        for (String r : caller_saved) {
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(r)));
+        }
+    }
     /**
      * Returns a list of instructions with the repetitive `sub rsp, imm` in
      * the list of instructions func removed. The total subtraction that rsp
@@ -243,7 +257,21 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         input = ASMUtils.execPerFunc(input, this::saveAllCalleeRegsInFunc);
         input = ASMUtils.execPerFunc(input, this::alignStackInFunc);
         for (ASMInstr instr : input) {
-            instrs.addAll(instr.accept(this));
+            if (instr  instanceof ASMInstrComment) {
+                instrs.add(instr);
+//                ASMInstrComment c = (ASMInstrComment) instr;
+//                if (c.getComment().equals("CALL_START")) {
+//                    instrs.add(instr);
+//                    //pushCallerSavedRegs(instrs);
+//                } else if (c.getComment().equals("CALL_END")) {
+//                    //popCallerSavedRegs(instrs);
+//                    instrs.add(instr);
+//                } else {
+//                    instrs.add(instr);
+//                }
+            } else {
+                instrs.addAll(instr.accept(this));
+            }
         }
         return instrs;
     }
@@ -573,6 +601,21 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 src = getMemForTemp(((ASMExprTemp) r).getName(), instrs);
             } else if (r instanceof ASMExprMem) {
                 src = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
+            } else if (r instanceof ASMExprConst) {
+                //if imm is > 64 bits, move to a register
+                long v = ((ASMExprConst) r).getVal();
+                if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
+                    List<String> availRegs = getAvailRegs(usedRegs);
+                    if (availRegs.size() == 0){
+                        throw new InternalCompilerError("Allocating regs naively: not " +
+                                "enough regs for RHS of 2 argument expr");
+                    }
+                    src = new ASMExprReg(availRegs.get(0));
+                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
+                    usedRegs.add(availRegs.get(0));
+                } else {
+                    src = r;
+                }
             } else {
                 src = r;
             }
