@@ -43,11 +43,13 @@ public class ASMGraph extends Graph<ASMInstr> {
 
         // set the start node
         Iterator<ASMInstr> iter = instrs.iterator();
-        Node previous = new Node(iter.next());
+        ASMInstr instr = iter.next();
+        Node previous = new Node(instr);
+        nodeInstrMap.put(previous, instr);
         setStartNode(previous);
 
         while (iter.hasNext()) {
-            ASMInstr instr = iter.next();
+            instr = iter.next();
             Node node = new Node(instr);
             addOtherNode(node);
             nodeInstrMap.put(node, instr);
@@ -66,7 +68,7 @@ public class ASMGraph extends Graph<ASMInstr> {
         // SECOND PASS: add CFG edges for jumps to labelled nodes
 
         for (Node node : getAllNodes()) {
-            ASMInstr instr = node.getT();
+            instr = node.getT();
 
             if (!jumps.contains(instr.getOpCode())) {
                 // instr is not a jump node, continue to next node
@@ -81,7 +83,7 @@ public class ASMGraph extends Graph<ASMInstr> {
                 // If the arg is not for a function, then we can jump to it
                 // inside this function
                 // get the node we jump to and add an edge to it
-                if (!XiUtils.isFunction(arg.getName())) {
+                if (!XiUtils.isNonLibFunction(arg.getName())) {
                     Node to = labelToNodeMap.get(arg.getName());
                     addEdge(node, to);
                 }

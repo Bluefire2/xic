@@ -29,11 +29,13 @@ public class IRGraph extends Graph<IRStmt> {
 
         // set the start node
         Iterator<IRStmt> iter = stmts.stmts().iterator();
-        Node previous = new Node(iter.next());
+        IRStmt stmt = iter.next();
+        Node previous = new Node(stmt);
+        nodeStmtMap.put(previous, stmt);
         setStartNode(previous);
 
         while (iter.hasNext()) {
-            IRStmt stmt = iter.next();
+            stmt = iter.next();
             Node node = new Node(stmt);
             addOtherNode(node);
             nodeStmtMap.put(node, stmt);
@@ -54,7 +56,7 @@ public class IRGraph extends Graph<IRStmt> {
         // SECOND PASS: add CFG edges for jumps to labelled nodes
 
         for (Node node : getAllNodes()) {
-            IRStmt stmt = node.getT();
+            stmt = node.getT();
 
             if (!(stmt instanceof IRJump || stmt instanceof IRCJump)) {
                 // stmt is not a jump node, continue to next node
@@ -69,7 +71,7 @@ public class IRGraph extends Graph<IRStmt> {
                 // If the arg is not for a function, then we can jump to it
                 // inside this function
                 // get the node we jump to and add an edge to it
-                if (!XiUtils.isFunction(arg.name())) {
+                if (!XiUtils.isNonLibFunction(arg.name())) {
                     Node to = labelToNodeMap.get(arg.name());
                     addEdge(node, to);
                 }
@@ -77,7 +79,7 @@ public class IRGraph extends Graph<IRStmt> {
                 // stmt is CJUMP
                 String trueLabel = ((IRCJump) stmt).trueLabel();
 
-                if (!XiUtils.isFunction(trueLabel)) {
+                if (!XiUtils.isNonLibFunction(trueLabel)) {
                     Node to = labelToNodeMap.get(trueLabel);
                     addEdge(node, to);
                 }
@@ -85,7 +87,7 @@ public class IRGraph extends Graph<IRStmt> {
                 // May have false label
                 if (((IRCJump) stmt).hasFalseLabel()) {
                     String falseLabel = ((IRCJump) stmt).falseLabel();
-                    if (!XiUtils.isFunction(falseLabel)) {
+                    if (!XiUtils.isNonLibFunction(falseLabel)) {
                         Node to = labelToNodeMap.get(falseLabel);
                         addEdge(node, to);
                     }
