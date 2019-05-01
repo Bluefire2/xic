@@ -3,12 +3,13 @@ package kc875.asm.visit;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 import kc875.asm.*;
-import kc875.utils.PairAnyOrT;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import polyglot.util.Pair;
 
 import java.util.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class ASMCopyPropagationVisitorTest {
     @Test
@@ -76,9 +77,9 @@ public class ASMCopyPropagationVisitorTest {
 
     @Test
     public void simpleSetToMapTest() {
-        Set<PairAnyOrT<Integer, Integer>> set = new HashSet<>(Arrays.asList(
-                new PairAnyOrT<>(1, 2),
-                new PairAnyOrT<>(2, 3)
+        Set<Pair<Integer, Integer>> set = new HashSet<>(Arrays.asList(
+                new Pair<>(1, 2),
+                new Pair<>(2, 3)
         ));
 
         Map<Integer, Integer> map = ASMCopyPropagationVisitor.setToMap(set);
@@ -89,12 +90,12 @@ public class ASMCopyPropagationVisitorTest {
 
     @Test
     public void setToMapTest() {
-        Set<PairAnyOrT<Integer, Integer>> set = new HashSet<>(Arrays.asList(
-                new PairAnyOrT<>(1, 2),
-                new PairAnyOrT<>(3, 2),
-                new PairAnyOrT<>(2, 4),
-                new PairAnyOrT<>(4, 5),
-                new PairAnyOrT<>(10, 11)
+        Set<Pair<Integer, Integer>> set = new HashSet<>(Arrays.asList(
+                new Pair<>(1, 2),
+                new Pair<>(3, 2),
+                new Pair<>(2, 4),
+                new Pair<>(4, 5),
+                new Pair<>(10, 11)
         ));
 
         Map<Integer, Integer> map = ASMCopyPropagationVisitor.setToMap(set);
@@ -109,13 +110,13 @@ public class ASMCopyPropagationVisitorTest {
 
     @Test
     public void setToMapTestWithCycles() {
-        Set<PairAnyOrT<Integer, Integer>> set = new HashSet<>(Arrays.asList(
-                new PairAnyOrT<>(1, 2),
-                new PairAnyOrT<>(3, 2),
-                new PairAnyOrT<>(2, 4),
-                new PairAnyOrT<>(4, 5),
-                new PairAnyOrT<>(5, 1),
-                new PairAnyOrT<>(10, 11)
+        Set<Pair<Integer, Integer>> set = new HashSet<>(Arrays.asList(
+                new Pair<>(1, 2),
+                new Pair<>(3, 2),
+                new Pair<>(2, 4),
+                new Pair<>(4, 5),
+                new Pair<>(5, 1),
+                new Pair<>(10, 11)
         ));
 
         Map<Integer, Integer> map = ASMCopyPropagationVisitor.setToMap(set);
