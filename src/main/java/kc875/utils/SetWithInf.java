@@ -70,6 +70,10 @@ public class SetWithInf<E> implements Iterable<E> {
         this.set.remove(e);
     }
 
+    public void removeAll(Collection<? extends E> c) {
+        c.forEach(this::remove);
+    }
+
     /**
      * Removes elements from the set that satisfy the filter, i.e., filtered
      * elements are removed.
