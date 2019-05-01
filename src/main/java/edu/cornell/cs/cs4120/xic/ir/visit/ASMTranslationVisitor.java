@@ -1267,12 +1267,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     public List<ASMInstr> visit(IRReturn node) {
         List<ASMInstr> instrs = new ArrayList<>();
         List<IRExpr> retVals = node.rets();
+        ASMExprTemp[] tmps = new ASMExprTemp[retVals.size()];
 
         for (int i = 0; i < retVals.size(); i++) {
-            // evaluate ei
             ASMExprTemp tmp = new ASMExprTemp(newTemp());
             List<ASMInstr> visited = visitExpr(retVals.get(i), tmp);
             instrs.addAll(visited);
+            tmps[i] = tmp;
+        }
+
+        for (int i = 0; i < retVals.size(); i++) {
+            // evaluate ei
+            ASMExprTemp tmp = tmps[i];
             switch (i) {
                 case 0:
                     // First return value, move to rax

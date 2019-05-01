@@ -3,6 +3,12 @@ package kc875.cli;
 enum OptimPhases {
     INITIAL,
     FINAL,
+
+    // Analyses
     ASMLIVEVAR,
-    ASMAVAILCOPY
+    ASMAVAILCOPY,
+
+    // CFG after a stage
+    ASMAFTERCOPY,
+    ASMAFTERDCE,
 }

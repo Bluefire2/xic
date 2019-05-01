@@ -587,11 +587,19 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprLength node) {
-        return new IRMem(new IRBinOp(
-                OpType.ADD,
-                (IRExpr) node.getArray().accept(this),
-                new IRConst(-WORD_NUM_BYTES)
-        ));
+        String t = newTemp();
+        //extra temp to avoid side effect of modifying length accidentally
+        return new IRESeq(
+                new IRMove(
+                        new IRTemp(t),
+                        new IRMem(new IRBinOp(
+                            OpType.ADD,
+                            (IRExpr) node.getArray().accept(this),
+                            new IRConst(-WORD_NUM_BYTES))
+                        )
+                ),
+                new IRTemp(t)
+        );
     }
 
     @Override
