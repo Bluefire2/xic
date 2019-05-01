@@ -7,7 +7,6 @@ import edu.cornell.cs.cs4120.xic.ir.visit.DeadCodeElimVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

@@ -35,7 +35,8 @@ public class CSEVisitorTest {
 
     @Test
     public void sanityCheck() {
-        cseVisitor.removeCommonSubExpressions(new IRCompUnit("name", new LinkedHashMap<>()));
+        cseVisitor.removeCommonSubExpressions(new IRCompUnit("name",
+                new LinkedHashMap<>()));
         assertTrue(true);
     }
 

@@ -44,13 +44,15 @@ public class ReachingDefnsDFATest {
                 ));
 
         IRGraph graph = new IRGraph(fn);
-        Set<IRGraph.Node> xnodes = ReachingDefnsDFA.defs(new IRTemp("x"), graph);
+        Set<IRGraph.Node> xnodes =
+                ReachingDefnsDFA.defs(new IRTemp("x"), graph);
         List<IRStmt> actual = new ArrayList<>();
         for (IRGraph.Node n : xnodes) {
             actual.add(graph.getStmt(n));
         }
-        List<IRStmt> expected = Lists.newArrayList(new IRMove(new IRTemp("x"),
-                new IRConst(7)),  new IRMove(new IRTemp("x"), new IRTemp("z")));
+        List<IRStmt> expected = Lists.newArrayList(
+                new IRMove(new IRTemp("x"), new IRConst(7)),
+                new IRMove(new IRTemp("x"), new IRTemp("z")));
         assert(twoListsEqual(actual, expected));
     }
  }
