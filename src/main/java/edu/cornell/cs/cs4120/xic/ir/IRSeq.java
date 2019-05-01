@@ -118,6 +118,15 @@ public class IRSeq extends IRStmt {
         }
     }
 
+    @Override
+    public int hashCode() {
+        String stmtCode = "";
+        for (IRStmt s : stmts) {
+            stmtCode += s.hashCode();
+        }
+        return Integer.parseInt("12" + stmtCode);
+    }
+
     public boolean isReplaceParent() {
         return replaceParent;
     }

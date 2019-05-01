@@ -64,4 +64,9 @@ public class IRName extends IRExpr_c {
             return false;
         }
     }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("10" + name.hashCode());
+    }
 }

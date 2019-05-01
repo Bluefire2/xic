@@ -73,4 +73,8 @@ public class IRConst extends IRExpr_c {
             return false;
         }
     }
+
+    public int hashCode() {
+        return Integer.parseInt("3" + value);
+    }
 }

@@ -68,4 +68,9 @@ public class IRJump extends IRStmt {
             return false;
         }
     }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("6" + target.hashCode());
+    }
 }

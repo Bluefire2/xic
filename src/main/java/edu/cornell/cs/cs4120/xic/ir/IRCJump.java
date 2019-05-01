@@ -108,4 +108,10 @@ public class IRCJump extends IRStmt {
             return false;
         }
     }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("2" + cond.hashCode() +
+                trueLabel.hashCode() + falseLabel.hashCode());
+    }
 }
