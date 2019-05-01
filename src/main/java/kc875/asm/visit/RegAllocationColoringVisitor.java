@@ -60,6 +60,9 @@ public class RegAllocationColoringVisitor {
 
     private int K;// number of usable registers
 
+    private static List<String> allRegisters =
+            Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15","rsi","rdi","rsp","rbp");
+
     public RegAllocationColoringVisitor() {
         this(SpillMode.Reserve); //default to reserve mode
     }
@@ -146,6 +149,19 @@ public class RegAllocationColoringVisitor {
                     } else {
                         initial.add(node);
                     }
+                }
+            }
+            //for all the registers
+            for (String r : allRegisters) {
+                ASMExprReg reg = new ASMExprReg(r);
+                //add nodes to interference graph
+                if (!interference.checkTemp(reg)) {
+                    Graph<ASMExprRT>.Node node = interference.addNode(reg);
+                    degree.put(node, 0);
+                    adjList.put(node, new HashSet<>());
+                    moveList.put(node, new HashSet<>());
+                    precolored.add(node);
+                    color.put(node, r);
                 }
             }
             //forall instructions in b in reverse order (1 instruction in b for us)
@@ -435,13 +451,6 @@ public class RegAllocationColoringVisitor {
         //if (u,v) not in adjSet and u != v
         Graph<ASMExprRT>.Node uNode = interference.getNode(u);
         Graph<ASMExprRT>.Node vNode = interference.getNode(v);
-        if (vNode == null) {
-            System.out.println(v);
-            for (Graph.Node n : interference.getAllNodes()) {
-                System.out.print(n.getT().toString()+",");
-            }
-            System.out.println();
-        }
         if (!adjSet.contains(new Pair<>(uNode, vNode)) && !u.equals(v)) {
             //adjSet = adjSet + {(u,v), (v,u)}
             adjSet.add(new Pair<>(uNode, vNode));
@@ -586,6 +595,18 @@ public class RegAllocationColoringVisitor {
                 String c = color.get(n);
                 return new ASMExprReg(c);
             }
+        } else if (e instanceof ASMExprBinOpAdd) {
+            ASMExprBinOp b = (ASMExprBinOpAdd) e;
+            return new ASMExprBinOpAdd(
+                    rewriteExpr(b.getLeft(), spilledNodes),
+                    rewriteExpr(b.getRight(), spilledNodes)
+            );
+        } else if (e instanceof ASMExprBinOpMult) {
+            ASMExprBinOp b = (ASMExprBinOpMult) e;
+            return new ASMExprBinOpMult(
+                    rewriteExpr(b.getLeft(), spilledNodes),
+                    rewriteExpr(b.getRight(), spilledNodes)
+            );
         } else {
             return e;
         }
@@ -694,6 +715,7 @@ public class RegAllocationColoringVisitor {
         if (instr instanceof ASMInstr_2Arg) {
             ASMInstr_2Arg i = (ASMInstr_2Arg) instr;
             boolean checkOpCode = (i.getOpCode() == ASMOpCode.MOV || i.getOpCode() == ASMOpCode.MOVZX);
+            //TODO do we allow move coalescing on movs with regs
             return (checkOpCode && i.getDest() instanceof ASMExprRT && i.getSrc() instanceof ASMExprRT);
         }
         return false;
