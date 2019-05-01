@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.visit.ListChildrenVisitor;
 import kc875.cfg.DFAFramework;
-import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 
 import java.util.ArrayList;
@@ -17,9 +16,11 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
         super(
                 graph,
                 Direction.FORWARD,
-                (node, l) -> l.union(exprs(node).diff(kill(node))),
+                // TODO: correct this
+                (node, l) -> null,//l.union(exprs(node).diff(kill(node))),
                 SetWithInf::new,
-                SetWithInf::intersect,
+                // TODO: change to intersect
+                SetWithInf::union,
                 SetWithInf.infSet()
         );
     }
@@ -91,7 +92,8 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * @return the set of generated expressions
      */
     public SetWithInf<IRExpr> exprsGeneratedBy(IRGraph.Node node) {
-        return exprs(node).diff(getInMap().get(node));
+        // TODO: do a diff
+        return exprs(node).union(getInMap().get(node));
     }
 
     public SetWithInf<IRGraph.Node> nodesUsingExpr(IRExpr e) {

@@ -32,9 +32,12 @@ public class LivenessDFATest {
     @Test
     public void testTempsUsedInExpr() {
         IRBinOp expr = new IRBinOp(IRBinOp.OpType.ADD,
-                new IRBinOp(IRBinOp.OpType.SUB, new IRTemp("a"), new IRConst(5)),
-                new IRBinOp(IRBinOp.OpType.ADD, new IRMem(new IRTemp("b")), new IRTemp("c")));
-        assert(twoListsEqual(Arrays.asList(new IRTemp("a"), new IRTemp("b"), new IRTemp("c")),
+                new IRBinOp(IRBinOp.OpType.SUB,
+                        new IRTemp("a"), new IRConst(5)),
+                new IRBinOp(IRBinOp.OpType.ADD,
+                        new IRMem(new IRTemp("b")), new IRTemp("c")));
+        assert(twoListsEqual(Arrays.asList(new IRTemp("a"),
+                new IRTemp("b"), new IRTemp("c")),
                 Lists.newArrayList(livenessDFA.getTempsUsedInExpr(expr))));
     }
 }

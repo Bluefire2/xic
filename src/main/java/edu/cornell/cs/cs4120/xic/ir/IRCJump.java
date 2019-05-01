@@ -112,8 +112,14 @@ public class IRCJump extends IRStmt {
 
     @Override
     public int hashCode() {
-        String hs = "2" + cond.hashCode() +
-                trueLabel.hashCode() + falseLabel.hashCode();
+        String hs;
+        if (hasFalseLabel()) {
+            hs = "2" + cond.hashCode() +
+                    trueLabel.hashCode() + falseLabel.hashCode();
+        }
+        else {
+            hs = "2" + cond.hashCode() + trueLabel.hashCode();
+        }
         Long hl;
         try {
             hl = Long.parseLong(hs);

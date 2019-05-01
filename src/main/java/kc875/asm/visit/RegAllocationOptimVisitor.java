@@ -20,15 +20,9 @@ public class RegAllocationOptimVisitor {
 
     public List<ASMInstr> allocate(List<ASMInstr> i) {
         List<ASMInstr> instrs = i;
-        for (ASMInstr in : instrs) {
-            System.out.println(in);
-        }
-        System.out.println();
+        //printInstrs();
         instrs = ASMUtils.execPerFunc(instrs, this::allocateFunc);
-        for (ASMInstr in : instrs) {
-            System.out.println(in);
-        }
-        System.out.println();
+        //printInstrs();
         NaiveSpillMode s;
         if (spillMode == SpillMode.Reserve) {
             s = NaiveSpillMode.Reserved;
@@ -37,15 +31,19 @@ public class RegAllocationOptimVisitor {
         }
         RegAllocationNaiveVisitor v = new RegAllocationNaiveVisitor(false, s);
         instrs = v.allocate(instrs);
-        for (ASMInstr in : instrs) {
-            System.out.println(in);
-        }
-        System.out.println();
+        //printInstrs();
         return instrs;
     }
 
     private List<ASMInstr> allocateFunc(List<ASMInstr> instrs){
         RegAllocationColoringVisitor v = new RegAllocationColoringVisitor(spillMode);
         return v.allocate(instrs);
+    }
+
+    private void printInstrs(List<ASMInstr> instrs){
+        for (ASMInstr in : instrs) {
+            System.out.println(in);
+        }
+        System.out.println();
     }
 }

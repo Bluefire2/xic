@@ -21,7 +21,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
     private boolean addComments;
 
     private static final Set<String> CALLER_SAVE_REGS = Stream.of(
-            "r10", "r11", "rax"
+            "r8", "r9", "r10", "r11", "rax","rcx", "rdx", "rsi", "rdi"
     ).collect(Collectors.toSet());
 
     // rbp can't be used for data transfer, so not included here

@@ -70,6 +70,11 @@ public class LivenessDFA extends DFAFramework<Set<IRTemp>, IRStmt> {
                 IRExpr cond = ((IRCJump) s).cond();
                 useSet.addAll(getTempsUsedInExpr(cond));
             }
+            else if (s instanceof IRReturn) {
+                for (IRExpr e : ((IRReturn) s).rets()) {
+                    useSet.addAll(getTempsUsedInExpr(e));
+                }
+            }
         }
 
         return useSet;

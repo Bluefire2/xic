@@ -36,6 +36,7 @@ public class IRGraph extends Graph<IRStmt> {
 
         while (iter.hasNext()) {
             stmt = iter.next();
+            if (stmt instanceof IRSeq && ((IRSeq) stmt).stmts().size() == 0) continue;
             Node node = new Node(stmt);
             addOtherNode(node);
             nodeStmtMap.put(node, stmt);
