@@ -121,4 +121,13 @@ public class IRCall extends IRExpr_c {
             return false;
         }
     }
+
+    @Override
+    public int hashCode() {
+        String argCode = "";
+        for (IRExpr a : args) {
+            argCode += a.hashCode();
+        }
+        return Integer.parseInt("1" + target.hashCode() + argCode);
+    }
 }

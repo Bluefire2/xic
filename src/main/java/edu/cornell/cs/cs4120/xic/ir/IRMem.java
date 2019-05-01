@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
@@ -107,5 +108,10 @@ public class IRMem extends IRExpr_c {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Longs.hashCode(Long.parseLong("8" + Math.abs(expr.hashCode())));
     }
 }

@@ -53,4 +53,9 @@ public class IRLabel extends IRStmt {
     public boolean equals(Object node) {
         return node instanceof IRLabel;
     }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("7" + name.hashCode());
+    }
 }

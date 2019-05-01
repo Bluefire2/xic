@@ -77,4 +77,9 @@ public class IRExp extends IRStmt {
             return false;
         }
     }
+
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("5" + expr.hashCode());
+    }
 }

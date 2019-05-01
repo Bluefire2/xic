@@ -111,6 +111,11 @@ public class IRESeq extends IRExpr_c {
         }
     }
 
+    @Override
+    public int hashCode() {
+        return Integer.parseInt("4" + expr.hashCode() + stmt.hashCode());
+    }
+
     public boolean isReplaceParent() {
         return replaceParent;
     }

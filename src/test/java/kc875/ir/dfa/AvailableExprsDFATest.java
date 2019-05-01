@@ -1,5 +1,6 @@
 package kc875.ir.dfa;
 
+import com.google.common.collect.Lists;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
@@ -8,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class AvailableExprsDFATest {
@@ -66,6 +69,17 @@ public class AvailableExprsDFATest {
                 new IRBinOp(IRBinOp.OpType.SUB, new IRConst(7), new IRConst(8))
         );
         assert(twoListsEqual(exprs.subList(0, 2), AvailableExprsDFA.exprsCanBeModified("f", exprs).toList()));
+    }
+
+    @Test
+    public void testExprsGeneratedBy() {
+        IRSeq seq = new IRSeq(new IRMove(new IRTemp("x"), new IRBinOp(IRBinOp.OpType.ADD, new IRConst(5), new IRConst(6))));
+        IRFuncDecl func = new IRFuncDecl("f", seq);
+        graph = new IRGraph(func);
+        availableExprsDFA = new AvailableExprsDFA(graph);
+        availableExprsDFA.runWorklistAlgo();
+        List<IRExpr> expected = Lists.newArrayList(new IRTemp("x"), new IRBinOp(IRBinOp.OpType.ADD, new IRConst(5), new IRConst(6)), new IRConst(5), new IRConst(6));
+        assert(twoListsEqual(Lists.newArrayList(availableExprsDFA.exprsGeneratedBy(graph.getStartNode())), expected));
     }
 }
 
