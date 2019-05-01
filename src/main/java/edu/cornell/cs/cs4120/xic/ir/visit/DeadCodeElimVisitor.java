@@ -41,6 +41,7 @@ public class DeadCodeElimVisitor {
                     if (((IRMove) s).target() instanceof IRTemp) {
                         IRTemp tmp = (IRTemp) ((IRMove) s).target();
                         if (!(livenessDFA.getOutMap().get(n).contains(tmp))) {
+                            listStmts.set(i, seq);
                             continue;
                         }
                     }
