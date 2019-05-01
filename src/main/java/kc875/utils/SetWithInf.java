@@ -18,10 +18,6 @@ public class SetWithInf<E> implements Iterable<E> {
         isInf = false;
     }
 
-    public SetWithInf(E... es) {
-        this(new HashSet<>(Arrays.asList(es)));
-    }
-
     public SetWithInf() {
         this(new HashSet<>());
     }
@@ -58,10 +54,6 @@ public class SetWithInf<E> implements Iterable<E> {
         return this.isInf || this.set.contains(e);
     }
 
-    public boolean containsAll(Collection<? extends E> c) {
-        return c.stream().allMatch(this::contains);
-    }
-
     public void add(E e) {
         if (this.isInf)
             throw new IllegalAccessError("can't add to an inf set");
@@ -70,10 +62,6 @@ public class SetWithInf<E> implements Iterable<E> {
 
     public void addAll(Collection<? extends E> c) {
         c.forEach(this::add);
-    }
-
-    public void addAll(E... es) {
-        addAll(Arrays.asList(es));
     }
 
     public void remove(E e) {

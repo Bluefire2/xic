@@ -563,27 +563,28 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
-                // Output the LIVEVAR CFG graph if needed
-                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGDFAPhase(
-                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
-                    );
-                }
+                // TODO: these interfere with optimizations after
+//                // Output the LIVEVAR CFG graph if needed
+//                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+//                    String diagPath = Paths.get(
+//                            diagnosticPath.toString(),
+//                            FilenameUtils.removeExtension(f.getName())
+//                    ).toString();
+//                    CLIUtils.fileoutCFGDFAPhase(
+//                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+//                    );
+//                }
 
-                // Output the AVAILCOPY CFG graph if needed
-                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
-                    String diagPath = Paths.get(
-                            diagnosticPath.toString(),
-                            FilenameUtils.removeExtension(f.getName())
-                    ).toString();
-                    CLIUtils.fileoutCFGDFAPhase(
-                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
-                    );
-                }
+//                // Output the AVAILCOPY CFG graph if needed
+//                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
+//                    String diagPath = Paths.get(
+//                            diagnosticPath.toString(),
+//                            FilenameUtils.removeExtension(f.getName())
+//                    ).toString();
+//                    CLIUtils.fileoutCFGDFAPhase(
+//                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
+//                    );
+//                }
 
                 if (activeOptims.get(Optims.COPY)) {
 

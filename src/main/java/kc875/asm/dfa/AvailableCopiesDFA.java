@@ -47,10 +47,13 @@ public class AvailableCopiesDFA extends
                 if (ins2.getDest() instanceof ASMExprTemp
                         && ins2.getSrc() instanceof ASMExprTemp) {
                     // x = y; gen (x, y)
-                    return new SetWithInf<>(new Pair<>(
+                    SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> s =
+                            new SetWithInf<>();
+                    s.add(new Pair<>(
                             (ASMExprTemp) ins2.getDest(),
                             (ASMExprTemp) ins2.getSrc()
                     ));
+                    return s;
                 }
             }
         }
