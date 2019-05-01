@@ -26,7 +26,7 @@ public class ASMDeadCodeEliminationVisitor {
             // instr
             Graph<ASMInstr>.Node node = graph.getNode(instr);
 
-            Set<ASMExprRT> allDefs = new HashSet<>(instr.implicitRegs());
+            Set<ASMExprRT> allDefs = new HashSet<>(instr.implicitDefRegs());
             if (instr.destHasNewDef()) {
                 if (instr instanceof ASMInstr_2Arg) {
                     allDefs.add((ASMExprRT) ((ASMInstr_2Arg) instr).getDest());

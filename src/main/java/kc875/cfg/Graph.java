@@ -206,7 +206,7 @@ public class Graph<T> {
         String rawPath = FilenameUtils.getName(
                 FilenameUtils.removeExtension(path)
         );
-        f.write("digraph " + rawPath + " {\n");
+        f.write("digraph g {\n");
         f.write(INDENT_TAB + "node [shape=record];\n");
         f.write(INDENT_TAB + "forcelabels=true;\n");
         f.write("\n");

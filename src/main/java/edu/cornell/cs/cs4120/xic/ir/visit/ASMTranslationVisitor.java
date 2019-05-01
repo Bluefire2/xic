@@ -1307,8 +1307,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         //Epilogue to this function
         instrs.add(new ASMInstr_0Arg(ASMOpCode.LEAVE));
-        instrs.add(new ASMInstr_0Arg(ASMOpCode.RET));
-
+        instrs.add(new ASMInstr_1Arg(
+                ASMOpCode.RET,
+                new ASMExprConst(retVals.size())
+        ));
 
         return instrs;
     }

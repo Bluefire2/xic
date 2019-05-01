@@ -48,6 +48,11 @@ public abstract class ASMInstr {
      * Returns the set of all implicitly defined regs defined by this
      * instruction.
      */
-    public abstract Set<ASMExprReg> implicitRegs();
+    public abstract Set<ASMExprReg> implicitDefRegs();
+
+    /**
+     * Returns the set of all implicitly used regs in this instruction.
+     */
+    public abstract Set<ASMExprReg> implicitUsedRegs();
 
 }

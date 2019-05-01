@@ -23,7 +23,6 @@ public class XiUtils {
      * Returns true if name is for a library function, false otherwise.
      */
     public static boolean isLibFunction(String name) {
-        return name.equals("_xi_alloc")
-                || name.equals("_xi_out_of_bounds");
+        return name.equals("_xi_alloc") || name.equals("_xi_out_of_bounds");
     }
 }
