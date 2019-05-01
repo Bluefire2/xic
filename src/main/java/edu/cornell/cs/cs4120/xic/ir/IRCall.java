@@ -127,9 +127,9 @@ public class IRCall extends IRExpr_c {
     public int hashCode() {
         String argCode = "";
         for (IRExpr a : args) {
-            argCode += a.hashCode();
+            argCode += Math.abs(a.hashCode());
         }
-        String hs = "1" + target.hashCode() + argCode;
+        String hs = "1" + Math.abs(target.hashCode()) + argCode;
         Long hl;
         try {
             hl = Long.parseLong(hs);

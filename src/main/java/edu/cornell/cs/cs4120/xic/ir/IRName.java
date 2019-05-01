@@ -68,7 +68,7 @@ public class IRName extends IRExpr_c {
 
     @Override
     public int hashCode() {
-        String hs = "10" + name.hashCode();
+        String hs = "10" + Math.abs(name.hashCode());
         Long hl;
         try {
             hl = Long.parseLong(hs);

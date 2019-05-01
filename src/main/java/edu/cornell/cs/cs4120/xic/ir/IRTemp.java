@@ -63,7 +63,7 @@ public class IRTemp extends IRExpr_c {
 
     @Override
     public int hashCode() {
-        String hs = "13" + name.hashCode();
+        String hs = "13" + Math.abs(name.hashCode());
         Long hl;
         try {
             hl = Long.parseLong(hs);
