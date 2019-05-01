@@ -7,6 +7,7 @@ import kc875.asm.dfa.InterferenceGraph;
 import kc875.asm.dfa.LiveVariableDFA;
 import kc875.cfg.Graph;
 import polyglot.util.Pair;
+import polyglot.util.InternalCompilerError;
 import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 
 import java.util.*;
@@ -91,22 +92,68 @@ public class RegAllocationColoringVisitor {
         color = new HashMap<>();
         degree = new HashMap<>();
         if (s == SpillMode.Reserve) {
-            usableRegisters = Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12");
+            usableRegisters = Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "rsi", "rdi");
         } else {
-            usableRegisters = Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15");
+            usableRegisters = Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "rsi", "rdi");
         }
         K = usableRegisters.size();
+    }
+
+    public void checkInvariants() {
+        //check invariants
+        String errors = "Violated Invariants: ";
+        if (!checkSimplifyWorklistInv()) {
+            errors += " simplify-worklist ";
+        }
+        if (!checkSpillWorklistInv()) {
+            errors += " spill-worklist ";
+        }
+        if (!checkDegreeInv()) {
+            errors += " degree ";
+        }
+        if (!checkFreezeWorklistInv()) {
+            errors += " freeze-worklist ";
+        }
+        if (!errors.equals("Violated Invariants: ")){
+            throw new InternalCompilerError(errors);
+        }
+    }
+
+    public void checkEndInvariants() {
+        //check invariants
+        for (Graph<ASMExprRT>.Node n : interference.getAllNodes()){
+            int c = 0;
+            c = precolored.contains(n) ? c + 1 : c;
+            c = initial.contains(n) ? c + 1 : c;
+            c = spilledNodes.contains(n) ? c + 1 : c;
+            c = spillWorklist.contains(n) ? c + 1 : c;
+            c = freezeWorklist.contains(n) ? c + 1 : c;
+            c = simplifyWorklist.contains(n) ? c + 1 : c;
+            c = coalescedNodes.contains(n) ? c + 1 : c;
+            c = selectStack.contains(n) ? c + 1 : c;
+            c = coloredNodes.contains(n) ? c + 1 : c;
+            if (c != 1) {
+                String error = "Node " + n + " is in " + c + "worklists!";
+                throw new InternalCompilerError(error);
+            }
+        }
     }
 
     public List<ASMInstr> allocate(List<ASMInstr> instrs) {
         this.instrs = instrs;
         livenessAnalysis();
+
         build();
+        checkInvariants();
+
         makeWorkList();
+
         while (simplifyWorklist.size() != 0
                 || worklistMoves.size() != 0
                 || freezeWorklist.size() != 0
                 || spillWorklist.size() != 0) {
+
+            //run algorithm
             if (simplifyWorklist.size() != 0) {
                 simplify();
             } else if (worklistMoves.size() != 0) {
@@ -118,6 +165,7 @@ public class RegAllocationColoringVisitor {
             }
         }
         assignColors();
+        checkEndInvariants();
         return rewriteProgram(new ArrayList<>(spilledNodes));
     }
 
@@ -129,41 +177,44 @@ public class RegAllocationColoringVisitor {
 
     private void build() {
         interference = new InterferenceGraph();
-        //foralll blocks b in program
+        Map<Graph<ASMInstr>.Node, Set<ASMExprRT>> outs =
+                liveness.getOutMap();
+
+        //build interference graph
+        for (ASMExprRT temp : getAllRT(instrs)) {
+            //add nodes to interference graph
+            if (!interference.checkTemp(temp)) {
+                Graph<ASMExprRT>.Node node = interference.addNode(temp);
+                degree.put(node, 0);
+                adjList.put(node, new HashSet<>());
+                moveList.put(node, new HashSet<>());
+                //add nodes to correct initial set
+                if (temp instanceof ASMExprReg) {
+                    precolored.add(node);
+                    color.put(node, ((ASMExprReg) temp).getReg());
+                } else {
+                    initial.add(node);
+                }
+            }
+        }
+        //for all the registers
+        for (String r : allRegisters) {
+            ASMExprReg reg = new ASMExprReg(r);
+            //add nodes to interference graph
+            if (!interference.checkTemp(reg)) {
+                Graph<ASMExprRT>.Node node = interference.addNode(reg);
+                degree.put(node, 0);
+                adjList.put(node, new HashSet<>());
+                moveList.put(node, new HashSet<>());
+                precolored.add(node);
+                color.put(node, r);
+            }
+        }
+
+        //forall blocks b in program
         for (Graph<ASMInstr>.Node b : cfg.getAllNodes()) {
             //live = liveout(b)
-            Map<Graph<ASMInstr>.Node, Set<ASMExprRT>> outs =
-                    liveness.getOutMap();
             Set<ASMExprRT> live = outs.get(b);
-            for (ASMExprRT temp : getAllRT(instrs)) {
-                //add nodes to interference graph
-                if (!interference.checkTemp(temp)) {
-                    Graph<ASMExprRT>.Node node = interference.addNode(temp);
-                    degree.put(node, 0);
-                    adjList.put(node, new HashSet<>());
-                    moveList.put(node, new HashSet<>());
-                    //add nodes to correct initial set
-                    if (temp instanceof ASMExprReg) {
-                        precolored.add(node);
-                        color.put(node, ((ASMExprReg) temp).getReg());
-                    } else {
-                        initial.add(node);
-                    }
-                }
-            }
-            //for all the registers
-            for (String r : allRegisters) {
-                ASMExprReg reg = new ASMExprReg(r);
-                //add nodes to interference graph
-                if (!interference.checkTemp(reg)) {
-                    Graph<ASMExprRT>.Node node = interference.addNode(reg);
-                    degree.put(node, 0);
-                    adjList.put(node, new HashSet<>());
-                    moveList.put(node, new HashSet<>());
-                    precolored.add(node);
-                    color.put(node, r);
-                }
-            }
             //forall instructions in b in reverse order (1 instruction in b for us)
             ASMInstr i = b.getT();
             //if ismoveinstr(i)
@@ -192,12 +243,6 @@ public class RegAllocationColoringVisitor {
                     addEdge(l, d);
                 }
             }
-            //idt we need this
-//            //live = use(i)+ (live \ def(i))
-//            live = new HashSet<>(
-//                    Sets.union(LiveVariableDFA.use(b),
-//                            Sets.difference(live, LiveVariableDFA.def(b))));
-//            //TODO what do we do with live? store it back into liveness outmap?
         }
     }
 
@@ -243,13 +288,11 @@ public class RegAllocationColoringVisitor {
                 break;
             }
         }
-
         // can't do anything
         if (move == null) return;
 
         ASMExprRT x = (ASMExprRT) move.getDest();
         ASMExprRT y = (ASMExprRT) move.getSrc();
-
         // x <- GetAlias(x)
         Graph<ASMExprRT>.Node xNode = getAlias(interference.getNode(x));
         // y <- GetAlias(y)
@@ -267,23 +310,18 @@ public class RegAllocationColoringVisitor {
             u = xNode;
             v = yNode;
         }
-
         // worklistMoves <- worklistMoves \ {m}
         worklistMoves.remove(move);
 
         if (u.equals(v)) { // if u == v
-            // coalescedMoves <- coalescedMoves union {m}
+            // coalescedMoves <- coalescedMoves + {m}
             coalescedMoves.add(move);
-            // AddWorkList(u)
             addWorkList(u);
         } else if (precolored.contains(v) || adjSet.contains(new Pair<>(u, v))) {
             // else if v in precolored OR (u, v) in adjSet
-
-            // constrainedMoves <- constrainedMoves union {m}
+            // constrainedMoves <- constrainedMoves + {m}
             constrainedMoves.add(move);
-            // AddWorkList(u)
             addWorkList(u);
-            // AddWorkList(v)
             addWorkList(v);
         } else if (
                 (
@@ -297,14 +335,12 @@ public class RegAllocationColoringVisitor {
             // else if u in precolored AND (\forall t in Adjacent(v), OK(t, u))
             // OR u \not in precolored AND Conservative(Adjacent(u) union Adjacent(v))
 
-            // coalescedMoves <- coalescedMoves union {m}
+            // coalescedMoves <- coalescedMoves + {m}
             coalescedMoves.add(move);
-            // Combine(u, v)
             combine(u, v);
-            // AddWorkList(u)
             addWorkList(u);
         } else {
-            // activeMoves <- activeMoves union {m}
+            // activeMoves <- activeMoves + {m}
             activeMoves.add(move);
         }
     }
@@ -314,9 +350,11 @@ public class RegAllocationColoringVisitor {
         if (freezeWorklist.contains(v)) { // if v in freezeWorklist
             // freezeWorklist <- freezeWorklist \ {v}
             freezeWorklist.remove(v);
-        } else {
+        } else if (spillWorklist.contains(v)){
             // spillWorklist <- spillWorklist \ {v}
             spillWorklist.remove(v);
+        } else {
+            throw new InternalCompilerError("invariant violated");
         }
 
         // coalescedNodes <- coalescedNodes union {v}
@@ -327,18 +365,13 @@ public class RegAllocationColoringVisitor {
         moveList.get(u).addAll(moveList.get(v));
         // EnableMoves(v)
         enableMoves(v);
-
         // forall t in Adjacent(v)
         for (Graph<ASMExprRT>.Node t : getAdjacent(v)) {
             ASMExprRT tTemp = interference.getTemp(t);
             ASMExprRT uTemp = interference.getTemp(u);
-
-            // AddEdge(t, u)
             addEdge(tTemp, uTemp);
-            // DecrementDegree(t)
             decrementDegree(t);
         }
-
         // if degree[u] >= K AND u in freezeWorklist
         if (degree.get(u) >= K && freezeWorklist.contains(u)) {
             // freezeWorklist <- freezeWorklist \ {u}
@@ -363,39 +396,39 @@ public class RegAllocationColoringVisitor {
         // forall m (= copy(x, y)) in NodeMoves(u)
         for (ASMInstr instr : nodeMoves(u)) {
             ASMInstr_2Arg move = (ASMInstr_2Arg) instr;
-            if (isCopy(move)) {
-                Graph<ASMExprRT>.Node x = interference.getNode((ASMExprRT) move.getDest());
-                Graph<ASMExprRT>.Node y = interference.getNode((ASMExprRT) move.getSrc());
+            if (!isCopy(move)) return;
 
-                Graph<ASMExprRT>.Node v;
-                // if GetAlias(y) = GetAlias(u)
-                if (getAlias(y).equals(getAlias(u))) {
-                    // v <- GetAlias(x)
-                    v = getAlias(x);
-                } else {
-                    // v <- GetAlias(y)
-                    v = getAlias(y);
-                }
+            Graph<ASMExprRT>.Node x = interference.getNode((ASMExprRT) move.getDest());
+            Graph<ASMExprRT>.Node y = interference.getNode((ASMExprRT) move.getSrc());
 
-                // activeMoves <- activeMoves \ {m}
-                activeMoves.remove(move);
-                // frozenMoves <- frozenMoves union {m}
-                frozenMoves.add(move);
+            Graph<ASMExprRT>.Node v;
+            // if GetAlias(y) = GetAlias(u)
+            if (getAlias(y).equals(getAlias(u))) {
+                // v <- GetAlias(x)
+                v = getAlias(x);
+            } else {
+                // v <- GetAlias(y)
+                v = getAlias(y);
+            }
 
-                // if v in freezeWorklist AND NodeMoves(v) = {}
-                if (freezeWorklist.contains(v) && nodeMoves(v).isEmpty()) {
-                    // freezeWorklist <- freezeWorklist \ {v}
-                    freezeWorklist.remove(v);
-                    // simplifyWorklist <- simplifyWorklist union {v}
-                    simplifyWorklist.add(v);
-                }
+            // activeMoves <- activeMoves \ {m}
+            activeMoves.remove(move);
+            // frozenMoves <- frozenMoves union {m}
+            frozenMoves.add(move);
+
+            // if v in freezeWorklist AND NodeMoves(v) = {}
+            if (freezeWorklist.contains(v) && nodeMoves(v).isEmpty()) {
+                // freezeWorklist <- freezeWorklist \ {v}
+                freezeWorklist.remove(v);
+                // simplifyWorklist <- simplifyWorklist union {v}
+                simplifyWorklist.add(v);
             }
         }
     }
 
     private void selectSpill() {
         //TODO heuristic to choose nodes with large live-ranges
-        Graph<ASMExprRT>.Node m = new ArrayList<>(spillWorklist).get(0);
+        Graph<ASMExprRT>.Node m = spillWorklist.iterator().next();
         spillWorklist.remove(m);
         simplifyWorklist.add(m);
         freezeMoves(m);
@@ -430,8 +463,13 @@ public class RegAllocationColoringVisitor {
         }
 
         // color coalesced nodes according to their alias
-        for (Graph<ASMExprRT>.Node n : coalescedNodes) {
-            color.put(n, color.get(getAlias(n)));
+        for (Graph<ASMExprRT>.Node n : new HashSet<>(coalescedNodes)) {
+            if (spilledNodes.contains(getAlias(n))){
+                coalescedNodes.remove(n);
+                spilledNodes.add(n);
+            } else {
+                color.put(n, color.get(getAlias(n)));
+            }
         }
     }
 
@@ -455,19 +493,21 @@ public class RegAllocationColoringVisitor {
             //adjSet = adjSet + {(u,v), (v,u)}
             adjSet.add(new Pair<>(uNode, vNode));
             adjSet.add(new Pair<>(vNode, uNode));
+
+            //if u not in precolored
+            if (!precolored.contains(uNode)) {
+                //adjList[u] = adjList[u] + {v}
+                adjList.get(uNode).add(vNode);
+                //degree[u] = degree[u] + 1
+                degree.put(uNode, degree.get(uNode) + 1);
+            }
+            //same for v
+            if (!precolored.contains(vNode) && !u.equals(v)) {
+                adjList.get(vNode).add(uNode);
+                degree.put(vNode, degree.get(vNode) + 1);
+            }
         }
-        //if u not in precolored
-        if (!precolored.contains(uNode)) {
-            //adjList[u] = adjList[u] + {v}
-            adjList.get(uNode).add(vNode);
-            //degree[u] = degree[u] + 1
-            degree.put(uNode, degree.get(uNode) + 1);
-        }
-        //same for v
-        if (!precolored.contains(vNode)) {
-            adjList.get(vNode).add(uNode);
-            degree.put(vNode, degree.get(vNode) + 1);
-        }
+
     }
 
     private Set<Graph<ASMExprRT>.Node> getAdjacent(Graph<ASMExprRT>.Node n) {
@@ -548,7 +588,7 @@ public class RegAllocationColoringVisitor {
         int k = 0;
         for (Graph<ASMExprRT>.Node n : nodes) {
             if (degree.get(n) >= K) {
-                k = k + 1;
+                k++;
             }
         }
         return k < K;
@@ -562,6 +602,7 @@ public class RegAllocationColoringVisitor {
     }
 
     private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes) {
+//        System.out.println("_" + i);
         if (i instanceof ASMInstr_1Arg) {
             ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
             return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));
@@ -659,8 +700,8 @@ public class RegAllocationColoringVisitor {
             s2.addAll(s);
             s2.addAll(precolored);
             //s2 = adjList(u) intersection (precolored + simplifyWL + freezeWL + spillWL)
-            s2 = new HashSet<>(Sets.intersection(s2, adjList.get(u)));
-            if (degree.get(u) != s2.size()) {
+            HashSet<Graph<ASMExprRT>.Node> s3 = new HashSet<>(Sets.intersection(s2, adjList.get(u)));
+            if (degree.get(u) != s3.size()) {
                 return false;
             }
         }
@@ -676,8 +717,8 @@ public class RegAllocationColoringVisitor {
             Set<ASMInstr> s = new HashSet<>();
             s.addAll(activeMoves);
             s.addAll(worklistMoves);
-            s = new HashSet<>(Sets.intersection(moveList.get(u), s));
-            if (s.size() != 0) {
+            Set<ASMInstr> s_ = new HashSet<>(Sets.intersection(moveList.get(u), s));
+            if (s_.size() != 0) {
                 return false;
             }
         }
@@ -702,7 +743,7 @@ public class RegAllocationColoringVisitor {
     }
 
     public boolean checkSpillWorklistInv() {
-        for (Graph<ASMExprRT>.Node u : freezeWorklist) {
+        for (Graph<ASMExprRT>.Node u : spillWorklist) {
             if (degree.get(u) < K) {
                 return false;
             }

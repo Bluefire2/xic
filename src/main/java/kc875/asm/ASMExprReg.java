@@ -4,6 +4,9 @@ public class ASMExprReg extends ASMExprRT {
     private String reg;
 
     public ASMExprReg(String reg) {
+        if (reg == null) {
+            throw new NullPointerException();
+        }
         this.reg = reg;
     }
 
