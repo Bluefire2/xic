@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
@@ -80,6 +81,14 @@ public class IRExp extends IRStmt {
 
     @Override
     public int hashCode() {
-        return Integer.parseInt("5" + expr.hashCode());
+        String hs = "5" + expr.hashCode();
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

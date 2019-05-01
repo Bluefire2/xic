@@ -112,6 +112,14 @@ public class IRMem extends IRExpr_c {
 
     @Override
     public int hashCode() {
-        return Longs.hashCode(Long.parseLong("8" + Math.abs(expr.hashCode())));
+        String hs = "8" + Math.abs(expr.hashCode());
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

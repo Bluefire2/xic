@@ -99,6 +99,14 @@ public class IRMove extends IRStmt {
 
     @Override
     public int hashCode() {
-        return Longs.hashCode(Long.parseLong("9" + Math.abs(target.hashCode()) + "" + Math.abs(source().hashCode())));
+        String hs = "9" + Math.abs(target.hashCode()) + "" + Math.abs(source().hashCode());
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

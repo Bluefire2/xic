@@ -130,7 +130,15 @@ public class IRBinOp extends IRExpr_c {
     @Override
     public int hashCode() {
         int opHash = Arrays.asList(OpType.values()).indexOf(type);
-        return Longs.hashCode(Integer.parseInt("0" + opHash + "" + left.hashCode() + "" + right.hashCode()));
+        String hs = "0" + opHash + "" + left.hashCode() + "" + right.hashCode();
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 
 }

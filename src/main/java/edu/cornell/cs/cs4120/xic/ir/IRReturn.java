@@ -92,6 +92,14 @@ public class IRReturn extends IRStmt {
         for (IRExpr r : rets) {
             retCode += Math.abs(r.hashCode());
         }
-        return Longs.hashCode(Long.parseLong("11" + retCode));
+        String hs = "11" + retCode;
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }

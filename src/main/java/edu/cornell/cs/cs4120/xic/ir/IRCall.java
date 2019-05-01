@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
@@ -128,6 +129,14 @@ public class IRCall extends IRExpr_c {
         for (IRExpr a : args) {
             argCode += a.hashCode();
         }
-        return Integer.parseInt("1" + target.hashCode() + argCode);
+        String hs = "1" + target.hashCode() + argCode;
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 }
