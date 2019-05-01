@@ -1,5 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import com.google.common.primitives.Longs;
 import edu.cornell.cs.cs4120.util.SExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.visit.ASMTranslationVisitor;
 import edu.cornell.cs.cs4120.xic.ir.visit.AggregateVisitor;
@@ -8,6 +9,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 import kc875.asm.ASMExprRT;
 import kc875.asm.ASMInstr;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -123,6 +125,20 @@ public class IRBinOp extends IRExpr_c {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        int opHash = Arrays.asList(OpType.values()).indexOf(type);
+        String hs = "0" + opHash + "" + left.hashCode() + "" + right.hashCode();
+        Long hl;
+        try {
+            hl = Long.parseLong(hs);
+        }
+        catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0,18));
+        }
+        return Longs.hashCode(hl);
     }
 
 }

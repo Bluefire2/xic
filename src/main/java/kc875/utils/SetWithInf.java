@@ -3,6 +3,7 @@ package kc875.utils;
 import com.google.common.collect.Sets;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * A wrapper on Set, providing support for infinite sets.
@@ -94,6 +95,21 @@ public class SetWithInf<E> implements Iterable<E> {
         this.excludeSet.add(e);
     }
 
+    /**
+     * Removes elements from the set that satisfy the filter, i.e., filtered
+     * elements are removed.
+     */
+    public void removeIf(Predicate<? super E> filter) {
+        Iterator<E> iter = this.includeSet.iterator();
+        while (iter.hasNext()) {
+            E e = iter.next();
+            if (filter.test(e)) {
+                iter.remove();
+                this.excludeSet.add(e);
+            }
+        }
+    }
+
     public void removeAll(Collection<? extends E> c) {
         c.forEach(this::remove);
     }
@@ -163,7 +179,8 @@ public class SetWithInf<E> implements Iterable<E> {
         SetWithInf<E> set = newSetWithInf(
                 this.isInf, this.includeSet, this.excludeSet
         );
-        set.removeAll(other.includeSet);
+        // remove all elements from set if contained in other.include
+        set.removeIf(e -> other.includeSet.contains(e));
         // don't care about other.exclude since they might (or not) be in
         // this.include
         return set;

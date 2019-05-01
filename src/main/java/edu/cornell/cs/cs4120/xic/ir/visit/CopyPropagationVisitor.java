@@ -65,10 +65,21 @@ public class CopyPropagationVisitor {
             }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    new IRSeq(listStmts));
+                    removeNestedIRSeqs(new IRSeq(listStmts)));
             optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
+    }
+
+    private IRSeq removeNestedIRSeqs(IRSeq stmt) {
+        List<IRStmt> stmts = new ArrayList<>();
+        for (IRStmt s : stmt.stmts()) {
+            if (s instanceof IRSeq) {
+                stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
+            }
+            else stmts.add(s);
+        }
+        return new IRSeq(stmts);
     }
 
     public IRStmt visit(IRStmt stmt, HashMap<String, String> copyMap) {
