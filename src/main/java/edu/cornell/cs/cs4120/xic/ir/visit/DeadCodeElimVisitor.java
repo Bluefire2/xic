@@ -3,6 +3,8 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class DeadCodeElimVisitor {
@@ -33,7 +35,7 @@ public class DeadCodeElimVisitor {
             for (int i = 0; i < listStmts.size(); i++) {
                 IRSeq seq = new IRSeq();
                 IRStmt s = listStmts.get(i);
-                IRGraph.Node n = irGraph.getNode(s);
+                IRGraph.Node n = ((IRGraph) livenessDFA.getGraph()).getNode(s);
 
                 if (s instanceof IRMove) {
                     if (((IRMove) s).target() instanceof IRTemp) {
@@ -42,16 +44,27 @@ public class DeadCodeElimVisitor {
                             continue;
                         }
                     }
-                    seq.stmts().add(s);
                 }
+                seq.stmts().add(s);
 
                 listStmts.set(i, seq);
             }
 
             IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    new IRSeq(listStmts));
+                    removeNestedIRSeqs(new IRSeq(listStmts)));
             optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
         }
         return optimizedCompUnit;
+    }
+
+    private IRSeq removeNestedIRSeqs(IRSeq stmt) {
+        List<IRStmt> stmts = new ArrayList<>();
+        for (IRStmt s : stmt.stmts()) {
+            if (s instanceof IRSeq) {
+                stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
+            }
+            else stmts.add(s);
+        }
+        return new IRSeq(stmts);
     }
 }
