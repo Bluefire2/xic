@@ -1,11 +1,14 @@
 package kc875.asm.visit;
 
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.MutableGraph;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
 import kc875.asm.dfa.AvailableCopiesDFA;
 import kc875.cfg.Graph;
 import kc875.utils.PairAnyOrT;
 import kc875.utils.SetWithInf;
+import polyglot.util.Pair;
 
 import java.util.*;
 
@@ -28,7 +31,7 @@ public class ASMCopyPropagationVisitor {
             // exist
             Graph<ASMInstr>.Node node = graph.getNode(instr);
             optimFunc.add(replaceExprTempsWithCopiesInInstr(
-                    instr, setToMapNaive(nodeToCopies.get(node).getIncludeSet())
+                    instr, setToMap(nodeToCopies.get(node).getIncludeSet())
             ));
 
         }
@@ -51,54 +54,114 @@ public class ASMCopyPropagationVisitor {
         return null;
     }
 
-    /**
-     * Returns the final copy of lhs. Null if copy not found.
-     *
-     * @param lhs    RT to find the last copy for (to find the final rhs for).
-     * @param copies set of copies.
-     * @param map    map of existing copies.
-     */
-    private ASMExprTemp findFinalCopy(
-            ASMExprTemp lhs,
-            Set<PairAnyOrT<ASMExprTemp, ASMExprTemp>> copies,
-            Map<ASMExprTemp, ASMExprTemp> map
-    ) {
-        ASMExprTemp rhs = findCopy(lhs, copies);
-        if (rhs == null) return null;
-
-        // set of RHS seen in the loop
-        Set<ASMExprTemp> seenRHS = new HashSet<>();
-        seenRHS.add(rhs);
-        ASMExprTemp savedRHS = rhs;
-        while (rhs != null) {
-            savedRHS = rhs;
-            if (lhs.equals(rhs)) break;
-            ASMExprTemp rhsCopyInMap = map.get(rhs);
-            rhs = rhsCopyInMap == null ? findCopy(rhs, copies) : rhsCopyInMap;
-            if (seenRHS.contains(rhs)) break;
-            seenRHS.add(rhs);
-        }
-        map.put(lhs, savedRHS);
-        return savedRHS;
-    }
-
-    private Map<ASMExprTemp, ASMExprTemp> setToMap(
-            Set<PairAnyOrT<ASMExprTemp, ASMExprTemp>> copies
-    ) {
-        // Convert set of pairs to a map for quick lookup
-        Map<ASMExprTemp, ASMExprTemp> map = new HashMap<>();
-        for (PairAnyOrT<ASMExprTemp, ASMExprTemp> copy : copies) {
-            if (!copy.fstIsAny()) {
-                // only put in the map if the lhs is a specific value, not *
-                // Find the final copy for replacement
-                ASMExprTemp lastRHS = findFinalCopy(copy.getFst(), copies, map);
-                if (lastRHS != null) {
-                    // RHS found
-                    map.put(copy.getFst(), lastRHS);
-                }
+    // https://www.geeksforgeeks.org/find-a-mother-vertex-in-a-graph/
+    @SuppressWarnings ("UnstableApiUsage")
+    private static <T> void dfsUtil(MutableGraph<T> graph, T node, HashSet<T> visited) {
+        visited.add(node);
+        for (T succ : graph.successors(node)) {
+            if (!succ.equals(node) && !visited.contains(succ)) {
+                dfsUtil(graph, succ, visited);
             }
         }
-        return map;
+    }
+
+    @SuppressWarnings ("UnstableApiUsage")
+    public static <T> T findMother(MutableGraph<T> graph) {
+        HashSet<T> visited = new HashSet<>();
+
+        T lastNode = null;
+
+        for (T node : graph.nodes()) {
+            if (!visited.contains(node)) {
+                dfsUtil(graph, node, visited);
+                lastNode = node;
+            }
+        }
+
+        return lastNode;
+    }
+
+    /**
+     * Converts a set of "pure" pairs (see below) representing variable copies
+     * to a mapping of all the elements found in pairs to their <b>final</b>
+     * copies. A final copy is one that can be used to replace as many other
+     * elements as possible. For example, suppose we have (a = b) and (b = c).
+     * Clearly, b can replace a, but its <b>final</b> copy is c, since c can
+     * replace both a and b.
+     *
+     * Preconditions:
+     *  - The pairs are pure: they all contain two non-null values.
+     *  - TODO: anmol fill these in pls I can't remember
+     *
+     * @param copies The set of copies, represented as pairs.
+     * @param <T> The type of the pair elements.
+     * @return A map from elements to their final copies.
+     */
+    @SuppressWarnings ("UnstableApiUsage")
+    public static <T> Map<T, T> setToMap(Set<PairAnyOrT<T, T>> copies) {
+        // get all the unique elements
+        Set<T> temps = new HashSet<>();
+        Set<Pair<T, T>> pairs = new HashSet<>();
+        for (PairAnyOrT<T, T> copy : copies) {
+            if (!copy.fstIsAny() && !copy.sndIsAny()) {
+                // both elements are values
+                T fst = copy.getFst();
+                T snd = copy.getSnd();
+                temps.add(fst);
+                temps.add(snd);
+                pairs.add(new Pair<>(fst, snd));
+            } else {
+                // TODO: I think this can't happen... right?
+            }
+        }
+
+        // mwahahahaha
+        UnionFind<T> unionFind = new UnionFind<>(temps);
+
+        // make a second pass and merge sets for every pair
+        pairs.forEach(pair -> unionFind.union(pair.part1(), pair.part2()));
+
+        // we now have a set of connected components!
+
+        // make a third pass (dang) and construct the directed graphs
+        // these graphs need to be INVERSELY directed; see reason below
+
+        Map<T, MutableGraph<T>> graphs = new HashMap<>();
+        for (Pair<T, T> pair : pairs) {
+            T fst = pair.part1();
+            T snd = pair.part2();
+
+            T parent = unionFind.find(fst); // snd is in the same set
+            // find or create a graph for the parent
+
+            MutableGraph<T> graph;
+            if (graphs.containsKey(parent)) {
+                graph = graphs.get(parent);
+            } else {
+                graph = GraphBuilder.directed().build();
+                graphs.put(parent, graph);
+            }
+            graph.addNode(fst);
+            graph.addNode(snd);
+            graph.putEdge(snd, fst); // inversely directed!
+        }
+
+        // Now, we use a variant of Kosaraju's algorithm to find the mother node
+        // for each graph. The mother node is actually the opposite of what we
+        // want, which is why each of the above graphs had to be inversely
+        // directed!
+        Map<T, T> mothers = new HashMap<>();
+        for (MutableGraph<T> graph : graphs.values()) {
+            // these graphs are guaranteed to have mothers so this cannot be null
+            T mother = findMother(graph);
+
+            // map each temp in the graph to its mother
+            for (T temp : graph.nodes()) {
+                mothers.put(temp, mother);
+            }
+        }
+
+        return mothers;
     }
 
     private Map<ASMExprTemp, ASMExprTemp> setToMapNaive(
