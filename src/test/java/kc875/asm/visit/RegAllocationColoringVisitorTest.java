@@ -276,7 +276,7 @@ public class RegAllocationColoringVisitorTest {
 
     @Test
     public void testBuildInvariantsReserve() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestInstrs(15);
         visitor.buildInterferenceGraph(abstract_asm);
         assertTrue(visitor.checkDegreeInv());
@@ -300,7 +300,7 @@ public class RegAllocationColoringVisitorTest {
     @Test
     public void testColoringSimpleReserve() {
         //should successfully color 8 live vars
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestInstrs(10);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertEquals(countTemps(colored), 0);
@@ -311,7 +311,7 @@ public class RegAllocationColoringVisitorTest {
     @Test
     public void testColoringSimpleSpillReserve() {
         //should fail to color 12 live vars - 3 unique temps spilled
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestInstrs(14);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertEquals(getAllTemps(colored).size(), 3);
@@ -339,7 +339,7 @@ public class RegAllocationColoringVisitorTest {
     @Test
     public void testColoringCoalesceReserve() {
         //should successfully color 8 live vars
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestCoalesceInstructions();
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertEquals(countTemps(colored), 0);
@@ -357,7 +357,7 @@ public class RegAllocationColoringVisitorTest {
     //lots of copies that cannot be coalesced
     @Test
     public void testColoringNotCoalesceReserve() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestDoNotCoalesceInstructions();
         for (ASMInstr i : abstract_asm){
             System.out.println(i.toString());
@@ -377,7 +377,7 @@ public class RegAllocationColoringVisitorTest {
     //test coloring for program where not all regs are live at the same time (register reuse)
     @Test
     public void testColoringReuseReserve() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestNotAllLiveInstrs();
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertEquals(countTemps(colored), 0);
@@ -394,7 +394,7 @@ public class RegAllocationColoringVisitorTest {
     //test precolored nodes
     @Test
     public void testColoringPrecoloredReserve() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestInstrsPrecolored(8);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertEquals(countTemps(colored), 0);
@@ -410,7 +410,7 @@ public class RegAllocationColoringVisitorTest {
 
     @Test
     public void testColoringPrecoloredSpillReserve() {
-        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor();
+        RegAllocationColoringVisitor visitor = new RegAllocationColoringVisitor(SpillMode.Reserve);
         List<ASMInstr> abstract_asm = getTestInstrsPrecolored(9);
         List<ASMInstr> colored = visitor.allocate(abstract_asm);
         assertNotEquals(countTemps(colored), 0);

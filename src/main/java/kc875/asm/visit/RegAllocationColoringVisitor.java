@@ -64,9 +64,6 @@ public class RegAllocationColoringVisitor {
     private static List<String> allRegisters =
             Arrays.asList("rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15","rsi","rdi","rsp","rbp");
 
-    public RegAllocationColoringVisitor() {
-        this(SpillMode.Reserve); //default to reserve mode
-    }
 
     public RegAllocationColoringVisitor(SpillMode s) {
         precolored = new HashSet<>();
