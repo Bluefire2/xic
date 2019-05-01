@@ -81,7 +81,52 @@ public class CSEVisitorTest {
 
     @Test
     public void cseEndToEnd2() {
-
+        HashMap<String, IRFuncDecl> funcMap = new LinkedHashMap<>();
+        funcMap.put("f", new IRFuncDecl(
+                "f",
+                new IRSeq(
+                        new IRMove(new IRTemp("x"),
+                                new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("y"),
+                                        new IRConst(6))),
+                        new IRMove(new IRTemp("z"),
+                                new IRMem(new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("x"),
+                                        new IRConst(5)))),
+                        new IRMove(new IRTemp("a"),
+                                new IRMem(new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("x"),
+                                        new IRConst(5)))),
+                        new IRReturn(new IRBinOp(IRBinOp.OpType.ADD,
+                                new IRTemp("y"),
+                                new IRConst(6)))
+                )));
+        IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
+        IRCompUnit optimized = cseVisitor.removeCommonSubExpressions(compUnit);
+        IRSeq expected =
+                new IRSeq(
+                        new IRMove(new IRTemp("_cse_t0"),
+                                new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("y"),
+                                        new IRConst(6))),
+                        new IRMove(new IRTemp("x"),
+                                new IRTemp("_cse_t0")),
+                        new IRMove(new IRTemp("_cse_t1"),
+                                new IRMem(new IRBinOp(IRBinOp.OpType.ADD,
+                                        new IRTemp("x"),
+                                        new IRConst(5)))),
+                        new IRMove(new IRTemp("z"),
+                                new IRMem(new IRTemp("_cse_t1"))),
+                        new IRMove(new IRTemp("a"),
+                                new IRMem(new IRTemp("_cse_t1"))),
+                        new IRReturn(new IRTemp("_cse_t0"))
+                );
+        assert(((IRSeq) optimized.functions().get("f").body()).stmts().size() == 6);
+        try {
+            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+            graph.show("CSETest2graph.dot");
+        }
+        catch (IOException e) {}
     }
 
 }

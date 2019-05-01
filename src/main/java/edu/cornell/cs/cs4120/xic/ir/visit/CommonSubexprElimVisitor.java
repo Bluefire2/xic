@@ -45,7 +45,7 @@ public class CommonSubexprElimVisitor {
                 IRSeq seq = new IRSeq();
                 for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
                     if (e instanceof IRTemp || e instanceof IRConst || tempExprMap.containsKey(e)) continue;
-                    else {
+                    else if (availableExprsDFA.nodesUsingExpr(e).size() > 1){
                         String tmp = newTemp();
                         tempExprMap.put(e, tmp);
                         tempUsedMap.put(tmp, Boolean.FALSE);
@@ -125,7 +125,9 @@ public class CommonSubexprElimVisitor {
         IRExpr newleft;
         IRExpr newright;
         if (exprTempMap.containsKey(expr)) {
-            return new IRTemp(exprTempMap.get(expr));
+            String t = exprTempMap.get(expr);
+            tempUsedMap.put(t, Boolean.TRUE);
+            return new IRTemp(t);
         }
         else if (exprTempMap.containsKey(expr.left())) {
             String t = exprTempMap.get(expr.left());
@@ -184,7 +186,12 @@ public class CommonSubexprElimVisitor {
     }
 
     public IRExpr visit(IRMem expr, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {
-        if (exprTempMap.containsKey(expr.expr())) {
+        if (exprTempMap.containsKey(expr)) {
+            String t = exprTempMap.get(expr);
+            tempUsedMap.put(t, Boolean.TRUE);
+            return new IRTemp(t);
+        }
+        else if (exprTempMap.containsKey(expr.expr())) {
             String t = exprTempMap.get(expr.expr());
             tempUsedMap.put(t, Boolean.TRUE);
             return new IRMem(new IRTemp(t));
