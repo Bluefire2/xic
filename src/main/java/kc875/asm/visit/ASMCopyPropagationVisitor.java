@@ -30,7 +30,7 @@ public class ASMCopyPropagationVisitor {
             // exist
             Graph<ASMInstr>.Node node = graph.getNode(instr);
             optimFunc.add(replaceExprTempsWithCopiesInInstr(
-                    instr, setToMap(nodeToCopies.get(node).getIncludeSet())
+                    instr, setToMap(nodeToCopies.get(node).getSet())
             ));
 
         }
