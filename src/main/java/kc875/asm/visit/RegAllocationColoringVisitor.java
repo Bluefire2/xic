@@ -752,8 +752,7 @@ public class RegAllocationColoringVisitor {
     public boolean isCopy(ASMInstr instr){
         if (instr instanceof ASMInstr_2Arg) {
             ASMInstr_2Arg i = (ASMInstr_2Arg) instr;
-            boolean checkOpCode = (i.getOpCode() == ASMOpCode.MOV || i.getOpCode() == ASMOpCode.MOVZX);
-            //TODO do we allow move coalescing on movs with regs
+            boolean checkOpCode = (i.getOpCode() == ASMOpCode.MOV);
             return (checkOpCode && i.getDest() instanceof ASMExprRT && i.getSrc() instanceof ASMExprRT);
         }
         return false;
