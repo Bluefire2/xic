@@ -259,16 +259,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         for (ASMInstr instr : input) {
             if (instr  instanceof ASMInstrComment) {
                 instrs.add(instr);
-//                ASMInstrComment c = (ASMInstrComment) instr;
-//                if (c.getComment().equals("CALL_START")) {
-//                    instrs.add(instr);
-//                    //pushCallerSavedRegs(instrs);
-//                } else if (c.getComment().equals("CALL_END")) {
-//                    //popCallerSavedRegs(instrs);
-//                    instrs.add(instr);
-//                } else {
-//                    instrs.add(instr);
-//                }
             } else {
                 instrs.addAll(instr.accept(this));
             }
@@ -318,9 +308,11 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
      */
     private List<String> getAvailRegs(List<String> excludeRegs) {
         if (mode == NaiveSpillMode.Reserved) {
-            return Stream.of(
+            List<String> availRegs = Stream.of(
                     "r13", "r14", "r15"
             ).collect(Collectors.toList());
+            availRegs.removeAll(excludeRegs);
+            return availRegs;
         } else {
             // copy registers
             Set<String> availCallerRegs = new HashSet<>(CALLER_SAVE_REGS);
