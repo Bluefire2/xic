@@ -8,7 +8,7 @@ public class XiUtils {
      */
     public static String fNameFromABIName(String name) {
         String nameWithout_I = name.substring(2);
-        int _idx = nameWithout_I.indexOf('_');
+        int _idx = nameWithout_I.lastIndexOf('_');
         return _idx == -1 ? nameWithout_I : nameWithout_I.substring(0, _idx);
     }
 
