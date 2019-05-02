@@ -4,13 +4,15 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRFuncDecl;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
+import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
 import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstrLabel;
 import kc875.asm.ASMUtils;
+import kc875.asm.dfa.ASMAvailableCopiesDFA;
 import kc875.asm.dfa.ASMGraph;
-import kc875.asm.dfa.AvailableCopiesDFA;
-import kc875.asm.dfa.LiveVariableDFA;
+import kc875.asm.dfa.ASMLiveVariableDFA;
 import kc875.cfg.DFAFramework;
 import kc875.utils.XiUtils;
 import polyglot.util.OptimalCodeWriter;
@@ -126,8 +128,6 @@ class CLIUtils {
      */
     static void fileoutCFGDFAPhase(List<ASMInstr> ins, List<OptimPhases> ps,
                                    String path) {
-        // Get all functions out of ir
-
         Consumer<List<ASMInstr>> cPerFunc = listASM -> {
             // Get name of function
             String fName = ((ASMInstrLabel) listASM.get(0)).getName();
@@ -148,10 +148,10 @@ class CLIUtils {
                     DFAFramework framework;
                     switch (p) {
                         case ASMLIVEVAR:
-                            framework = new LiveVariableDFA(funcGraph);
+                            framework = new ASMLiveVariableDFA(funcGraph);
                             break;
                         case ASMAVAILCOPY:
-                            framework = new AvailableCopiesDFA(funcGraph);
+                            framework = new ASMAvailableCopiesDFA(funcGraph);
                             break;
                         default:
                             throw new IllegalAccessError(
@@ -166,5 +166,55 @@ class CLIUtils {
             }
         };
         ASMUtils.execPerFunc(ins, cPerFunc);
+    }
+
+    /**
+     * Outputs the CFGs for all functions f in LIR with
+     * paths of the form `path_f_p1_p2_..._pn.dot` after running DFAs p1, p2,
+     * ..., pn on f.
+     * Preconditions:
+     * - Phases pi must not be INITIAL or FINAL.
+     *
+     * @param ir   ASM instructions to extract functions from.
+     * @param ps   list of optimization phases, in order for running.
+     * @param path path to write at.
+     */
+    static void fileoutCFGDFAPhase(IRCompUnit ir, List<OptimPhases> ps,
+                                   String path) {
+        Consumer<IRFuncDecl> cPerFunc = func -> {
+            // Build the CFG for f and output to file
+            IRGraph funcGraph = new IRGraph(func);
+            String filename = String.format(
+                    "%s_%s_%s.dot",
+                    path,
+                    XiUtils.fNameFromABIName(func.name()),
+                    ps.stream()
+                            .map(p -> p.toString().toLowerCase())
+                            .collect(Collectors.joining("_"))
+            );
+            try {
+                // Run the DFAs specified by ps
+                for (OptimPhases p : ps) {
+                    DFAFramework framework;
+                    switch (p) {
+                        case IRAVAILEXPR:
+                            framework = new AvailableExprsDFA(funcGraph);
+                            break;
+                        case IRLIVEVAR:
+                            framework = new LivenessDFA(funcGraph);
+                            break;
+                        default:
+                            throw new IllegalAccessError(
+                                    "Can't run " + p + " DFA on IR"
+                            );
+                    }
+                    framework.runWorklistAlgo();
+                    framework.show(filename);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        };
+        ir.functions().values().forEach(cPerFunc);
     }
 }

@@ -1,6 +1,5 @@
 package edu.cornell.cs.cs4120.xic.ir.dfa;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.visit.ListChildrenVisitor;
@@ -11,6 +10,7 @@ import kc875.utils.XiUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> {
 
@@ -34,7 +34,10 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
                         l = new SetWithInf<>();
 
                     l = l.union(exprs(node));
-                    l.removeAll(kill(node).getSet());
+                    for (IRExpr e : kill(node)) {
+                        // remove elements from l whose sub exprs have e in them
+                        l.removeIf(le -> getSubExpressions(le).contains(e));
+                    }
                     return l;
                 },
                 SetWithInf::infSet,
@@ -53,41 +56,39 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
     }
 
     private static SetWithInf<IRExpr> exprs(IRGraph.Node gn) {
-        return getSubExpressions(gn.getT());
+        return new SetWithInf<>(getSubExpressions(gn.getT()));
     }
 
-    // TODO: make sure this is correct
     private static SetWithInf<IRExpr> kill(IRGraph.Node gn) {
         IRStmt stmt = gn.getT();
         List<IRStmt> stmts = new ArrayList<>();
-        if (stmt instanceof IRSeq) {
-            stmts.addAll(((IRSeq) stmt).stmts());
-        } else stmts.add(stmt);
+        if (stmt instanceof IRSeq)
+            stmts = ((IRSeq) stmt).stmts();
+        else
+            stmts.add(stmt);
 
-        SetWithInf<IRExpr> sourceKillSet = new SetWithInf<>();
-        SetWithInf<IRExpr> destKillSet = new SetWithInf<>();
+        Set<IRExpr> killSet = new HashSet<>();
 
         for (IRStmt s : stmts) {
-            // TODO: can we make this a list?
-            List<IRExpr> subexpressions = Lists.newArrayList(getSubExpressions(s));
+            Set<IRExpr> subexpressions = getSubExpressions(s);
             if (s instanceof IRMove) {
                 IRMove smove = (IRMove) s;
-
+                // add exprs that contain the lhs of move
                 if (smove.target() instanceof IRTemp) {
-                    // TODO: shouldn't this get added to destKillSet?
-                    sourceKillSet.union(exprsContainingTemp(
-                            (IRTemp) smove.target(),
-                            subexpressions
+                    // mov x, e ==> kill e' that contain x
+                    killSet.addAll(exprsContainingTemp(
+                            (IRTemp) smove.target(), subexpressions
                     ));
                 } else if (smove.target() instanceof IRMem) {
-                    sourceKillSet.union(possibleAliasExprs(
-                            ((IRMem) smove.target()).expr(),
-                            subexpressions
+                    // mov [e], e' ==> kill aliases of [e]
+                    killSet.addAll(possibleAliasExprs(
+                            ((IRMem) smove.target()).expr(), subexpressions
                     ));
                 }
 
                 if (smove.source() instanceof IRCall) {
-                    destKillSet.union(exprsCanBeModified(
+                    // mov e, f(e) ==> kill mems that f can modify
+                    killSet.addAll(exprsCanBeModified(
                             ((IRName) ((IRCall) smove.source()).target()).name(),
                             subexpressions
                     ));
@@ -95,7 +96,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             } else if (s instanceof IRCJump) {
                 IRCJump jmp = (IRCJump) s;
                 if (jmp.cond() instanceof IRCall) {
-                    destKillSet.union(exprsCanBeModified(
+                    killSet.addAll(exprsCanBeModified(
                             ((IRName) ((IRCall) jmp.cond()).target()).name(),
                             subexpressions
                     ));
@@ -103,7 +104,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             }
         }
 
-        return sourceKillSet.union(destKillSet);
+        return new SetWithInf<>(killSet);
     }
 
     /**
@@ -121,7 +122,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
     }
 
     public SetWithInf<IRGraph.Node> nodesUsingExpr(IRExpr e) {
-        HashSet<IRGraph.Node> nodeSet = new HashSet<>();
+        Set<IRGraph.Node> nodeSet = new HashSet<>();
         for (IRGraph.Node n : ((IRGraph) getGraph()).getAllNodes()) {
             if (exprs(n).contains(e)) {
                 nodeSet.add(n);
@@ -136,31 +137,36 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * @param irNode An IR node with 0 or more children
      * @return A set of all the children of irNode that are of type IRExpr.
      */
-    private static SetWithInf<IRExpr> getSubExpressions(IRNode irNode) {
+    private static Set<IRExpr> getSubExpressions(IRNode irNode) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
+        Set<IRExpr> exprSet = new HashSet<>();
 
         for (IRNode n : lcv.visit(irNode)) {
             if (n instanceof IRExpr) {
+                if (n instanceof IRCall || n instanceof IRName) {
+                    // don't add n
+                    continue;
+                }
                 exprSet.add((IRExpr) n);
             }
         }
 
-        return new SetWithInf<>(exprSet);
+        return exprSet;
     }
 
     /**
      * Return the subset of a list of IR expressions that reference a given temp.
      *
-     * @param t        IR level temporary variable
-     * @param exprList the list of IR expressions to be searched
+     * @param t     IR level temporary variable
+     * @param exprs the list of IR expressions to be searched
      * @return the subset of exprlst containing references to t
      */
-    public static SetWithInf<IRExpr> exprsContainingTemp(IRTemp t, List<IRExpr> exprList) {
+    public static Set<IRExpr> exprsContainingTemp(IRTemp t,
+                                                  Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
+        Set<IRExpr> exprSet = new HashSet<>();
 
-        for (IRExpr expr : exprList) {
+        for (IRExpr expr : exprs) {
             List<IRNode> children = lcv.visit(expr);
             for (IRNode n : children) {
                 if (n instanceof IRTemp) {
@@ -172,7 +178,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             }
         }
 
-        return new SetWithInf<>(exprSet);
+        return exprSet;
     }
 
     /**
@@ -183,21 +189,23 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * 3. The operand points to immutable memory
      * 4. The types of the operands are incompatible
      *
-     * @param e        IR expression used in a mem: [e]
-     * @param exprList the list of IR expression to be searched
+     * @param e     IR expression used in a mem: [e]
+     * @param exprs the list of IR expression to be searched
      * @return the subset of exprlst containing any expression [e'] that may be
      * an alias for [e]
      */
-    public static SetWithInf<IRExpr> possibleAliasExprs(IRExpr e, List<IRExpr> exprList) {
-        HashSet<IRExpr> exprSet = new HashSet<>();
+    public static Set<IRExpr> possibleAliasExprs(IRExpr e,
+                                                 Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
+        Set<IRExpr> exprSet = new HashSet<>();
 
-        for (IRExpr expr : exprList) {
+        for (IRExpr expr : exprs) {
             List<IRNode> children = lcv.visit(expr);
             for (IRNode c : children) {
                 if (c instanceof IRMem) {
                     if (((IRMem) c).expr() instanceof IRConst && e instanceof IRConst) {
                         if (((IRConst) ((IRMem) c).expr()).value() != ((IRConst) e).value()) {
+                            // values not equal, not memory aliases
                             continue;
                         }
                     }
@@ -206,23 +214,24 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             }
         }
 
-        return new SetWithInf<>(exprSet);
+        return exprSet;
     }
 
     /**
      * Returns the set of expressions that can be modified by a function call
      * to f.
      *
-     * @param fname    An IR function declaration
-     * @param exprList List of expressions to be searched
+     * @param fname An IR function declaration
+     * @param exprs expressions to be searched
      * @return The subset of exprlist containing any expression [e] that could
      * be modified by a call to f.
      */
-    public static SetWithInf<IRExpr> exprsCanBeModified(String fname, List<IRExpr> exprList) {
+    public static Set<IRExpr> exprsCanBeModified(String fname,
+                                                 Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
-        HashSet<IRExpr> exprSet = new HashSet<>();
+        Set<IRExpr> exprSet = new HashSet<>();
 
-        for (IRExpr expr : exprList) {
+        for (IRExpr expr : exprs) {
             List<IRNode> children = lcv.visit(expr);
             for (IRNode n : children) {
                 if (n instanceof IRMem) {
@@ -231,7 +240,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
             }
         }
 
-        return new SetWithInf<>(exprSet);
+        return exprSet;
     }
 
 }

@@ -7,6 +7,7 @@ import edu.cornell.cs.cs4120.xic.ir.visit.DeadCodeElimVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -32,7 +33,7 @@ public class CopyPropagationAndDCETest {
     public void sanityCheck() {
         copyPropagationVisitor.propagateCopies(new IRCompUnit("name",
                 new LinkedHashMap<>()));
-        deadCodeElimVisitor.removeDeadCode(new IRCompUnit("name",
+        deadCodeElimVisitor.run(new IRCompUnit("name",
                 new LinkedHashMap<>()));
         assertTrue(true);
     }
@@ -81,7 +82,7 @@ public class CopyPropagationAndDCETest {
                                 new IRReturn(new IRTemp("z"))
                         )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = deadCodeElimVisitor.removeDeadCode(compUnit);
+        IRCompUnit optimized = deadCodeElimVisitor.run(compUnit);
         IRSeq expected = new IRSeq(
                 new IRLabel("l1"),
                 new IRMove(new IRTemp("z"),
@@ -108,7 +109,7 @@ public class CopyPropagationAndDCETest {
                         )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
         IRCompUnit optimized = copyPropagationVisitor.propagateCopies(compUnit);
-        optimized = deadCodeElimVisitor.removeDeadCode(optimized);
+        optimized = deadCodeElimVisitor.run(optimized);
         IRSeq expected = new IRSeq(
                         new IRMove(new IRTemp("z"),
                         new IRBinOp(IRBinOp.OpType.MUL,

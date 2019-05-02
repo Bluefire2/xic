@@ -9,7 +9,7 @@ import polyglot.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AvailableCopiesDFATest {
+public class ASMAvailableCopiesDFATest {
 
     @Test
     public void simpleASMTest0() {
@@ -27,7 +27,7 @@ public class AvailableCopiesDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);
@@ -61,7 +61,7 @@ public class AvailableCopiesDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);
@@ -90,7 +90,7 @@ public class AvailableCopiesDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);
@@ -140,7 +140,7 @@ public class AvailableCopiesDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);

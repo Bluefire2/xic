@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LiveVariableDFATest {
+public class ASMLiveVariableDFATest {
 
     @Test
     public void simpleASMTest0() {
@@ -26,7 +26,7 @@ public class LiveVariableDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        LiveVariableDFA dfa = new LiveVariableDFA(graph);
+        ASMLiveVariableDFA dfa = new ASMLiveVariableDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);
@@ -59,7 +59,7 @@ public class LiveVariableDFATest {
         ));
 
         ASMGraph graph = new ASMGraph(instrs);
-        LiveVariableDFA dfa = new LiveVariableDFA(graph);
+        ASMLiveVariableDFA dfa = new ASMLiveVariableDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);
@@ -77,7 +77,7 @@ public class LiveVariableDFATest {
         List<ASMInstr> instrs =
                 RegAllocationColoringVisitorTest.getTestInstrsPrecolored(7);
         ASMGraph graph = new ASMGraph(instrs);
-        LiveVariableDFA dfa = new LiveVariableDFA(graph);
+        ASMLiveVariableDFA dfa = new ASMLiveVariableDFA(graph);
         dfa.runWorklistAlgo();
 
         instrs.forEach(System.out::println);

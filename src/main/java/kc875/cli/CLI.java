@@ -94,11 +94,6 @@ public class CLI implements Runnable {
             description = "Generate and interpret intermediate code.")
     private boolean optIRRun = false;
 
-    @Option(names = {"--mir"}, hidden = true,
-            description = "Do not lower the IR.")
-    private boolean optMIR = false;
-
-    // TODO: implement --optir <phase> in code
     @Option(names = {"--optir"},
             description = "Report the intermediate code at the specified " +
                     "phase of optimization")
@@ -405,7 +400,7 @@ public class CLI implements Runnable {
         ASTNode root = buildAST(fileReader);
         String fPath = FilenameUtils.removeExtension(f.getName());
 
-        // Initial flags
+        IRNode ir;
         if (activeOptims.get(Optims.CF) && (
                 activeOptimIRPhases.get(OptimPhases.INITIAL)
                         || activeOptimCFGPhases.get(OptimPhases.INITIAL)
@@ -416,26 +411,51 @@ public class CLI implements Runnable {
             // phase by constructing the LIR with CF switched off. This means
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
-            IRNode ir = root.accept(new IRTranslationVisitor(
+            ir = root.accept(new IRTranslationVisitor(
                     false, fPath
             ));
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
-            if (activeOptimIRPhases.get(OptimPhases.INITIAL))
-                CLIUtils.fileoutIRPhase(ir, OptimPhases.INITIAL, fPath);
-
-            if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
-                CLIUtils.fileoutCFGPhase(
-                        (IRCompUnit) ir, OptimPhases.INITIAL, fPath
-                );
+        } else {
+            // Normal IR translation and lowering
+            IRNode mir = root.accept(new IRTranslationVisitor(
+                    activeOptims.get(Optims.CF),
+                    FilenameUtils.removeExtension(f.getName())
+            ));
+            LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+            ir = lv.visit(mir);
         }
 
-        // Normal IR translation and lowering
-        IRNode mir = root.accept(new IRTranslationVisitor(
-                activeOptims.get(Optims.CF),
-                FilenameUtils.removeExtension(f.getName())
-        ));
-        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-        IRNode ir = optMIR ? mir : lv.visit(mir);
+        // CFG Phases
+        // INITIAL IR and CFG
+        if (activeOptimIRPhases.get(OptimPhases.INITIAL))
+            CLIUtils.fileoutIRPhase(ir, OptimPhases.INITIAL, fPath);
+
+        if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
+            CLIUtils.fileoutCFGPhase(
+                    (IRCompUnit) ir, OptimPhases.INITIAL, fPath
+            );
+
+        // Output the AVAILEXPR CFG graph if needed
+        if (activeOptimCFGPhases.get(OptimPhases.IRAVAILEXPR)) {
+            String diagPath = Paths.get(
+                    diagnosticPath.toString(),
+                    FilenameUtils.removeExtension(f.getName())
+            ).toString();
+            CLIUtils.fileoutCFGDFAPhase(
+                    (IRCompUnit) ir, List.of(OptimPhases.IRAVAILEXPR), diagPath
+            );
+        }
+
+        // Output the IRLIVEVAR CFG graph if needed
+        if (activeOptimCFGPhases.get(OptimPhases.IRLIVEVAR)) {
+            String diagPath = Paths.get(
+                    diagnosticPath.toString(),
+                    FilenameUtils.removeExtension(f.getName())
+            ).toString();
+            CLIUtils.fileoutCFGDFAPhase(
+                    (IRCompUnit) ir, List.of(OptimPhases.IRLIVEVAR), diagPath
+            );
+        }
 
         // Optimizations
         if (activeOptims.get(Optims.CF)) {
@@ -443,7 +463,18 @@ public class CLI implements Runnable {
                     new ConstantFoldVisitor(new IRNodeFactory_c());
             ir = v.visit(ir);
         }
-        // TODO: add other optimizations here
+        if (activeOptims.get(Optims.CSE)) {
+            CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
+            ir = csev.removeCommonSubExpressions((IRCompUnit) ir);
+        }
+        if (activeOptims.get(Optims.COPY)) {
+            CopyPropagationVisitor cpv = new CopyPropagationVisitor();
+            ir = cpv.propagateCopies((IRCompUnit) ir);
+        }
+        if (activeOptims.get(Optims.DCE)) {
+            DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
+            ir = dcv.run((IRCompUnit) ir);
+        }
 
         if (activeOptimIRPhases.get(OptimPhases.FINAL))
             CLIUtils.fileoutIRPhase(ir, OptimPhases.FINAL, fPath);
@@ -487,20 +518,6 @@ public class CLI implements Runnable {
                     printer = new CodeWriterSExpPrinter(cw);
                 }
 
-                //Optimizations
-                if (activeOptims.get(Optims.CSE)) {
-                    CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
-                    foldedIR = csev.removeCommonSubExpressions((IRCompUnit) foldedIR);
-                }
-                if (activeOptims.get(Optims.COPY)) {
-                    CopyPropagationVisitor cpv = new CopyPropagationVisitor();
-                    foldedIR = cpv.propagateCopies((IRCompUnit) foldedIR);
-                }
-                if (activeOptims.get(Optims.DCE)) {
-                    DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
-                    foldedIR = dcv.removeDeadCode((IRCompUnit) foldedIR);
-                }
-
                 foldedIR.printSExp(printer);
                 printer.close();
             } catch (LexicalError | SyntaxError | SemanticError e) {
@@ -523,20 +540,6 @@ public class CLI implements Runnable {
                  FileOutputStream fos = new FileOutputStream(outputFilePath)) {
 
                 IRNode foldedIR = buildIR(f, fileReader);
-
-                //Optimizations
-                if (activeOptimIRPhases.get(Optims.CSE)) {
-                    CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
-                    foldedIR = csev.removeCommonSubExpressions((IRCompUnit) foldedIR);
-                }
-                if (activeOptimIRPhases.get(Optims.COPY)) {
-                    CopyPropagationVisitor cpv = new CopyPropagationVisitor();
-                    foldedIR = cpv.propagateCopies((IRCompUnit) foldedIR);
-                }
-                if (activeOptimIRPhases.get(Optims.DCE)) {
-                    DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
-                    foldedIR = dcv.removeDeadCode((IRCompUnit) foldedIR);
-                }
 
                 //Interpreting
                 if (!optDebug) {
@@ -613,11 +616,9 @@ public class CLI implements Runnable {
 //                }
 
                 if (activeOptims.get(Optims.COPY)) {
-
                     ASMCopyPropagationVisitor v =
                             new ASMCopyPropagationVisitor();
                     instrs = v.run(instrs);
-
                     if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERCOPY)) {
                         String diagPath = Paths.get(
                                 diagnosticPath.toString(),
@@ -630,11 +631,9 @@ public class CLI implements Runnable {
                 }
 
                 if (activeOptims.get(Optims.DCE)) {
-
                     ASMDeadCodeEliminationVisitor v =
                             new ASMDeadCodeEliminationVisitor();
                     instrs = v.run(instrs);
-
                     if (activeOptimCFGPhases.get(OptimPhases.ASMAFTERDCE)) {
                         String diagPath = Paths.get(
                                 diagnosticPath.toString(),

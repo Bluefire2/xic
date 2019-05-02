@@ -2,7 +2,10 @@ package kc875.utils;
 
 import com.google.common.collect.Sets;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -124,14 +127,5 @@ public class SetWithInf<E> implements Iterable<E> {
         SetWithInf<?> other = (SetWithInf<?>) o;
         return (this.isInf && other.isInf)
                 || (!this.isInf && !other.isInf && this.set.equals(other.set));
-    }
-
-    // TODO: this shouldn't be used
-    public List<E> toList() {
-        List<E> lst = new ArrayList<>();
-        for (E e : this) {
-            lst.add(e);
-        }
-        return lst;
     }
 }

@@ -11,10 +11,10 @@ import polyglot.util.Pair;
  * Available copies DFA (used in copy and dce). The lattice elements are
  * sets x = y, with x and y being Temps/Regs; represented as a pair(x, y).
  */
-public class AvailableCopiesDFA extends
+public class ASMAvailableCopiesDFA extends
         DFAFramework<SetWithInf<Pair<ASMExprTemp, ASMExprTemp>>, ASMInstr> {
 
-    public AvailableCopiesDFA(ASMGraph asmGraph) {
+    public ASMAvailableCopiesDFA(ASMGraph asmGraph) {
         super(
                 asmGraph,
                 Direction.FORWARD,
