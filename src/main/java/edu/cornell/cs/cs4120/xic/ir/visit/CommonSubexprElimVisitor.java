@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CommonSubexprElimVisitor {
 
@@ -149,12 +150,15 @@ public class CommonSubexprElimVisitor {
     }
 
     public IRExpr visit(IRCall expr, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {
+        List<IRExpr> newArgs = expr.args().stream()
+                .map(arg -> visit(arg, exprTempMap, tempUsedMap))
+                .collect(Collectors.toList());
         if (exprTempMap.containsKey(expr.target())) {
             String t = exprTempMap.get(expr.target());
             tempUsedMap.put(t, Boolean.TRUE);
-            return new IRCall(new IRTemp(t));
+            return new IRCall(new IRTemp(t), newArgs);
         }
-        else return new IRCall(visit(expr.target(), exprTempMap, tempUsedMap));
+        else return new IRCall(visit(expr.target(), exprTempMap, tempUsedMap), newArgs);
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {
