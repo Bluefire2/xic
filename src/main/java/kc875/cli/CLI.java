@@ -400,7 +400,7 @@ public class CLI implements Runnable {
         ASTNode root = buildAST(fileReader);
         String fPath = FilenameUtils.removeExtension(f.getName());
 
-        // Initial flags
+        IRNode ir;
         if (activeOptims.get(Optims.CF) && (
                 activeOptimIRPhases.get(OptimPhases.INITIAL)
                         || activeOptimCFGPhases.get(OptimPhases.INITIAL)
@@ -411,28 +411,30 @@ public class CLI implements Runnable {
             // phase by constructing the LIR with CF switched off. This means
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
-            IRNode ir = root.accept(new IRTranslationVisitor(
+            ir = root.accept(new IRTranslationVisitor(
                     false, fPath
             ));
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
-            if (activeOptimIRPhases.get(OptimPhases.INITIAL))
-                CLIUtils.fileoutIRPhase(ir, OptimPhases.INITIAL, fPath);
-
-            if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
-                CLIUtils.fileoutCFGPhase(
-                        (IRCompUnit) ir, OptimPhases.INITIAL, fPath
-                );
+        } else {
+            // Normal IR translation and lowering
+            IRNode mir = root.accept(new IRTranslationVisitor(
+                    activeOptims.get(Optims.CF),
+                    FilenameUtils.removeExtension(f.getName())
+            ));
+            LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
+            ir = lv.visit(mir);
         }
 
-        // Normal IR translation and lowering
-        IRNode mir = root.accept(new IRTranslationVisitor(
-                activeOptims.get(Optims.CF),
-                FilenameUtils.removeExtension(f.getName())
-        ));
-        LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
-        IRNode ir = lv.visit(mir);
-
         // CFG Phases
+        // INITIAL IR and CFG
+        if (activeOptimIRPhases.get(OptimPhases.INITIAL))
+            CLIUtils.fileoutIRPhase(ir, OptimPhases.INITIAL, fPath);
+
+        if (activeOptimCFGPhases.get(OptimPhases.INITIAL))
+            CLIUtils.fileoutCFGPhase(
+                    (IRCompUnit) ir, OptimPhases.INITIAL, fPath
+            );
+
         // Output the AVAILCOPY CFG graph if needed
         if (activeOptimCFGPhases.get(OptimPhases.IRAVAILEXPR)) {
             String diagPath = Paths.get(

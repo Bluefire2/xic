@@ -34,7 +34,10 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
                         l = new SetWithInf<>();
 
                     l = l.union(exprs(node));
-                    l.removeAll(kill(node).getSet());
+                    for (IRExpr e : kill(node)) {
+                        // remove elements from l whose sub exprs have e in them
+                        l.removeIf(le -> getSubExpressions(le).contains(e));
+                    }
                     return l;
                 },
                 SetWithInf::infSet,
@@ -140,6 +143,10 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
 
         for (IRNode n : lcv.visit(irNode)) {
             if (n instanceof IRExpr) {
+                if (n instanceof IRCall || n instanceof IRName) {
+                    // don't add n
+                    continue;
+                }
                 exprSet.add((IRExpr) n);
             }
         }
@@ -188,7 +195,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * an alias for [e]
      */
     public static Set<IRExpr> possibleAliasExprs(IRExpr e,
-                                                        Set<IRExpr> exprs) {
+                                                 Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
         Set<IRExpr> exprSet = new HashSet<>();
 
@@ -220,7 +227,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * be modified by a call to f.
      */
     public static Set<IRExpr> exprsCanBeModified(String fname,
-                                                        Set<IRExpr> exprs) {
+                                                 Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
         Set<IRExpr> exprSet = new HashSet<>();
 
