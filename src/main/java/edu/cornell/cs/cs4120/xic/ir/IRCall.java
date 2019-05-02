@@ -130,12 +130,13 @@ public class IRCall extends IRExpr_c {
             argCode += Math.abs(a.hashCode());
         }
         String hs = "1" + Math.abs(target.hashCode()) + argCode;
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }

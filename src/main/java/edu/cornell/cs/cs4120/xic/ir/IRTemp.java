@@ -58,18 +58,19 @@ public class IRTemp extends IRExpr_c {
 
     @Override
     public boolean equals(Object node) {
-        return node instanceof IRTemp && ((IRTemp) node).name() == this.name;
+        return node instanceof IRTemp && ((IRTemp) node).name().equals(this.name);
     }
 
     @Override
     public int hashCode() {
         String hs = "13" + Math.abs(name.hashCode());
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }

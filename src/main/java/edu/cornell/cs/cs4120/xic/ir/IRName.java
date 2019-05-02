@@ -69,12 +69,13 @@ public class IRName extends IRExpr_c {
     @Override
     public int hashCode() {
         String hs = "10" + Math.abs(name.hashCode());
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }

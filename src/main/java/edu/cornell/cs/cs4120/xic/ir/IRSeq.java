@@ -126,12 +126,13 @@ public class IRSeq extends IRStmt {
             stmtCode += s.hashCode();
         }
         String hs = "12" + stmtCode;
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }
