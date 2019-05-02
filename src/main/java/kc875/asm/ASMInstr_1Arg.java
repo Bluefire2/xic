@@ -54,6 +54,8 @@ public class ASMInstr_1Arg extends ASMInstr {
         }
         // arg is reg/temp
         switch (this.getOpCode()) {
+            case INC:
+            case DEC:
             case POP:
             case SETE:
             case SETNE:
