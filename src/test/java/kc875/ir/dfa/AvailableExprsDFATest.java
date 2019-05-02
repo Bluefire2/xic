@@ -7,8 +7,13 @@ import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+
 
 public class AvailableExprsDFATest {
 
@@ -25,7 +30,7 @@ public class AvailableExprsDFATest {
     public void tearDown() {
     }
 
-    private boolean twoListsEqual(List a, List b) {
+    private <T> boolean twoListsEqual(List<T> a, List<T> b) {
         return (a.size() == b.size() &&
                 a.containsAll(b) && b.containsAll(a));
     }
@@ -43,8 +48,10 @@ public class AvailableExprsDFATest {
                         new IRConst(9), new IRConst(8)),
                 new IRMem(new IRTemp("other"))
         );
-        assert(twoListsEqual(exprs.subList(0, 4),
-                availableExprsDFA.exprsContainingTemp(temp, exprs).toList()));
+        assertEquals(
+                AvailableExprsDFA.exprsContainingTemp(temp, new HashSet<>(exprs)),
+                new HashSet<>(exprs.subList(0, 4))
+        );
     }
 
     @Test
@@ -59,9 +66,10 @@ public class AvailableExprsDFATest {
                 new IRBinOp(IRBinOp.OpType.SUB,
                         new IRConst(7), new IRConst(8))
         );
-        assert(twoListsEqual(exprs.subList(0, 2),
-                AvailableExprsDFA.possibleAliasExprs(e, exprs).toList()));
-
+        assertEquals(
+                AvailableExprsDFA.possibleAliasExprs(e, new HashSet<>(exprs)),
+                new HashSet<>(exprs.subList(0, 2))
+        );
     }
 
     @Test
@@ -75,8 +83,10 @@ public class AvailableExprsDFATest {
                 new IRBinOp(IRBinOp.OpType.SUB,
                         new IRConst(7), new IRConst(8))
         );
-        assert(twoListsEqual(exprs.subList(0, 2),
-                AvailableExprsDFA.exprsCanBeModified("f", exprs).toList()));
+        assertEquals(
+                AvailableExprsDFA.exprsCanBeModified("f", new HashSet<>(exprs)),
+                new HashSet<>(exprs.subList(0, 2))
+        );
     }
 
     @Test
@@ -94,9 +104,10 @@ public class AvailableExprsDFATest {
                         new IRConst(5),
                         new IRConst(6)),
                 new IRConst(5), new IRConst(6));
-        assert(twoListsEqual(Lists.newArrayList(
-                availableExprsDFA.exprsGeneratedBy(graph.getStartNode())),
-                expected));
+        assertEquals(
+                new HashSet<>(expected),
+                availableExprsDFA.exprsGeneratedBy(graph.getStartNode()).getSet()
+        );
     }
 }
 
