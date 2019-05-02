@@ -6,12 +6,13 @@ import edu.cornell.cs.cs4120.xic.ir.IRFuncDecl;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
+import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
 import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstrLabel;
 import kc875.asm.ASMUtils;
+import kc875.asm.dfa.ASMAvailableCopiesDFA;
 import kc875.asm.dfa.ASMGraph;
-import kc875.asm.dfa.AvailableCopiesDFA;
-import kc875.asm.dfa.LiveVariableDFA;
+import kc875.asm.dfa.ASMLiveVariableDFA;
 import kc875.cfg.DFAFramework;
 import kc875.utils.XiUtils;
 import polyglot.util.OptimalCodeWriter;
@@ -147,10 +148,10 @@ class CLIUtils {
                     DFAFramework framework;
                     switch (p) {
                         case ASMLIVEVAR:
-                            framework = new LiveVariableDFA(funcGraph);
+                            framework = new ASMLiveVariableDFA(funcGraph);
                             break;
                         case ASMAVAILCOPY:
-                            framework = new AvailableCopiesDFA(funcGraph);
+                            framework = new ASMAvailableCopiesDFA(funcGraph);
                             break;
                         default:
                             throw new IllegalAccessError(
@@ -198,6 +199,9 @@ class CLIUtils {
                     switch (p) {
                         case IRAVAILEXPR:
                             framework = new AvailableExprsDFA(funcGraph);
+                            break;
+                        case IRLIVEVAR:
+                            framework = new LivenessDFA(funcGraph);
                             break;
                         default:
                             throw new IllegalAccessError(

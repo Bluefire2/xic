@@ -30,11 +30,6 @@ public class AvailableExprsDFATest {
     public void tearDown() {
     }
 
-    private <T> boolean twoListsEqual(List<T> a, List<T> b) {
-        return (a.size() == b.size() &&
-                a.containsAll(b) && b.containsAll(a));
-    }
-
     @Test
     public void testExprsContainingTemp() {
         IRTemp temp = new IRTemp("temp");

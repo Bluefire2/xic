@@ -3,12 +3,12 @@ package kc875.asm.visit;
 import com.google.common.collect.Sets;
 import kc875.asm.*;
 import kc875.asm.dfa.ASMGraph;
+import kc875.asm.dfa.ASMLiveVariableDFA;
 import kc875.asm.dfa.InterferenceGraph;
-import kc875.asm.dfa.LiveVariableDFA;
-import kc875.cfg.Graph;
-import polyglot.util.Pair;
-import polyglot.util.InternalCompilerError;
 import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
+import kc875.cfg.Graph;
+import polyglot.util.InternalCompilerError;
+import polyglot.util.Pair;
 
 import java.util.*;
 
@@ -56,7 +56,7 @@ public class RegAllocationColoringVisitor {
 
     private ASMGraph cfg;
     private InterferenceGraph interference;
-    private LiveVariableDFA liveness;
+    private ASMLiveVariableDFA liveness;
     private List<ASMInstr> instrs;
 
     private int K;// number of usable registers
@@ -168,7 +168,7 @@ public class RegAllocationColoringVisitor {
 
     private void livenessAnalysis() {
         cfg = new ASMGraph(instrs);
-        liveness = new LiveVariableDFA(cfg);
+        liveness = new ASMLiveVariableDFA(cfg);
         liveness.runWorklistAlgo();
     }
 
@@ -217,10 +217,10 @@ public class RegAllocationColoringVisitor {
             //if ismoveinstr(i)
             if (isMoveInstruction(i)) {
                 //live = live/use(i)
-                live = new HashSet<>(Sets.difference(live, LiveVariableDFA.use(b)));
+                live = new HashSet<>(Sets.difference(live, ASMLiveVariableDFA.use(b)));
                 //forall t in def(i)+use(i)
                 for (ASMExprRT t : new HashSet<>(
-                        Sets.union(LiveVariableDFA.def(b), LiveVariableDFA.use(b)))
+                        Sets.union(ASMLiveVariableDFA.def(b), ASMLiveVariableDFA.use(b)))
                 ) {
                     //movelist[n] <- movelist[n] + {I}
                     //where n is the node associated with t
@@ -231,9 +231,9 @@ public class RegAllocationColoringVisitor {
                 worklistMoves.add(i);
             }
             //live = live + def(i)
-            live = new HashSet<>(Sets.union(live, LiveVariableDFA.def(b)));
+            live = new HashSet<>(Sets.union(live, ASMLiveVariableDFA.def(b)));
             //forall d in def(i)
-            for (ASMExprRT d : LiveVariableDFA.def(b)) {
+            for (ASMExprRT d : ASMLiveVariableDFA.def(b)) {
                 //forall l in live
                 for (ASMExprRT l : live) {
                     //addEdge(l,d)
@@ -664,7 +664,7 @@ public class RegAllocationColoringVisitor {
         return interference;
     }
 
-    public LiveVariableDFA getLiveness() {
+    public ASMLiveVariableDFA getLiveness() {
         return liveness;
     }
 

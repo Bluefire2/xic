@@ -6,6 +6,7 @@ enum OptimPhases {
 
     // Analyses
     IRAVAILEXPR,
+    IRLIVEVAR,
     ASMLIVEVAR,
     ASMAVAILCOPY,
 

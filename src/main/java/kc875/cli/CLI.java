@@ -435,7 +435,7 @@ public class CLI implements Runnable {
                     (IRCompUnit) ir, OptimPhases.INITIAL, fPath
             );
 
-        // Output the AVAILCOPY CFG graph if needed
+        // Output the AVAILEXPR CFG graph if needed
         if (activeOptimCFGPhases.get(OptimPhases.IRAVAILEXPR)) {
             String diagPath = Paths.get(
                     diagnosticPath.toString(),
@@ -443,6 +443,17 @@ public class CLI implements Runnable {
             ).toString();
             CLIUtils.fileoutCFGDFAPhase(
                     (IRCompUnit) ir, List.of(OptimPhases.IRAVAILEXPR), diagPath
+            );
+        }
+
+        // Output the IRLIVEVAR CFG graph if needed
+        if (activeOptimCFGPhases.get(OptimPhases.IRLIVEVAR)) {
+            String diagPath = Paths.get(
+                    diagnosticPath.toString(),
+                    FilenameUtils.removeExtension(f.getName())
+            ).toString();
+            CLIUtils.fileoutCFGDFAPhase(
+                    (IRCompUnit) ir, List.of(OptimPhases.IRLIVEVAR), diagPath
             );
         }
 
