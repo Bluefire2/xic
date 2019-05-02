@@ -38,9 +38,14 @@ fn(count: int, input: int): int {
 }
 
 main(args: int[][]) {
+    println("I'm so sorry");
+
     counter: int = 0;
     acc: int = 0;
-    while (counter < 1000) {
+    println(unparseInt(counter));
+    println(unparseInt(acc));
+
+    while (counter < 100) {
         a: int = 5;
         b: int = a;
         c: int = b;
@@ -69,11 +74,18 @@ main(args: int[][]) {
         z: int = k;
 
         result: int =
-            fn(10, a + b + c + d + e + f + g + h + i
+            fn(100, a + b + c + d + e + f + g + h + i
             + j + k + l + m + n + o + p + q + r
             + s + t + u + v + w + x + y + z);
 
+        println(unparseInt(result));
+        println(unparseInt(acc));
+
         acc = acc + result;
+        println(unparseInt(acc));
+
         counter = counter + 1;
     }
+
+    println(unparseInt(acc));
 }
