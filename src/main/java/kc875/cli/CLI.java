@@ -469,7 +469,7 @@ public class CLI implements Runnable {
         }
         if (activeOptims.get(Optims.COPY)) {
             CopyPropagationVisitor cpv = new CopyPropagationVisitor();
-            ir = cpv.propagateCopies((IRCompUnit) ir);
+            ir = cpv.run((IRCompUnit) ir);
         }
         if (activeOptims.get(Optims.DCE)) {
             DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
