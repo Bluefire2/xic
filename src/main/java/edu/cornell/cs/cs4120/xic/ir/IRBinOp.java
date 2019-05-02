@@ -76,11 +76,11 @@ public class IRBinOp extends IRExpr_c {
     public boolean isConstFolded(CheckConstFoldedIRVisitor v) {
         if (isConstant()) {
             switch (type) {
-            case DIV:
-            case MOD:
-                return right.constant() == 0;
-            default:
-                return false;
+                case DIV:
+                case MOD:
+                    return right.constant() == 0;
+                default:
+                    return false;
             }
         }
         return true;
@@ -130,13 +130,14 @@ public class IRBinOp extends IRExpr_c {
     @Override
     public int hashCode() {
         int opHash = Arrays.asList(OpType.values()).indexOf(type);
+
         String hs = "0" + Math.abs(opHash) + "" + Math.abs(left.hashCode()) + "" + Math.abs(right.hashCode());
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
-        }
-        catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+        } catch (NumberFormatException e) {
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }

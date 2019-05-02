@@ -76,13 +76,15 @@ public class IRConst extends IRExpr_c {
     }
 
     public int hashCode() {
-        String hs = "3" + Math.abs(value);
+        String hs = "" + Math.abs(value);
+        // yeah abs can return neg values
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(1, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }
