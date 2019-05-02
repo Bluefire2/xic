@@ -78,11 +78,7 @@ main(args: int[][]) {
             + j + k + l + m + n + o + p + q + r
             + s + t + u + v + w + x + y + z);
 
-        println(unparseInt(result));
-        println(unparseInt(acc));
-
         acc = acc + result;
-        println(unparseInt(acc));
 
         counter = counter + 1;
     }
