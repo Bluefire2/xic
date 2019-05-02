@@ -1,4 +1,4 @@
-package kc875.ir.visit;
+package kc875.asm.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
@@ -35,8 +35,7 @@ public class CSEVisitorTest {
 
     @Test
     public void sanityCheck() {
-        cseVisitor.removeCommonSubExpressions(new IRCompUnit("name",
-                new LinkedHashMap<>()));
+        cseVisitor.run(new IRCompUnit("name", new LinkedHashMap<>()));
         assertTrue(true);
     }
 
@@ -59,7 +58,7 @@ public class CSEVisitorTest {
                                 new IRConst(6)))
                 )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = cseVisitor.removeCommonSubExpressions(compUnit);
+        IRCompUnit optimized = cseVisitor.run(compUnit);
         IRSeq expected =
                 new IRSeq(
                         new IRMove(new IRTemp("_cse_t0"),
@@ -103,7 +102,7 @@ public class CSEVisitorTest {
                                 new IRConst(6)))
                 )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = cseVisitor.removeCommonSubExpressions(compUnit);
+        IRCompUnit optimized = cseVisitor.run(compUnit);
         IRSeq expected =
                 new IRSeq(
                         new IRMove(new IRTemp("_cse_t0"),

@@ -476,7 +476,7 @@ public class CLI implements Runnable {
         }
         if (activeOptims.get(Optims.CSE)) {
             CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
-            ir = csev.removeCommonSubExpressions((IRCompUnit) ir);
+            ir = csev.run((IRCompUnit) ir);
         }
         if (activeOptims.get(Optims.COPY)) {
             CopyPropagationVisitor cpv = new CopyPropagationVisitor();

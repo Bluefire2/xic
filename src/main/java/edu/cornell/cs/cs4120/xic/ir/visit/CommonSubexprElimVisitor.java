@@ -13,12 +13,10 @@ import java.util.stream.Collectors;
 
 public class CommonSubexprElimVisitor {
 
-    private IRGraph irGraph;
-
     public CommonSubexprElimVisitor() { }
 
     private int tempcounter;
-    public String newTemp() {
+    private String newTemp() {
         return String.format("_cse_t%d", tempcounter++);
     }
 
@@ -26,84 +24,90 @@ public class CommonSubexprElimVisitor {
 
     /**
      * Perform common subexpression elimination
-     * @param irnode
+     * @param ir irnode
      * @return irnode with common subexpressions hoisted and replaced by temps.
      */
-    public IRCompUnit removeCommonSubExpressions(IRCompUnit irnode) {
-        IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
-        for (IRFuncDecl func : irnode.functions().values()) {
-            // Get the stmts in body of this func
-            IRStmt body = func.body();
-            IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+    public IRCompUnit run(IRCompUnit ir) {
+        IRCompUnit optimCompUnit = new IRCompUnit(ir.name());
+        for (IRFuncDecl f : ir.functions().values()) {
+            IRFuncDecl optimF = removeCommonSubExpressions(f);
+            optimCompUnit.functions().put(optimF.name(), optimF);
+        }
+        return optimCompUnit;
+    }
 
-            // Get the IR graph and run avail expr
-            irGraph = new IRGraph(func);
-            AvailableExprsDFA availableExprsDFA = new AvailableExprsDFA(irGraph);
-            availableExprsDFA.runWorklistAlgo();
+    private IRFuncDecl removeCommonSubExpressions(IRFuncDecl func) {
+        IRGraph irGraph = new IRGraph(func);
+        AvailableExprsDFA dfa = new AvailableExprsDFA(irGraph);
+        dfa.runWorklistAlgo();
 
-            Map<IRExpr, String> tempExprMap = new HashMap<>();
-            List<IRStmt> listStmt = stmts.stmts();
-            for (int i = 0; i < listStmt.size(); ++i) {
-                // optimize each stmt in the body
-                IRStmt stmt = listStmt.get(i);
-                Graph<IRStmt>.Node n = irGraph.getNode(i);
-                IRSeq seq = new IRSeq();
-                for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
-                    if (e instanceof IRTemp || e instanceof IRConst || tempExprMap.containsKey(e)) continue;
-                    else if (availableExprsDFA.nodesUsingExpr(e).size() > 1){
-                        String tmp = newTemp();
-                        tempExprMap.put(e, tmp);
-                        tempUsedMap.put(tmp, Boolean.FALSE);
-                        seq.stmts().add(new IRMove(new IRTemp(tmp), e));
-                    }
+        IRStmt body = func.body();
+        IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+
+        // Get the IR graph and run avail expr
+        Map<IRExpr, String> tempExprMap = new HashMap<>();
+        List<IRStmt> listStmt = stmts.stmts();
+        for (int i = 0; i < listStmt.size(); ++i) {
+            // optimize each stmt in the body
+            IRStmt stmt = listStmt.get(i);
+            Graph<IRStmt>.Node n = irGraph.getNode(i);
+            IRSeq seq = new IRSeq();
+            for (IRExpr e : dfa.exprsGeneratedBy(n)) {
+                if (e instanceof IRTemp
+                        || e instanceof IRConst
+                        || tempExprMap.containsKey(e)) {
+                    continue;
+                } else if (dfa.nodesUsingExpr(e).size() > 1) {
+                    String tmp = newTemp();
+                    tempExprMap.put(e, tmp);
+                    tempUsedMap.put(tmp, Boolean.FALSE);
+                    seq.stmts().add(new IRMove(new IRTemp(tmp), e));
                 }
-
-                seq.stmts().add(visit(stmt, tempExprMap, tempUsedMap));
-
-                // replace this stmt with the new one
-                listStmt.set(i, seq);
             }
+            seq.stmts().add(visit(stmt, tempExprMap, tempUsedMap));
 
-            //Optimize by removing unused movs
-            for (int i = 0; i < listStmt.size(); ++i) {
-                List<IRStmt> innerStmts = new ArrayList<>();
-                IRStmt stmt = listStmt.get(i);
-                IRSeq retseq = new IRSeq();
-                if (stmt instanceof IRSeq) innerStmts.addAll(removeNestedIRSeqs((IRSeq) stmt).stmts());
-                else innerStmts.add(stmt);
-                for (IRStmt s : innerStmts) {
-                    if (s instanceof IRMove) {
-                        IRExpr target = ((IRMove) s).target();
-                        if (target instanceof IRTemp) {
-                            String tn = ((IRTemp) target).name();
-                            if (tempUsedMap.containsKey(tn)) {
-                                if (!(tempUsedMap.get(tn))) {
-                                    continue;
-                                }
+            // replace this stmt with the new one
+            listStmt.set(i, seq);
+        }
+
+        //Optimize by removing unused movs
+        for (int i = 0; i < listStmt.size(); ++i) {
+            List<IRStmt> innerStmts = new ArrayList<>();
+            IRStmt stmt = listStmt.get(i);
+            IRSeq retseq = new IRSeq();
+            if (stmt instanceof IRSeq)
+                innerStmts.addAll(removeNestedIRSeqs((IRSeq) stmt).stmts());
+            else
+                innerStmts.add(stmt);
+            for (IRStmt s : innerStmts) {
+                if (s instanceof IRMove) {
+                    IRExpr target = ((IRMove) s).target();
+                    if (target instanceof IRTemp) {
+                        String tn = ((IRTemp) target).name();
+                        if (tempUsedMap.containsKey(tn)) {
+                            if (!(tempUsedMap.get(tn))) {
+                                continue;
                             }
                         }
                     }
-                    retseq.stmts().add(s);
                 }
-                listStmt.set(i, retseq);
+                retseq.stmts().add(s);
             }
-
-            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(
-                    func.name(),
-                    removeNestedIRSeqs(new IRSeq(listStmt))
-            );
-            optimizedCompUnit.functions().put(func.name(), optimizedFuncDecl);
+            listStmt.set(i, retseq);
         }
-        return optimizedCompUnit;
+
+        return new IRFuncDecl(
+                func.name(), removeNestedIRSeqs(new IRSeq(listStmt))
+        );
     }
 
     private IRSeq removeNestedIRSeqs(IRSeq stmt) {
         List<IRStmt> stmts = new ArrayList<>();
         for (IRStmt s : stmt.stmts()) {
-            if (s instanceof IRSeq) {
+            if (s instanceof IRSeq)
                 stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
-            }
-            else stmts.add(s);
+            else
+                stmts.add(s);
         }
         return new IRSeq(stmts);
     }

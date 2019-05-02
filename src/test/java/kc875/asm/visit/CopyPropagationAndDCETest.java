@@ -1,4 +1,4 @@
-package kc875.ir.visit;
+package kc875.asm.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;

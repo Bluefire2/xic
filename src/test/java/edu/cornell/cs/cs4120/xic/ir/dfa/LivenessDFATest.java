@@ -1,11 +1,11 @@
-package kc875.ir.dfa;
+package edu.cornell.cs.cs4120.xic.ir.dfa;
+
 import com.google.common.collect.Lists;
 import edu.cornell.cs.cs4120.xic.ir.*;
-import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
-import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import java.util.Arrays;
 import java.util.List;
 
