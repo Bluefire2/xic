@@ -38,6 +38,8 @@ fn(count: int, input: int): int {
 }
 
 main(args: int[][]) {
+    println("I'm so sorry");
+
     counter: int = 0;
     acc: int = 0;
     while (counter < 1000) {
@@ -76,4 +78,6 @@ main(args: int[][]) {
         acc = acc + result;
         counter = counter + 1;
     }
+
+    println(unparseInt(acc));
 }
