@@ -11,7 +11,9 @@ import java.util.Iterator;
 
 public class IRGraph extends Graph<IRStmt> {
 
-    private BiMap<Node, IRStmt> nodeStmtMap;
+    // stmts are stored in order they appear in the function body, i.e., stmt
+    // i (0-indexed) will have an entry node(stmt) <-> i.
+    private BiMap<Node, Integer> nodeStmtMap;
 
     /**
      * Graph for lowered IR representation of a function.
@@ -31,7 +33,8 @@ public class IRGraph extends Graph<IRStmt> {
         Iterator<IRStmt> iter = stmts.stmts().iterator();
         IRStmt stmt = iter.next();
         Node previous = new Node(stmt);
-        nodeStmtMap.put(previous, stmt);
+        int nodeIdx = 0;
+        nodeStmtMap.put(previous, nodeIdx++);
         setStartNode(previous);
 
         while (iter.hasNext()) {
@@ -39,7 +42,7 @@ public class IRGraph extends Graph<IRStmt> {
             if (stmt instanceof IRSeq && ((IRSeq) stmt).stmts().size() == 0) continue;
             Node node = new Node(stmt);
             addOtherNode(node);
-            nodeStmtMap.put(node, stmt);
+            nodeStmtMap.put(node, nodeIdx++);
 
             if (stmt instanceof IRLabel) {
                 labelToNodeMap.put(((IRLabel) stmt).name(), node);
@@ -98,20 +101,16 @@ public class IRGraph extends Graph<IRStmt> {
     }
 
 
-    public IRStmt getStmt(Node n) {
+    public int getStmt(Node n) {
         return nodeStmtMap.get(n);
     }
 
-    public Node getNode(IRStmt stmt) {
-        return nodeStmtMap.inverse().get(stmt);
+    public Node getNode(int i) {
+        return nodeStmtMap.inverse().get(i);
     }
 
-    public BiMap<Node, IRStmt> getNodeStmtMap() {
+    public BiMap<Node, Integer> getNodeStmtMap() {
         return HashBiMap.create(nodeStmtMap);
-    }
-
-    public void setStmt(Node n, IRStmt s) {
-        nodeStmtMap.replace(n, s);
     }
 
 }

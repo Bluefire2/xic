@@ -17,12 +17,16 @@ import java.util.stream.Collectors;
  * @param <T> Wrapped graph node (such as ASMInstr, IRStmt, List<ASMInstr> etc.).
  */
 public class Graph<T> {
+    private int numNodes = 0;
+
     public class Node {
         private T t;
         private Set<Node> in;
         private Set<Node> out;
+        private int nodeID;
 
         public Node(T t, Set<Node> in, Set<Node> out) {
+            this.nodeID = numNodes++;
             this.t = t;
             this.in = in;
             this.out = out;
@@ -114,7 +118,9 @@ public class Graph<T> {
 
         @Override
         public int hashCode() {
-            return t.hashCode();
+            // Need to differentiate nodes with same contents but different
+            // positions in the graph
+            return nodeID + t.hashCode();
         }
     }
 

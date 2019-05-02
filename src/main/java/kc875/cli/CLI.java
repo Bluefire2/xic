@@ -473,7 +473,7 @@ public class CLI implements Runnable {
         }
         if (activeOptims.get(Optims.DCE)) {
             DeadCodeElimVisitor dcv = new DeadCodeElimVisitor();
-            ir = dcv.removeDeadCode((IRCompUnit) ir);
+            ir = dcv.run((IRCompUnit) ir);
         }
 
         if (activeOptimIRPhases.get(OptimPhases.FINAL))

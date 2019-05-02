@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.ReachingDefnsDFA;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +37,7 @@ public class CopyPropagationVisitor {
             for (int i = 0; i < listStmts.size(); i++) {
                 IRSeq seq = new IRSeq();
                 IRStmt s = listStmts.get(i);
-                IRGraph.Node n = irGraph.getNode(s);
+                IRGraph.Node n = irGraph.getNode(i);
                 if (s instanceof IRMove) {
                     IRExpr target = ((IRMove) s).target();
                     IRExpr source = ((IRMove) s).source();

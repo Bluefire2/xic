@@ -37,6 +37,8 @@ public class ASMDeadCodeEliminationVisitor {
 
                 } else if (instr instanceof ASMInstr_1Arg) {
                     allDefs.add((ASMExprRT) ((ASMInstr_1Arg) instr).getArg());
+                    // are all defs in this stmt live out? ==> are all defs
+                    // contained in out set?
                     boolean allDefsUseless = allDefs.stream()
                             .noneMatch(def -> nodeToLiveVars.get(node).contains(def));
                     if (!allDefsUseless)
