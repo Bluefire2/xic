@@ -20,9 +20,9 @@ public class RegAllocationOptimVisitor {
 
     public List<ASMInstr> allocate(List<ASMInstr> i) {
         List<ASMInstr> instrs = i;
-        //printInstrs();
+        //printInstrs(instrs);
         instrs = ASMUtils.execPerFunc(instrs, this::allocateFunc);
-        //printInstrs();
+        //printInstrs(instrs);
         NaiveSpillMode s;
         if (spillMode == SpillMode.Reserve) {
             s = NaiveSpillMode.Reserved;
@@ -31,7 +31,7 @@ public class RegAllocationOptimVisitor {
         }
         RegAllocationNaiveVisitor v = new RegAllocationNaiveVisitor(false, s);
         instrs = v.allocate(instrs);
-        //printInstrs();
+        //printInstrs(instrs);
         return instrs;
     }
 

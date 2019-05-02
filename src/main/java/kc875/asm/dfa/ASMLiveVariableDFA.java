@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
  * Live variable DFA (used in reg allocation). The lattice elements are sets
  * of Temps/Regs.
  */
-public class LiveVariableDFA extends DFAFramework<Set<ASMExprRT>,
+public class ASMLiveVariableDFA extends DFAFramework<Set<ASMExprRT>,
         ASMInstr> {
 
-    public LiveVariableDFA(ASMGraph asmGraph) {
+    public ASMLiveVariableDFA(ASMGraph asmGraph) {
         super(
                 asmGraph,
                 Direction.BACKWARD,

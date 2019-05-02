@@ -3,8 +3,8 @@ package kc875.asm.visit;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 import kc875.asm.*;
+import kc875.asm.dfa.ASMAvailableCopiesDFA;
 import kc875.asm.dfa.ASMGraph;
-import kc875.asm.dfa.AvailableCopiesDFA;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 import kc875.utils.UnionFind;
@@ -19,7 +19,7 @@ public class ASMCopyPropagationVisitor {
 
     private List<ASMInstr> copyPropagate(List<ASMInstr> func) {
         ASMGraph graph = new ASMGraph(func);
-        AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
+        ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
         Map<Graph<ASMInstr>.Node, SetWithInf<Pair<ASMExprTemp, ASMExprTemp>>>

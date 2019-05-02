@@ -60,3 +60,4 @@ clean:	## Clean temporary build files from the directory
 	find . -name "*.ir.nml" -type f -delete
 	find . -name "*.ir" -type f -delete
 	find . -name "*.s" -type f -delete
+	find . -name "*.dot" -type f -delete

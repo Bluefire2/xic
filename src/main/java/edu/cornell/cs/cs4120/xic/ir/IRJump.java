@@ -72,7 +72,7 @@ public class IRJump extends IRStmt {
 
     @Override
     public int hashCode() {
-        String hs = "6" + target.hashCode();
+        String hs = "6" + Math.abs(target.hashCode());
         Long hl;
         try {
             hl = Long.parseLong(hs);

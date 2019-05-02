@@ -114,11 +114,11 @@ public class IRCJump extends IRStmt {
     public int hashCode() {
         String hs;
         if (hasFalseLabel()) {
-            hs = "2" + cond.hashCode() +
-                    trueLabel.hashCode() + falseLabel.hashCode();
+            hs = "2" + Math.abs(cond.hashCode()) +
+                    Math.abs(trueLabel.hashCode()) + Math.abs(falseLabel.hashCode());
         }
         else {
-            hs = "2" + cond.hashCode() + trueLabel.hashCode();
+            hs = "2" + Math.abs(cond.hashCode()) + Math.abs(trueLabel.hashCode());
         }
         Long hl;
         try {
