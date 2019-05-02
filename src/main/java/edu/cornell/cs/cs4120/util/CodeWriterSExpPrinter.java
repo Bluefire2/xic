@@ -1,13 +1,13 @@
 package edu.cornell.cs.cs4120.util;
 
+import polyglot.util.CodeWriter;
+import polyglot.util.OptimalCodeWriter;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
-
-import polyglot.util.CodeWriter;
-import polyglot.util.OptimalCodeWriter;
 
 /**
  * An {@linkplain SExpPrinter} implementation designed to print ASTs through a
@@ -99,7 +99,7 @@ public class CodeWriterSExpPrinter implements SExpPrinter {
     @Override
     public void flush() {
         try {
-            writer.newline();
+//             writer.newline();
             writer.flush();
         }
         catch (IOException e) {

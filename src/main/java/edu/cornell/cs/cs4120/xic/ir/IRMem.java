@@ -94,10 +94,9 @@ public class IRMem extends IRExpr_c {
 
     @Override
     public void printSExp(SExpPrinter p) {
-        p.startList();
-        p.printAtom(memType.toString());
+        p.printAtom("[");
         expr.printSExp(p);
-        p.endList();
+        p.printAtom("]");
     }
 
     @Override

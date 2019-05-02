@@ -108,9 +108,30 @@ public class IRBinOp extends IRExpr_c {
 
     @Override
     public void printSExp(SExpPrinter p) {
+        String op = "";
+        switch (type) {
+            case ADD: op = "+"; break;
+            case SUB: op = "-"; break;
+            case MUL: op = "*"; break;
+            case HMUL: op = "*>>"; break;
+            case DIV: op = "/"; break;
+            case MOD: op = "%"; break;
+            case AND: op = "&"; break;
+            case OR: op = "|"; break;
+            case XOR: op = "^"; break;
+            case LSHIFT: op = "<<"; break;
+            case RSHIFT: op = ">>"; break;
+            case ARSHIFT: op = "a>>"; break;
+            case EQ: op = "=="; break;
+            case NEQ: op = "!="; break;
+            case LT: op = "<"; break;
+            case GT: op = ">"; break;
+            case LEQ: op = "<="; break;
+            case GEQ: op = ">="; break;
+        }
         p.startList();
-        p.printAtom(type.toString());
         left.printSExp(p);
+        p.printAtom(op);
         right.printSExp(p);
         p.endList();
     }

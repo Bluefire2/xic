@@ -50,10 +50,7 @@ public class IRTemp extends IRExpr_c {
 
     @Override
     public void printSExp(SExpPrinter p) {
-        p.startList();
-        p.printAtom("TEMP");
         p.printAtom(name);
-        p.endList();
     }
 
     @Override
