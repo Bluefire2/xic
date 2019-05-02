@@ -5,6 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableCopiesDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import kc875.utils.SetToMap;
 import kc875.utils.SetWithInf;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ public class CopyPropagationVisitor {
      * Perform copy propagation: given an assignment x=y, replace all subsequent
      * uses of x with y until next definition of x.
      *
-     * @param ir
+     * @param ir IR.
      * @return irnode with copies of variables propagated.
      */
     public IRCompUnit run(IRCompUnit ir) {
@@ -31,6 +32,10 @@ public class CopyPropagationVisitor {
         }
         return optimCompUnit;
     }
+
+    // true if the current function (used by propagate copies) has more than
+    // 2 return values ==> need to replace _ARGi by _ARG(i+1) in this case
+    private boolean funcMoreThan2RetVals = false;
 
     public IRFuncDecl propagateCopies(IRFuncDecl func) {
         IRGraph graph = new IRGraph(func);
@@ -44,6 +49,7 @@ public class CopyPropagationVisitor {
         IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
         List<IRStmt> optimStmts = new ArrayList<>();
 
+        funcMoreThan2RetVals = XiUtils.getNumReturns(func.name()) > 2;
         for (int i = 0; i < stmts.stmts().size(); ++i) {
             IRGraph.Node n = graph.getNode(i);
 
@@ -159,6 +165,14 @@ public class CopyPropagationVisitor {
     }
 
     public IRExpr visit(IRTemp expr, Map<IRTemp, IRTemp> copyMap) {
-        return copyMap.getOrDefault(expr, expr);
+        IRTemp tempReplacedBy = copyMap.getOrDefault(expr, expr);
+        if (funcMoreThan2RetVals && tempReplacedBy.name().startsWith("_ARG")) {
+            // more than 2 ret in this function and temp of the form _ARGi,
+            // return _ARG(i+1)
+            int i = XiUtils.numFromString(tempReplacedBy.name());
+            return new IRTemp("_ARG" + (i + 1));
+        } else {
+            return tempReplacedBy;
+        }
     }
 }
