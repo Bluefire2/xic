@@ -2,8 +2,6 @@ package kc875.cfg;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Sets;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 
 import java.io.FileWriter;
@@ -40,56 +38,12 @@ public class Graph<T> {
             return t;
         }
 
-        public void addOut(Node out) {
-            this.out.add(out);
-        }
-
-        public void addAllOut(Collection<? extends Node> c) {
-            this.out.addAll(c);
-        }
-
-        public void addIn(Node in) {
-            this.in.add(in);
-        }
-
-        public void addAllIn(Collection<? extends Node> c) {
-            this.in.addAll(c);
-        }
-
-        public Set<Node> succ() {
+        Set<Node> succ() {
             return new HashSet<>(out);
         }
 
-        public Set<Node> pred() {
+        Set<Node> pred() {
             return new HashSet<>(in);
-        }
-
-        public Set<Node> adj() {
-            return Sets.union(in, out).immutableCopy();
-        }
-
-        public int outDegree() {
-            return out.size();
-        }
-
-        public int inDegree() {
-            return in.size();
-        }
-
-        public int degree() {
-            return inDegree() + outDegree();
-        }
-
-        public boolean goesTo(Node n) {
-            return out.contains(n);
-        }
-
-        public boolean comesFrom(Node n) {
-            return in.contains(n);
-        }
-
-        public boolean isAdj(Node n) {
-            return in.contains(n) || out.contains(n);
         }
 
         @Override
@@ -144,15 +98,11 @@ public class Graph<T> {
         return startNode;
     }
 
-    public Set<Node> getOtherNodes() {
-        return otherNodes;
-    }
-
-    public void setStartNode(Node startNode) {
+    protected void setStartNode(Node startNode) {
         this.startNode = startNode;
     }
 
-    public void addOtherNode(Node otherNode) {
+    protected void addOtherNode(Node otherNode) {
         this.otherNodes.add(otherNode);
     }
 
@@ -170,21 +120,45 @@ public class Graph<T> {
      * @param from 'sender' node.
      * @param to   'receiver' node.
      */
-    public void addEdge(Node from, Node to) {
+    protected void addEdge(Node from, Node to) {
         from.out.add(to);
         to.in.add(from);
     }
 
     /**
-     * Removes an edge between node `from` and node `to`. Doesn't do anything
-     * if the edge doesn't exist.
-     *
-     * @param from 'sender' node.
-     * @param to   'receiver' node.
+     * Does a post order traversal on the graph and returns the resulting
+     * stack of nodes.
      */
-    public void removeEdge(Node from, Node to) {
-        from.out.remove(to);
-        to.in.remove(from);
+    Stack<Node> postOrderDFS() {
+        Stack<Node> s = new Stack<>();
+        Set<Node> visited = new HashSet<>();
+
+        // https://www.geeksforgeeks.org/iterative-postorder-traversal/
+        Stack<Node> s1 = new Stack<>();
+        Stack<Node> ordering = new Stack<>();
+
+        if (startNode == null)
+            return ordering;
+
+        // push root to first stack
+        s1.push(startNode);
+        visited.add(startNode);
+
+        // Run while first stack is not empty
+        while (!s1.isEmpty()) {
+            // Pop an item from s1 and push it to s2
+            Node node = s1.pop();
+            ordering.push(node);
+
+            // Push children of removed item to s1
+            for (Node succ : node.succ())
+                if (!visited.contains(succ)) {
+                    visited.add(succ);
+                    s1.push(succ);
+                }
+        }
+
+        return ordering;
     }
 
     /**
@@ -198,9 +172,9 @@ public class Graph<T> {
      * @param annotationsAfter  map of nodes to strings to be displayed after
      *                          each node.
      */
-    public void show(String path,
-                     Map<Graph<T>.Node, String> annotationsBefore,
-                     Map<Graph<T>.Node, String> annotationsAfter)
+    void show(String path,
+              Map<Graph<T>.Node, String> annotationsBefore,
+              Map<Graph<T>.Node, String> annotationsAfter)
             throws IOException {
         if (startNode == null) {
             throw new IllegalAccessError("No start node for the graph");
@@ -209,9 +183,6 @@ public class Graph<T> {
         // Write prologue
         String INDENT_TAB = "\t";
         FileWriter f = new FileWriter(path);
-        String rawPath = FilenameUtils.getName(
-                FilenameUtils.removeExtension(path)
-        );
         f.write("digraph g {\n");
         f.write(INDENT_TAB + "node [shape=record];\n");
         f.write(INDENT_TAB + "forcelabels=true;\n");

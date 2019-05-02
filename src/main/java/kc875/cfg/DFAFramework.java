@@ -127,7 +127,21 @@ public abstract class DFAFramework<T, U> {
         // ListIterator on list avoids this problem, and set is needed to avoid
         // linear time contains lookups.
         Set<Graph<U>.Node> wlSet = new HashSet<>(graph.getAllNodes());
-        Queue<Graph<U>.Node> wlQueue = new LinkedList<>(wlSet);
+        Queue<Graph<U>.Node> wlQueue = new LinkedList<>();
+
+        // get an initial ordering of the nodes
+        // do a postorder traversal of the graph
+        Stack<Graph<U>.Node> stack = graph.postOrderDFS();
+        if (direction == Direction.FORWARD) {
+            // reverse the ordering (make the order reverse post order)
+            Stack<Graph<U>.Node> newStack = new Stack<>();
+            while (!stack.isEmpty()) {
+                newStack.push(stack.pop());
+            }
+            stack = newStack;
+        }
+        while (!stack.isEmpty())
+            wlQueue.add(stack.pop());
 
         // Invariant: all nodes with unsatisfied eqns in worklist
         while (wlQueue.size() != 0) {
