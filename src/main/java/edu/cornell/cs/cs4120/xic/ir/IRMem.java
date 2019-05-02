@@ -113,12 +113,13 @@ public class IRMem extends IRExpr_c {
     @Override
     public int hashCode() {
         String hs = "8" + Math.abs(expr.hashCode());
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }

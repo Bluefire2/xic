@@ -8,7 +8,6 @@ import edu.cornell.cs.cs4120.xic.ir.visit.IRVisitor;
 import kc875.asm.ASMInstr;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * An intermediate representation for a move statement
@@ -100,12 +99,13 @@ public class IRMove extends IRStmt {
     @Override
     public int hashCode() {
         String hs = "9" + Math.abs(target.hashCode()) + "" + Math.abs(source().hashCode());
+        hs = hs.replace("-", "");
         Long hl;
         try {
             hl = Long.parseLong(hs);
         }
         catch (NumberFormatException e) {
-            hl = Long.parseLong(hs.substring(0,18));
+            hl = Long.parseLong(hs.substring(0, Math.min(18, hs.length())));
         }
         return Longs.hashCode(hl);
     }
