@@ -183,3 +183,82 @@ xic ("Test -target linux -O -Ocopy -Odce") "-libpath $(testpath) -target linux -
     simulator_ex.xi;
     sortstring.xi;
 }
+
+xic ("Test -target linux -O -Ocse") "-libpath $(testpath) -target linux -O -Ocse" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}
+
+xic ("Test -target linux -O -Oreg") "-libpath $(testpath) -target linux -O -Oreg" {
+    array_assign.xi;
+    array_concat.xi;
+    array_index.xi;
+    array_simple_concat.xi;
+    basic-test-binary01.xi;
+    basic-test-binary02.xi;
+    basic-test-binary11.xi;
+    contest-group_of_anonymous02__euler.xi;
+    contest-group_of_anonymous05__ir_hi_mult.xi;
+    contest-group_of_anonymous06__matrix.xi;
+    contest-group_of_anonymous06__multiassign4.xi;
+    contest-group_of_anonymous07__attack_loops.xi;
+    contest-group_of_anonymous07__attack_sum.xi;
+    contest-group_of_anonymous08__easytest.xi;
+    contest-group_of_anonymous08__trivialtest.xi;
+    contest-group_of_anonymous09__divideext.xi;
+    contest-group_of_anonymous09__hanoi.xi;
+    deepcopy.xi;
+    difflen_assign.xi;
+    evil-fibonacci.xi;
+    localdecl08.xi;
+    localdecl10.xi;
+    localdecl11.xi;
+    localdecl12.xi;
+    localdecl13.xi;
+    localdecl14.xi;
+    manyargs_manyreturns.xi;
+    manyargs.xi;
+    manyreturns.xi;
+    medley01.xi;
+    multidim_alloc.xi;
+    multidim_literal.xi;
+    propagate_dbz.xi;
+    simple_inc_print.xi;
+    simulator_ex.xi;
+    sortstring.xi;
+}
+
