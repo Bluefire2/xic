@@ -603,28 +603,27 @@ public class CLI implements Runnable {
                 ASMTranslationVisitor asmVisitor = new ASMTranslationVisitor();
                 List<ASMInstr> instrs = asmVisitor.visit((IRCompUnit) foldedIR);
 
-                // TODO: these interfere with optimizations after
-//                // Output the LIVEVAR CFG graph if needed
-//                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
-//                    String diagPath = Paths.get(
-//                            diagnosticPath.toString(),
-//                            FilenameUtils.removeExtension(f.getName())
-//                    ).toString();
-//                    CLIUtils.fileoutCFGDFAPhase(
-//                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
-//                    );
-//                }
+                // Output the LIVEVAR CFG graph if needed
+                if (activeOptimCFGPhases.get(OptimPhases.ASMLIVEVAR)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGDFAPhase(
+                            instrs, List.of(OptimPhases.ASMLIVEVAR), diagPath
+                    );
+                }
 
-//                // Output the AVAILCOPY CFG graph if needed
-//                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
-//                    String diagPath = Paths.get(
-//                            diagnosticPath.toString(),
-//                            FilenameUtils.removeExtension(f.getName())
-//                    ).toString();
-//                    CLIUtils.fileoutCFGDFAPhase(
-//                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
-//                    );
-//                }
+                // Output the AVAILCOPY CFG graph if needed
+                if (activeOptimCFGPhases.get(OptimPhases.ASMAVAILCOPY)) {
+                    String diagPath = Paths.get(
+                            diagnosticPath.toString(),
+                            FilenameUtils.removeExtension(f.getName())
+                    ).toString();
+                    CLIUtils.fileoutCFGDFAPhase(
+                            instrs, List.of(OptimPhases.ASMAVAILCOPY), diagPath
+                    );
+                }
 
                 if (activeOptims.get(Optims.COPY)) {
                     ASMCopyPropagationVisitor v =
@@ -672,6 +671,12 @@ public class CLI implements Runnable {
                     }
                 }
 
+//                if (activeOptims.get(Optims.DCE)) {
+//                    ASMDeadCodeEliminationVisitor v =
+//                            new ASMDeadCodeEliminationVisitor();
+//                    instrs = v.run(instrs);
+//                }
+//
                 // Write ASM
                 asmFilePrologueWrite(fileWriter);
                 for (ASMInstr i : instrs) {

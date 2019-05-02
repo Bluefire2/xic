@@ -1003,79 +1003,112 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             ));
         }
 
-        for (IRStmt s : stmts.stmts()) {
-
-            // functions always have mov a, _ARGi at most once for each i
-            // before the real body of the function begins. Replace this with
-            // mov a, r** or mov a, [rbp+t]
-            if (s instanceof IRMove) {
-                IRMove mov = (IRMove) s;
-                if (mov.target() instanceof IRTemp
-                        && mov.source() instanceof IRTemp) {
-                    String srcname = ((IRTemp) mov.source()).name();
-                    if (!isAFuncArg(srcname)) {
-                        // rhs is not _ARGi, so simply visit this stmt
-                        stmtInstrs.addAll(visitStmt(s));
-                        continue; // go to the next statement
-                    }
-
-                    // rhs/src is _ARGi
-                    int argNum = XiUtils.numFromString(srcname);
-                    if (numRets > 2) {
-                        // If function has more than 2 returns, _ARG0 is
-                        // the storage location for extra return values.
-                        if (argNum == 0) {
-                            // rdi needs to be moved into _ARG0:
-                            // mov _ARG0, rdi
-                            stmtInstrs.add(new ASMInstr_2Arg(
-                                    ASMOpCode.MOV,
-                                    new ASMExprTemp("_ARG0"),
-                                    new ASMExprReg("rdi")
-                            ));
-                        }
-                        // num returns > 2, adjust argnum to be
-                        // argnum+1 so that _ARG0 is now _ARG1, _ARG1 is now
-                        // _ARG2, etc
-                        argNum++;
-                        // incrementing argnum means that we load arg0 from
-                        // rsi, arg1 from rdx, etc, essentially shifting
-                        // the registers by 1 and ensuring rdi is ignored
-                        // when loading argument values (since it contains
-                        // the return value location)
-                    }
-                    // num returns < 2, don't change argnum
-
-                    ASMExpr replace_ARGi;
-                    switch (argNum) {
-                        case 0: replace_ARGi = new ASMExprReg("rdi"); break;
-                        case 1: replace_ARGi = new ASMExprReg("rsi"); break;
-                        case 2: replace_ARGi = new ASMExprReg("rdx"); break;
-                        case 3: replace_ARGi = new ASMExprReg("rcx"); break;
-                        case 4: replace_ARGi = new ASMExprReg("r8"); break;
-                        case 5: replace_ARGi = new ASMExprReg("r9"); break;
-                        default:
-                            // rbp + 0 is old rbp; rbp + 8 is old rip
-                            // so the ith arg is at [rbp + 8*((i-1)-6+2)] or
-                            // [rbp + 16] where i >= 7 (i-1) due to 0-indexing
-                            replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
-                                    new ASMExprReg("rbp"),
-                                    new ASMExprConst(8 * (argNum - 6 + 2))
-                            ));
-                    }
-                    stmtInstrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.MOV,
-                            new ASMExprTemp(((IRTemp) mov.target()).name()),
-                            replace_ARGi
+        int totalParams = numRets > 2 ? numParams + 1 : numParams;
+        for (int argNum = 0; argNum < totalParams; argNum++) {
+            ASMExpr replace_ARGi;
+            switch (argNum) {
+                case 0: replace_ARGi = new ASMExprReg("rdi"); break;
+                case 1: replace_ARGi = new ASMExprReg("rsi"); break;
+                case 2: replace_ARGi = new ASMExprReg("rdx"); break;
+                case 3: replace_ARGi = new ASMExprReg("rcx"); break;
+                case 4: replace_ARGi = new ASMExprReg("r8"); break;
+                case 5: replace_ARGi = new ASMExprReg("r9"); break;
+                default:
+                    // rbp + 0 is old rbp; rbp + 8 is old rip
+                    // so the ith arg is at [rbp + 8*((i-1)-6+2)] or
+                    // [rbp + 16] where i >= 7 (i-1) due to 0-indexing
+                    replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
+                            new ASMExprReg("rbp"),
+                            new ASMExprConst(8 * (argNum - 6 + 2))
                     ));
-                } else {
-                    // both exprs are not temps
-                    stmtInstrs.addAll(visitStmt(s));
-                }
-            } else {
-                // not a move
-                stmtInstrs.addAll(visitStmt(s));
             }
+            // mov _ARGi, r**
+            stmtInstrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV,
+                    new ASMExprTemp("_ARG" + argNum),
+                    replace_ARGi
+            ));
         }
+        stmts.stmts().forEach(s -> stmtInstrs.addAll(visitStmt(s)));
+//        for (IRStmt s : stmts.stmts()) {
+//
+//            // functions always have mov a, _ARGi at most once for each i
+//            // before the real body of the function begins. Replace this with
+//            // mov a, r** or mov a, [rbp+t]
+//            if (s instanceof IRMove) {
+//                IRMove mov = (IRMove) s;
+//                if (mov.target() instanceof IRTemp
+//                        && mov.source() instanceof IRTemp) {
+//                    String srcname = ((IRTemp) mov.source()).name();
+//                    if (!isAFuncArg(srcname)) {
+//                        // rhs is not _ARGi, so simply visit this stmt
+//                        stmtInstrs.addAll(visitStmt(s));
+//                        continue; // go to the next statement
+//                    }
+//
+//                    // rhs/src is _ARGi
+//                    int argNum = XiUtils.numFromString(srcname);
+//                    if (numRets > 2) {
+//                        // If function has more than 2 returns, _ARG0 is
+//                        // the storage location for extra return values.
+//                        if (argNum == 0) {
+//                            // rdi needs to be moved into _ARG0:
+//                            // mov _ARG0, rdi
+//                            stmtInstrs.add(new ASMInstr_2Arg(
+//                                    ASMOpCode.MOV,
+//                                    new ASMExprTemp("_ARG0"),
+//                                    new ASMExprReg("rdi")
+//                            ));
+//                        }
+//                        // num returns > 2, adjust argnum to be
+//                        // argnum+1 so that _ARG0 is now _ARG1, _ARG1 is now
+//                        // _ARG2, etc
+//                        argNum++;
+//                        // incrementing argnum means that we load arg0 from
+//                        // rsi, arg1 from rdx, etc, essentially shifting
+//                        // the registers by 1 and ensuring rdi is ignored
+//                        // when loading argument values (since it contains
+//                        // the return value location)
+//                    }
+//                    // num returns < 2, don't change argnum
+//
+//                    ASMExpr replace_ARGi;
+//                    switch (argNum) {
+//                        case 0: replace_ARGi = new ASMExprReg("rdi"); break;
+//                        case 1: replace_ARGi = new ASMExprReg("rsi"); break;
+//                        case 2: replace_ARGi = new ASMExprReg("rdx"); break;
+//                        case 3: replace_ARGi = new ASMExprReg("rcx"); break;
+//                        case 4: replace_ARGi = new ASMExprReg("r8"); break;
+//                        case 5: replace_ARGi = new ASMExprReg("r9"); break;
+//                        default:
+//                            // rbp + 0 is old rbp; rbp + 8 is old rip
+//                            // so the ith arg is at [rbp + 8*((i-1)-6+2)] or
+//                            // [rbp + 16] where i >= 7 (i-1) due to 0-indexing
+//                            replace_ARGi = new ASMExprMem(new ASMExprBinOpAdd(
+//                                    new ASMExprReg("rbp"),
+//                                    new ASMExprConst(8 * (argNum - 6 + 2))
+//                            ));
+//                    }
+//                    // mov _ARGi, r**
+//                    stmtInstrs.add(new ASMInstr_2Arg(
+//                            ASMOpCode.MOV,
+//                            new ASMExprTemp("_ARG" + argNum),
+//                            replace_ARGi
+//                    ));
+//                    stmtInstrs.add(new ASMInstr_2Arg(
+//                            ASMOpCode.MOV,
+//                            new ASMExprTemp(((IRTemp) mov.target()).name()),
+//                            new ASMExprTemp("_ARG" + argNum)
+//                    ));
+//                } else {
+//                    // both exprs are not temps
+//                    stmtInstrs.addAll(visitStmt(s));
+//                }
+//            } else {
+//                // not a move
+//                stmtInstrs.addAll(visitStmt(s));
+//            }
+//        }
 
         // add body
         instrs.addAll(stmtInstrs);
@@ -1116,7 +1149,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     private void moveHelper(IRExpr src, IRExpr dest, List<ASMInstr> instrs){
-        // case 3 (fallback): the source is an expression that is not a mem or a temp
+        // case 3 (fallback): the source is an expression that is not a mem
+        // or a temp or a const
         // move x, e (where x is a temp or a mem)
         // We accept e which generates instructions for it and places the
         // result in a destination temp t. Then, we just do:
@@ -1153,20 +1187,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             ASMExprMem destASM = asmMemTileOf((IRMem) dest, instrs);
             ASMExprMem srcASM = asmMemTileOf((IRMem) src, instrs);
 
-            instrs.add(
-                    new ASMInstr_2Arg(
-                            ASMOpCode.MOV,
-                            t,
-                            srcASM
-                    )
-            );
-            instrs.add(
-                    new ASMInstr_2Arg(
-                            ASMOpCode.MOV,
-                            destASM,
-                            t
-                    )
-            );
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, t, srcASM));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destASM, t));
         } else if (src instanceof IRMem || src instanceof IRTemp) {
             // case 2: the source is a mem or a temp
             // case 2.1: move [a], t -> mov [a], t
@@ -1175,13 +1197,15 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
             ASMExpr srcASM = asmExprOfMemOrTemp(src, instrs);
 
-            instrs.add(
-                    new ASMInstr_2Arg(
-                            ASMOpCode.MOV,
-                            destASM,
-                            srcASM
-                    )
-            );
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destASM, srcASM));
+        } else if (src instanceof IRConst) {
+            // case 3: source is a const -> mov t/m, c
+
+            ASMExpr destASM = asmExprOfMemOrTemp(dest, instrs);
+            ASMExpr srcASM = toASM((IRConst) src, instrs);
+
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, destASM, srcASM));
+
         } else if (src instanceof IRBinOp) {
             IRBinOp srcBinOp = (IRBinOp) src;
             IRConst one = new IRConst(1);
