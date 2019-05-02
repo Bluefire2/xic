@@ -55,6 +55,7 @@ xic ("Test -target linux") "-libpath $(testpath) -target linux" {
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -62,6 +63,8 @@ xic ("Test -target linux") "-libpath $(testpath) -target linux" {
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;
@@ -94,6 +97,7 @@ xic ("Test -target linux -O -Ocopy") "-libpath $(testpath) -target linux -O -Oco
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -101,6 +105,8 @@ xic ("Test -target linux -O -Ocopy") "-libpath $(testpath) -target linux -O -Oco
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;
@@ -133,6 +139,7 @@ xic ("Test -target linux -O -Odce") "-libpath $(testpath) -target linux -O -Odce
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -140,6 +147,8 @@ xic ("Test -target linux -O -Odce") "-libpath $(testpath) -target linux -O -Odce
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;
@@ -172,6 +181,7 @@ xic ("Test -target linux -O -Ocopy -Odce") "-libpath $(testpath) -target linux -
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -179,6 +189,8 @@ xic ("Test -target linux -O -Ocopy -Odce") "-libpath $(testpath) -target linux -
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;
@@ -211,6 +223,7 @@ xic ("Test -target linux -O -Ocse") "-libpath $(testpath) -target linux -O -Ocse
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -218,6 +231,8 @@ xic ("Test -target linux -O -Ocse") "-libpath $(testpath) -target linux -O -Ocse
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;
@@ -250,6 +265,7 @@ xic ("Test -target linux -O -Oreg") "-libpath $(testpath) -target linux -O -Oreg
     localdecl12.xi;
     localdecl13.xi;
     localdecl14.xi;
+    lots_of_vars.xi;
     manyargs_manyreturns.xi;
     manyargs.xi;
     manyreturns.xi;
@@ -257,6 +273,8 @@ xic ("Test -target linux -O -Oreg") "-libpath $(testpath) -target linux -O -Oreg
     multidim_alloc.xi;
     multidim_literal.xi;
     propagate_dbz.xi;
+    quicksort.xi;
+    sieve.xi;
     simple_inc_print.xi;
     simulator_ex.xi;
     sortstring.xi;

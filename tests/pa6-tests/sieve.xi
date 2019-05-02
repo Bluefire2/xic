@@ -24,11 +24,19 @@ sieve(n: int): bool {
     return array[n];
 }
 
-main(args: int[][]) {
-    prime: bool = sieve(7919);
+printPrime(n: int) {
+    prime: bool = sieve(n);
     if (prime) {
         println("Prime!");
     } else {
         println("Not prime!");
     }
+}
+
+main(args: int[][]) {
+    printPrime(21269);
+    printPrime(12345);
+    printPrime(19333);
+    printPrime(11111);
+    printPrime(31307);
 }
