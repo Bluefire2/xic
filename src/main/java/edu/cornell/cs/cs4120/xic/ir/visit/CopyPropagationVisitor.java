@@ -10,6 +10,7 @@ import polyglot.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CopyPropagationVisitor {
     public CopyPropagationVisitor() {
@@ -80,6 +81,7 @@ public class CopyPropagationVisitor {
         if (expr instanceof IRBinOp) return visit((IRBinOp) expr, copyMap);
         if (expr instanceof IRCall) return visit((IRCall) expr, copyMap);
         if (expr instanceof IRMem) return visit((IRMem) expr, copyMap);
+        if (expr instanceof IRTemp) return visit((IRTemp) expr, copyMap);
         return expr;
     }
 
@@ -101,10 +103,12 @@ public class CopyPropagationVisitor {
 
     public IRExpr visit(IRCall expr, Map<IRTemp, IRTemp> copyMap) {
         IRExpr target = expr.target();
-        if (target instanceof IRTemp &&
-                copyMap.containsKey(target)) {
-            return new IRCall(copyMap.get(target));
-        } else return new IRCall(visit(target, copyMap));
+        List<IRExpr> newArgs = expr.args().stream()
+                .map(arg -> visit(arg, copyMap))
+                .collect(Collectors.toList());
+        if (target instanceof IRTemp && copyMap.containsKey(target)) {
+            return new IRCall(copyMap.get(target), newArgs);
+        } else return new IRCall(visit(target, copyMap), newArgs);
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRTemp, IRTemp> copyMap) {
@@ -152,5 +156,9 @@ public class CopyPropagationVisitor {
             retseq.stmts().add(visit(s, copyMap));
         }
         return retseq;
+    }
+
+    public IRExpr visit(IRTemp expr, Map<IRTemp, IRTemp> copyMap) {
+        return copyMap.getOrDefault(expr, expr);
     }
 }

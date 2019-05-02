@@ -4,6 +4,7 @@ import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRFuncDecl;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
+import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableCopiesDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
@@ -199,6 +200,9 @@ class CLIUtils {
                     switch (p) {
                         case IRAVAILEXPR:
                             framework = new AvailableExprsDFA(funcGraph);
+                            break;
+                        case IRAVAILCOPY:
+                            framework = new AvailableCopiesDFA(funcGraph);
                             break;
                         case IRLIVEVAR:
                             framework = new LivenessDFA(funcGraph);

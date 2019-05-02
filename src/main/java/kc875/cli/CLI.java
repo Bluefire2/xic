@@ -446,6 +446,17 @@ public class CLI implements Runnable {
             );
         }
 
+        // Output the AVAILCOPY CFG graph if needed
+        if (activeOptimCFGPhases.get(OptimPhases.IRAVAILCOPY)) {
+            String diagPath = Paths.get(
+                    diagnosticPath.toString(),
+                    FilenameUtils.removeExtension(f.getName())
+            ).toString();
+            CLIUtils.fileoutCFGDFAPhase(
+                    (IRCompUnit) ir, List.of(OptimPhases.IRAVAILCOPY), diagPath
+            );
+        }
+
         // Output the IRLIVEVAR CFG graph if needed
         if (activeOptimCFGPhases.get(OptimPhases.IRLIVEVAR)) {
             String diagPath = Paths.get(
