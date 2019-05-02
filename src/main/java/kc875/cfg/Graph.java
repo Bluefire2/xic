@@ -120,7 +120,6 @@ public class Graph<T> {
         public int hashCode() {
             // Need to differentiate nodes with same contents but different
             // positions in the graph
-            System.out.println(nodeID + t.hashCode());
             return nodeID + t.hashCode();
         }
     }

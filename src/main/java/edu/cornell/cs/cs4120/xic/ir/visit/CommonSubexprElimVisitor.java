@@ -4,7 +4,11 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import kc875.cfg.Graph;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CommonSubexprElimVisitor {
 
@@ -41,7 +45,7 @@ public class CommonSubexprElimVisitor {
             for (int i = 0; i < listStmt.size(); ++i) {
                 // optimize each stmt in the body
                 IRStmt stmt = listStmt.get(i);
-                Graph<IRStmt>.Node n = irGraph.getNode(stmt);
+                Graph<IRStmt>.Node n = irGraph.getNode(i);
                 IRSeq seq = new IRSeq();
                 for (IRExpr e : availableExprsDFA.exprsGeneratedBy(n)) {
                     if (e instanceof IRTemp || e instanceof IRConst || tempExprMap.containsKey(e)) continue;

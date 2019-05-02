@@ -38,11 +38,12 @@ public class DeadCodeElimVisitor {
 
         IRStmt body = func.body();
         IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
-        List<IRStmt> optimStmts = new ArrayList<>();//= stmts.stmts();
+        List<IRStmt> optimStmts = new ArrayList<>();
 
-        for (IRStmt s : stmts.stmts()) {
-            IRGraph.Node n = graph.getNode(s);
+        for (int i = 0; i < stmts.stmts().size(); ++i) {
+            IRGraph.Node n = graph.getNode(i);
 
+            IRStmt s = stmts.stmts().get(i);
             if (s instanceof IRMove) {
                 if (((IRMove) s).target() instanceof IRTemp) {
                     IRTemp target = (IRTemp) ((IRMove) s).target();
