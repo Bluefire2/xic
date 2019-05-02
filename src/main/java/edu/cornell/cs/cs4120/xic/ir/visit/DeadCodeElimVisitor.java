@@ -6,10 +6,10 @@ import edu.cornell.cs.cs4120.xic.ir.dfa.LivenessDFA;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DeadCodeElimVisitor {
-
-    private IRGraph irGraph;
 
     public DeadCodeElimVisitor() { }
 
@@ -17,55 +17,50 @@ public class DeadCodeElimVisitor {
      * Removes dead code, defined as any assignment x = e where x is not live
      * out of the node.
      *
-     * @param irnode
-     * @return irnode with all dead code removed.
+     * @param ir comp unit of the ir
+     * @return ir with all dead code removed.
      */
-    public IRCompUnit removeDeadCode(IRCompUnit irnode) {
-        IRCompUnit optimizedCompUnit = new IRCompUnit(irnode.name());
-        for (IRFuncDecl funcDecl : irnode.functions().values()) {
-            irGraph = new IRGraph(funcDecl);
-            LivenessDFA livenessDFA = new LivenessDFA(irGraph);
-            livenessDFA.runWorklistAlgo();
-
-            IRStmt body = funcDecl.body();
-            IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
-
-            List<IRStmt> listStmts = stmts.stmts();
-
-            for (int i = 0; i < listStmts.size(); i++) {
-                IRSeq seq = new IRSeq();
-                IRStmt s = listStmts.get(i);
-                IRGraph.Node n = ((IRGraph) livenessDFA.getGraph()).getNode(s);
-
-                if (s instanceof IRMove) {
-                    if (((IRMove) s).target() instanceof IRTemp) {
-                        IRTemp tmp = (IRTemp) ((IRMove) s).target();
-                        if (!(livenessDFA.getOutMap().get(n).contains(tmp))) {
-                            listStmts.set(i, seq);
-                            continue;
-                        }
-                    }
-                }
-                seq.stmts().add(s);
-
-                listStmts.set(i, seq);
-            }
-
-            IRFuncDecl optimizedFuncDecl = new IRFuncDecl(funcDecl.name(),
-                    removeNestedIRSeqs(new IRSeq(listStmts)));
-            optimizedCompUnit.functions().put(funcDecl.name(), optimizedFuncDecl);
+    public IRCompUnit run(IRCompUnit ir) {
+        IRCompUnit optimCompUnit = new IRCompUnit(ir.name());
+        for (IRFuncDecl f : ir.functions().values()) {
+            IRFuncDecl optimF = removeDeadCode(f);
+            optimCompUnit.functions().put(optimF.name(), optimF);
         }
-        return optimizedCompUnit;
+        return optimCompUnit;
     }
 
-    private IRSeq removeNestedIRSeqs(IRSeq stmt) {
-        List<IRStmt> stmts = new ArrayList<>();
-        for (IRStmt s : stmt.stmts()) {
-            if (s instanceof IRSeq) {
-                stmts.addAll((removeNestedIRSeqs((IRSeq) s)).stmts());
+    private IRFuncDecl removeDeadCode(IRFuncDecl func) {
+        IRGraph graph = new IRGraph(func);
+        LivenessDFA dfa = new LivenessDFA(graph);
+        dfa.runWorklistAlgo();
+
+        Map<IRGraph.Node, Set<IRTemp>> nodeToLiveVars = dfa.getOutMap();
+
+        IRStmt body = func.body();
+        IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
+        List<IRStmt> optimStmts = new ArrayList<>();//= stmts.stmts();
+
+        for (IRStmt s : stmts.stmts()) {
+            IRGraph.Node n = graph.getNode(s);
+
+            if (s instanceof IRMove) {
+                if (((IRMove) s).target() instanceof IRTemp) {
+                    IRTemp target = (IRTemp) ((IRMove) s).target();
+                    if (nodeToLiveVars.get(n).contains(target)) {
+                        // x in mov x, e is live out, add to optimStmts
+                        optimStmts.add(s);
+                    } else if (((IRMove) s).source() instanceof IRCall) {
+                        // x in mov x, f is not live out, but we don't want
+                        // to lose this call to f
+                        optimStmts.add(s);
+                    }
+                    // else skip s
+                    continue;
+                }
             }
-            else stmts.add(s);
+            optimStmts.add(s);
         }
-        return new IRSeq(stmts);
+
+        return new IRFuncDecl(func.name(), new IRSeq(optimStmts));
     }
 }
