@@ -126,8 +126,8 @@ public class ASMInstr_1Arg extends ASMInstr {
                             .collect(Collectors.toSet()));
                     return s;
                 } else if (XiUtils.isNonLibFunction(name)) {
-                    int nParams = ASMUtils.getNumParams(name);
-                    if (ASMUtils.getNumReturns(name) > 2)
+                    int nParams = XiUtils.getNumParams(name);
+                    if (XiUtils.getNumReturns(name) > 2)
                         // more than 2 rets, extra parameter passed to func
                         nParams++;
                     s.addAll(paramRegs.subList(0, nParams > 6 ? 6 : nParams)

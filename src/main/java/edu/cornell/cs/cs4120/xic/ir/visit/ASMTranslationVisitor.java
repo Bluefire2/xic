@@ -3,6 +3,7 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.asm.*;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -679,7 +680,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
 
         int numArgs = node.args().size();
-        int numRets = ASMUtils.getNumReturns(name);
+        int numRets = XiUtils.getNumReturns(name);
 
         // Evaluate each func arg
         List<ASMExprTemp> argTemps = new ArrayList<>();
@@ -971,7 +972,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numParams = ASMUtils.getNumParams(node.name());
+        int numParams = XiUtils.getNumParams(node.name());
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -990,7 +991,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         List<ASMInstr> stmtInstrs = new ArrayList<>();
 
-        int numRets = ASMUtils.getNumReturns(node.name());
+        int numRets = XiUtils.getNumReturns(node.name());
         if (numRets > 2 && numParams == 0) {
             // procedure with multiple returns. The body won't contain any
             // references to _ARG0, which we need here for the return asm at
@@ -1019,7 +1020,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }
 
                     // rhs/src is _ARGi
-                    int argNum = ASMUtils.numFromString(srcname);
+                    int argNum = XiUtils.numFromString(srcname);
                     if (numRets > 2) {
                         // If function has more than 2 returns, _ARG0 is
                         // the storage location for extra return values.

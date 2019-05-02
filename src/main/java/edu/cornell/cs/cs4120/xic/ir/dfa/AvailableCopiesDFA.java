@@ -1,12 +1,11 @@
 package edu.cornell.cs.cs4120.xic.ir.dfa;
 
 import com.google.common.collect.Sets;
-import edu.cornell.cs.cs4120.xic.ir.IRMove;
-import edu.cornell.cs.cs4120.xic.ir.IRStmt;
-import edu.cornell.cs.cs4120.xic.ir.IRTemp;
+import edu.cornell.cs.cs4120.xic.ir.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 public class AvailableCopiesDFA extends
@@ -79,10 +78,27 @@ public class AvailableCopiesDFA extends
                 l.removeIf(p -> p.part1().equals(x));
                 // Remove all elements from l with l.part2() = x
                 l.removeIf(p -> p.part2().equals(x));
-                return l;
             }
+            if (m.source() instanceof IRCall
+                    && ((IRCall) m.source()).target() instanceof IRName
+                    && XiUtils.isFunction(
+                    ((IRName) ((IRCall) m.source()).target()).name()
+            )) {
+                // call is to a function, _RETi get redefined
+                int nRets = XiUtils.getNumReturns(
+                        ((IRName) ((IRCall) m.source()).target()).name()
+                );
+                for (int i = 0; i < nRets; i++) {
+                    // kill (_RETi, z), (z, _RETi) for any z
+                    IRTemp _RETi = new IRTemp("_RET" + i);
+                    // Remove all elements from l with l.part1() = _RETi
+                    l.removeIf(p -> p.part1().equals(_RETi));
+                    // Remove all elements from l with l.part2() = _RETi
+                    l.removeIf(p -> p.part2().equals(_RETi));
+                }
+            }
+            return l;
         }
         return l;// kill nothing
     }
-
 }

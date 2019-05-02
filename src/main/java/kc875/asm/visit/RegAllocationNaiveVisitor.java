@@ -2,6 +2,7 @@ package kc875.asm.visit;
 
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
+import kc875.utils.XiUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -224,8 +225,8 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                     ((ASMInstrComment) curr).getComment().equals("CALL_START")) {
                 //execute for each call
                 String callFuncName = getCallName(updatedFunc, i);
-                int numParams = ASMUtils.getNumParams(callFuncName);
-                int numReturns = ASMUtils.getNumReturns(callFuncName);
+                int numParams = XiUtils.getNumParams(callFuncName);
+                int numReturns = XiUtils.getNumReturns(callFuncName);
                 // stack space required for extra rets, params for the callee
                 int numStackCallFunc = Math.max(numReturns - 2, 0) +
                         Math.max(numParams - (numReturns > 2 ? 5 : 6), 0);
