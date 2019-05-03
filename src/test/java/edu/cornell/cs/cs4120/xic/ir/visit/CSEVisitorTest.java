@@ -1,12 +1,10 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
-import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,11 +69,11 @@ public class CSEVisitorTest {
                         new IRReturn(new IRTemp("_cse_t0"))
                 );
         assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 4);
-        try {
-            IRGraph graph = new IRGraph(optimized.functions().get("f"));
-            graph.show("CSETest1graph.dot");
-        } catch (IOException e) {
-        }
+//        try {
+//            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+//            graph.show("CSETest1graph.dot");
+//        } catch (IOException e) {
+//        }
     }
 
     @Test
@@ -121,11 +119,11 @@ public class CSEVisitorTest {
                         new IRReturn(new IRTemp("_cse_t0"))
                 );
         assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 6);
-        try {
-            IRGraph graph = new IRGraph(optimized.functions().get("f"));
-            graph.show("CSETest2graph.dot");
-        } catch (IOException e) {
-        }
+//        try {
+//            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+//            graph.show("CSETest2graph.dot");
+//        } catch (IOException e) {
+//        }
     }
 
 }
