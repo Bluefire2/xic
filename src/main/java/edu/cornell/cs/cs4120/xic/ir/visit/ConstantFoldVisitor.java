@@ -32,13 +32,7 @@ public class ConstantFoldVisitor extends IRVisitor {
         else return null; //Illegal state
     }
 
-    public IRNode strengthReduce(IRBinOp.OpType op, IRName n, IRConst c, IRNode node, boolean constIsRight) {
-        //TODO:
-        return node;
-    }
-
     public IRNode fold(IRBinOp irnode) {
-        //TODO: reassociation, strength reduction, other algebraic identities(?)
         irnode = (IRBinOp) irnode.visitChildren(this);
         IRExpr l = irnode.left();
         IRExpr r = irnode.right();
@@ -119,13 +113,13 @@ public class ConstantFoldVisitor extends IRVisitor {
                 if (value == 1) return e;
                 // if we have x * 0 or 0 * x, that's just 0
                 else if (value == 0) return new IRConst(0);
-                else return strengthReduce(opType, e, c, irnode, constIsRight);
+                else return irnode;
             case DIV:
                 // if we have x / 1, that's just x
                 if (value == 1 && constIsRight) return e;
                 // if we have 0 / x, that's just 0
                 else if (value == 0 && !constIsRight) return new IRConst(0);
-                else return strengthReduce(opType, e, c, irnode, constIsRight);
+                else return irnode;
             case AND:
                 if (value == 1) return e;
                 else if (value == 0) return new IRConst(0);
