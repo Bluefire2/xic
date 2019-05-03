@@ -581,6 +581,8 @@ public class ASMTranslationVisitorTest {
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("tmp"), new ASMExprTemp("_RET0")),
                 new ASMInstrLabel("_If_iii"),
                 new ASMInstr_2Arg(ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG0"), new ASMExprReg("rdi")),
+                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG1"), new ASMExprReg("rsi")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG0"), new ASMExprTemp("x")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG1"), new ASMExprTemp("y")),
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t2"), new ASMExprTemp("x")),

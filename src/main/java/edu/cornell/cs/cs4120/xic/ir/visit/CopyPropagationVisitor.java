@@ -32,7 +32,7 @@ public class CopyPropagationVisitor {
         return optimCompUnit;
     }
 
-    public IRFuncDecl propagateCopies(IRFuncDecl func) {
+    private IRFuncDecl propagateCopies(IRFuncDecl func) {
         IRGraph graph = new IRGraph(func);
         AvailableCopiesDFA dfa = new AvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();

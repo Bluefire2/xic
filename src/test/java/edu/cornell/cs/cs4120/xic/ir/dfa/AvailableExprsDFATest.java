@@ -92,7 +92,6 @@ public class AvailableExprsDFATest {
         availableExprsDFA = new AvailableExprsDFA(graph);
         availableExprsDFA.runWorklistAlgo();
         List<IRExpr> expected = Lists.newArrayList(
-                new IRTemp("x"),
                 new IRBinOp(IRBinOp.OpType.ADD,
                         new IRConst(5),
                         new IRConst(6)),

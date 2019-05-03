@@ -1,8 +1,7 @@
-package kc875.asm.visit;
+package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
-import edu.cornell.cs.cs4120.xic.ir.visit.CommonSubexprElimVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
