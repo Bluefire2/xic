@@ -60,7 +60,10 @@ public class IRConst extends IRExpr_c {
 
     @Override
     public void printSExp(SExpPrinter p) {
+        p.startList();
+        p.printAtom("CONST");
         p.printAtom(String.valueOf(value));
+        p.endList();
     }
 
     @Override

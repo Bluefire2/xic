@@ -99,7 +99,7 @@ public class CodeWriterSExpPrinter implements SExpPrinter {
     @Override
     public void flush() {
         try {
-//             writer.newline();
+            writer.newline();
             writer.flush();
         }
         catch (IOException e) {
