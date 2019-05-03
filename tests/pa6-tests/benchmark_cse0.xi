@@ -12,7 +12,9 @@ e: int = 122
 f: int = 0
 i: int = 0
     while (i < 100) {
+        f = a*b*c*d
         f = a*b*c*d*e
+        f = a*b*c*d*d
     }
 
 }
