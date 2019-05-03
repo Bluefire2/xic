@@ -15,7 +15,7 @@ fn(count: int, input: int): int {
     g: int = d;
     h: int = a;
     i: int = h;
-    j: int = 5
+    j: int = 5;
     k: int = i;
     l: int = e + c;
     m: int = e - c + b - a;
