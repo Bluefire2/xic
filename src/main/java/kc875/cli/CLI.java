@@ -670,18 +670,7 @@ public class CLI implements Runnable {
                         instrs = regVisitor.allocate(instrs);
                     }
                 }
-                if (optDebug) {//debug mode-print final asm to terminal
-                    for (ASMInstr i : instrs){
-                        System.out.println(i);
-                    }
-                }
 
-//                if (activeOptims.get(Optims.DCE)) {
-//                    ASMDeadCodeEliminationVisitor v =
-//                            new ASMDeadCodeEliminationVisitor();
-//                    instrs = v.run(instrs);
-//                }
-//
                 // Write ASM
                 asmFilePrologueWrite(fileWriter);
                 for (ASMInstr i : instrs) {
