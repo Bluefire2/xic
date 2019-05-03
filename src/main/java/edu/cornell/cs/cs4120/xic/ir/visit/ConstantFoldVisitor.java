@@ -18,13 +18,7 @@ public class ConstantFoldVisitor extends IRVisitor {
         else return n_;
     }
 
-    public IRNode strengthReduce(IRBinOp.OpType op, IRName n, IRConst c, IRNode node, boolean constIsRight) {
-        //TODO:
-        return node;
-    }
-
     public IRNode fold(IRBinOp irnode) {
-        //TODO: reassociation, strength reduction, other algebraic identities(?)
         IRExpr l = irnode.left();
         IRExpr r = irnode.right();
         IRBinOp.OpType op = irnode.opType();
@@ -72,10 +66,10 @@ public class ConstantFoldVisitor extends IRVisitor {
                 default:
                     throw new InternalCompilerError("Invalid binary operation");
             }
-        } else if (l instanceof IRConst && r instanceof IRName) {
-            return foldNameAndConstBinOp(irnode, (IRConst) l, (IRName) r, op, false);
-        } else if (r instanceof IRConst && l instanceof IRName) {
-            return foldNameAndConstBinOp(irnode, (IRConst) r, (IRName) l, op, true);
+        } else if (l instanceof IRConst && r instanceof IRTemp) {
+            return foldTempAndConst(irnode, (IRConst) l, (IRTemp) r, op, false);
+        } else if (r instanceof IRConst && l instanceof IRTemp) {
+            return foldTempAndConst(irnode, (IRConst) r, (IRTemp) l, op, true);
         }
         return irnode;
     }
@@ -85,12 +79,12 @@ public class ConstantFoldVisitor extends IRVisitor {
      *
      * @param irnode The BinOp node.
      * @param c The const node.
-     * @param e The name node.
+     * @param e The temp node.
      * @param opType The type of the BinOp.
      * @param constIsRight {@code true} if the const is on the right-hand side of the BinOp, {@code false} otherwise.
      * @return A folded BinOp which evaluates to the same value as the original BinOp.
      */
-    private IRNode foldNameAndConstBinOp(IRBinOp irnode, IRConst c, IRName e, IRBinOp.OpType opType, boolean constIsRight) {
+    private IRNode foldTempAndConst(IRBinOp irnode, IRConst c, IRTemp e, IRBinOp.OpType opType, boolean constIsRight) {
         long value = c.value();
         switch (opType) {
             case ADD:
@@ -104,13 +98,13 @@ public class ConstantFoldVisitor extends IRVisitor {
                 if (value == 1) return e;
                 // if we have x * 0 or 0 * x, that's just 0
                 else if (value == 0) return new IRConst(0);
-                else return strengthReduce(opType, e, c, irnode, constIsRight);
+                else return irnode;
             case DIV:
                 // if we have x / 1, that's just x
                 if (value == 1 && constIsRight) return e;
                 // if we have 0 / x, that's just 0
                 else if (value == 0 && !constIsRight) return new IRConst(0);
-                else return strengthReduce(opType, e, c, irnode, constIsRight);
+                else return irnode;
             case AND:
                 if (value == 1) return e;
                 else if (value == 0) return new IRConst(0);
