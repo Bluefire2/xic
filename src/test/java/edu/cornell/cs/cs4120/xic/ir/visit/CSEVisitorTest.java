@@ -1,8 +1,7 @@
-package kc875.ir.visit;
+package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
-import edu.cornell.cs.cs4120.xic.ir.visit.CommonSubexprElimVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,8 +34,7 @@ public class CSEVisitorTest {
 
     @Test
     public void sanityCheck() {
-        cseVisitor.removeCommonSubExpressions(new IRCompUnit("name",
-                new LinkedHashMap<>()));
+        cseVisitor.run(new IRCompUnit("name", new LinkedHashMap<>()));
         assertTrue(true);
     }
 
@@ -59,7 +57,7 @@ public class CSEVisitorTest {
                                 new IRConst(6)))
                 )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = cseVisitor.removeCommonSubExpressions(compUnit);
+        IRCompUnit optimized = cseVisitor.run(compUnit);
         IRSeq expected =
                 new IRSeq(
                         new IRMove(new IRTemp("_cse_t0"),
@@ -103,7 +101,7 @@ public class CSEVisitorTest {
                                 new IRConst(6)))
                 )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = cseVisitor.removeCommonSubExpressions(compUnit);
+        IRCompUnit optimized = cseVisitor.run(compUnit);
         IRSeq expected =
                 new IRSeq(
                         new IRMove(new IRTemp("_cse_t0"),

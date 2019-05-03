@@ -57,21 +57,6 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         }
         return false;
     }
-
-    private void pushCallerSavedRegs(List<ASMInstr> instrs) {
-        List<String> caller_saved = new ArrayList<>(CALLER_SAVE_REGS);
-        Collections.reverse(caller_saved);
-        for (String r : caller_saved) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(r)));
-        }
-    }
-
-    private void popCallerSavedRegs(List<ASMInstr> instrs) {
-        List<String> caller_saved = new ArrayList<>(CALLER_SAVE_REGS);
-        for (String r : caller_saved) {
-            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(r)));
-        }
-    }
     /**
      * Returns a list of instructions with the repetitive `sub rsp, imm` in
      * the list of instructions func removed. The total subtraction that rsp
@@ -147,8 +132,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 // on the loop because ENTER and LEAVE can each exist one in
                 // this function, and LEAVE appears at the end ==> so no use
                 // of usedCalleeRegs order after this point.
-                Collections.reverse(usedCalleeRegs);
-                for (String reg : usedCalleeRegs) {
+                List<String> retCalleeRegs = new ArrayList<>(usedCalleeRegs);
+                Collections.reverse(retCalleeRegs);
+                for (String reg : retCalleeRegs) {
                     updatedFunc.add(new ASMInstr_1Arg(
                             ASMOpCode.POP, new ASMExprReg(reg)
                     ));

@@ -1,9 +1,7 @@
-package kc875.ir.visit;
+package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
-import edu.cornell.cs.cs4120.xic.ir.visit.CopyPropagationVisitor;
-import edu.cornell.cs.cs4120.xic.ir.visit.DeadCodeElimVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,8 +29,9 @@ public class CopyPropagationAndDCETest {
 
     @Test
     public void sanityCheck() {
-        copyPropagationVisitor.propagateCopies(new IRCompUnit("name",
-                new LinkedHashMap<>()));
+        copyPropagationVisitor.run(
+                new IRCompUnit("name", new LinkedHashMap<>())
+        );
         deadCodeElimVisitor.run(new IRCompUnit("name",
                 new LinkedHashMap<>()));
         assertTrue(true);
@@ -53,7 +52,7 @@ public class CopyPropagationAndDCETest {
                                             new IRConst(2)))
                     )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = copyPropagationVisitor.propagateCopies(compUnit);
+        IRCompUnit optimized = copyPropagationVisitor.run(compUnit);
         IRSeq expected = new IRSeq(
                 new IRMove(new IRTemp("x"), new IRTemp("y")),
                 new IRMove(new IRTemp("z"),
@@ -108,7 +107,7 @@ public class CopyPropagationAndDCETest {
                                 new IRReturn(new IRTemp("z"))
                         )));
         IRCompUnit compUnit = new IRCompUnit("compUnit", funcMap);
-        IRCompUnit optimized = copyPropagationVisitor.propagateCopies(compUnit);
+        IRCompUnit optimized = copyPropagationVisitor.run(compUnit);
         optimized = deadCodeElimVisitor.run(optimized);
         IRSeq expected = new IRSeq(
                         new IRMove(new IRTemp("z"),

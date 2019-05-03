@@ -476,7 +476,7 @@ public class CLI implements Runnable {
         }
         if (activeOptims.get(Optims.CSE)) {
             CommonSubexprElimVisitor csev = new CommonSubexprElimVisitor();
-            ir = csev.removeCommonSubExpressions((IRCompUnit) ir);
+            ir = csev.run((IRCompUnit) ir);
         }
         if (activeOptims.get(Optims.COPY)) {
             CopyPropagationVisitor cpv = new CopyPropagationVisitor();
@@ -668,6 +668,11 @@ public class CLI implements Runnable {
                         RegAllocationNaiveVisitor regVisitor =
                                 new RegAllocationNaiveVisitor(optCommentASM);
                         instrs = regVisitor.allocate(instrs);
+                    }
+                }
+                if (optDebug) {//debug mode-print final asm to terminal
+                    for (ASMInstr i : instrs){
+                        System.out.println(i);
                     }
                 }
 

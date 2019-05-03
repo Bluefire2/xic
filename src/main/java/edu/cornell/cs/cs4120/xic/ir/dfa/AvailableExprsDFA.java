@@ -117,7 +117,10 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      */
     public SetWithInf<IRExpr> exprsGeneratedBy(IRGraph.Node node) {
         SetWithInf<IRExpr> exprs = exprs(node);
-        exprs.removeAll(getInMap().get(node).getSet());
+        for (IRExpr e : kill(node)) {
+            // remove elements from l whose sub exprs have e in them
+            exprs.removeIf(le -> getSubExpressions(le).contains(e));
+        }
         return exprs;
     }
 
