@@ -70,7 +70,7 @@ public class CSEVisitorTest {
                                 new IRMem(new IRTemp("_cse_t0"))),
                         new IRReturn(new IRTemp("_cse_t0"))
                 );
-        assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 4);
+       assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 4);
         try {
             IRGraph graph = new IRGraph(optimized.functions().get("f"));
             graph.show("CSETest1graph.dot");

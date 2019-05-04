@@ -79,11 +79,14 @@ public class CommonSubexprElimVisitor {
                     //And also hoist in case a node on another branch wants to use it
                     int insert_index = 0;
                     for (String s : getTemps(e)) {
-                        insert_index = Math.max(insert_index, stmtWhereTempDefinedMap.get(s));
-                        System.out.println(insert_index + " " + i);
+                        if(stmtWhereTempDefinedMap.containsKey(s)) {
+                                insert_index = Math.max(insert_index, stmtWhereTempDefinedMap.get(s));
+                        }
                     }
                     seq.stmts().add(new IRMove(new IRTemp(tmp), e));
-                    insmap.put(insert_index, new IRMove(new IRTemp(tmp), e));
+                    if (insert_index < i-1) {
+                        insmap.put(insert_index, new IRMove(new IRTemp(tmp), e));
+                    }
                 }
             }
 
