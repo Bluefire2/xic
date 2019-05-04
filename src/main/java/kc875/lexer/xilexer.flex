@@ -50,7 +50,9 @@ EOL = \r|\n|\r\n
 NON_EOL = [^\r\n]
 WHITESPACE = {EOL} | [ \t\f]
 HEX = ([0-9A-Fa-f]{1,4})
-ID = [A-Za-z][A-Za-z0-9\'_]* // Variables
+// Variables can be both, classes must be capitalized
+ID_LOWER = [a-z][A-Za-z0-9\'_]*
+ID_UPPER = [A-Z][A-Za-z0-9\'_]*
 COMMENT = "//"{NON_EOL}*{EOL}? // {EOL}? since comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
 
@@ -79,9 +81,15 @@ INTEGER = 0 | [1-9][0-9]*
         true); }
     "false"     { return symbol(yytext(), sym.BOOL_LIT, yyline, yycolumn,
         false); }
+    "null"      { return symbol(yytext(), sym.NULL, yyline, yycolumn); }
+    "new"       { return symbol(yytext(), sym.NEW, yyline, yycolumn); }
+    "class"     { return symbol(yytext(), sym.CLASS, yyline, yycolumn); }
+    "extends"   { return symbol(yytext(), sym.EXTENDS, yyline, yycolumn); }
+    "this"      { return symbol(yytext(), sym.THIS, yyline, yycolumn); }
 
     /* identifiers */
-    {ID}        { return symbol("id " + yytext(), sym.ID, yyline, yycolumn, yytext()); }
+    {ID_LOWER}        { return symbol("id " + yytext(), sym.ID_LOWER, yyline, yycolumn, yytext()); }
+    {ID_UPPER}        { return symbol("id " + yytext(), sym.ID_UPPER, yyline, yycolumn, yytext()); }
 
     /* literals */
     {INTEGER}   {

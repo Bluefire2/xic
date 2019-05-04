@@ -45,7 +45,8 @@ scan with
     }
 :};
 
-terminal String ID;
+terminal String ID_LOWER;
+terminal String ID_UPPER;
 terminal String STRING_LIT;
 terminal Character CHAR_LIT;
 terminal Long INT_LIT;
@@ -60,6 +61,12 @@ terminal
     ELSE,
     RETURN,
     LENGTH,
+
+    NULL,
+    THIS,
+    NEW,
+    EXTENDS,
+    CLASS,
 
     EQ,
     MINUS,
@@ -90,6 +97,7 @@ terminal
     RCURL,
     ERROR;
 
+nonterminal String id;
 nonterminal FileInterface interface;
 nonterminal interface_file;
 
@@ -105,6 +113,11 @@ precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 start with interface_file;
 
+
+id ::=
+  ID_LOWER:i {: RESULT = i; :}
+| ID_UPPER:i {: RESULT = i; :}
+;
 // TYPES
 
 basic_type ::=
@@ -142,7 +155,7 @@ annotated_var_list ::=
 ;
 
 annotated_var ::=
-  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  id:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 // FUNCTION DECLARATIONS
@@ -153,8 +166,8 @@ func_args ::=
 ;
 
 func_decl ::=
-  ID:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
-| ID:n func_args:p COLON type_list:r {:
+  id:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
+| id:n func_args:p COLON type_list:r {:
     // r.size() >= 1
     TypeT rt;
     if (r.size() == 1) {

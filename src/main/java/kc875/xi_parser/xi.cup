@@ -45,7 +45,8 @@ scan with
     }
 :};
 
-terminal String ID;
+terminal String ID_LOWER;
+terminal String ID_UPPER;
 terminal String STRING_LIT;
 terminal Character CHAR_LIT;
 terminal Long INT_LIT;
@@ -60,6 +61,12 @@ terminal
     ELSE,
     RETURN,
     LENGTH,
+
+    NULL,
+    THIS,
+    NEW,
+    EXTENDS,
+    CLASS,
 
     EQ,
     MINUS,
@@ -91,6 +98,7 @@ terminal
     ERROR;
 
 nonterminal FileProgram program;
+nonterminal String id;
 
 nonterminal Pair<String, TypeTTau> annotated_var, decl_annotated_var;
 nonterminal TypeDecl type_decl;
@@ -125,6 +133,11 @@ precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 start with program;
 
+//
+id ::=
+  ID_LOWER:i {: RESULT = i; :}
+| ID_UPPER:i {: RESULT = i; :}
+;
 // TYPES
 
 basic_type ::=
@@ -190,7 +203,7 @@ type_list ::=
 ;
 
 annotated_var ::=
-  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  id:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 annotated_var_list ::=
@@ -202,7 +215,7 @@ annotated_var_list ::=
 ;
 
 decl_annotated_var ::=
-  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  id:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 type_decl ::=
@@ -225,8 +238,8 @@ func_args ::=
 ;
 
 func_defn ::=
-  ID:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
-| ID:n func_args:p COLON type_list:r block:b {:
+  id:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
+| id:n func_args:p COLON type_list:r block:b {:
     // r.size() >= 1
     TypeT rt;
     if (r.size() == 1) {
@@ -257,16 +270,16 @@ expr_list ::= // NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 
 // Function call
 func_expr ::=
-  ID:i LPAREN expr_list:el RPAREN {:
+  id:i LPAREN expr_list:el RPAREN {:
     RESULT = new ExprFunctionCall(i, el, ixleft); :}
-| ID:i LPAREN RPAREN {:
+| id:i LPAREN RPAREN {:
     RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ixleft); :}
 ;
 
 // Exprs without ( or { on LHS
 assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
-| ID:i {: RESULT = new ExprId(i, ixleft); :}
+| id:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
@@ -312,7 +325,7 @@ expr ::=
 // STATEMENTS
 
 assignable ::=
-  ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
+  id:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
 | assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
@@ -348,9 +361,9 @@ matched_stmt ::=
 | decl_assign_stmt:d {: RESULT = d; :}
 | decl_annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
 | annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
-| ID:i LPAREN expr_list:el RPAREN {:
+| id:i LPAREN expr_list:el RPAREN {:
     RESULT = new StmtProcedureCall(i, el, ixleft); :}
-| ID:i LPAREN RPAREN {:
+| id:i LPAREN RPAREN {:
     RESULT = new StmtProcedureCall(i, new ArrayList<Expr>(), ixleft); :}
 ;
 
@@ -401,8 +414,8 @@ block ::=
 // IMPORTS
 
 use_interface ::=
-  USE ID:i {: RESULT = new UseInterface(i, ixleft); :}
-| USE ID:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
+  USE id:i {: RESULT = new UseInterface(i, ixleft); :}
+| USE id:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
 ;
 
 import_list ::=
