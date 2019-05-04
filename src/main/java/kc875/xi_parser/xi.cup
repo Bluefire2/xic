@@ -124,6 +124,7 @@ nonterminal ArrayList<FuncDefn> func_defn_list;
 nonterminal ArrayList<TypeTTau> type_list;
 
 precedence left COMMA;
+precedence left DOT;
 precedence left OR;
 precedence left AND;
 precedence left NEQ, EQEQ;

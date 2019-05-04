@@ -20,4 +20,5 @@ public abstract class ASTNode {
     public XiTokenLocation getLocation() {
         return location;
     }
+
 }

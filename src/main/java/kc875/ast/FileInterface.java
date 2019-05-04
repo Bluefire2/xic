@@ -12,15 +12,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileInterface extends FileSource {
+    private List<UseInterface> imports;
+    private List<ClassDecl> classes;
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public FileInterface(List<FuncDecl> decls,
+    public FileInterface(List<UseInterface> imports, List<ClassDecl> classes, List<FuncDecl> decls,
                          ComplexSymbolFactory.Location location) {
         super(location);
+        this.imports = imports;
+        this.classes = classes;
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();
+
+        //TODO add signatures for everything else
         decls.forEach((d) -> signatures.add(d.getSignature()));
+        classes.forEach((d) -> signatures.add(d.getSignature()));
     }
 
     public List<FuncDecl> getFuncDecls() {
