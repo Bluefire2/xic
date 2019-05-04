@@ -75,17 +75,18 @@ public class CommonSubexprElimVisitor {
                     tempExprMap.put(e, tmp);
                     tempUsedMap.put(tmp, Boolean.FALSE);
 
-                    //hoist
+                    //Insert def temp = subexpression at beginning of node
+                    //And also hoist in case a node on another branch wants to use it
                     int insert_index = 0;
                     for (String s : getTemps(e)) {
                         insert_index = Math.max(insert_index, stmtWhereTempDefinedMap.get(s));
                         System.out.println(insert_index + " " + i);
                     }
-
-                   // seq.stmts().add(insert_index, new IRMove(new IRTemp(tmp), e));
+                    seq.stmts().add(new IRMove(new IRTemp(tmp), e));
                     insmap.put(insert_index, new IRMove(new IRTemp(tmp), e));
                 }
             }
+
             seq.stmts().add(visit(stmt, tempExprMap, tempUsedMap));
 
             for (Integer inte : insmap.keySet()) {
