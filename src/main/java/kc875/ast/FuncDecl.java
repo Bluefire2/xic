@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //funcDecls are for interfaces
-public class FuncDecl extends ASTNode implements Printable {
+public class FuncDecl extends ASTNode implements Printable, DeclOrDefn  {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private TypeT output;

@@ -13,15 +13,28 @@ import java.util.List;
 
 public class FileProgram extends FileSource {
     private List<UseInterface> imports;
+    private List<StmtDecl> globalDecls;
+    private List<StmtDeclAssign> globalDefns;
+    private List<ClassDefn> classDefns;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
 
-    public FileProgram(List<UseInterface> imports, List<FuncDefn> funcDefns,
+    public FileProgram(List<UseInterface> imports,
+                       List<StmtDecl> globalDecls,
+                       List<StmtDeclAssign> globalDefns,
+                       List<ClassDefn> classDefns,
+                       List<FuncDefn> funcDefns,
                        ComplexSymbolFactory.Location location) {
         super(location);
         this.imports = new ArrayList<>(imports);
+        this.globalDecls = globalDecls;
+        this.globalDefns = globalDefns;
+        this.classDefns = classDefns;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
+        globalDecls.forEach((d) -> signatures.add(d.getSignature()));
+        globalDefns.forEach((d) -> signatures.add(d.getSignature()));
+        classDefns.forEach((d) -> signatures.add(d.getSignature()));
         funcDefns.forEach((d) -> signatures.add(d.getSignature()));
     }
 

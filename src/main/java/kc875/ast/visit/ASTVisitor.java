@@ -25,10 +25,13 @@ interface ASTVisitor<T> {
     T visit(StmtIfElse node);
     T visit(StmtWhile node);
     T visit(StmtBlock node);
+    T visit(StmtBreak node);
 
     T visit(FileProgram node);
     T visit(FileInterface node);
     T visit(FuncDefn node);
     T visit(FuncDecl node);
+    T visit(ClassDecl node);
+    T visit(ClassDefn node);
     T visit(UseInterface node);
 }

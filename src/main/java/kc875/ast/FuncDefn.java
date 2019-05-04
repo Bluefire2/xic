@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 //funcDefns are for program files
-public class FuncDefn extends ASTNode implements Printable {
+public class FuncDefn extends ASTNode implements Printable, DeclOrDefn  {
     private String name;
     private List<Pair<String, TypeTTau>> params;
     private Stmt body;

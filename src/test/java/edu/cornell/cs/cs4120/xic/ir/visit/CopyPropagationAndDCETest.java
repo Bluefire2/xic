@@ -1,12 +1,10 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
-import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
@@ -116,11 +114,11 @@ public class CopyPropagationAndDCETest {
                                 new IRConst(2))),
                         new IRReturn(new IRTemp("z"))
         );
-        try {
-            IRGraph graph = new IRGraph(optimized.functions().get("f"));
-            graph.show("CPDCETest1graph.dot");
-        } catch (IOException e) {
-        }
+//        try {
+//            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+//            graph.show("CPDCETest1graph.dot");
+//        } catch (IOException e) {
+//        }
         assert(((IRSeq) optimized.functions().get("f").body()).stmts().size() == 2);
     }
 }

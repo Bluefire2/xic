@@ -6,7 +6,7 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
-public class StmtDecl extends Stmt {
+public class StmtDecl extends Stmt implements DeclOrDefn {
     private TypeDeclVar decl;
 
     public StmtDecl(TypeDeclVar decl,
