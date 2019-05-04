@@ -60,13 +60,13 @@ public class ConstantFoldVisitorTest {
                         new IRBinOp(
                                 IRBinOp.OpType.DIV,
                                 new IRConst(0),
-                                new IRName("c")
+                                new IRTemp("c")
                         ),
-                        new IRName("b")
+                        new IRTemp("b")
                 ),
                 new IRBinOp(
                         IRBinOp.OpType.MUL,
-                        new IRName("a"),
+                        new IRTemp("a"),
                         new IRConst(0)
                 )
         );
@@ -81,19 +81,19 @@ public class ConstantFoldVisitorTest {
                 new IRBinOp(
                         IRBinOp.OpType.ADD,
                         new IRConst(0),
-                        new IRName("b")
+                        new IRTemp("b")
                 ),
                 new IRBinOp(
                         IRBinOp.OpType.MUL,
-                        new IRName("a"),
+                        new IRTemp("a"),
                         new IRConst(1)
                 )
         );
         IRNode folded = visitor.visit(binOp);
         IRBinOp expected = new IRBinOp(
                 IRBinOp.OpType.ADD,
-                new IRName("b"),
-                new IRName("a")
+                new IRTemp("b"),
+                new IRTemp("a")
         );
         assertEquals(folded, expected);
     }
@@ -105,11 +105,11 @@ public class ConstantFoldVisitorTest {
                 new IRBinOp(
                         IRBinOp.OpType.SUB,
                         new IRConst(0),
-                        new IRName("b")
+                        new IRTemp("b")
                 ),
                 new IRBinOp(
                         IRBinOp.OpType.SUB,
-                        new IRName("a"),
+                        new IRTemp("a"),
                         new IRConst(0)
                 )
         );
@@ -119,9 +119,9 @@ public class ConstantFoldVisitorTest {
                 new IRBinOp(
                         IRBinOp.OpType.SUB,
                         new IRConst(0),
-                        new IRName("b")
+                        new IRTemp("b")
                 ),
-                new IRName("a")
+                new IRTemp("a")
         );
         assertEquals(folded, expected);
     }
