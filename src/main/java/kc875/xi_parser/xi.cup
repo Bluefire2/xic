@@ -68,6 +68,7 @@ terminal
     EXTENDS,
     CLASS,
     DOT,
+    BREAK,
 
     EQ,
     MINUS,

@@ -86,6 +86,7 @@ INTEGER = 0 | [1-9][0-9]*
     "class"     { return symbol(yytext(), sym.CLASS, yyline, yycolumn); }
     "extends"   { return symbol(yytext(), sym.EXTENDS, yyline, yycolumn); }
     "this"      { return symbol(yytext(), sym.THIS, yyline, yycolumn); }
+    "break"     { return symbol(yytext(), sym.BREAK, yyline, yycolumn); }
 
     /* identifiers */
     {ID_LOWER}        { return symbol("id " + yytext(), sym.ID_LOWER, yyline, yycolumn, yytext()); }
