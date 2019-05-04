@@ -67,6 +67,7 @@ terminal
     NEW,
     EXTENDS,
     CLASS,
+    DOT,
 
     EQ,
     MINUS,
