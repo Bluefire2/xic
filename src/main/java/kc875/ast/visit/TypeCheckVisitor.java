@@ -315,6 +315,45 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(ExprNew node) {
+        TypeTTauClass expectedType = node.getClassType();
+        String constructorName = node.getContructor().getName();
+        try {
+           TypeSymTable sym = symTable.lookup(constructorName);
+            if (!(sym instanceof TypeSymTableFunc))
+                throw new SemanticError(
+                        String.format("%s is not a function", constructorName),
+                        node.getLocation()
+                );
+            else {
+                TypeT actualType = ((TypeSymTableFunc) sym).getOutput();
+                if (!(actualType instanceof TypeTTauClass))
+                    throw new SemanticError(
+                        String.format("%s is not a constructor", constructorName),
+                        node.getLocation()
+                );
+                if (!(expectedType.equals(actualType))) {
+                    throw new SemanticError(
+                            String.format("%s is not a valid constructor for %s",
+                                    constructorName, expectedType),
+                            node.getLocation()
+                    );
+                }
+            }
+        }
+        catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(constructorName, node.getLocation());
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprNull node) {
+        //TODO: type error if not in class?
+        return null;
+    }
+
+    @Override
     public Void visit(AssignableIndex node) {
         return null;
     }
