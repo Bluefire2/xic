@@ -606,6 +606,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRExpr visit(ExprNull node) {return new IRMem(new IRConst(0)); }
 
     @Override
+    public IRExpr visit(ExprNew node) {
+        return visit(node.getContructor());
+    }
+
+    @Override
     public IRExpr visit(ExprArrayLiteral node) {
         String t = newTemp();
         List<Expr> contents = node.getContents();
