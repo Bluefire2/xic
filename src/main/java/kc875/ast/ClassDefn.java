@@ -5,6 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
+import kc875.utils.Maybe;
 
 import java.util.List;
 import java.util.Set;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     private String name;
-    private String superClass;
+    private Maybe<String> superClass;
     private List<StmtDecl> fields;
     private List<StmtDeclAssign> initializedFields; // TODO: are these allowed?
     private List<FuncDefn> methods;
@@ -22,7 +23,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
 
     public ClassDefn(ComplexSymbolFactory.Location location,
                      String name,
-                     String superClass,
+                     Maybe<String> superClass,
                      List<StmtDecl> fields,
                      List<StmtDeclAssign> initializedFields,
                      List<FuncDefn> methods) {
@@ -47,7 +48,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         return name;
     }
 
-    public String getSuperClass() {
+    public Maybe<String> getSuperClass() {
         return superClass;
     }
 
@@ -92,9 +93,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
-        w.printAtom(name);
-        w.printAtom("extends");
-        w.printAtom(superClass);
+        w.printAtom(name + superClass.to(sc -> " extends " + sc).otherwise(""));
         w.startList();
         fields.forEach(f -> f.prettyPrint(w));
         w.endList();

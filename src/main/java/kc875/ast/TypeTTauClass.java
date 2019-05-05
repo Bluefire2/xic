@@ -8,14 +8,9 @@ public class TypeTTauClass extends TypeTTau {
     // superClass is unknown if this class is not derived from another class
     private Maybe<String> superClass;
 
-    public TypeTTauClass(String name) {
+    public TypeTTauClass(String name, Maybe<String> superClass) {
         this.name = name;
-        this.superClass = Maybe.unknown();
-    }
-
-    public TypeTTauClass(String name, String superClass) {
-        this.name = name;
-        this.superClass = Maybe.definitely(superClass);
+        this.superClass = superClass;
     }
 
     public String getName() {
