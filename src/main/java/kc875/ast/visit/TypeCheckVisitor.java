@@ -384,7 +384,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                             node.getLocation());
                 }
                 TypeT givenReturnType = returnVals.get(0).getTypeCheckType();
-                if (!givenReturnType.subtypeOf(expectedReturnType)) {
+                if (!subTypeOf(givenReturnType, expectedReturnType)) {
                     throw new SemanticTypeCheckError(expectedReturnType,
                             givenReturnType, node.getLocation());
                 }
@@ -401,7 +401,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 while (exprIterator.hasNext() && typeTIterator.hasNext()) {
                     TypeT currentGivenType = exprIterator.next().getTypeCheckType();
                     TypeTTau currentExpectedType = typeTIterator.next();
-                    if (!currentGivenType.subtypeOf(currentExpectedType)) {
+                    if (!subTypeOf(currentGivenType, currentExpectedType)) {
                         throw new SemanticTypeCheckError(currentExpectedType,
                                 currentGivenType, node.getLocation());
                     }
@@ -442,7 +442,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     node.getLocation()
             );
         }
-        if (!givenType.subtypeOf(expectedType)){
+        if (!subTypeOf(givenType, expectedType)){
             throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
         node.setTypeCheckType(TypeR.Unit);
@@ -501,7 +501,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                                   TypeT givenType) {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
-        if (!givenType.subtypeOf(varType)) {
+        if (!subTypeOf(givenType, varType)) {
             throw new SemanticTypeCheckError(varType, givenType, node.getLocation());
         }
         // givenType is a subtype of varType == good
@@ -834,4 +834,92 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         }
         return null;
     }
+
+    // sub typing rules
+    private boolean subTypeOf(TypeT fst, TypeT snd) {
+        if (fst instanceof TypeTList)
+            return subTypeOf((TypeTList) fst, snd);
+        if (fst instanceof TypeTTau)
+            return subTypeOf((TypeTTau) fst, snd);
+        if (fst instanceof TypeTUnit)
+            return subTypeOf((TypeTUnit) fst, snd);
+        throw new IllegalAccessError("Illegal use of subTypeOf");
+    }
+
+    private boolean subTypeOf(TypeTTau fst, TypeT snd) {
+        if (fst instanceof TypeTTauArray)
+            return subTypeOf((TypeTTauArray) fst, snd);
+        if (fst instanceof TypeTTauBool)
+            return subTypeOf((TypeTTauBool) fst, snd);
+        if (fst instanceof TypeTTauClass)
+            return subTypeOf((TypeTTauClass) fst, snd);
+        if (fst instanceof TypeTTauInt)
+            return subTypeOf((TypeTTauInt) fst, snd);
+        throw new IllegalAccessError("Illegal use of subTypeOf");
+    }
+
+    private boolean subTypeOf(TypeTTauArray fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            return true;
+        if (!(snd instanceof TypeTTauArray))
+            return false;
+        TypeTTauArray snd_ = (TypeTTauArray) snd;
+        if (fst.getTypeTTau() == null || snd_.getTypeTTau() == null)
+            return true;
+        return subTypeOf(fst.getTypeTTau(), snd_.getTypeTTau());
+    }
+
+    private boolean subTypeOf(TypeTTauBool fst, TypeT snd) {
+        return snd instanceof TypeTTauBool || snd instanceof TypeTUnit;
+    }
+
+    private boolean subTypeOf(TypeTTauClass fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            // everything is a sub type of unit
+            return true;
+
+        if (!(snd instanceof TypeTTauClass))
+            // if t is not unit, it must be at least a class
+            return false;
+        TypeTTauClass snd_ = (TypeTTauClass) snd;
+
+        // Either this is the same as c or
+        // - if sc is known, sc is a subtype of c
+        // - TODO: if sc is unknown, then this is not a subtype of c
+        //    (isKnown check at the end implements this)
+        return fst.getName().equals(snd_.getName());
+//                || fst.getSuperClass().to(
+//                        sc -> subTypeOf(sc, snd_.getSuperClass())
+//        ).isKnown();
+    }
+
+    private boolean subTypeOf(TypeTTauInt fst, TypeT snd) {
+        return snd instanceof TypeTTauInt || snd instanceof TypeTUnit;
+    }
+
+    private boolean subTypeOf(TypeTList fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            return true;
+        if (!(snd instanceof TypeTList))
+            return false;
+        List<TypeTTau> fstTauList = fst.getTTauList();
+        List<TypeTTau> sndTauList = ((TypeTList) snd).getTTauList();
+
+        // Check the lengths are equal
+        if (fstTauList.size() != sndTauList.size())
+            return false;
+
+        // Check each tau is subtype
+        for (int i = 0; i < sndTauList.size(); ++i) {
+            if (!subTypeOf(fstTauList.get(i), sndTauList.get(i)))
+                return false;
+        }
+        // All taus are subtypes of the other taus
+        return true;
+    }
+
+    private boolean subTypeOf(TypeTUnit fst, TypeT snd) {
+        return snd instanceof TypeTUnit;
+    }
+
 }
