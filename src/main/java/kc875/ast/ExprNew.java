@@ -7,8 +7,8 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 public class ExprNew extends Expr {
-    TypeTTauClass classType;
-    ExprFunctionCall contructor;
+    private TypeTTauClass classType;
+    private ExprFunctionCall contructor;
 
     public ExprNew(TypeTTauClass classType, ExprFunctionCall contructor,
                    ComplexSymbolFactory.Location location) {

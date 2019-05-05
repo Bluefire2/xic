@@ -6,6 +6,7 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class StmtDeclAssign extends Stmt implements DeclOrDefn {
@@ -45,5 +46,15 @@ public class StmtDeclAssign extends Stmt implements DeclOrDefn {
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
+    }
+
+    public List<String> getNames() {
+        List<String> names = new ArrayList<>();
+        for (TypeDecl decl : decls) {
+            if (decl instanceof TypeDeclVar) {
+                names.add(((TypeDeclVar) decl).getName());
+            }
+        }
+        return names;
     }
 }

@@ -7,6 +7,8 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     private String name;
@@ -14,6 +16,9 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     private List<StmtDecl> fields;
     private List<StmtDeclAssign> initializedFields; // TODO: are these allowed?
     private List<FuncDefn> methods;
+
+    private Set<String> fieldNames;
+    private Set<String> methodNames;
 
     public ClassDefn(ComplexSymbolFactory.Location location,
                      String name,
@@ -27,6 +32,15 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         this.fields = fields;
         this.initializedFields = initializedFields;
         this.methods = methods;
+
+        this.fieldNames = fields.stream()
+                .map(StmtDecl::getName)
+                .collect(Collectors.toSet());
+        initializedFields.forEach(field -> this.fieldNames.addAll(field.getNames()));
+
+        this.methodNames = methods.stream()
+                .map(FuncDefn::getName)
+                .collect(Collectors.toSet());
     }
 
     public String getName() {
@@ -47,6 +61,22 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
 
     public List<FuncDefn> getMethods() {
         return methods;
+    }
+
+    public Set<String> getFieldNames() {
+        return fieldNames;
+    }
+
+    public Set<String> getMethodNames() {
+        return methodNames;
+    }
+
+    public boolean hasField(String name) {
+        return fieldNames.contains(name);
+    }
+
+    public boolean hasMethod(String name) {
+        return methodNames.contains(name);
     }
 
     @Override

@@ -7,7 +7,6 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 public class ExprNull extends Expr {
-
     public ExprNull(ComplexSymbolFactory.Location location) {
         super(location);
     }
