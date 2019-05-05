@@ -12,12 +12,15 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public abstract class Maybe<T> implements Iterable<T> {
     public abstract boolean isKnown();
     public abstract T otherwise(T defaultValue);
     public abstract Maybe<T> otherwise(Maybe<T> maybeDefaultValue);
+    public abstract T otherwise(Supplier<T> supplier);
     public abstract <U> Maybe<U> to(Function<? super T, ? extends U> mapping);
+    public abstract <U> Maybe<U> toMaybe(Function<? super T, Maybe<U>> mapping);
     public abstract void thenDo(Consumer<T> cons);
     public abstract Maybe<Boolean> query(Predicate<? super T> mapping);
 
@@ -43,7 +46,17 @@ public abstract class Maybe<T> implements Iterable<T> {
             }
 
             @Override
+            public T otherwise(Supplier<T> supplier) {
+                return supplier.get();
+            }
+
+            @Override
             public <U> Maybe<U> to(Function<? super T, ? extends U> mapping) {
+                return unknown();
+            }
+
+            @Override
+            public <U> Maybe<U> toMaybe(Function<? super T, Maybe<U>> mapping) {
                 return unknown();
             }
 
@@ -106,8 +119,18 @@ public abstract class Maybe<T> implements Iterable<T> {
         }
 
         @Override
+        public T otherwise(Supplier<T> supplier) {
+            return theValue;
+        }
+
+        @Override
         public <U> Maybe<U> to(Function<? super T, ? extends U> mapping) {
             return definitely(mapping.apply(theValue));
+        }
+
+        @Override
+        public <U> Maybe<U> toMaybe(Function<? super T, Maybe<U>> mapping) {
+            return mapping.apply(theValue);
         }
 
         @Override
