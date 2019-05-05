@@ -15,7 +15,12 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     private List<StmtDeclAssign> initializedFields; // TODO: are these allowed?
     private List<FuncDefn> methods;
 
-    public ClassDefn(ComplexSymbolFactory.Location location, String name, String superClass, List<StmtDecl> fields, List<StmtDeclAssign> initializedFields, List<FuncDefn> methods) {
+    public ClassDefn(ComplexSymbolFactory.Location location,
+                     String name,
+                     String superClass,
+                     List<StmtDecl> fields,
+                     List<StmtDeclAssign> initializedFields,
+                     List<FuncDefn> methods) {
         super(location);
         this.name = name;
         this.superClass = superClass;
