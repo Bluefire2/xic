@@ -18,6 +18,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     private String libpath;
     private String RETURN_KEY = "__return__";
 
+    private boolean inALoop = false;
+
     public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath){
         this.symTable = symTable;
         this.libpath = libpath;
@@ -671,7 +673,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
+            inALoop = true;
             node.getDoStmt().accept(this);
+            inALoop = false;
             symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
         } else {
@@ -712,6 +716,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(StmtBreak node) {
+        if (!inALoop) {
+            throw new SemanticError(
+                    String.format("Cannot use break outside of loop",
+                    node.getLocation());
+        }
         return null;
     }
 
