@@ -16,6 +16,7 @@ public class FileInterface extends FileSource {
     private List<ClassDecl> classes;
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
+    private List<Pair<String, ClassDecl>> class_signatures;
 
     public FileInterface(List<UseInterface> imports, List<ClassDecl> classes, List<FuncDecl> decls,
                          ComplexSymbolFactory.Location location) {
@@ -24,10 +25,10 @@ public class FileInterface extends FileSource {
         this.classes = classes;
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();
-
-        //TODO add signatures for everything else
+        this.class_signatures = new ArrayList<>();
+        //TODO currently uses placeholders
         decls.forEach((d) -> signatures.add(d.getSignature()));
-        //classes.forEach((d) -> signatures.add(d.getSignature()));
+        classes.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
     }
 
     public FileInterface(List<UseInterface> imports,
@@ -47,10 +48,10 @@ public class FileInterface extends FileSource {
         this.classes = classes;
         this.funcDecls = funcDecls;
         this.signatures = new ArrayList<>();
-
-        //TODO add signatures for everything else
+        this.class_signatures = new ArrayList<>();
+        //TODO currently uses placeholders
         funcDecls.forEach((d) -> signatures.add(d.getSignature()));
-        //classes.forEach((d) -> signatures.add(d.getSignature()));
+        classes.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
     }
 
     public List<FuncDecl> getFuncDecls() {
@@ -85,5 +86,9 @@ public class FileInterface extends FileSource {
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
+    }
+
+    public List<Pair<String, ClassDecl>> getClassSignatures() {
+        return class_signatures;
     }
 }

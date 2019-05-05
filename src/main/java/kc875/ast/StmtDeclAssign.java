@@ -9,10 +9,10 @@ import kc875.ast.visit.TypeCheckVisitor;
 import java.util.List;
 
 public class StmtDeclAssign extends Stmt implements DeclOrDefn {
-    private List<TypeDecl> decls;
+    private List<TypeDeclVar> decls;
     private Expr rhs;
 
-    public StmtDeclAssign(List<TypeDecl> decls, Expr rhs,
+    public StmtDeclAssign(List<TypeDeclVar> decls, Expr rhs,
                           ComplexSymbolFactory.Location location) {
         super(location);
         this.decls = decls;
@@ -20,7 +20,7 @@ public class StmtDeclAssign extends Stmt implements DeclOrDefn {
         this.s_type = StmtType.DeclAssignStmt;
     }
 
-    public List<TypeDecl> getDecls() {
+    public List<TypeDeclVar> getDecls() {
         return decls;
     }
 
