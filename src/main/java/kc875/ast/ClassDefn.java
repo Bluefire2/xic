@@ -106,4 +106,16 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         w.endList();
         w.endList();
     }
+
+    /**
+     * Create a corresponding class declaration for this definition.
+     *
+     * @return The declaration.
+     */
+    public ClassDecl toDecl() {
+        List<FuncDecl> methodDecls = methods.stream()
+                .map(FuncDefn::toDecl)
+                .collect(Collectors.toList());
+        return new ClassDecl(getLocation(), name, superClass, fields, methodDecls);
+    }
 }

@@ -6,7 +6,6 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 import kc875.symboltable.TypeSymTable;
-import kc875.symboltable.TypeSymTableVar;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -19,7 +18,7 @@ public class FileProgram extends FileSource {
     private List<ClassDefn> classDefns;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
-    private List<Pair<String, ClassDecl>> class_signatures;
+    private List<Pair<String, ClassDecl>> classSignatures;
 
     public FileProgram(List<UseInterface> imports,
                        List<StmtDecl> globalDecls,
@@ -34,13 +33,13 @@ public class FileProgram extends FileSource {
         this.classDefns = classDefns;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
-        this.class_signatures = new ArrayList<>();
+        this.classSignatures = new ArrayList<>();
 
-        funcDefns.forEach((d) -> signatures.add(d.getSignature()));
+        funcDefns.forEach(d -> signatures.add(d.getSignature()));
 
         //TODO currently uses placeholder function names
-        classDefns.forEach((d) -> class_signatures.add(
-                new Pair(d.getName(), d.convertToDecl())));
+        classDefns.forEach(d -> classSignatures.add(
+                new Pair<>(d.getName(), d.toDecl())));
 
         //global vars are private to each module
 //        globalDecls.forEach((d) -> {
@@ -86,12 +85,12 @@ public class FileProgram extends FileSource {
         this.classDefns = classes;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
-        this.class_signatures = new ArrayList<>();
+        this.classSignatures = new ArrayList<>();
 
-        funcDefns.forEach((d) -> signatures.add(d.getSignature()));
+        funcDefns.forEach(d -> signatures.add(d.getSignature()));
         //TODO currently uses placeholder function names
-        classDefns.forEach((d) -> class_signatures.add(
-                new Pair(d.getName(), d.convertToDecl())));
+        classDefns.forEach(d -> classSignatures.add(
+                new Pair<>(d.getName(), d.toDecl())));
     }
 
     public List<UseInterface> getImports() {
@@ -135,7 +134,7 @@ public class FileProgram extends FileSource {
     }
 
     public List<Pair<String, ClassDecl>> getClassSignatures() {
-        return class_signatures;
+        return classSignatures;
     }
 
     public List<StmtDecl> getGlobalDecls() {
