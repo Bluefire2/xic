@@ -53,6 +53,16 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        // TODO
+        w.startList();
+        w.printAtom(name);
+        w.printAtom("extends");
+        w.printAtom(superClass);
+        w.startList();
+        fields.forEach(f -> f.prettyPrint(w));
+        w.endList();
+        w.startList();
+        methods.forEach(m -> m.prettyPrint(w));
+        w.endList();
+        w.endList();
     }
 }
