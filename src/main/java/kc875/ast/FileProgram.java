@@ -6,6 +6,7 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 import kc875.symboltable.TypeSymTable;
+import kc875.symboltable.TypeSymTableVar;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ public class FileProgram extends FileSource {
     private List<ClassDefn> classDefns;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
+    private List<Pair<String, ClassDecl>> class_signatures;
 
     public FileProgram(List<UseInterface> imports,
                        List<StmtDecl> globalDecls,
@@ -32,10 +34,64 @@ public class FileProgram extends FileSource {
         this.classDefns = classDefns;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
-        globalDecls.forEach((d) -> signatures.add(d.getSignature()));
-        globalDefns.forEach((d) -> signatures.add(d.getSignature()));
-        classDefns.forEach((d) -> signatures.add(d.getSignature()));
+        this.class_signatures = new ArrayList<>();
+
         funcDefns.forEach((d) -> signatures.add(d.getSignature()));
+
+        //TODO currently uses placeholder function names
+        classDefns.forEach((d) -> class_signatures.add(
+                new Pair(d.getName(), d.convertToDecl())));
+
+        //global vars are private to each module
+//        globalDecls.forEach((d) -> {
+//            Pair<String, TypeTTau> declType = d.getDecl().getPair();
+//            signatures.add(new Pair<>(declType.part1(),
+//                    new TypeSymTableVar(declType.part2())));
+//        });
+//
+//        globalDefns.forEach((d) -> {
+//            List<TypeDeclVar> typeDecls = d.getDecls();
+//            for (TypeDeclVar t: typeDecls) {
+//                Pair<String, TypeTTau> declType = t.getPair();
+//                        signatures.add(new Pair<>(declType.part1(),
+//                                new TypeSymTableVar(declType.part2())));
+//            }
+//        });
+
+
+    }
+
+    public FileProgram(List<UseInterface> imports,
+                       List<DeclOrDefn> decls,
+                       ComplexSymbolFactory.Location location) {
+        super(location);
+        this.imports = new ArrayList<>(imports);
+        List<ClassDefn> classes = new ArrayList<>();
+        List<FuncDefn> funcDefns = new ArrayList<>();
+        List<StmtDecl> globalDecls = new ArrayList<>();
+        List<StmtDeclAssign> globalDefns = new ArrayList<>();
+        for (DeclOrDefn d : decls) {
+            if (d instanceof FuncDefn) {
+                funcDefns.add((FuncDefn) d);
+            } else if (d instanceof ClassDefn) {
+                classes.add((ClassDefn) d);
+            } else if (d instanceof StmtDeclAssign) {
+                globalDefns.add((StmtDeclAssign) d);
+            } else if (d instanceof StmtDecl) {
+                globalDecls.add((StmtDecl) d);
+            }
+        }
+        this.globalDecls = globalDecls;
+        this.globalDefns = globalDefns;
+        this.classDefns = classes;
+        this.funcDefns = new ArrayList<>(funcDefns);
+        this.signatures = new ArrayList<>();
+        this.class_signatures = new ArrayList<>();
+
+        funcDefns.forEach((d) -> signatures.add(d.getSignature()));
+        //TODO currently uses placeholder function names
+        classDefns.forEach((d) -> class_signatures.add(
+                new Pair(d.getName(), d.convertToDecl())));
     }
 
     public List<UseInterface> getImports() {
@@ -44,14 +100,6 @@ public class FileProgram extends FileSource {
 
     public List<FuncDefn> getFuncDefns() {
         return funcDefns;
-    }
-
-    public void addFuncDefn(FuncDefn funcDefn) {
-        funcDefns.add(funcDefn);
-    }
-
-    public void addImport(UseInterface use) {
-        imports.add(use);
     }
 
     public boolean isInterface() {
@@ -84,5 +132,21 @@ public class FileProgram extends FileSource {
 
     public List<Pair<String, TypeSymTable>> getSignatures() {
         return signatures;
+    }
+
+    public List<Pair<String, ClassDecl>> getClassSignatures() {
+        return class_signatures;
+    }
+
+    public List<StmtDecl> getGlobalDecls() {
+        return globalDecls;
+    }
+
+    public List<StmtDeclAssign> getGlobalDefns() {
+        return globalDefns;
+    }
+
+    public List<ClassDefn> getClassDefns() {
+        return classDefns;
     }
 }

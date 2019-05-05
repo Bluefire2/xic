@@ -10,22 +10,32 @@ import polyglot.util.Pair;
 
 import java.io.FileReader;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
+    private Map<String, ClassDecl> classes;
     private String libpath;
     private String RETURN_KEY = "__return__";
 
-    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath){
+    private boolean inALoop = false;
+
+    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
         this.symTable = symTable;
+        this.classes = new HashMap<>();
         this.libpath = libpath;
         symTable.enterScope();
     }
 
     public SymbolTable getSymTable() {
         return symTable;
+    }
+
+    public Map<String, ClassDecl> getClasses() {
+        return classes;
     }
 
     /**
@@ -671,7 +681,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
+            inALoop = true;
             node.getDoStmt().accept(this);
+            inALoop = false;
             symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
         } else {
@@ -712,6 +724,10 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(StmtBreak node) {
+        if (!inALoop) {
+            throw new SemanticError("Cannot use break outside of loop",
+                    node.getLocation());
+        }
         return null;
     }
 
@@ -804,6 +820,16 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(FuncDecl node) {
+        return null;
+    }
+
+    @Override
+    public Void visit(ClassDecl node) {
+        return null;
+    }
+
+    @Override
+    public Void visit(ClassDefn node) {
         return null;
     }
 
