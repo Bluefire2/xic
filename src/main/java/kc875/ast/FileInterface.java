@@ -27,7 +27,30 @@ public class FileInterface extends FileSource {
 
         //TODO add signatures for everything else
         decls.forEach((d) -> signatures.add(d.getSignature()));
-        classes.forEach((d) -> signatures.add(d.getSignature()));
+        //classes.forEach((d) -> signatures.add(d.getSignature()));
+    }
+
+    public FileInterface(List<UseInterface> imports,
+                         List<DeclOrDefn> decls,
+                         ComplexSymbolFactory.Location location){
+        super(location);
+        List<ClassDecl> classes = new ArrayList<>();
+        List<FuncDecl> funcDecls = new ArrayList<>();
+        for (DeclOrDefn d : decls) {
+            if (d instanceof FuncDecl) {
+                funcDecls.add((FuncDecl) d);
+            } else if (d instanceof ClassDecl) {
+                classes.add((ClassDecl) d);
+            }
+        }
+        this.imports = imports;
+        this.classes = classes;
+        this.funcDecls = funcDecls;
+        this.signatures = new ArrayList<>();
+
+        //TODO add signatures for everything else
+        funcDecls.forEach((d) -> signatures.add(d.getSignature()));
+        //classes.forEach((d) -> signatures.add(d.getSignature()));
     }
 
     public List<FuncDecl> getFuncDecls() {
