@@ -891,6 +891,18 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
+    public IRNode visit(ClassDecl node) {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public IRNode visit(ClassDefn node) {
+        //TODO
+        return null;
+    }
+
+    @Override
     public IRStmt visit(UseInterface node) {
         return null;
     }
