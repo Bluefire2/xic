@@ -736,6 +736,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
         for (UseInterface import_node : imports) {
+            // TODO: only visit import_node if not visited before (set up a
+            //  set or something)
             import_node.accept(this);
         }
         for (FuncDefn defn : defns) {
