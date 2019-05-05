@@ -112,6 +112,13 @@ public class FileProgram extends FileSource {
         imports.forEach((i) -> i.prettyPrint(w));
         w.endList();
         w.startUnifiedList();
+        globalDefns.forEach((i) -> i.prettyPrint(w));
+        globalDecls.forEach((i) -> i.prettyPrint(w));
+        w.endList();
+        w.startUnifiedList();
+        classDefns.forEach((i) -> i.prettyPrint(w));
+        w.endList();
+        w.startUnifiedList();
         funcDefns.forEach((d) -> d.prettyPrint(w));
         w.endList();
         w.endList();

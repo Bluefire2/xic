@@ -23,8 +23,6 @@ public class ExprNull extends Expr {
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.startList();
         w.printAtom("null");
-        w.endList();
     }
 }
