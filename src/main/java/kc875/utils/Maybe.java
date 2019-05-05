@@ -9,6 +9,7 @@ package kc875.utils;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -17,6 +18,7 @@ public abstract class Maybe<T> implements Iterable<T> {
     public abstract T otherwise(T defaultValue);
     public abstract Maybe<T> otherwise(Maybe<T> maybeDefaultValue);
     public abstract <U> Maybe<U> to(Function<? super T, ? extends U> mapping);
+    public abstract void thenDo(Consumer<T> cons);
     public abstract Maybe<Boolean> query(Predicate<? super T> mapping);
 
     public static <T> Maybe<T> unknown() {
@@ -43,6 +45,11 @@ public abstract class Maybe<T> implements Iterable<T> {
             @Override
             public <U> Maybe<U> to(Function<? super T, ? extends U> mapping) {
                 return unknown();
+            }
+
+            @Override
+            public void thenDo(Consumer<T> cons) {
+                // do nothing
             }
 
             @Override
@@ -101,6 +108,11 @@ public abstract class Maybe<T> implements Iterable<T> {
         @Override
         public <U> Maybe<U> to(Function<? super T, ? extends U> mapping) {
             return definitely(mapping.apply(theValue));
+        }
+
+        @Override
+        public void thenDo(Consumer<T> consumer) {
+            consumer.accept(theValue);
         }
 
         @Override
