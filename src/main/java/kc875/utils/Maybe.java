@@ -7,11 +7,10 @@
 
 package kc875.utils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public abstract class Maybe<T> implements Iterable<T> {
     public abstract boolean isKnown();
@@ -106,7 +105,7 @@ public abstract class Maybe<T> implements Iterable<T> {
 
         @Override
         public Maybe<Boolean> query(Predicate<? super T> mapping) {
-            return definitely(mapping.apply(theValue));
+            return definitely(mapping.test(theValue));
         }
 
         @Override
