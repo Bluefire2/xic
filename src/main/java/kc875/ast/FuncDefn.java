@@ -124,7 +124,6 @@ public class FuncDefn extends ASTNode implements Printable, DeclOrDefn  {
      * @return The declaration.
      */
     public FuncDecl toDecl() {
-        // TODO
-        return null;
+        return new FuncDecl(name, params, output, getLocation());
     }
 }
