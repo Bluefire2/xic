@@ -711,6 +711,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(StmtBreak node) {
+        return null;
+    }
+
+    @Override
     public Void visit(FileProgram node) {
         List<UseInterface> imports = node.getImports();
         List<FuncDefn> defns = node.getFuncDefns();
