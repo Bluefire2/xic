@@ -6,40 +6,19 @@ import kc875.utils.Maybe;
 public class TypeTTauClass extends TypeTTau {
     private String name;
     // superClass is unknown if this class is not derived from another class
-    private Maybe<TypeTTauClass> superClass;
+    private Maybe<String> superClass;
 
-    public TypeTTauClass(String name) {
+    public TypeTTauClass(String name, Maybe<String> superClass) {
         this.name = name;
-        this.superClass = Maybe.unknown();
+        this.superClass = superClass;
     }
 
-    public TypeTTauClass(String name, TypeTTauClass superClass) {
-        this.name = name;
-        this.superClass = Maybe.definitely(superClass);
+    public String getName() {
+        return name;
     }
 
-    @Override
-    public boolean subtypeOf(TypeT t) {
-        if (t instanceof TypeTUnit)
-            // everything is a sub type of unit
-            return true;
-
-        if (!superClass.isKnown())
-            // super class unknown ==> this class is a "non-derived" class
-            // ==> cannot be a sub type of any class
-            return false;
-
-        if (!(t instanceof TypeTTauClass))
-            // if t is not unit, it must be at least a class
-            return false;
-        TypeTTauClass c = (TypeTTauClass) t;
-
-        // Either this is the same as c or
-        // - if sc is known, sc is a subtype of c
-        // - if sc is unknown, then this is not a subtype of c
-        // (isKnown check at the end implements this)
-        return name.equals(c.name)
-                || superClass.to(sc -> sc.subtypeOf(c)).isKnown();
+    public Maybe<String> getSuperClass() {
+        return superClass;
     }
 
     @Override

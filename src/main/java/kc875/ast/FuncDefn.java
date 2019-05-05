@@ -117,4 +117,13 @@ public class FuncDefn extends ASTNode implements Printable, DeclOrDefn  {
     public void setSignature(Pair<String, TypeSymTable> signature) {
         this.signature = signature;
     }
+
+    /**
+     * Create a corresponding function declaration for this definition.
+     *
+     * @return The declaration.
+     */
+    public FuncDecl toDecl() {
+        return new FuncDecl(name, params, output, getLocation());
+    }
 }

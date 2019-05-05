@@ -17,9 +17,4 @@ public class TypeTTauBool extends TypeTTau {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.printAtom("bool");
     }
-
-    @Override
-    public boolean subtypeOf(TypeT t) {
-        return t instanceof TypeTTauBool || t instanceof TypeTUnit;
-    }
 }

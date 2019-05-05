@@ -17,9 +17,4 @@ public class TypeTTauInt extends TypeTTau {
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.printAtom("int");
     }
-
-    @Override
-    public boolean subtypeOf(TypeT t) {
-        return t instanceof TypeTTauInt || t instanceof TypeTUnit;
-    }
 }

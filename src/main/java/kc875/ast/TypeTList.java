@@ -56,29 +56,6 @@ public class TypeTList extends TypeT {
     }
 
     @Override
-    public boolean subtypeOf(TypeT t) {
-        if (t instanceof TypeTList) {
-            List<TypeTTau> otherTauList = ((TypeTList) t).getTTauList();
-
-            // Check the lengths are equal
-            int otherLen = otherTauList.size();
-            if (tTauList.size() != otherLen)
-                return false;
-
-            // Check each tau is subtype
-            for (int i = 0; i < otherLen; ++i) {
-                if (!tTauList.get(i).subtypeOf(otherTauList.get(i)))
-                    return false;
-            }
-
-            // All taus are subtypes of the other taus
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         tTauList.forEach(t -> t.prettyPrint(w));
     }
