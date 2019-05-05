@@ -174,6 +174,9 @@ public class CLI implements Runnable {
     @Option(names = {"-O-no-dce"}, hidden = true)
     private boolean Onodce = false;
 
+    @Option(names = {"-noextension"}, hidden = true)
+    private boolean langExtension = false;
+
     @Parameters(arity = "0..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;

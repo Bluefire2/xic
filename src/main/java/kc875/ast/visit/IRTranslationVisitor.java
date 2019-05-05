@@ -43,6 +43,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return "_ARG" + i;
     }
 
+    private String currentLoopEndLabel;
+
     private String returnTypeName(TypeT type) {
         if (type instanceof TypeTList) {
             TypeTList tuple = (TypeTList) type;
@@ -814,10 +816,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRStmt visit(StmtWhile node) {
-        IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
         String lh = newLabel();
         String lt = newLabel();
         String le = newLabel();
+        currentLoopEndLabel = le;
+        IRStmt stmt = (IRStmt) node.getDoStmt().accept(this);
         IRStmt condition = conditionalTranslate(node.getGuard(), lt, le);
         IRJump jmp = new IRJump(new IRName(lh));
         return new IRSeq(
@@ -835,6 +838,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 .map(s -> (IRStmt) s.accept(this))
                 .collect(Collectors.toList())
         );
+    }
+
+    @Override
+    public IRNode visit(StmtBreak node) {
+        return new IRJump(new IRName(currentLoopEndLabel));
     }
 
     @Override
@@ -879,6 +887,18 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(FuncDecl node) {
+        return null;
+    }
+
+    @Override
+    public IRNode visit(ClassDecl node) {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public IRNode visit(ClassDefn node) {
+        //TODO
         return null;
     }
 
