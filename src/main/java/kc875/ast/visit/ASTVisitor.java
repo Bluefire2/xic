@@ -12,6 +12,8 @@ interface ASTVisitor<T> {
     T visit(ExprLength node);
     T visit(ExprArrayLiteral node);
     T visit(ExprUnop node);
+    T visit(ExprNull node);
+    T visit(ExprNew node);
 
     T visit(AssignableIndex node);
     T visit(AssignableId node);

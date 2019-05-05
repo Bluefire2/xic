@@ -7,20 +7,24 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 public class StmtBreak extends Stmt implements Printable {
-    public StmtBreak(ComplexSymbolFactory.Location location) { super(location); }
+    public StmtBreak(ComplexSymbolFactory.Location location) {
+        super(location);
+    }
 
     @Override
     public void accept(TypeCheckVisitor visitor) {
-        //TODO
+        visitor.visit(this);
     }
 
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
-        return null; //TODO
+        return visitor.visit(this);
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        //TODO
+        w.startList();
+        w.printAtom("break");
+        w.endList();
     }
 }

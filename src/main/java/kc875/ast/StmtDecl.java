@@ -33,4 +33,8 @@ public class StmtDecl extends Stmt implements DeclOrDefn {
     public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
     }
+
+    public String getName() {
+        return decl.getName();
+    }
 }
