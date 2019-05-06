@@ -48,7 +48,28 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     ) {
         super(location);
         this.name = name;
-        this.superClass = null;
+        this.superClass = Maybe.unknown();
+        this.fields = fields;
+        this.methods = methods;
+
+        this.fieldNames = fields.stream()
+                .map(StmtDecl::getName)
+                .collect(Collectors.toSet());
+
+        this.methodNames = methods.stream()
+                .map(FuncDefn::getName)
+                .collect(Collectors.toSet());
+    }
+
+    public ClassDefn(String name,
+                     String superClass,
+                     List<StmtDecl> fields,
+                     List<FuncDefn> methods,
+                     ComplexSymbolFactory.Location location
+    ) {
+        super(location);
+        this.name = name;
+        this.superClass = Maybe.definitely(superClass);
         this.fields = fields;
         this.methods = methods;
 
@@ -125,6 +146,6 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         List<FuncDecl> methodDecls = methods.stream()
                 .map(FuncDefn::toDecl)
                 .collect(Collectors.toList());
-        return new ClassDecl(getLocation(), name, superClass, fields, methodDecls);
+        return new ClassDecl(name, superClass, fields, methodDecls, getLocation());
     }
 }

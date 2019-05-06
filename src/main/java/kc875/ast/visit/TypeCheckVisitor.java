@@ -507,8 +507,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
      * @param decl declaration.
      * @param givenType type of the corresponding RHS function call.
      */
-    private void checkDeclaration(ASTNode node, TypeDecl decl,
-                                  TypeT givenType) {
+    private void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
         if (!subTypeOf(givenType, varType)) {
@@ -820,6 +819,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
+    //TODO THESE FOUR
     @Override
     public Void visit(FuncDecl node) {
         return null;
@@ -832,6 +832,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(ClassDefn node) {
+        return null;
+    }
+
+    @Override
+    public Void visit(StmtDeclMulti node) {
         return null;
     }
 

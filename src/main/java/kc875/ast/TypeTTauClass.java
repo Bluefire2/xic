@@ -13,6 +13,16 @@ public class TypeTTauClass extends TypeTTau {
         this.superClass = superClass;
     }
 
+    public TypeTTauClass(String name) {
+        this.name = name;
+        this.superClass = Maybe.unknown();
+    }
+
+    public TypeTTauClass(String name, String superClass) {
+        this.name = name;
+        this.superClass = Maybe.definitely(superClass);
+    }
+
     public String getName() {
         return name;
     }

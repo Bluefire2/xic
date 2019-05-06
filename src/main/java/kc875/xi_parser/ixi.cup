@@ -117,7 +117,7 @@ nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
 
 //pa7 new stuff
 nonterminal ClassDecl class_decl;
-nonterminal List<DeclOrDefn> field_list;
+nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
 nonterminal List<DeclOrDefn> decl_or_defn_list;
 nonterminal List<FuncDecl> func_decl_list;
@@ -253,19 +253,24 @@ func_decl_list ::=
 
 field_list ::=
   decl_annotated_var:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<StmtDecl> l = new ArrayList<>();
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | annotated_var:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<StmtDecl> l = new ArrayList<>();
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | multi_var_decl:m {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
-    for (
-    l.add(m);
+    ArrayList<StmtDecl> l = new ArrayList<>();
+    for (String v : m.getVars()){
+        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
+    }
     RESULT = l; :}
-| field_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| field_list:l multi_var_decl:m {:
+    for (String v : m.getVars()){
+        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
+    }
+    RESULT = l; :}
 | field_list:l annotated_var:d {:
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | field_list:l decl_annotated_var:d {:
@@ -274,21 +279,21 @@ field_list ::=
 
 class_decl ::=
   CLASS ID:c LBRAC field_list:fl func_decl_list:dl RBRAC {:
-    RESULT = new ClassDecl(c, fl, dl, cxleft) :}
+    RESULT = new ClassDecl(c, fl, dl, cxleft); :}
 | CLASS ID:c LBRAC func_decl_list:dl RBRAC {:
-    RESULT = new ClassDecl(c, new ArrayList<>(), dl, cxleft) :}
+    RESULT = new ClassDecl(c, new ArrayList<>(), dl, cxleft); :}
 | CLASS ID:c LBRAC field_list:fl RBRAC {:
-      RESULT = new ClassDecl(c, fl, new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDecl(c, fl, new ArrayList<>(), cxleft); :}
 | CLASS ID:c LBRAC  RBRAC {:
-      RESULT = new ClassDefn(c, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDecl(c, new ArrayList<>(), new ArrayList<>(), cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_decl_list:dl RBRAC {:
-    RESULT = new ClassDecl(c, e, fl, dl, cxleft) :}
+    RESULT = new ClassDecl(c, e, fl, dl, cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC func_decl_list:dl RBRAC {:
-    RESULT = new ClassDecl(c, e, new ArrayList<>(), dl, cxleft) :}
+    RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), dl, cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
-      RESULT = new ClassDecl(c, e, fl, new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDecl(c, e, fl, new ArrayList<FuncDecl>(), cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
-      RESULT = new ClassDecl(c, e, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDecl>(), cxleft); :}
 ;
 
 // unordered list of global variable decl/defn, function defn, or class defns...
@@ -323,7 +328,7 @@ import_list ::=
 // HIGHEST LEVEL
 interface ::=
   import_list:il decl_or_defn_list:dl {:
-    RESULT = new FileInterface(il, dl, ilxleft) ; :}
+    RESULT = new FileInterface(il, dl, ilxleft); :}
 | decl_or_defn_list:dl {:
     RESULT = new FileInterface(new ArrayList<UseInterface>(), dl, dlxleft); :}
 ;

@@ -28,6 +28,31 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
         this.methods = methods;
     }
 
+    public ClassDecl(String name,
+                     String superClass,
+                     List<StmtDecl> fields,
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location
+    ) {
+        super(location);
+        this.name = name;
+        this.superClass = Maybe.definitely(superClass);
+        this.fields = fields;
+        this.methods = methods;
+    }
+
+    public ClassDecl(String name,
+                     List<StmtDecl> fields,
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location
+    ) {
+        super(location);
+        this.name = name;
+        this.superClass = Maybe.unknown();
+        this.fields = fields;
+        this.methods = methods;
+    }
+
     public String getName() {
         return name;
     }

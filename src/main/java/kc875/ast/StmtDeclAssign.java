@@ -10,10 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StmtDeclAssign extends Stmt implements DeclOrDefn {
-    private List<TypeDeclVar> decls;
+    private List<TypeDecl> decls;
     private Expr rhs;
 
-    public StmtDeclAssign(List<TypeDeclVar> decls, Expr rhs,
+    public StmtDeclAssign(List<TypeDecl> decls, Expr rhs,
                           ComplexSymbolFactory.Location location) {
         super(location);
         this.decls = decls;
@@ -21,7 +21,7 @@ public class StmtDeclAssign extends Stmt implements DeclOrDefn {
         this.s_type = StmtType.DeclAssignStmt;
     }
 
-    public List<TypeDeclVar> getDecls() {
+    public List<TypeDecl> getDecls() {
         return decls;
     }
 

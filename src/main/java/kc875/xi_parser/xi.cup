@@ -126,7 +126,7 @@ nonterminal List<TypeTTau> type_list;
 
 //pa7 new stuff
 nonterminal ClassDefn class_defn;
-nonterminal List<DeclOrDefn> field_list;
+nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
 nonterminal List<DeclOrDefn> decl_or_defn_list;
 
@@ -311,7 +311,7 @@ expr ::=
   assignable_indexable_expr:e {: RESULT = e; :}
 // Array literals
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
-| LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft) ; :}
+| LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 // Grouping expressions
 | LPAREN expr:e RPAREN {: RESULT = e; :}
@@ -330,7 +330,7 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
-| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i), oxleft); :}
+| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i, ixleft), oxleft); :}
 | expr:e1 DOT:o func_expr:f {: RESULT = new ExprBinop(Binop.DOT, e1, f, oxleft); :}
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
@@ -427,7 +427,7 @@ stmt_list ::=
 block ::=
   LCURL:c return:r RCURL {:
     ArrayList<Stmt> l = new ArrayList<>(); l.add(r);
-    RESULT = new StmtBlock(l, cxleft) ; :}
+    RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c stmt_list:l RCURL {: RESULT = new StmtBlock(l, cxleft); :}
 | LCURL:c stmt_list:l return:r RCURL {:
     l.add(r); RESULT = new StmtBlock(l, cxleft); :}
@@ -441,19 +441,24 @@ block ::=
 
 field_list ::=
   decl_annotated_var:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<StmtDecl> l = new ArrayList<>();
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | annotated_var:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<StmtDecl> l = new ArrayList<>();
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | multi_var_decl:m {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
-    for (
-    l.add(m);
+    ArrayList<StmtDecl> l = new ArrayList<>();
+    for (String v : m.getVars()){
+        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
+    }
     RESULT = l; :}
-| field_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| field_list:l multi_var_decl:m {:
+    for (String v : m.getVars()){
+        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
+    }
+    RESULT = l; :}
 | field_list:l annotated_var:d {:
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | field_list:l decl_annotated_var:d {:
@@ -462,21 +467,21 @@ field_list ::=
 
 class_defn ::=
   CLASS ID:c LBRAC field_list:fl func_defn_list:dl RBRAC {:
-    RESULT = new ClassDefn(c, fl, dl, cxleft) :}
+    RESULT = new ClassDefn(c, fl, dl, cxleft); :}
 | CLASS ID:c LBRAC func_defn_list:dl RBRAC {:
-    RESULT = new ClassDefn(c, new ArrayList<>(), dl, cxleft) :}
+    RESULT = new ClassDefn(c, new ArrayList<StmtDecl>(), dl, cxleft); :}
 | CLASS ID:c LBRAC field_list:fl RBRAC {:
-      RESULT = new ClassDefn(c, fl, new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDefn(c, fl, new ArrayList<FuncDefn>(), cxleft); :}
 | CLASS ID:c LBRAC  RBRAC {:
-      RESULT = new ClassDefn(c, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDefn(c, new ArrayList<StmtDecl>(), new ArrayList<FuncDefn>(), cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_defn_list:dl RBRAC {:
-    RESULT = new ClassDefn(c, e, fl, dl, cxleft) :}
+    RESULT = new ClassDefn(c, e, fl, dl, cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC func_defn_list:dl RBRAC {:
-    RESULT = new ClassDefn(c, e, new ArrayList<>(), dl, cxleft) :}
+    RESULT = new ClassDefn(c, e, new ArrayList<StmtDecl>(), dl, cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
-      RESULT = new ClassDefn(c, e, fl, new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDefn(c, e, fl, new ArrayList<FuncDefn>(), cxleft); :}
 | CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
-      RESULT = new ClassDefn(c, e, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+      RESULT = new ClassDefn(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDefn>(), cxleft); :}
 ;
 
 // unordered list of global variable decl/defn, function defn, or class defns...
@@ -489,11 +494,29 @@ decl_or_defn_list ::=
       ArrayList<DeclOrDefn> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
+| decl_assign_stmt:d {:
+      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
 | decl_or_defn_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
-| field_list:l func_defn:d {: l.add(d); RESULT = l; :}
-| field_list:l class_defn:c {: l.add(c); RESULT = l; :}
+| field_list:f func_defn:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.addAll(f);
+    l.add(d);
+    RESULT = l; :}
+| field_list:f class_defn:c {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.addAll(f);
+    l.add(c);
+    RESULT = l; :}
+| field_list:f decl_assign_stmt:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.addAll(f);
+    l.add(d);
+    RESULT = l; :}
 | decl_or_defn_list:l func_defn:d {: l.add(d); RESULT = l; :}
 | decl_or_defn_list:l class_defn:c {: l.add(c); RESULT = l; :}
+| decl_or_defn_list:l decl_assign_stmt:d {: l.add(d); RESULT = l; :}
 | decl_or_defn_list:l annotated_var:d {:
     l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | decl_or_defn_list:l decl_annotated_var:d {:
@@ -519,7 +542,15 @@ import_list ::=
 
 program ::=
   import_list:il decl_or_defn_list:dl {:
-    RESULT = new FileProgram(il, dl, ilxleft) ; :}
+    RESULT = new FileProgram(il, dl, ilxleft); :}
 | decl_or_defn_list:dl {:
     RESULT = new FileProgram(new ArrayList<UseInterface>(), dl, dlxleft); :}
+| import_list:il field_list:fl {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.addAll(fl);
+    RESULT = new FileProgram(il, l, ilxleft); :}
+| field_list:fl {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.addAll(fl);
+    RESULT = new FileProgram(new ArrayList<UseInterface>(), l, flxleft); :}
 ;
