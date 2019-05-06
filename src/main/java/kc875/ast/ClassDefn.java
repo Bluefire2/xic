@@ -15,29 +15,46 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     private String name;
     private Maybe<String> superClass;
     private List<StmtDecl> fields;
-    private List<StmtDeclAssign> initializedFields; // TODO: are these allowed?
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
     private Set<String> methodNames;
 
-    public ClassDefn(ComplexSymbolFactory.Location location,
-                     String name,
+    public ClassDefn(String name,
                      Maybe<String> superClass,
                      List<StmtDecl> fields,
-                     List<StmtDeclAssign> initializedFields,
-                     List<FuncDefn> methods) {
+                     List<FuncDefn> methods,
+                     ComplexSymbolFactory.Location location
+                     ) {
         super(location);
         this.name = name;
         this.superClass = superClass;
         this.fields = fields;
-        this.initializedFields = initializedFields;
         this.methods = methods;
 
         this.fieldNames = fields.stream()
                 .map(StmtDecl::getName)
                 .collect(Collectors.toSet());
-        initializedFields.forEach(field -> this.fieldNames.addAll(field.getNames()));
+
+        this.methodNames = methods.stream()
+                .map(FuncDefn::getName)
+                .collect(Collectors.toSet());
+    }
+
+    public ClassDefn(String name,
+                     List<StmtDecl> fields,
+                     List<FuncDefn> methods,
+                     ComplexSymbolFactory.Location location
+    ) {
+        super(location);
+        this.name = name;
+        this.superClass = null;
+        this.fields = fields;
+        this.methods = methods;
+
+        this.fieldNames = fields.stream()
+                .map(StmtDecl::getName)
+                .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
@@ -54,10 +71,6 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
 
     public List<StmtDecl> getFields() {
         return fields;
-    }
-
-    public List<StmtDeclAssign> getInitializedFields() {
-        return initializedFields;
     }
 
     public List<FuncDefn> getMethods() {
@@ -96,9 +109,6 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         w.printAtom(name + superClass.to(sc -> " extends " + sc).otherwise(""));
         w.startList();
         fields.forEach(f -> f.prettyPrint(w));
-        w.endList();
-        w.startList();
-        initializedFields.forEach(f -> f.prettyPrint(w));
         w.endList();
         w.startList();
         methods.forEach(m -> m.prettyPrint(w));

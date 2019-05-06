@@ -98,33 +98,52 @@ terminal
     LCURL,
     RCURL,
     ERROR;
+terminal String ID;
 
-nonterminal String id;
 nonterminal FileInterface interface;
 nonterminal interface_file;
+nonterminal List<String> id_list;
+nonterminal Expr expr;
+nonterminal List<Expr> expr_list, indices;
+nonterminal UseInterface use_interface;
+nonterminal List<UseInterface> import_list;
 
-nonterminal Pair annotated_var;
-nonterminal TypeTTau type, basic_type, list_type;
+nonterminal Pair<String, TypeTTau> annotated_var, decl_annotated_var;
+nonterminal TypeTTau type, basic_type, init_list_type, list_type;
 nonterminal FuncDecl func_decl;
 
-nonterminal ArrayList<TypeTTau> type_list;
-nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
+nonterminal List<TypeTTau> type_list;
+nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
+
+//pa7 new stuff
+nonterminal ClassDecl class_decl;
+nonterminal List<DeclOrDefn> field_list;
+nonterminal StmtDeclMulti multi_var_decl;
+nonterminal List<DeclOrDefn> decl_or_defn_list;
+nonterminal List<FuncDecl> func_decl_list;
 
 precedence left COMMA;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 start with interface_file;
 
-
-id ::=
-  ID_LOWER:i {: RESULT = i; :}
-| ID_UPPER:i {: RESULT = i; :}
+id_list ::=
+  ID:i1 COMMA ID:i2 {:
+    ArrayList<String> l = new ArrayList<>();
+    l.add(i1);
+    l.add(i2);
+    RESULT = l; :}
+| id_list:l COMMA ID:i {:
+    l.add(i);
+    RESULT = l;
+  :}
 ;
 // TYPES
 
 basic_type ::=
   BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
 | INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+| ID:i {: RESULT = new TypeTTauClass(i); :}
 ;
 
 // Types legal for use everywhere
@@ -140,12 +159,53 @@ list_type ::=
 | list_type:t LBRAC RBRAC {: RESULT = new TypeTTauArray(t); :}
 ;
 
+indices ::=
+  LBRAC expr:e RBRAC {: ArrayList<Expr> l = new ArrayList<>(); l.add(e); RESULT = l; :}
+| indices:l LBRAC expr:e RBRAC {: l.add(e); RESULT = l; :}
+;
+
 type_list ::=
   type:t {:
     ArrayList<TypeTTau> l = new ArrayList<>();
     l.add(t);
     RESULT = l; :}
 | type_list:l COMMA type:t {: l.add(t); RESULT = l; :}
+;
+
+decl_annotated_var ::=
+  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+
+// List types with initialized lengths, can only be used in decl w/o assign
+// Example: int[3][n]
+init_list_type ::=
+  basic_type:t indices:i {:
+    TypeTTau curr = t;
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
+    }
+    RESULT = curr;
+  :}
+| basic_type:t indices:i LBRAC RBRAC {:
+    TypeTTau curr = new TypeTTauArray(t);
+    List<Expr> lengths = i;
+    Collections.reverse(lengths);
+    for (Expr e : lengths){
+        curr = new TypeTTauArray(curr, e);
+    }
+    RESULT = curr;
+  :}
+| init_list_type:t LBRAC RBRAC {:
+    TypeTTauArray curr = (TypeTTauArray) t;
+    while (curr.getTypeTTau() instanceof TypeTTauArray){
+        curr = (TypeTTauArray) curr.getTypeTTau();
+    }
+    curr.setTypeTTau(new TypeTTauArray(curr.getTypeTTau()));
+    RESULT = t;
+  :}
 ;
 
 annotated_var_list ::=
@@ -157,7 +217,7 @@ annotated_var_list ::=
 ;
 
 annotated_var ::=
-  id:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 // FUNCTION DECLARATIONS
@@ -168,8 +228,8 @@ func_args ::=
 ;
 
 func_decl ::=
-  id:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
-| id:n func_args:p COLON type_list:r {:
+  ID:n func_args:p {: RESULT = new FuncDecl(n, p, nxleft); :}
+| ID:n func_args:p COLON type_list:r {:
     // r.size() >= 1
     TypeT rt;
     if (r.size() == 1) {
@@ -180,14 +240,92 @@ func_decl ::=
     RESULT = new FuncDecl(n, p, rt, nxleft); :}
 ;
 
-// HIGHEST LEVEL
 
-interface ::=
+//CLASSES
+
+func_decl_list ::=
   func_decl:d {:
       ArrayList<FuncDecl> l = new ArrayList<>();
       l.add(d);
-      RESULT = new FileInterface(l, dxleft); :}
-| interface:i func_decl:d {: i.addFuncDecl(d); RESULT = i; :}
+      RESULT = l; :}
+| func_decl_list:l func_decl:d {: l.add(d); RESULT = l; :}
+;
+
+field_list ::=
+  decl_annotated_var:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    RESULT = l; :}
+| annotated_var:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    RESULT = l; :}
+| multi_var_decl:m {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    for (
+    l.add(m);
+    RESULT = l; :}
+| field_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| field_list:l annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+| field_list:l decl_annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+;
+
+class_decl ::=
+  CLASS ID:c LBRAC field_list:fl func_decl_list:dl RBRAC {:
+    RESULT = new ClassDecl(c, fl, dl, cxleft) :}
+| CLASS ID:c LBRAC func_decl_list:dl RBRAC {:
+    RESULT = new ClassDecl(c, new ArrayList<>(), dl, cxleft) :}
+| CLASS ID:c LBRAC field_list:fl RBRAC {:
+      RESULT = new ClassDecl(c, fl, new ArrayList<>(), cxleft) :}
+| CLASS ID:c LBRAC  RBRAC {:
+      RESULT = new ClassDefn(c, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_decl_list:dl RBRAC {:
+    RESULT = new ClassDecl(c, e, fl, dl, cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC func_decl_list:dl RBRAC {:
+    RESULT = new ClassDecl(c, e, new ArrayList<>(), dl, cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
+      RESULT = new ClassDecl(c, e, fl, new ArrayList<>(), cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
+      RESULT = new ClassDecl(c, e, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+;
+
+// unordered list of global variable decl/defn, function defn, or class defns...
+decl_or_defn_list ::=
+  class_decl:c {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(c);
+    RESULT = l; :}
+| func_decl:d {:
+      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
+| decl_or_defn_list:l func_decl:d {: l.add(d); RESULT = l; :}
+| decl_or_defn_list:l class_decl:c {: l.add(c); RESULT = l; :}
+;
+
+// IMPORTS
+
+use_interface ::=
+  USE ID:i {: RESULT = new UseInterface(i, ixleft); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
+;
+
+import_list ::=
+  use_interface:i {:
+      ArrayList<UseInterface> l = new ArrayList<>();
+      l.add(i);
+      RESULT = l; :}
+| import_list:l use_interface:i {: l.add(i); RESULT = l; :}
+;
+
+// HIGHEST LEVEL
+interface ::=
+  import_list:il decl_or_defn_list:dl {:
+    RESULT = new FileInterface(il, dl, ilxleft) ; :}
+| decl_or_defn_list:dl {:
+    RESULT = new FileInterface(new ArrayList<UseInterface>(), dl, dlxleft); :}
 ;
 
 interface_file ::=

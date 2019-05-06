@@ -15,11 +15,12 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
     private List<StmtDecl> fields;
     private List<FuncDecl> methods;
 
-    public ClassDecl(ComplexSymbolFactory.Location location,
-                     String name,
+    public ClassDecl(String name,
                      Maybe<String> superClass,
                      List<StmtDecl> fields,
-                     List<FuncDecl> methods) {
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location
+                     ) {
         super(location);
         this.name = name;
         this.superClass = superClass;

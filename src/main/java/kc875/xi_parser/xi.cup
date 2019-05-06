@@ -98,9 +98,10 @@ terminal
     LCURL,
     RCURL,
     ERROR;
+terminal String ID;
 
 nonterminal FileProgram program;
-nonterminal String id;
+nonterminal List<String> id_list;
 
 nonterminal Pair<String, TypeTTau> annotated_var, decl_annotated_var;
 nonterminal TypeDecl type_decl;
@@ -115,13 +116,20 @@ nonterminal Assignable assignable;
 nonterminal Stmt stmt, matched_stmt, unmatched_stmt, return, block;
 nonterminal StmtDeclAssign decl_assign_stmt;
 
-nonterminal ArrayList<Pair<String, TypeTTau>> annotated_var_list, func_args;
-nonterminal ArrayList<TypeDecl> type_decl_list;
-nonterminal ArrayList<Expr> expr_list, indices;
-nonterminal ArrayList<Stmt> stmt_list;
-nonterminal ArrayList<UseInterface> import_list;
-nonterminal ArrayList<FuncDefn> func_defn_list;
-nonterminal ArrayList<TypeTTau> type_list;
+nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
+nonterminal List<TypeDecl> type_decl_list;
+nonterminal List<Expr> expr_list, indices;
+nonterminal List<Stmt> stmt_list;
+nonterminal List<UseInterface> import_list;
+nonterminal List<FuncDefn> func_defn_list;
+nonterminal List<TypeTTau> type_list;
+
+//pa7 new stuff
+nonterminal ClassDefn class_defn;
+nonterminal List<DeclOrDefn> field_list;
+nonterminal StmtDeclMulti multi_var_decl;
+nonterminal List<DeclOrDefn> decl_or_defn_list;
+
 
 precedence left COMMA;
 precedence left DOT;
@@ -136,16 +144,24 @@ precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 start with program;
 
-//
-id ::=
-  ID_LOWER:i {: RESULT = i; :}
-| ID_UPPER:i {: RESULT = i; :}
+
+id_list ::=
+  ID:i1 COMMA ID:i2 {:
+    ArrayList<String> l = new ArrayList<>();
+    l.add(i1);
+    l.add(i2);
+    RESULT = l; :}
+| id_list:l COMMA ID:i {:
+    l.add(i);
+    RESULT = l;
+  :}
 ;
 // TYPES
 
 basic_type ::=
   BOOL_TYPE:t {: RESULT = new TypeTTauBool(); :}
 | INT_TYPE:t {: RESULT = new TypeTTauInt(); :}
+| ID:i {: RESULT = new TypeTTauClass(i); :}
 ;
 
 // Types legal for use everywhere
@@ -206,7 +222,7 @@ type_list ::=
 ;
 
 annotated_var ::=
-  id:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
 annotated_var_list ::=
@@ -218,7 +234,11 @@ annotated_var_list ::=
 ;
 
 decl_annotated_var ::=
-  id:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+multi_var_decl ::=
+  id_list:l COLON type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
 ;
 
 type_decl ::=
@@ -241,8 +261,8 @@ func_args ::=
 ;
 
 func_defn ::=
-  id:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
-| id:n func_args:p COLON type_list:r block:b {:
+  ID:n func_args:p block:b {: RESULT = new FuncDefn(n, p, b, nxleft); :}
+| ID:n func_args:p COLON type_list:r block:b {:
     // r.size() >= 1
     TypeT rt;
     if (r.size() == 1) {
@@ -273,16 +293,16 @@ expr_list ::= // NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 
 // Function call
 func_expr ::=
-  id:i LPAREN expr_list:el RPAREN {:
+  ID:i LPAREN expr_list:el RPAREN {:
     RESULT = new ExprFunctionCall(i, el, ixleft); :}
-| id:i LPAREN RPAREN {:
+| ID:i LPAREN RPAREN {:
     RESULT = new ExprFunctionCall(i, new ArrayList<Expr>(), ixleft); :}
 ;
 
 // Exprs without ( or { on LHS
 assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
-| id:i {: RESULT = new ExprId(i, ixleft); :}
+| ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
@@ -310,6 +330,8 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
+| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i), oxleft); :}
+| expr:e1 DOT:o func_expr:f {: RESULT = new ExprBinop(Binop.DOT, e1, f, oxleft); :}
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
@@ -328,7 +350,7 @@ expr ::=
 // STATEMENTS
 
 assignable ::=
-  id:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
+  ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
 | assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
@@ -364,9 +386,10 @@ matched_stmt ::=
 | decl_assign_stmt:d {: RESULT = d; :}
 | decl_annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
 | annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
-| id:i LPAREN expr_list:el RPAREN {:
+| multi_var_decl:m {: RESULT = m; :}
+| ID:i LPAREN expr_list:el RPAREN {:
     RESULT = new StmtProcedureCall(i, el, ixleft); :}
-| id:i LPAREN RPAREN {:
+| ID:i LPAREN RPAREN {:
     RESULT = new StmtProcedureCall(i, new ArrayList<Expr>(), ixleft); :}
 ;
 
@@ -414,11 +437,74 @@ block ::=
 | LCURL:c RCURL {: RESULT = new StmtBlock(cxleft); :}
 ;
 
+//CLASSES TODO do we want to allow empty classes?
+
+field_list ::=
+  decl_annotated_var:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    RESULT = l; :}
+| annotated_var:d {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    RESULT = l; :}
+| multi_var_decl:m {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    for (
+    l.add(m);
+    RESULT = l; :}
+| field_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| field_list:l annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+| field_list:l decl_annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+;
+
+class_defn ::=
+  CLASS ID:c LBRAC field_list:fl func_defn_list:dl RBRAC {:
+    RESULT = new ClassDefn(c, fl, dl, cxleft) :}
+| CLASS ID:c LBRAC func_defn_list:dl RBRAC {:
+    RESULT = new ClassDefn(c, new ArrayList<>(), dl, cxleft) :}
+| CLASS ID:c LBRAC field_list:fl RBRAC {:
+      RESULT = new ClassDefn(c, fl, new ArrayList<>(), cxleft) :}
+| CLASS ID:c LBRAC  RBRAC {:
+      RESULT = new ClassDefn(c, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_defn_list:dl RBRAC {:
+    RESULT = new ClassDefn(c, e, fl, dl, cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC func_defn_list:dl RBRAC {:
+    RESULT = new ClassDefn(c, e, new ArrayList<>(), dl, cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
+      RESULT = new ClassDefn(c, e, fl, new ArrayList<>(), cxleft) :}
+| CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
+      RESULT = new ClassDefn(c, e, new ArrayList<>(), new ArrayList<>(), cxleft) :}
+;
+
+// unordered list of global variable decl/defn, function defn, or class defns...
+decl_or_defn_list ::=
+  class_defn:c {:
+    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    l.add(c);
+    RESULT = l; :}
+| func_defn:d {:
+      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
+| decl_or_defn_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| field_list:l func_defn:d {: l.add(d); RESULT = l; :}
+| field_list:l class_defn:c {: l.add(c); RESULT = l; :}
+| decl_or_defn_list:l func_defn:d {: l.add(d); RESULT = l; :}
+| decl_or_defn_list:l class_defn:c {: l.add(c); RESULT = l; :}
+| decl_or_defn_list:l annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+| decl_or_defn_list:l decl_annotated_var:d {:
+    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+;
+
 // IMPORTS
 
 use_interface ::=
-  USE id:i {: RESULT = new UseInterface(i, ixleft); :}
-| USE id:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
+  USE ID:i {: RESULT = new UseInterface(i, ixleft); :}
+| USE ID:i SEMICOLON {: RESULT = new UseInterface(i, ixleft); :}
 ;
 
 import_list ::=
@@ -432,8 +518,8 @@ import_list ::=
 // PROGRAM
 
 program ::=
-  import_list:il func_defn_list:dl {:
+  import_list:il decl_or_defn_list:dl {:
     RESULT = new FileProgram(il, dl, ilxleft) ; :}
-| func_defn_list:dl {:
+| decl_or_defn_list:dl {:
     RESULT = new FileProgram(new ArrayList<UseInterface>(), dl, dlxleft); :}
 ;
