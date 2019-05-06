@@ -609,7 +609,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprNew node) {
-        return visit(node.getContructor());
+        //TODO;
+        return null;
     }
 
     @Override
@@ -910,6 +911,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     //TODO
     @Override
     public IRNode visit(StmtDeclMulti node) {
+        return null;
+    }
+
+    @Override
+    public IRNode visit(ExprThis node) {
         return null;
     }
 }

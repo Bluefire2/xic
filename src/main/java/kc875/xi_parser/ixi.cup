@@ -103,7 +103,7 @@ terminal String ID;
 nonterminal FileInterface interface;
 nonterminal interface_file;
 nonterminal List<String> id_list;
-nonterminal Expr expr;
+nonterminal Expr expr, assignable_indexable_expr;
 nonterminal List<Expr> expr_list, indices;
 nonterminal UseInterface use_interface;
 nonterminal List<UseInterface> import_list;
@@ -123,6 +123,14 @@ nonterminal List<DeclOrDefn> decl_or_defn_list;
 nonterminal List<FuncDecl> func_decl_list;
 
 precedence left COMMA;
+precedence left DOT;
+precedence left OR;
+precedence left AND;
+precedence left NEQ, EQEQ;
+precedence left LT, GT, LTEQ, GTEQ;
+precedence left PLUS, MINUS;
+precedence left MULT, DIV, MOD, HI_MULT;
+precedence nonassoc UMINUS, NOT;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
 start with interface_file;
@@ -218,6 +226,67 @@ annotated_var_list ::=
 
 annotated_var ::=
   ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+// EXPRESSIONS
+
+expr_list ::= // NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
+  expr:e {:
+       ArrayList<Expr> l = new ArrayList<>();
+       l.add(e);
+       RESULT = l; :}
+| expr_list:l COMMA expr:e {: l.add(e); RESULT = l; :}
+;
+
+// Exprs without ( or { on LHS
+assignable_indexable_expr ::=
+  STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
+| ID:i {: RESULT = new ExprId(i, ixleft); :}
+//| func_expr:f {: RESULT = f; :} //TODO currently this is removed
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
+;
+
+
+expr ::=
+  assignable_indexable_expr:e {: RESULT = e; :}
+// Array literals
+| LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
+| LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
+| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
+// Grouping expressions
+| LPAREN expr:e RPAREN {: RESULT = e; :}
+// Binops
+| expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
+| expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
+| expr:e1 PLUS:o expr:e2 {: RESULT = new ExprBinop(Binop.PLUS, e1, e2, oxleft); :}
+| expr:e1 MINUS:o expr:e2 {: RESULT = new ExprBinop(Binop.MINUS, e1, e2, oxleft); :}
+| expr:e1 DIV:o expr:e2 {: RESULT = new ExprBinop(Binop.DIV, e1, e2, oxleft); :}
+| expr:e1 MOD:o expr:e2 {: RESULT = new ExprBinop(Binop.MOD, e1, e2, oxleft); :}
+| expr:e1 MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.MULT, e1, e2, oxleft); :}
+| expr:e1 HI_MULT:o expr:e2 {: RESULT = new ExprBinop(Binop.HI_MULT, e1, e2, oxleft); :}
+| expr:e1 EQEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.EQEQ, e1, e2, oxleft); :}
+| expr:e1 NEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.NEQ, e1, e2, oxleft); :}
+| expr:e1 GT:o expr:e2 {: RESULT = new ExprBinop(Binop.GT, e1, e2, oxleft); :}
+| expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
+| expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
+| expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
+//| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i, ixleft), oxleft); :}
+//| expr:e1 DOT:o func_expr:f {: RESULT = new ExprBinop(Binop.DOT, e1, f, oxleft); :}
+// Unops
+| MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
+| NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
+//classes TODO currently this is removed
+//| NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
+// Literals
+| BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
+| INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
+| CHAR_LIT:c {: RESULT = new ExprIntLiteral(c, cxleft); :} // chars are really ints
+| expr:e1 indices:i {:
+    Expr curr = e1;
+    for (Expr e : i) {
+        curr = new ExprIndex(curr, e, ixleft);
+    }
+    RESULT = curr; :}
 ;
 
 // FUNCTION DECLARATIONS

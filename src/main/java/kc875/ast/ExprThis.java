@@ -6,12 +6,9 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
-public class ExprNew extends Expr {
-    private String name;
-
-    public ExprNew(String name, ComplexSymbolFactory.Location location) {
+public class ExprThis extends Expr {
+    public ExprThis(ComplexSymbolFactory.Location location) {
         super(location);
-        this.name = name;
     }
 
     @Override
@@ -21,18 +18,11 @@ public class ExprNew extends Expr {
 
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
-       return visitor.visit(this);
+        return visitor.visit(this);
     }
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        w.startList();
-        w.printAtom("new");
-        w.printAtom(name);
-        w.endList();
-    }
-
-    public String getName() {
-        return name;
+        w.printAtom("this");
     }
 }

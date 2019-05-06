@@ -335,6 +335,10 @@ expr ::=
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
+//classes
+| NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
+| NULL:n {: RESULT = new ExprNull(nxleft); :}
+| THIS:t {: RESULT = new ExprThis(txleft); :}
 // Literals
 | BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
 | INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
