@@ -9,22 +9,15 @@ import kc875.utils.Maybe;
 
 import java.util.List;
 
-public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
-    private String name;
-    private Maybe<String> superClass;
-    private List<StmtDecl> fields;
+public class ClassDecl extends ClassXi {
     private List<FuncDecl> methods;
 
     public ClassDecl(String name,
                      Maybe<String> superClass,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location
-                     ) {
-        super(location);
-        this.name = name;
-        this.superClass = superClass;
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, fields, location);
         this.methods = methods;
     }
 
@@ -32,24 +25,16 @@ public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
                      String superClass,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.definitely(superClass);
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, fields, location);
         this.methods = methods;
     }
 
     public ClassDecl(String name,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.unknown();
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, fields, location);
         this.methods = methods;
     }
 

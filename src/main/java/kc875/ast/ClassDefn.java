@@ -12,10 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.HashSet;
 
-public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
-    private String name;
-    private Maybe<String> superClass;
-    private List<StmtDecl> fields;
+public class ClassDefn extends ClassXi {
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
@@ -24,22 +21,13 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
     public ClassDefn(String name,
                      List<StmtDecl> fields,
                      List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.unknown();
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, fields, location);
         this.methods = methods;
 
-        this.fieldNames = new HashSet<>();
-        for (StmtDecl f : fields) {
-            if (f instanceof StmtDeclSingle) {
-                fieldNames.add(((StmtDeclSingle) f).getName());
-            } else if (f instanceof StmtDeclMulti) {
-                fieldNames.addAll(((StmtDeclMulti) f).getVars());
-            }
-        }
+        this.fieldNames = fields.stream()
+                .flatMap(sd -> sd.varsOf().stream())
+                .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
@@ -50,28 +38,19 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
                      String superClass,
                      List<StmtDecl> fields,
                      List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.definitely(superClass);
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, fields, location);
         this.methods = methods;
 
-        this.fieldNames = new HashSet<>();
-        for (StmtDecl f : fields) {
-            if (f instanceof StmtDeclSingle) {
-                fieldNames.add(((StmtDeclSingle) f).getName());
-            } else if (f instanceof StmtDeclMulti) {
-                fieldNames.addAll(((StmtDeclMulti) f).getVars());
-            }
-        }
+        this.fieldNames = fields.stream()
+                .flatMap(sd -> sd.varsOf().stream())
+                .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
                 .collect(Collectors.toSet());
     }
-
+    
     public String getName() {
         return name;
     }

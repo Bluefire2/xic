@@ -8,6 +8,7 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class StmtDeclAssign extends StmtDecl {
     private List<TypeDecl> decls;
@@ -56,5 +57,12 @@ public class StmtDeclAssign extends StmtDecl {
             }
         }
         return names;
+    }
+
+    @Override
+    public List<String> varsOf() {
+        return decls.stream()
+                .flatMap(td -> td.varsOf().stream())
+                .collect(Collectors.toList());
     }
 }
