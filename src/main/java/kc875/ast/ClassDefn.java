@@ -11,10 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
-    private String name;
-    private Maybe<String> superClass;
-    private List<StmtDeclSingle> fields;
+public class ClassDefn extends ClassXi {
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
@@ -22,18 +19,14 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
 
     public ClassDefn(String name,
                      Maybe<String> superClass,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-                     ) {
-        super(location);
-        this.name = name;
-        this.superClass = superClass;
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, fields, location);
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
+                .flatMap(sd -> sd.varsOf().stream())
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
@@ -42,18 +35,14 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
     }
 
     public ClassDefn(String name,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.unknown();
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, fields, location);
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
+                .flatMap(sd -> sd.varsOf().stream())
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
@@ -63,35 +52,19 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
 
     public ClassDefn(String name,
                      String superClass,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-    ) {
-        super(location);
-        this.name = name;
-        this.superClass = Maybe.definitely(superClass);
-        this.fields = fields;
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, fields, location);
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
+                .flatMap(sd -> sd.varsOf().stream())
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
                 .collect(Collectors.toSet());
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Maybe<String> getSuperClass() {
-        return superClass;
-    }
-
-    public List<StmtDeclSingle> getFields() {
-        return fields;
     }
 
     public List<FuncDefn> getMethods() {

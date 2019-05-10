@@ -49,4 +49,9 @@ public class StmtDeclMulti extends StmtDecl {
     public TypeTTau getType() {
         return type;
     }
+
+    @Override
+    public List<String> varsOf() {
+        return vars;
+    }
 }

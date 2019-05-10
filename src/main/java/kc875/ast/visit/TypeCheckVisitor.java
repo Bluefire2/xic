@@ -1,5 +1,7 @@
 package kc875.ast.visit;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import kc875.ast.*;
 import kc875.lexer.XiLexer;
 import kc875.lexer.XiTokenFactory;
@@ -14,8 +16,8 @@ import java.util.*;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
-    private Map<String, ClassDecl> classNameToDeclMap;
-    private Map<String, TypeTTauClass> classNameToTypeMap;
+    private BiMap<String, ClassXi> classNameToClassMap;
+    private BiMap<String, TypeTTauClass> classNameToTypeMap;
     private Set<UseInterface> importedInterfaces;
     private String libpath;
     private String RETURN_KEY = "__rho__";
@@ -24,8 +26,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
         this.symTable = symTable;
-        this.classNameToDeclMap = new HashMap<>();
-        this.classNameToTypeMap = new HashMap<>();
+        this.classNameToClassMap = HashBiMap.create();
+        this.classNameToTypeMap = HashBiMap.create();
         this.importedInterfaces = new HashSet<>();
         this.libpath = libpath;
         symTable.enterScope();
@@ -33,10 +35,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     public SymbolTable getSymTable() {
         return symTable;
-    }
-
-    public Map<String, ClassDecl> getClassNameToDeclMap() {
-        return classNameToDeclMap;
     }
 
     /**
@@ -760,20 +758,48 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
+    private void checkForDanglingSuperClasses() {
+        for (Map.Entry<String, TypeTTauClass> c : classNameToTypeMap.entrySet()) {
+            // If c extends d, check that d is a valid class. If c extends
+            // nothing, then do nothing
+            c.getValue().getSuperClass().thenDo(
+                    // c extends d
+                    d -> {
+                        if (!classNameToTypeMap.containsKey(d))
+                            // d doesn't exist in the list of classes
+                            throw new SemanticUnresolvedNameError(
+                                    d, classNameToClassMap.get(d).getLocation()
+                            );
+                    }
+            );
+        }
+    }
+
+    private void collectTauClasses(List<ClassDefn> cs) {
+        for (ClassDefn c : cs) {
+            if (classNameToTypeMap.containsKey(c.getName()))
+                throw new SemanticError(
+                        "Class " + c.getName() + " already defined",
+                        c.getLocation()
+                );
+            classNameToTypeMap.put(
+                    c.getName(), new TypeTTauClass(c.getName(), c.getSuperClass())
+            );
+            classNameToClassMap.put(
+                    c.getName(), c
+            );
+        }
+        checkForDanglingSuperClasses();
+    }
+
     @Override
     public Void visit(FileProgram node) {
-        List<UseInterface> imports = node.getImports();
         List<ClassDefn> classDefns = node.getClassDefns();
         List<StmtDecl> globalVars = node.getGlobalVars();
         List<FuncDefn> funcDefns = node.getFuncDefns();
 
-        // Visit the used modules
-        for (UseInterface interfaceToImport : imports) {
-            if (!importedInterfaces.contains(interfaceToImport))
-                // only visit the import if not visited before
-                interfaceToImport.accept(this);
-            importedInterfaces.add(interfaceToImport);
-        }
+        node.getImports().forEach(i -> i.accept(this));
+        collectTauClasses(node.getClassDefns());
 
         // TODO also visit classes etc.
         for (FuncDefn defn : funcDefns) {
@@ -858,13 +884,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
-    // TODO
     @Override
     public Void visit(FuncDecl node) {
         return null;
     }
 
-    // TODO
     @Override
     public Void visit(ClassDecl node) {
         return null;
@@ -878,6 +902,13 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(UseInterface node) {
+        if (importedInterfaces.contains(node))
+            throw new SemanticError(
+                    "Already imported interface " + node.getName(),
+                    node.getLocation()
+            );
+        importedInterfaces.add(node);
+
         String filename = node.getName() + ".ixi";
         String inputFilePath = Paths.get(libpath, filename).toString();
         try (FileReader fileReader = new FileReader(inputFilePath)) {

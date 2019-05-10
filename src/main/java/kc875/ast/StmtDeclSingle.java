@@ -6,6 +6,9 @@ import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StmtDeclSingle extends StmtDecl {
     private TypeDeclVar decl;
 
@@ -36,5 +39,12 @@ public class StmtDeclSingle extends StmtDecl {
 
     public String getName() {
         return decl.getName();
+    }
+
+    @Override
+    public List<String> varsOf() {
+        List<String> vars = new ArrayList<>();
+        vars.add(decl.getName());
+        return vars;
     }
 }
