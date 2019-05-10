@@ -119,7 +119,7 @@ nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
 nonterminal ClassDecl class_decl;
 nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
-nonterminal List<DeclOrDefn> decl_or_defn_list;
+nonterminal List<TopLevelDecl> decl_or_defn_list;
 nonterminal List<FuncDecl> func_decl_list;
 
 precedence left COMMA;
@@ -323,27 +323,23 @@ func_decl_list ::=
 field_list ::=
   decl_annotated_var:d {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | annotated_var:d {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | multi_var_decl:m {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    for (String v : m.getVars()){
-        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
-    }
+    l.add(m);
     RESULT = l; :}
 | field_list:l multi_var_decl:m {:
-    for (String v : m.getVars()){
-        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
-    }
+    l.add(m);
     RESULT = l; :}
 | field_list:l annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | field_list:l decl_annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 ;
 
 class_decl ::=
@@ -368,11 +364,11 @@ class_decl ::=
 // unordered list of global variable decl/defn, function defn, or class defns...
 decl_or_defn_list ::=
   class_decl:c {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.add(c);
     RESULT = l; :}
 | func_decl:d {:
-      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      ArrayList<TopLevelDecl> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
 | decl_or_defn_list:l func_decl:d {: l.add(d); RESULT = l; :}

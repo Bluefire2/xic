@@ -128,7 +128,7 @@ nonterminal List<TypeTTau> type_list;
 nonterminal ClassDefn class_defn;
 nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
-nonterminal List<DeclOrDefn> decl_or_defn_list;
+nonterminal List<TopLevelDecl> decl_or_defn_list;
 
 
 precedence left COMMA;
@@ -388,8 +388,8 @@ matched_stmt ::=
 | block:b {: RESULT = b; :}
 | assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
 | decl_assign_stmt:d {: RESULT = d; :}
-| decl_annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
-| annotated_var:d {: RESULT = new StmtDecl(new TypeDeclVar(d), dxleft); :}
+| decl_annotated_var:d {: RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
+| annotated_var:d {: RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
 | multi_var_decl:m {: RESULT = m; :}
 | ID:i LPAREN expr_list:el RPAREN {:
     RESULT = new StmtProcedureCall(i, el, ixleft); :}
@@ -446,27 +446,23 @@ block ::=
 field_list ::=
   decl_annotated_var:d {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | annotated_var:d {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft));
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
     RESULT = l; :}
 | multi_var_decl:m {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    for (String v : m.getVars()){
-        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
-    }
+    l.add(m);
     RESULT = l; :}
 | field_list:l multi_var_decl:m {:
-    for (String v : m.getVars()){
-        l.add(new StmtDecl(new TypeDeclVar(v,m.getType()), mxleft));
-    }
+    l.add(m);
     RESULT = l; :}
 | field_list:l annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | field_list:l decl_annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 ;
 
 class_defn ::=
@@ -491,30 +487,30 @@ class_defn ::=
 // unordered list of global variable decl/defn, function defn, or class defns...
 decl_or_defn_list ::=
   class_defn:c {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.add(c);
     RESULT = l; :}
 | func_defn:d {:
-      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      ArrayList<TopLevelDecl> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
 | decl_assign_stmt:d {:
-      ArrayList<DeclOrDefn> l = new ArrayList<>();
+      ArrayList<TopLevelDecl> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
 | decl_or_defn_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
 | field_list:f func_defn:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(f);
     l.add(d);
     RESULT = l; :}
 | field_list:f class_defn:c {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(f);
     l.add(c);
     RESULT = l; :}
 | field_list:f decl_assign_stmt:d {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(f);
     l.add(d);
     RESULT = l; :}
@@ -522,9 +518,9 @@ decl_or_defn_list ::=
 | decl_or_defn_list:l class_defn:c {: l.add(c); RESULT = l; :}
 | decl_or_defn_list:l decl_assign_stmt:d {: l.add(d); RESULT = l; :}
 | decl_or_defn_list:l annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 | decl_or_defn_list:l decl_annotated_var:d {:
-    l.add(new StmtDecl(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 ;
 
 // IMPORTS
@@ -550,11 +546,11 @@ program ::=
 | decl_or_defn_list:dl {:
     RESULT = new FileProgram(new ArrayList<UseInterface>(), dl, dlxleft); :}
 | import_list:il field_list:fl {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(fl);
     RESULT = new FileProgram(il, l, ilxleft); :}
 | field_list:fl {:
-    ArrayList<DeclOrDefn> l = new ArrayList<>();
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(fl);
     RESULT = new FileProgram(new ArrayList<UseInterface>(), l, flxleft); :}
 ;

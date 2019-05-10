@@ -10,39 +10,19 @@ import kc875.utils.Maybe;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.HashSet;
 
 public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
     private String name;
     private Maybe<String> superClass;
-    private List<StmtDeclSingle> fields;
+    private List<StmtDecl> fields;
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
     private Set<String> methodNames;
 
     public ClassDefn(String name,
-                     Maybe<String> superClass,
-                     List<StmtDeclSingle> fields,
-                     List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location
-                     ) {
-        super(location);
-        this.name = name;
-        this.superClass = superClass;
-        this.fields = fields;
-        this.methods = methods;
-
-        this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
-                .collect(Collectors.toSet());
-
-        this.methodNames = methods.stream()
-                .map(FuncDefn::getName)
-                .collect(Collectors.toSet());
-    }
-
-    public ClassDefn(String name,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDefn> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -52,9 +32,14 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
         this.fields = fields;
         this.methods = methods;
 
-        this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
-                .collect(Collectors.toSet());
+        this.fieldNames = new HashSet<>();
+        for (StmtDecl f : fields) {
+            if (f instanceof StmtDeclSingle) {
+                fieldNames.add(((StmtDeclSingle) f).getName());
+            } else if (f instanceof StmtDeclMulti) {
+                fieldNames.addAll(((StmtDeclMulti) f).getVars());
+            }
+        }
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
@@ -63,7 +48,7 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
 
     public ClassDefn(String name,
                      String superClass,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDefn> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -73,9 +58,14 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
         this.fields = fields;
         this.methods = methods;
 
-        this.fieldNames = fields.stream()
-                .map(StmtDeclSingle::getName)
-                .collect(Collectors.toSet());
+        this.fieldNames = new HashSet<>();
+        for (StmtDecl f : fields) {
+            if (f instanceof StmtDeclSingle) {
+                fieldNames.add(((StmtDeclSingle) f).getName());
+            } else if (f instanceof StmtDeclMulti) {
+                fieldNames.addAll(((StmtDeclMulti) f).getVars());
+            }
+        }
 
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
@@ -90,7 +80,7 @@ public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
         return superClass;
     }
 
-    public List<StmtDeclSingle> getFields() {
+    public List<StmtDecl> getFields() {
         return fields;
     }
 

@@ -12,12 +12,12 @@ import java.util.List;
 public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
     private String name;
     private Maybe<String> superClass;
-    private List<StmtDeclSingle> fields;
+    private List<StmtDecl> fields;
     private List<FuncDecl> methods;
 
     public ClassDecl(String name,
                      Maybe<String> superClass,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
                      ) {
@@ -30,7 +30,7 @@ public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
 
     public ClassDecl(String name,
                      String superClass,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -42,7 +42,7 @@ public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
     }
 
     public ClassDecl(String name,
-                     List<StmtDeclSingle> fields,
+                     List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -61,7 +61,7 @@ public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
         return superClass;
     }
 
-    public List<StmtDeclSingle> getFields() {
+    public List<StmtDecl> getFields() {
         return fields;
     }
 

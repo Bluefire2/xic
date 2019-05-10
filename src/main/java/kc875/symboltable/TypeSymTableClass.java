@@ -3,6 +3,7 @@ package kc875.symboltable;
 import kc875.ast.*;
 
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 public class TypeSymTableClass extends TypeSymTable {
@@ -11,16 +12,24 @@ public class TypeSymTableClass extends TypeSymTable {
     private Map<String, TypeSymTableFunc> methods;
 
     private Map<String, TypeSymTableVar> fieldsOf(ClassDecl decl) {
-        return decl.getFields().stream()
-                .collect(Collectors.toMap(
-                        StmtDeclSingle::getName,
-                        stmt -> new TypeSymTableVar((TypeTTau) stmt.getDecl().typeOf())
-                ));
+        HashMap<String, TypeSymTableVar> m = new HashMap<>();
+        for (StmtDecl f: decl.getFields()) {
+            if (f instanceof StmtDeclSingle) {
+                StmtDeclSingle s = (StmtDeclSingle) f;
+                m.put(s.getDecl().getPair().part1(),
+                        new TypeSymTableVar(s.getDecl().getPair().part2()));
+            } else if (f instanceof StmtDeclMulti) {
+                StmtDeclMulti s = (StmtDeclMulti) f;
+                for (String v : s.getVars()) {
+                    m.put(v, new TypeSymTableVar(s.getType()));
+                }
+            }
+        }
+        return m;
     }
 
     private Map<String, TypeSymTableVar> fieldsOf(ClassDefn defn) {
-        // TODO
-        return null;
+        return fieldsOf(defn.toDecl());
     }
 
     private Map<String, TypeSymTableFunc> methodsOf(ClassDecl decl) {
