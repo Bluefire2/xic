@@ -792,32 +792,68 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     private void collectFuncs(List<FuncDefn> fs) {
         for (FuncDefn f : fs) {
-            // TODO
             Pair<String, TypeSymTable> signature = f.getSignature();
+            String name = signature.part1();
             TypeSymTableFunc funcSig = (TypeSymTableFunc) signature.part2();
+
+            // check that all the types in the signature are correct
+            // can be int, bool, C or T[] for any valid T
+            checkTypeT(funcSig.getInput());
+            checkTypeT(funcSig.getOutput());
+
             try {
-                TypeSymTable existing = symTable.lookup(signature.part1());
+                TypeSymTable existing = symTable.lookup(name);
                 TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
                 //existing function has already been defined
                 if (!existingf.canDecl()) {
                     throw new SemanticError(
-                            String.format("Function with name %s has already been defined",signature.part1()),
+                            String.format("Function with name %s has already been defined", name),
                             f.getLocation());
                 }
                 //existing function has different signature
                 if (!(existingf.getInput().equals(funcSig.getInput()) &&
                         existingf.getOutput().equals(funcSig.getOutput()))) {
                     throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", signature.part1()),
+                            String.format("Existing function with name %s has different signature", name),
                             f.getLocation());
                 }
                 existingf.setCanDecl(false);
             } catch (NotFoundException e) {
                 // funcSig is already set to not re-declarable
-                symTable.add(signature.part1(), funcSig);
+                symTable.add(name, funcSig);
             }
         }
 
+    }
+
+    /**
+     * Check if a given type is valid. This means that it is either:
+     *
+     * - A primitive type
+     * - A class that has been defined
+     * - An array of valid types as defined above
+     *
+     * @param type The type to check.
+     * @throws SemanticError if the type is not valid.
+     */
+    private void checkTypeT(TypeT type) {
+        if (type instanceof TypeTTau) {
+            if (type instanceof TypeTTauClass) {
+                String className = ((TypeTTauClass) type).getName();
+                if (!classHierarchy.containsKey(className)) {
+                    throw new SemanticUnresolvedNameError(
+                            className,
+                            classNameToClassMap.get(className).getLocation()
+                    );
+                }
+            } else if (type instanceof TypeTTauArray) {
+                checkTypeT(((TypeTTauArray) type).getTypeTTau());
+            }
+            // otherwise, it has to be bool or int, both of which are valid
+        } else if (type instanceof TypeTList) {
+            ((TypeTList) type).getTTauList().forEach(this::checkTypeT);
+        }
+        // has to be a unit, which is valid
     }
 
     @Override
