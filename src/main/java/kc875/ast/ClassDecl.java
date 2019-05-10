@@ -38,18 +38,6 @@ public class ClassDecl extends ClassXi {
         this.methods = methods;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Maybe<String> getSuperClass() {
-        return superClass;
-    }
-
-    public List<StmtDecl> getFields() {
-        return fields;
-    }
-
     public List<FuncDecl> getMethods() {
         return methods;
     }

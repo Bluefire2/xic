@@ -2,8 +2,8 @@ package kc875.symboltable;
 
 import kc875.ast.*;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TypeSymTableClass extends TypeSymTable {
@@ -11,28 +11,19 @@ public class TypeSymTableClass extends TypeSymTable {
     private Map<String, TypeSymTableVar> fields;
     private Map<String, TypeSymTableFunc> methods;
 
-    private Map<String, TypeSymTableVar> fieldsOf(ClassDecl decl) {
-        HashMap<String, TypeSymTableVar> m = new HashMap<>();
-        for (StmtDecl f: decl.getFields()) {
-            if (f instanceof StmtDeclSingle) {
-                StmtDeclSingle s = (StmtDeclSingle) f;
-                m.put(s.getDecl().getPair().part1(),
-                        new TypeSymTableVar(s.getDecl().getPair().part2()));
-            } else if (f instanceof StmtDeclMulti) {
-                StmtDeclMulti s = (StmtDeclMulti) f;
-                for (String v : s.getVars()) {
-                    m.put(v, new TypeSymTableVar(s.getType()));
-                }
-            }
-        }
-        return m;
+    private static Map<String, TypeSymTableVar> fieldsOf(ClassDecl decl) {
+        Map<String, TypeSymTableVar> fields = new HashMap<>();
+        decl.getFields().forEach(f ->
+                f.applyToAll((String name, TypeTTau type) ->
+                        fields.put(name, new TypeSymTableVar(type))));
+        return fields;
     }
 
-    private Map<String, TypeSymTableVar> fieldsOf(ClassDefn defn) {
+    private static Map<String, TypeSymTableVar> fieldsOf(ClassDefn defn) {
         return fieldsOf(defn.toDecl());
     }
 
-    private Map<String, TypeSymTableFunc> methodsOf(ClassDecl decl) {
+    private static Map<String, TypeSymTableFunc> methodsOf(ClassDecl decl) {
         return decl.getMethods().stream()
                 .collect(Collectors.toMap(
                         FuncDecl::getName,
@@ -40,7 +31,7 @@ public class TypeSymTableClass extends TypeSymTable {
                 ));
     }
 
-    private Map<String, TypeSymTableFunc> methodsOf(ClassDefn defn) {
+    private static Map<String, TypeSymTableFunc> methodsOf(ClassDefn defn) {
         return defn.getMethods().stream()
                 .collect(Collectors.toMap(
                         FuncDefn::getName,

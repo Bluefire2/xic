@@ -856,28 +856,25 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // has to be a unit, which is valid
     }
 
-    private void collectGlobalVars(List<StmtDecl> globals) {
-        for (StmtDecl global : globals) {
-            global.applyToAll((String name, TypeTTau type) -> {
-                if (symTable.contains(name)) {
-                    throw new SemanticError(
-                            String.format("Variable name %s already exists", name),
-                            global.getLocation()
-                    );
-                } else {
-                    checkTypeT(type, global);
-                    symTable.add(name, new TypeSymTableVar(type));
-                }
-            });
-        }
+    private void collectClassContents(List<ClassDefn> cs) {
+        cs.forEach(c -> symTable.add(
+                c.getName(),
+                new TypeSymTableClass(new TypeTTauClass(c.getName()), c)
+        ));
     }
 
     @Override
     public Void visit(FileProgram node) {
         node.getImports().forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
+
         collectFuncs(node.getFuncDefns());
-        collectGlobalVars(node.getGlobalVars());
+        collectClassContents(node.getClassDefns());
+
+        // check the insides of the program's defns
+        node.getClassDefns().forEach(c -> c.accept(this));
+        node.getFuncDefns().forEach(f -> f.accept(this));
+        node.getGlobalVars().forEach(g -> g.accept(this));
         return null;
     }
 
@@ -950,6 +947,17 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     // TODO
     @Override
     public Void visit(ClassDefn node) {
+        symTable.enterScope();
+        symTable.add(INCLASS_KEY, new TypeSymTableInClass(
+                new TypeTTauClass(node.getName())
+        ));
+
+        node.getFields().forEach(f -> f.accept(this));
+        node.getMethods().forEach(m -> m.accept(this));
+        // TODO:
+
+        // check the methods
+        symTable.exitScope();
         return null;
     }
 
