@@ -17,15 +17,17 @@ import java.util.Map;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
-    private Map<String, ClassDecl> classes;
+    private Map<String, ClassDecl> classNameToDeclMap;
+    private Map<String, TypeTTauClass> classNameToTypeMap;
     private String libpath;
-    private String RETURN_KEY = "__return__";
-
-    private boolean inALoop = false;
+    private String RETURN_KEY = "__rho__";
+    private String BREAK_KEY = "__beta__";
+    private String INCLASS_KEY = "__kappa__";
 
     public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
         this.symTable = symTable;
-        this.classes = new HashMap<>();
+        this.classNameToDeclMap = new HashMap<>();
+        this.classNameToTypeMap = new HashMap<>();
         this.libpath = libpath;
         symTable.enterScope();
     }
@@ -34,8 +36,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return symTable;
     }
 
-    public Map<String, ClassDecl> getClasses() {
-        return classes;
+    public Map<String, ClassDecl> getClassNameToDeclMap() {
+        return classNameToDeclMap;
     }
 
     /**
@@ -324,41 +326,37 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
-    @Override //TODO
+    @Override
     public Void visit(ExprNew node) {
-        String constructorName = node.getName();
-//        try {
-//           TypeSymTable sym = symTable.lookup(constructorName);
-//            if (!(sym instanceof TypeSymTableFunc))
-//                throw new SemanticError(
-//                        String.format("%s is not a function", constructorName),
-//                        node.getLocation()
-//                );
-//            else {
-//                TypeT actualType = ((TypeSymTableFunc) sym).getOutput();
-//                if (!(actualType instanceof TypeTTauClass))
-//                    throw new SemanticError(
-//                        String.format("%s is not a constructor", constructorName),
-//                        node.getLocation()
-//                );
-//                if (!(expectedType.equals(actualType))) {
-//                    throw new SemanticError(
-//                            String.format("%s is not a valid constructor for %s",
-//                                    constructorName, expectedType),
-//                            node.getLocation()
-//                    );
-//                }
-//            }
-//        }
-//        catch (NotFoundException e) {
-//            throw new SemanticUnresolvedNameError(constructorName, node.getLocation());
-//        }
+        String className = node.getName();
+        try {
+            TypeSymTable t = symTable.lookup(className);
+            if (!(t instanceof TypeSymTableClass))
+                // className not in context
+                throw new SemanticUnresolvedNameError(
+                        className, node.getLocation()
+                );
+            node.setTypeCheckType(((TypeSymTableClass) t).getType());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    className, node.getLocation()
+            );
+        }
         return null;
     }
 
     @Override
     public Void visit(ExprNull node) {
-        //TODO: type error if not in class?
+        try {
+            TypeSymTableInClass t =
+                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
+            node.setTypeCheckType(t.getTypeTTauClass());
+        } catch (NotFoundException e){
+            throw new SemanticError(
+                    "null not allowed outside a class definition",
+                    node.getLocation()
+            );
+        }
         return null;
     }
 
@@ -679,9 +677,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
-            inALoop = true;
+            symTable.add(BREAK_KEY, new TypeSymTableUnit());
             node.getDoStmt().accept(this);
-            inALoop = false;
             symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
         } else {
@@ -722,10 +719,12 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(StmtBreak node) {
-        if (!inALoop) {
-            throw new SemanticError("Cannot use break outside of loop",
-                    node.getLocation());
-        }
+        if (symTable.contains(BREAK_KEY))
+            node.setTypeCheckType(TypeR.Void);
+        else
+            throw new SemanticError(
+                    "break not allowed outside a loop", node.getLocation()
+            );
         return null;
     }
 
@@ -818,22 +817,25 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
-    //TODO THESE FIVE
+    // TODO
     @Override
     public Void visit(FuncDecl node) {
         return null;
     }
 
+    // TODO
     @Override
     public Void visit(ClassDecl node) {
         return null;
     }
 
+    // TODO
     @Override
     public Void visit(ClassDefn node) {
         return null;
     }
 
+    // TODO
     @Override
     public Void visit(StmtDeclMulti node) {
         return null;
@@ -841,6 +843,16 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(ExprThis node) {
+        try {
+            TypeSymTableInClass t =
+                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
+            node.setTypeCheckType(t.getTypeTTauClass());
+        } catch (NotFoundException e){
+            throw new SemanticError(
+                    "this not allowed outside a class definition",
+                    node.getLocation()
+            );
+        }
         return null;
     }
 
@@ -903,6 +915,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeTTauArray snd_ = (TypeTTauArray) snd;
         if (fst.getTypeTTau() == null || snd_.getTypeTTau() == null)
             return true;
+        // TODO: make this invariant instead of covariant? Think about class
+        //  subtyping on the taus here.
         return subTypeOf(fst.getTypeTTau(), snd_.getTypeTTau());
     }
 

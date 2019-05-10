@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TypeSymTableClass extends TypeSymTable {
+    private TypeTTauClass type;
     private Map<String, TypeSymTableVar> fields;
     private Map<String, TypeSymTableFunc> methods;
 
@@ -38,20 +39,28 @@ public class TypeSymTableClass extends TypeSymTable {
                 ));
     }
 
-    public TypeSymTableClass(ClassDecl decl) {
+    public TypeSymTableClass(TypeTTauClass type, ClassDecl decl) {
+        this.type = type;
         this.fields = fieldsOf(decl);
         this.methods = methodsOf(decl);
     }
 
-    public TypeSymTableClass(ClassDefn defn) {
+    public TypeSymTableClass(TypeTTauClass type, ClassDefn defn) {
+        this.type = type;
         this.fields = fieldsOf(defn);
         this.methods = methodsOf(defn);
     }
 
-    public TypeSymTableClass(Map<String, TypeSymTableVar> fields,
+    public TypeSymTableClass(TypeTTauClass type,
+                             Map<String, TypeSymTableVar> fields,
                              Map<String, TypeSymTableFunc> methods) {
+        this.type = type;
         this.fields = fields;
         this.methods = methods;
+    }
+
+    public TypeTTauClass getType() {
+        return type;
     }
 
     public Map<String, TypeSymTableVar> getFields() {

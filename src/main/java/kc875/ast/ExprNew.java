@@ -27,8 +27,7 @@ public class ExprNew extends Expr {
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
-        w.printAtom("new");
-        w.printAtom(name);
+        w.printAtom("new " + name);
         w.endList();
     }
 
