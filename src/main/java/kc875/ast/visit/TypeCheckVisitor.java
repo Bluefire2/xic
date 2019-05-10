@@ -792,6 +792,36 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         checkForDanglingSuperClasses();
     }
 
+    private void collectFuncs(List<FuncDefn> fs) {
+        for (FuncDefn f : fs) {
+            // TODO
+            Pair<String, TypeSymTable> signature = f.getSignature();
+            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
+            try {
+                TypeSymTable existing = symTable.lookup(signature.part1());
+                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
+                //existing function has already been defined
+                if (!existingf.can_decl()) {
+                    throw new SemanticError(
+                            String.format("Function with name %s has already been defined",signature.part1()),
+                            f.getLocation());
+                }
+                //existing function has different signature
+                if (!(existingf.getInput().equals(func_sig.getInput()) &&
+                        existingf.getOutput().equals(func_sig.getOutput()))) {
+                    throw new SemanticError(
+                            String.format("Existing function with name %s has different signature", signature.part1()),
+                            f.getLocation());
+                }
+                existingf.set_can_decl(false);
+            } catch (NotFoundException e) {
+                //func_sig is already set to not re-declarable
+                symTable.add(signature.part1(), func_sig);
+            }
+        }
+
+    }
+
     @Override
     public Void visit(FileProgram node) {
         List<ClassDefn> classDefns = node.getClassDefns();
@@ -801,37 +831,14 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         node.getImports().forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
 
-        // TODO also visit classes etc.
-        for (FuncDefn defn : funcDefns) {
-            Pair<String, TypeSymTable> signature = defn.getSignature();
-            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
-            try {
-                TypeSymTable existing = symTable.lookup(signature.part1());
-                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
-                //existing function has already been defined
-                if (!existingf.can_decl()) {
-                    throw new SemanticError(
-                            String.format("Function with name %s has already been defined",signature.part1()),
-                            defn.getLocation());
-                }
-                //existing function has different signature
-                if (!(existingf.getInput().equals(func_sig.getInput()) &&
-                        existingf.getOutput().equals(func_sig.getOutput()))) {
-                    throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", signature.part1()),
-                            defn.getLocation());
-                }
-                existingf.set_can_decl(false);
-            } catch (NotFoundException e) {
-                //func_sig is already set to not re-declarable
-                symTable.add(signature.part1(), func_sig);
-            }
-        }
+        collectFuncs(node.getFuncDefns());
         return null;
     }
 
     @Override
     public Void visit(FileInterface node) {
+        // TODO: interfaces should take have imports
+
         //note: visitor will only visit program file or interface file
         List<FuncDecl> decls = node.getFuncDecls();
 
