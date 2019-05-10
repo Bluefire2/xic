@@ -9,7 +9,7 @@ import kc875.ast.visit.TypeCheckVisitor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StmtDeclAssign extends Stmt implements DeclOrDefn {
+public class StmtDeclAssign extends StmtDecl {
     private List<TypeDecl> decls;
     private Expr rhs;
 

@@ -718,7 +718,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRStmt visit(StmtDecl node) {
+    public IRStmt visit(StmtDeclSingle node) {
         Pair<String, TypeTTau> decl = node.getDecl().getPair();
         return initDecl(decl.part1(), decl.part2());
     }

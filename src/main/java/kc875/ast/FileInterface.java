@@ -32,12 +32,12 @@ public class FileInterface extends FileSource {
     }
 
     public FileInterface(List<UseInterface> imports,
-                         List<DeclOrDefn> decls,
+                         List<TopLevelDecl> decls,
                          ComplexSymbolFactory.Location location){
         super(location);
         List<ClassDecl> classes = new ArrayList<>();
         List<FuncDecl> funcDecls = new ArrayList<>();
-        for (DeclOrDefn d : decls) {
+        for (TopLevelDecl d : decls) {
             if (d instanceof FuncDecl) {
                 funcDecls.add((FuncDecl) d);
             } else if (d instanceof ClassDecl) {

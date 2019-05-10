@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
+public class ClassDefn extends ASTNode implements Printable, TopLevelDecl {
     private String name;
     private Maybe<String> superClass;
-    private List<StmtDecl> fields;
+    private List<StmtDeclSingle> fields;
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
@@ -22,7 +22,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
 
     public ClassDefn(String name,
                      Maybe<String> superClass,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDefn> methods,
                      ComplexSymbolFactory.Location location
                      ) {
@@ -33,7 +33,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDecl::getName)
+                .map(StmtDeclSingle::getName)
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
@@ -42,7 +42,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
     }
 
     public ClassDefn(String name,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDefn> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -53,7 +53,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDecl::getName)
+                .map(StmtDeclSingle::getName)
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
@@ -63,7 +63,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
 
     public ClassDefn(String name,
                      String superClass,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDefn> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -74,7 +74,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         this.methods = methods;
 
         this.fieldNames = fields.stream()
-                .map(StmtDecl::getName)
+                .map(StmtDeclSingle::getName)
                 .collect(Collectors.toSet());
 
         this.methodNames = methods.stream()
@@ -90,7 +90,7 @@ public class ClassDefn extends ASTNode implements Printable, DeclOrDefn {
         return superClass;
     }
 
-    public List<StmtDecl> getFields() {
+    public List<StmtDeclSingle> getFields() {
         return fields;
     }
 

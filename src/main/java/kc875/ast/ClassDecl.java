@@ -9,15 +9,15 @@ import kc875.utils.Maybe;
 
 import java.util.List;
 
-public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
+public class ClassDecl extends ASTNode implements Printable, TopLevelDecl {
     private String name;
     private Maybe<String> superClass;
-    private List<StmtDecl> fields;
+    private List<StmtDeclSingle> fields;
     private List<FuncDecl> methods;
 
     public ClassDecl(String name,
                      Maybe<String> superClass,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
                      ) {
@@ -30,7 +30,7 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
 
     public ClassDecl(String name,
                      String superClass,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -42,7 +42,7 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
     }
 
     public ClassDecl(String name,
-                     List<StmtDecl> fields,
+                     List<StmtDeclSingle> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location
     ) {
@@ -61,7 +61,7 @@ public class ClassDecl extends ASTNode implements Printable, DeclOrDefn {
         return superClass;
     }
 
-    public List<StmtDecl> getFields() {
+    public List<StmtDeclSingle> getFields() {
         return fields;
     }
 

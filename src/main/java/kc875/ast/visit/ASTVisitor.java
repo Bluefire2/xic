@@ -21,7 +21,7 @@ interface ASTVisitor<T> {
 
     T visit(StmtReturn node);
     T visit(StmtAssign node);
-    T visit(StmtDecl node);
+    T visit(StmtDeclSingle node);
     T visit(StmtDeclMulti node);
     T visit(StmtDeclAssign node);
     T visit(StmtProcedureCall node);

@@ -13,7 +13,7 @@ public class TypeSymTableClass extends TypeSymTable {
     private Map<String, TypeSymTableVar> fieldsOf(ClassDecl decl) {
         return decl.getFields().stream()
                 .collect(Collectors.toMap(
-                        StmtDecl::getName,
+                        StmtDeclSingle::getName,
                         stmt -> new TypeSymTableVar((TypeTTau) stmt.getDecl().typeOf())
                 ));
     }

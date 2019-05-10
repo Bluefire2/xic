@@ -10,15 +10,13 @@ import polyglot.util.Pair;
 
 import java.io.FileReader;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private Map<String, ClassDecl> classNameToDeclMap;
     private Map<String, TypeTTauClass> classNameToTypeMap;
+    private Set<UseInterface> importedInterfaces;
     private String libpath;
     private String RETURN_KEY = "__rho__";
     private String BREAK_KEY = "__beta__";
@@ -28,6 +26,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         this.symTable = symTable;
         this.classNameToDeclMap = new HashMap<>();
         this.classNameToTypeMap = new HashMap<>();
+        this.importedInterfaces = new HashSet<>();
         this.libpath = libpath;
         symTable.enterScope();
     }
@@ -361,6 +360,21 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(ExprThis node) {
+        try {
+            TypeSymTableInClass t =
+                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
+            node.setTypeCheckType(t.getTypeTTauClass());
+        } catch (NotFoundException e){
+            throw new SemanticError(
+                    "this not allowed outside a class definition",
+                    node.getLocation()
+            );
+        }
+        return null;
+    }
+
+    @Override
     public Void visit(AssignableIndex node) {
         return null;
     }
@@ -438,6 +452,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             // type of LHS index is already pre-calculated
             expectedType = index.getTypeCheckType();
         } else {
+            // TODO: can also be a field
             throw new SemanticError(
                     "Expression can't be assigned to",
                     node.getLocation()
@@ -457,7 +472,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
-    public Void visit(StmtDecl node) {
+    public Void visit(StmtDeclSingle node) {
         TypeDeclVar d = node.getDecl();
         TypeTTau t = (TypeTTau) d.typeOf();
         TypeSymTableVar dt = new TypeSymTableVar(t);
@@ -526,6 +541,23 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 // put in the symTable
             }
         }
+    }
+
+    @Override
+    public Void visit(StmtDeclMulti node) {
+        List<String> vars = node.getVars();
+        TypeTTau type = node.getType();
+
+        for (String var : vars) {
+            if (symTable.contains(var))
+                throw new SemanticError(
+                        String.format("Duplicate variable %s", var),
+                        node.getLocation()
+                );
+            symTable.add(var, new TypeSymTableVar(type));
+        }
+        node.setTypeCheckType(TypeR.Unit);
+        return null;
     }
 
     @Override
@@ -731,13 +763,20 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     @Override
     public Void visit(FileProgram node) {
         List<UseInterface> imports = node.getImports();
-        List<FuncDefn> defns = node.getFuncDefns();
-        for (UseInterface import_node : imports) {
-            // TODO: only visit import_node if not visited before (set up a
-            //  set or something)
-            import_node.accept(this);
+        List<ClassDefn> classDefns = node.getClassDefns();
+        List<StmtDecl> globalVars = node.getGlobalVars();
+        List<FuncDefn> funcDefns = node.getFuncDefns();
+
+        // Visit the used modules
+        for (UseInterface interfaceToImport : imports) {
+            if (!importedInterfaces.contains(interfaceToImport))
+                // only visit the import if not visited before
+                interfaceToImport.accept(this);
+            importedInterfaces.add(interfaceToImport);
         }
-        for (FuncDefn defn : defns) {
+
+        // TODO also visit classes etc.
+        for (FuncDefn defn : funcDefns) {
             Pair<String, TypeSymTable> signature = defn.getSignature();
             TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
             try {
@@ -769,6 +808,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     public Void visit(FileInterface node) {
         //note: visitor will only visit program file or interface file
         List<FuncDecl> decls = node.getFuncDecls();
+
+        // TODO also visit classes etc.
         for (FuncDecl decl : decls) {
             Pair<String, TypeSymTable> signature = decl.getSignature();
             TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
@@ -832,27 +873,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     // TODO
     @Override
     public Void visit(ClassDefn node) {
-        return null;
-    }
-
-    // TODO
-    @Override
-    public Void visit(StmtDeclMulti node) {
-        return null;
-    }
-
-    @Override
-    public Void visit(ExprThis node) {
-        try {
-            TypeSymTableInClass t =
-                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
-            node.setTypeCheckType(t.getTypeTTauClass());
-        } catch (NotFoundException e){
-            throw new SemanticError(
-                    "this not allowed outside a class definition",
-                    node.getLocation()
-            );
-        }
         return null;
     }
 

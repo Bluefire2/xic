@@ -13,23 +13,20 @@ import java.util.List;
 
 public class FileProgram extends FileSource {
     private List<UseInterface> imports;
-    private List<StmtDecl> globalDecls;
-    private List<StmtDeclAssign> globalDefns;
+    private List<StmtDecl> globalVars;
     private List<ClassDefn> classDefns;
     private List<FuncDefn> funcDefns;
     private List<Pair<String, TypeSymTable>> signatures;
     private List<Pair<String, ClassDecl>> classSignatures;
 
     public FileProgram(List<UseInterface> imports,
-                       List<StmtDecl> globalDecls,
-                       List<StmtDeclAssign> globalDefns,
+                       List<StmtDecl> globalVars,
                        List<ClassDefn> classDefns,
                        List<FuncDefn> funcDefns,
                        ComplexSymbolFactory.Location location) {
         super(location);
         this.imports = new ArrayList<>(imports);
-        this.globalDecls = globalDecls;
-        this.globalDefns = globalDefns;
+        this.globalVars = globalVars;
         this.classDefns = classDefns;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
@@ -61,27 +58,25 @@ public class FileProgram extends FileSource {
     }
 
     public FileProgram(List<UseInterface> imports,
-                       List<DeclOrDefn> decls,
+                       List<TopLevelDecl> decls,
                        ComplexSymbolFactory.Location location) {
         super(location);
         this.imports = new ArrayList<>(imports);
+
         List<ClassDefn> classes = new ArrayList<>();
         List<FuncDefn> funcDefns = new ArrayList<>();
-        List<StmtDecl> globalDecls = new ArrayList<>();
-        List<StmtDeclAssign> globalDefns = new ArrayList<>();
-        for (DeclOrDefn d : decls) {
+        List<StmtDecl> globalVars = new ArrayList<>();
+        for (TopLevelDecl d : decls) {
             if (d instanceof FuncDefn) {
                 funcDefns.add((FuncDefn) d);
             } else if (d instanceof ClassDefn) {
                 classes.add((ClassDefn) d);
-            } else if (d instanceof StmtDeclAssign) {
-                globalDefns.add((StmtDeclAssign) d);
             } else if (d instanceof StmtDecl) {
-                globalDecls.add((StmtDecl) d);
+                globalVars.add((StmtDecl) d);
             }
         }
-        this.globalDecls = globalDecls;
-        this.globalDefns = globalDefns;
+
+        this.globalVars = globalVars;
         this.classDefns = classes;
         this.funcDefns = new ArrayList<>(funcDefns);
         this.signatures = new ArrayList<>();
@@ -111,8 +106,7 @@ public class FileProgram extends FileSource {
         imports.forEach((i) -> i.prettyPrint(w));
         w.endList();
         w.startUnifiedList();
-        globalDefns.forEach((i) -> i.prettyPrint(w));
-        globalDecls.forEach((i) -> i.prettyPrint(w));
+        globalVars.forEach((i) -> i.prettyPrint(w));
         w.endList();
         w.startUnifiedList();
         classDefns.forEach((i) -> i.prettyPrint(w));
@@ -144,12 +138,8 @@ public class FileProgram extends FileSource {
         return classSignatures;
     }
 
-    public List<StmtDecl> getGlobalDecls() {
-        return globalDecls;
-    }
-
-    public List<StmtDeclAssign> getGlobalDefns() {
-        return globalDefns;
+    public List<StmtDecl> getGlobalVars() {
+        return globalVars;
     }
 
     public List<ClassDefn> getClassDefns() {
