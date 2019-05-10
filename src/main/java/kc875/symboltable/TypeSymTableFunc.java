@@ -28,11 +28,11 @@ public class TypeSymTableFunc extends TypeSymTable {
         return output;
     }
 
-    public void set_can_decl(boolean can_decl) {
+    public void setCanDecl(boolean can_decl) {
         this.canDecl = can_decl;
     }
 
-    public boolean can_decl() {
+    public boolean canDecl() {
         return canDecl;
     }
 }

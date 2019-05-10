@@ -794,27 +794,27 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         for (FuncDefn f : fs) {
             // TODO
             Pair<String, TypeSymTable> signature = f.getSignature();
-            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
+            TypeSymTableFunc funcSig = (TypeSymTableFunc) signature.part2();
             try {
                 TypeSymTable existing = symTable.lookup(signature.part1());
                 TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
                 //existing function has already been defined
-                if (!existingf.can_decl()) {
+                if (!existingf.canDecl()) {
                     throw new SemanticError(
                             String.format("Function with name %s has already been defined",signature.part1()),
                             f.getLocation());
                 }
                 //existing function has different signature
-                if (!(existingf.getInput().equals(func_sig.getInput()) &&
-                        existingf.getOutput().equals(func_sig.getOutput()))) {
+                if (!(existingf.getInput().equals(funcSig.getInput()) &&
+                        existingf.getOutput().equals(funcSig.getOutput()))) {
                     throw new SemanticError(
                             String.format("Existing function with name %s has different signature", signature.part1()),
                             f.getLocation());
                 }
-                existingf.set_can_decl(false);
+                existingf.setCanDecl(false);
             } catch (NotFoundException e) {
-                //func_sig is already set to not re-declarable
-                symTable.add(signature.part1(), func_sig);
+                // funcSig is already set to not re-declarable
+                symTable.add(signature.part1(), funcSig);
             }
         }
 
@@ -822,10 +822,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(FileProgram node) {
-        List<ClassDefn> classDefns = node.getClassDefns();
-        List<StmtDecl> globalVars = node.getGlobalVars();
-        List<FuncDefn> funcDefns = node.getFuncDefns();
-
         node.getImports().forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
 
