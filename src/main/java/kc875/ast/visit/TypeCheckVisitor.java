@@ -6,6 +6,7 @@ import kc875.ast.*;
 import kc875.lexer.XiLexer;
 import kc875.lexer.XiTokenFactory;
 import kc875.symboltable.*;
+import kc875.utils.Maybe;
 import kc875.xi_parser.IxiParser;
 import kc875.xic_error.*;
 import polyglot.util.Pair;
@@ -17,8 +18,8 @@ import java.util.*;
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private BiMap<String, ClassXi> classNameToClassMap;
-    private BiMap<String, TypeTTauClass> classNameToTypeMap;
     private Set<UseInterface> importedInterfaces;
+    private Map<String, Maybe<String>> classHierarchy;
     private String libpath;
     private String RETURN_KEY = "__rho__";
     private String BREAK_KEY = "__beta__";
@@ -27,8 +28,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
         this.symTable = symTable;
         this.classNameToClassMap = HashBiMap.create();
-        this.classNameToTypeMap = HashBiMap.create();
         this.importedInterfaces = new HashSet<>();
+        this.classHierarchy = new HashMap<>();
         this.libpath = libpath;
         symTable.enterScope();
     }
@@ -759,13 +760,12 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     private void checkForDanglingSuperClasses() {
-        for (Map.Entry<String, TypeTTauClass> c : classNameToTypeMap.entrySet()) {
-            // If c extends d, check that d is a valid class. If c extends
-            // nothing, then do nothing
-            c.getValue().getSuperClass().thenDo(
+        for (Map.Entry<String, Maybe<String>> entry : classHierarchy.entrySet()) {
+            Maybe<String> superClassName = entry.getValue();
+            superClassName.thenDo(
                     // c extends d
                     d -> {
-                        if (!classNameToTypeMap.containsKey(d))
+                        if (!classHierarchy.containsKey(d))
                             // d doesn't exist in the list of classes
                             throw new SemanticUnresolvedNameError(
                                     d, classNameToClassMap.get(d).getLocation()
@@ -777,17 +777,15 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     private void collectTauClasses(List<ClassDefn> cs) {
         for (ClassDefn c : cs) {
-            if (classNameToTypeMap.containsKey(c.getName()))
+            if (classHierarchy.containsKey(c.getName())) {
                 throw new SemanticError(
                         "Class " + c.getName() + " already defined",
                         c.getLocation()
                 );
-            classNameToTypeMap.put(
-                    c.getName(), new TypeTTauClass(c.getName(), c.getSuperClass())
-            );
-            classNameToClassMap.put(
-                    c.getName(), c
-            );
+            }
+
+            classHierarchy.put(c.getName(), c.getSuperClass());
+            classNameToClassMap.put(c.getName(), c);
         }
         checkForDanglingSuperClasses();
     }
