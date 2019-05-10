@@ -10,29 +10,13 @@ import kc875.utils.Maybe;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.HashSet;
 
 public class ClassDefn extends ClassXi {
     private List<FuncDefn> methods;
 
     private Set<String> fieldNames;
     private Set<String> methodNames;
-
-    public ClassDefn(String name,
-                     Maybe<String> superClass,
-                     List<StmtDecl> fields,
-                     List<FuncDefn> methods,
-                     ComplexSymbolFactory.Location location) {
-        super(name, superClass, fields, location);
-        this.methods = methods;
-
-        this.fieldNames = fields.stream()
-                .flatMap(sd -> sd.varsOf().stream())
-                .collect(Collectors.toSet());
-
-        this.methodNames = methods.stream()
-                .map(FuncDefn::getName)
-                .collect(Collectors.toSet());
-    }
 
     public ClassDefn(String name,
                      List<StmtDecl> fields,
@@ -65,6 +49,18 @@ public class ClassDefn extends ClassXi {
         this.methodNames = methods.stream()
                 .map(FuncDefn::getName)
                 .collect(Collectors.toSet());
+    }
+    
+    public String getName() {
+        return name;
+    }
+
+    public Maybe<String> getSuperClass() {
+        return superClass;
+    }
+
+    public List<StmtDecl> getFields() {
+        return fields;
     }
 
     public List<FuncDefn> getMethods() {
