@@ -7,6 +7,8 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 //should be typechecked as multiple stmtdecls
 public class StmtDeclMulti extends StmtDecl {
@@ -53,5 +55,10 @@ public class StmtDeclMulti extends StmtDecl {
     @Override
     public List<String> varsOf() {
         return vars;
+    }
+
+    @Override
+    public void applyToAll(BiConsumer<String, TypeTTau> cons) {
+        vars.forEach(varName -> cons.accept(varName, type));
     }
 }

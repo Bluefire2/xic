@@ -798,8 +798,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
             // check that all the types in the signature are correct
             // can be int, bool, C or T[] for any valid T
-            checkTypeT(funcSig.getInput());
-            checkTypeT(funcSig.getOutput());
+            checkTypeT(funcSig.getInput(), f);
+            checkTypeT(funcSig.getOutput(), f);
 
             try {
                 TypeSymTable existing = symTable.lookup(name);
@@ -836,32 +836,48 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
      * @param type The type to check.
      * @throws SemanticError if the type is not valid.
      */
-    private void checkTypeT(TypeT type) {
+    private void checkTypeT(TypeT type, ASTNode node) {
         if (type instanceof TypeTTau) {
             if (type instanceof TypeTTauClass) {
                 String className = ((TypeTTauClass) type).getName();
                 if (!classHierarchy.containsKey(className)) {
                     throw new SemanticUnresolvedNameError(
                             className,
-                            classNameToClassMap.get(className).getLocation()
+                            node.getLocation()
                     );
                 }
             } else if (type instanceof TypeTTauArray) {
-                checkTypeT(((TypeTTauArray) type).getTypeTTau());
+                checkTypeT(((TypeTTauArray) type).getTypeTTau(), node);
             }
             // otherwise, it has to be bool or int, both of which are valid
         } else if (type instanceof TypeTList) {
-            ((TypeTList) type).getTTauList().forEach(this::checkTypeT);
+            ((TypeTList) type).getTTauList().forEach(t -> checkTypeT(t, node));
         }
         // has to be a unit, which is valid
+    }
+
+    private void collectGlobalVars(List<StmtDecl> globals) {
+        for (StmtDecl global : globals) {
+            global.applyToAll((String name, TypeTTau type) -> {
+                if (symTable.contains(name)) {
+                    throw new SemanticError(
+                            String.format("Variable name %s already exists", name),
+                            global.getLocation()
+                    );
+                } else {
+                    checkTypeT(type, global);
+                    symTable.add(name, new TypeSymTableVar(type));
+                }
+            });
+        }
     }
 
     @Override
     public Void visit(FileProgram node) {
         node.getImports().forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
-
         collectFuncs(node.getFuncDefns());
+        collectGlobalVars(node.getGlobalVars());
         return null;
     }
 

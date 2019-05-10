@@ -8,6 +8,7 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class StmtDeclAssign extends StmtDecl {
@@ -64,5 +65,16 @@ public class StmtDeclAssign extends StmtDecl {
         return decls.stream()
                 .flatMap(td -> td.varsOf().stream())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void applyToAll(BiConsumer<String, TypeTTau> cons) {
+        decls.stream()
+                // don't apply to underscore declarations
+                .filter(decl -> decl instanceof TypeDeclVar)
+                .forEach(decl -> {
+                    TypeDeclVar var = ((TypeDeclVar) decl);
+                    cons.accept(var.getName(), var.getType());
+                });
     }
 }

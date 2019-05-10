@@ -8,6 +8,7 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class StmtDeclSingle extends StmtDecl {
     private TypeDeclVar decl;
@@ -46,5 +47,10 @@ public class StmtDeclSingle extends StmtDecl {
         List<String> vars = new ArrayList<>();
         vars.add(decl.getName());
         return vars;
+    }
+
+    @Override
+    public void applyToAll(BiConsumer<String, TypeTTau> cons) {
+        cons.accept(decl.getName(), decl.getType());
     }
 }
