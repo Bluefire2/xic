@@ -1,18 +1,18 @@
 package kc875.ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
-import kc875.symboltable.*;
+import kc875.symboltable.TypeSymTable;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class FileProgram extends FileSource {
-    private List<UseInterface> imports;
     private List<StmtDecl> globalVars;
     private List<ClassDefn> classDefns;
     private List<FuncDefn> funcDefns;
@@ -24,11 +24,10 @@ public class FileProgram extends FileSource {
                        List<ClassDefn> classDefns,
                        List<FuncDefn> funcDefns,
                        ComplexSymbolFactory.Location location) {
-        super(location);
-        this.imports = new ArrayList<>(imports);
+        super(imports, location);
         this.globalVars = globalVars;
         this.classDefns = classDefns;
-        this.funcDefns = new ArrayList<>(funcDefns);
+        this.funcDefns = funcDefns;
         this.signatures = new ArrayList<>();
         this.classSignatures = new ArrayList<>();
 
@@ -51,8 +50,7 @@ public class FileProgram extends FileSource {
     public FileProgram(List<UseInterface> imports,
                        List<TopLevelDecl> decls,
                        ComplexSymbolFactory.Location location) {
-        super(location);
-        this.imports = new ArrayList<>(imports);
+        super(imports, location);
 
         List<ClassDefn> classes = new ArrayList<>();
         List<FuncDefn> funcDefns = new ArrayList<>();
@@ -64,12 +62,17 @@ public class FileProgram extends FileSource {
                 classes.add((ClassDefn) d);
             } else if (d instanceof StmtDecl) {
                 globalVars.add((StmtDecl) d);
+            } else {
+                throw new InternalCompilerError(
+                        d.toString() + " not allowed as a top level " +
+                                "declaration in a FileProgram"
+                );
             }
         }
 
         this.globalVars = globalVars;
         this.classDefns = classes;
-        this.funcDefns = new ArrayList<>(funcDefns);
+        this.funcDefns = funcDefns;
         this.signatures = new ArrayList<>();
         this.classSignatures = new ArrayList<>();
 
@@ -77,18 +80,12 @@ public class FileProgram extends FileSource {
         //TODO currently uses placeholder function names
         classDefns.forEach(d -> classSignatures.add(
                 new Pair<>(d.getName(), d.toDecl())));
-    }
 
-    public List<UseInterface> getImports() {
-        return imports;
+        //TODO for global vars
     }
 
     public List<FuncDefn> getFuncDefns() {
         return funcDefns;
-    }
-
-    public boolean isInterface() {
-        return false;
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {

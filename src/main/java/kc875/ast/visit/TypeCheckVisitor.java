@@ -34,10 +34,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         symTable.enterScope();
     }
 
-    public SymbolTable getSymTable() {
-        return symTable;
-    }
-
     /**
      * Check if a given type is valid. This means that it is either:
      * <p>
@@ -167,6 +163,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     break;
                 }
                 throwSemanticErrorBinopVisit(node);
+            case DOT:
+                // TODO
+                break;
             default:
                 throw new IllegalArgumentException("Operation Type of " +
                         "Binop node is invalid");
@@ -264,7 +263,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                         node.getLocation()
                 );
             // else
-            node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
+            TypeTTau typeOfT = ((TypeSymTableVar) t).getTypeTTau();
+            checkTypeT(typeOfT, node);
+            node.setTypeCheckType(typeOfT);
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
@@ -790,8 +791,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
-    private void collectTauClasses(List<ClassDefn> cs) {
-        for (ClassDefn c : cs) {
+    private void collectTauClasses(List<? extends ClassXi> cs) {
+        for (ClassXi c : cs) {
             if (classHierarchy.containsKey(c.getName())) {
                 throw new SemanticError(
                         "Class " + c.getName() + " already defined",
@@ -820,8 +821,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         }
     }
 
-    private void collectFuncs(List<FuncDefn> fs) {
-        for (FuncDefn f : fs) {
+    private void collectFuncs(List<? extends Func> fs) {
+        for (Func f : fs) {
             Pair<String, TypeSymTable> signature = f.getSignature();
             String name = signature.part1();
             TypeSymTableFunc funcSig = (TypeSymTableFunc) signature.part2();
@@ -834,13 +835,21 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             try {
                 TypeSymTableFunc existingf =
                         (TypeSymTableFunc) symTable.lookup(name);
-                //existing function has already been defined
-                if (!existingf.canDecl()) {
-                    throw new SemanticError(
-                            "Function with name " + name +
-                                    " has already been defined",
-                            f.getLocation());
+                // If f is a func def, then throw an error if it can't
+                // be declared again. This is because f is trying to shadow
+                // existing f but the former shouldn't be redeclared.
+                // Otherwise, f is a func decl, then existing f can be freely
+                // shadowed by f if same sig. In this case, don't do a check.
+                if (f instanceof FuncDefn) {
+                    if (!existingf.canDecl()) {
+                        throw new SemanticError(
+                                "Function with name " + name +
+                                        " has already been defined",
+                                f.getLocation());
+                    }
+                    existingf.setCanDecl(false);
                 }
+
                 //existing function has different signature
                 if (!existingf.equals(funcSig)) {
                     throw new SemanticError(
@@ -848,7 +857,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                                     " has different signature",
                             f.getLocation());
                 }
-                existingf.setCanDecl(false);
             } catch (NotFoundException e) {
                 // funcSig is already set to not re-declarable (funcSig is a
                 // funcDefn)
@@ -995,41 +1003,21 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         collectFuncs(node.getFuncDefns());
         collectClassContents(node.getClassDefns());
 
-        // check the insides of the program's defns
+        // check the insides of the program's defns. Do global vars first so
+        // that insides of func and class defns can type check
+        node.getGlobalVars().forEach(g -> g.accept(this));
         node.getClassDefns().forEach(c -> c.accept(this));
         node.getFuncDefns().forEach(f -> f.accept(this));
-        node.getGlobalVars().forEach(g -> g.accept(this));
         return null;
     }
 
     @Override
     public Void visit(FileInterface node) {
-        // TODO: interfaces should take have imports
+        node.getImports().forEach(i -> i.accept(this));
+        collectTauClasses(node.getClassDecls());
 
-        //note: visitor will only visit program file or interface file
-        List<FuncDecl> decls = node.getFuncDecls();
-
-        // TODO also visit classes etc.
-        for (FuncDecl decl : decls) {
-            Pair<String, TypeSymTable> signature = decl.getSignature();
-            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
-            try {
-                TypeSymTable existing = symTable.lookup(signature.part1());
-                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
-                //do not check if re-declarable bc imports come before defns
-
-                //existing function has different signature
-                if (!(existingf.getInput().equals(func_sig.getInput()) &&
-                        existingf.getOutput().equals(func_sig.getOutput()))) {
-                    throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", signature.part1()),
-                            decl.getLocation());
-                }
-                //do nothing because function sig already exists
-            } catch (NotFoundException e) {
-                symTable.add(signature.part1(), signature.part2());
-            }
-        }
+        collectFuncs(node.getFuncDecls());
+        collectClassContents(node.getClassDecls());
         return null;
     }
 
@@ -1060,15 +1048,16 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(FuncDecl node) {
+        // do nothing
         return null;
     }
 
     @Override
     public Void visit(ClassDecl node) {
+        // do nothing
         return null;
     }
 
-    // TODO
     @Override
     public Void visit(ClassDefn node) {
         symTable.enterScope();
@@ -1078,9 +1067,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
         node.getFields().forEach(f -> f.accept(this));
         node.getMethodDefns().forEach(m -> m.accept(this));
-        // TODO:
 
-        // check the methods
         symTable.exitScope();
         return null;
     }
@@ -1170,14 +1157,19 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             return false;
         TypeTTauClass snd_ = (TypeTTauClass) snd;
 
-        // Either this is the same as c or
-        // - if sc is known, sc is a subtype of c
-        // - TODO: if sc is unknown, then this is not a subtype of c
-        //    (isKnown check at the end implements this)
-        return fst.getName().equals(snd_.getName());
-//                || fst.getSuperClass().to(
-//                        sc -> subTypeOf(sc, snd_.getSuperClass())
-//        ).isKnown();
+        String fstName = fst.getName();
+        // fst <= snd if either is true
+        // - fst == snd
+        // - fst extends d and d is subtype of snd
+        // If fst doesn't extend anything and fst != snd, then false (isKnown
+        // check at the end implements this)
+        // If fst extends d and d is not a subtype of snd, then false
+        // (isKnown after Maybe.unknown() implements this)
+        return fstName.equals(snd_.getName())
+                || classHierarchy.get(fstName).to(
+                d -> subTypeOf(new TypeTTauClass(d), snd_)
+                        ? Maybe.definitely(true) : Maybe.unknown()
+        ).isKnown();
     }
 
     private boolean subTypeOf(TypeTTauInt fst, TypeT snd) {

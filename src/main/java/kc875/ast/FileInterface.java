@@ -1,6 +1,7 @@
 package kc875.ast;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
@@ -12,29 +13,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileInterface extends FileSource {
-    private List<UseInterface> imports;
-    private List<ClassDecl> classes;
+    private List<ClassDecl> classDecls;
     private List<FuncDecl> funcDecls;
     private List<Pair<String, TypeSymTable>> signatures;
     private List<Pair<String, ClassDecl>> class_signatures;
 
-    public FileInterface(List<UseInterface> imports, List<ClassDecl> classes, List<FuncDecl> decls,
+    public FileInterface(List<UseInterface> imports,
+                         List<ClassDecl> classDecls,
+                         List<FuncDecl> decls,
                          ComplexSymbolFactory.Location location) {
-        super(location);
-        this.imports = imports;
-        this.classes = classes;
+        super(imports, location);
+        this.classDecls = classDecls;
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();
         this.class_signatures = new ArrayList<>();
         //TODO currently uses placeholders
         decls.forEach((d) -> signatures.add(d.getSignature()));
-        classes.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
+        classDecls.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
     }
 
     public FileInterface(List<UseInterface> imports,
                          List<TopLevelDecl> decls,
-                         ComplexSymbolFactory.Location location){
-        super(location);
+                         ComplexSymbolFactory.Location location) {
+        super(imports, location);
         List<ClassDecl> classes = new ArrayList<>();
         List<FuncDecl> funcDecls = new ArrayList<>();
         for (TopLevelDecl d : decls) {
@@ -42,10 +43,15 @@ public class FileInterface extends FileSource {
                 funcDecls.add((FuncDecl) d);
             } else if (d instanceof ClassDecl) {
                 classes.add((ClassDecl) d);
+            } else {
+                throw new InternalCompilerError(
+                        d.toString() + " not allowed as a top level " +
+                                "declaration in a FileProgram"
+                );
             }
         }
-        this.imports = imports;
-        this.classes = classes;
+
+        this.classDecls = classes;
         this.funcDecls = funcDecls;
         this.signatures = new ArrayList<>();
         this.class_signatures = new ArrayList<>();
@@ -62,10 +68,6 @@ public class FileInterface extends FileSource {
         funcDecls.add(funcDecl);
     }
 
-    public boolean isInterface() {
-        return true;
-    }
-
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
         if (!imports.isEmpty()) {
@@ -73,9 +75,9 @@ public class FileInterface extends FileSource {
             imports.forEach((i) -> i.prettyPrint(w));
             w.endList();
         }
-        if (!classes.isEmpty()) {
+        if (!classDecls.isEmpty()) {
             w.startUnifiedList();
-            classes.forEach((i) -> i.prettyPrint(w));
+            classDecls.forEach((i) -> i.prettyPrint(w));
             w.endList();
         }
         w.startUnifiedList();
@@ -86,6 +88,10 @@ public class FileInterface extends FileSource {
 
     public List<Pair<String, TypeSymTable>> getSignatures() {
         return signatures;
+    }
+
+    public List<ClassDecl> getClassDecls() {
+        return classDecls;
     }
 
     @Override
