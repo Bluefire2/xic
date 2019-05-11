@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import kc875.ast.*;
 import kc875.lexer.XiLexer;
 import kc875.lexer.XiTokenFactory;
+import kc875.lexer.XiTokenLocation;
 import kc875.symboltable.*;
 import kc875.utils.Maybe;
 import kc875.xi_parser.IxiParser;
@@ -179,6 +180,66 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
+    private void checkFuncArgs(List<Expr> args,
+                               TypeT inTypes,
+                               XiTokenLocation funcLoc) {
+        // outTypes being equal to TypeTUnit or not doesn't make a
+        // difference in the resulting type of this function/procedure.
+        // Function types are exactly the same, procedures just have
+        // an extra context return
+        if (inTypes instanceof TypeTUnit) {
+            if (args.size() > 0) {
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            }
+        } else if (inTypes instanceof TypeTTau) {
+            if (args.size() != 1)
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            // function with 1 arg
+            Expr arg = args.get(0);
+            if (!arg.getTypeCheckType().equals(inTypes))
+                throw new SemanticTypeCheckError(
+                        inTypes, arg.getTypeCheckType(), arg.getLocation()
+                );
+            // arg and expected param type are equal
+        } else if (inTypes instanceof TypeTList) {
+            // function with >= 2 args
+            List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
+            if (inTauList.size() != args.size())
+                // num arguments not equal
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            // else
+            for (int i = 0; i < args.size(); ++i) {
+                Expr ei = args.get(i);
+                TypeTTau ti = inTauList.get(i);
+                if (!ei.getTypeCheckType().equals(ti)) {
+                    // Gamma |- ei : tj and tj != ti
+                    throw new SemanticTypeCheckError(
+                            ti, ei.getTypeCheckType(), ei.getLocation()
+                    );
+                }
+            }
+            // func args and func sig match
+        }
+    }
+
+    private void checkFuncType(ExprFunctionCall func,
+                               TypeSymTableFunc targetSig) {
+        func.setSignature(targetSig);
+        if (targetSig.getOutput() instanceof TypeTUnit) {
+            throw new SemanticError(
+                    String.format("%s is not a function", func),
+                    func.getLocation()
+            );
+        }
+        checkFuncArgs(func.getArgs(), targetSig.getInput(), func.getLocation());
+    }
+
     @Override
     public Void visit(ExprFunctionCall node) {
         String name = node.getName();
@@ -192,60 +253,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             // else
             TypeSymTableFunc funcSig = (TypeSymTableFunc) t;
             node.setSignature(funcSig);
-            TypeT inTypes = funcSig.getInput();
-            TypeT outTypes = funcSig.getOutput();
-            if (outTypes instanceof TypeTUnit) {
-                throw new SemanticError(
-                        String.format("%s is not a function", name),
-                        node.getLocation()
-                );
-            }
-
-            List<Expr> args = node.getArgs();
-            // outTypes being equal to TypeTUnit or not doesn't make a
-            // difference in the resulting type of this function/procedure.
-            // Function types are exactly the same, procedures just have
-            // an extra context return
-            if (inTypes instanceof TypeTUnit) {
-                // function with no args
-                node.setTypeCheckType(outTypes);
-            } else if (inTypes instanceof TypeTTau) {
-                if (args.size() != 1)
-                    throw new SemanticError(
-                            "Mismatched number of arguments", node.getLocation());
-                // function with 1 arg
-                Expr arg = args.get(0);
-                if (!arg.getTypeCheckType().equals(inTypes))
-                    throw new SemanticTypeCheckError(
-                            inTypes,
-                            arg.getTypeCheckType(),
-                            arg.getLocation()
-                    );
-                // arg and expected param type are equal
-                node.setTypeCheckType(outTypes);
-            } else if (inTypes instanceof TypeTList) {
-                // function with >= 2 args
-                List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
-                if (inTauList.size() != args.size())
-                    // num arguments not equal
-                    throw new SemanticError(
-                            "Mismatched number of arguments", node.getLocation());
-                // else
-                for (int i = 0; i < args.size(); ++i) {
-                    Expr ei = args.get(i);
-                    TypeTTau ti = inTauList.get(i);
-                    if (!ei.getTypeCheckType().equals(ti)) {
-                        // Gamma |- ei : tj and tj != ti
-                        throw new SemanticTypeCheckError(
-                                ti,
-                                ei.getTypeCheckType(),
-                                ei.getLocation()
-                        );
-                    }
-                }
-                // func args and func sig match
-                node.setTypeCheckType(outTypes);
-            }
+            checkFuncType(node, funcSig);
+            node.setTypeCheckType(funcSig.getOutput());
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
@@ -648,43 +657,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     throw new SemanticError(node.getName()
                             + " is not a procedure", node.getLocation());
                 }
-                if (prInputs instanceof TypeTUnit) {
-                    //no parameters
-                    if (args.size() > 0) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-                } else if (prInputs instanceof TypeTTau) {
-                    //one parameter
-                    if (!(args.size() == 1)) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-
-                    TypeT given = args.get(0).getTypeCheckType();
-                    if (!(given.equals(prInputs))) {
-                        throw new SemanticTypeCheckError(prInputs, given,
-                                node.getLocation());
-                    }
-                } else if (prInputs instanceof TypeTList) {
-                    //multiple parameters
-                    List<TypeTTau> inputList = ((TypeTList) prInputs).getTTauList();
-                    if (args.size() != inputList.size()) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-                    for (int i = 0; i < args.size(); i++) {
-                        Expr ei = args.get(i);
-                        TypeT expected = inputList.get(i);
-                        if (!ei.getTypeCheckType().equals(expected)) {
-                            throw new SemanticTypeCheckError(
-                                    expected,
-                                    ei.getTypeCheckType(),
-                                    ei.getLocation()
-                            );
-                        }
-                    }
-                }
+                checkFuncArgs(args, prInputs, node.getLocation());
                 node.setTypeCheckType(TypeR.Unit);
             } else {
                 throw new SemanticError(node.getName()
