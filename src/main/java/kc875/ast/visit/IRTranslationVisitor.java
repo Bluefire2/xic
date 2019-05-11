@@ -419,6 +419,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprBinop node) {
+        //TODO update for function and method calls!
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
@@ -863,6 +864,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRFuncDecl visit(FuncDefn node) {
+        //TODO update for methods!
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
 
