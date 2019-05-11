@@ -15,5 +15,4 @@ public enum Binop {
     LTEQ,
     AND,
     OR,
-    DOT
 }

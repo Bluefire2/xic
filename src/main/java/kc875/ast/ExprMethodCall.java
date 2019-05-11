@@ -8,10 +8,11 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 //methods that return things
 public class ExprMethodCall extends Expr {
-    Expr obj;
-    ExprFunctionCall call;
+    private Expr obj;
+    private ExprFunctionCall call;
 
-    public ExprMethodCall(Expr obj, ExprFunctionCall call, ComplexSymbolFactory.Location location) {
+    public ExprMethodCall(Expr obj, ExprFunctionCall call,
+                          ComplexSymbolFactory.Location location) {
         super(location);
         this.obj = obj;
         this.call = call;
@@ -27,8 +28,6 @@ public class ExprMethodCall extends Expr {
 
     @Override
     public void accept(TypeCheckVisitor visitor) {
-        obj.accept(visitor);
-        call.accept(visitor);
         visitor.visit(this);
     }
 
@@ -39,7 +38,10 @@ public class ExprMethodCall extends Expr {
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        ExprBinop b = new ExprBinop(Binop.DOT, obj, call, this.getLocation());
-        b.prettyPrint(w);
+        w.startList();
+        w.printAtom(".");
+        obj.prettyPrint(w);
+        call.prettyPrint(w);
+        w.endList();
     }
 }

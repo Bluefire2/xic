@@ -7,10 +7,11 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 public class ExprFieldAccess extends Expr {
-    Expr obj;
-    ExprId field;
+    private Expr obj;
+    private ExprId field;
 
-    public ExprFieldAccess(Expr obj, ExprId field, ComplexSymbolFactory.Location location) {
+    public ExprFieldAccess(Expr obj, ExprId field,
+                           ComplexSymbolFactory.Location location) {
         super(location);
         this.obj = obj;
         this.field = field;
@@ -26,8 +27,6 @@ public class ExprFieldAccess extends Expr {
 
     @Override
     public void accept(TypeCheckVisitor visitor) {
-        obj.accept(visitor);
-        field.accept(visitor);
         visitor.visit(this);
     }
 
@@ -38,7 +37,10 @@ public class ExprFieldAccess extends Expr {
 
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
-        ExprBinop b = new ExprBinop(Binop.DOT, obj, field, this.getLocation());
-        b.prettyPrint(w);
+        w.startList();
+        w.printAtom(".");
+        obj.prettyPrint(w);
+        field.prettyPrint(w);
+        w.endList();
     }
 }

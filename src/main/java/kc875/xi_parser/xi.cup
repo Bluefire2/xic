@@ -302,6 +302,7 @@ assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
+// TODO: why is length(e) an assignable?
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
 

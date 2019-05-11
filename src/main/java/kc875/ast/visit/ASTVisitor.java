@@ -20,6 +20,7 @@ interface ASTVisitor<T> {
 
     T visit(AssignableIndex node);
     T visit(AssignableId node);
+    T visit(AssignableFieldAccess node);
 
     T visit(StmtReturn node);
     T visit(StmtAssign node);

@@ -49,7 +49,6 @@ public class ExprBinop extends Expr {
             case LTEQ: opString = "<="; break;
             case AND: opString = "&"; break;
             case OR: opString = "|"; break;
-            case DOT: opString = "."; break;
         }
         return opString;
     }
