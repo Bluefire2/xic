@@ -8,8 +8,8 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 //methods that return things
 public class ExprMethodCall extends Expr {
-    Expr obj;
-    ExprFunctionCall call;
+    private Expr obj;
+    private ExprFunctionCall call;
 
     public ExprMethodCall(Expr obj, ExprFunctionCall call, ComplexSymbolFactory.Location location) {
         super(location);

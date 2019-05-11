@@ -8,8 +8,8 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 //procedure methods
 public class StmtMethodCall extends Stmt {
-    Expr obj;
-    ExprFunctionCall call;
+    private Expr obj;
+    private ExprFunctionCall call;
 
     public StmtMethodCall(Expr obj, ExprFunctionCall call, ComplexSymbolFactory.Location location) {
         super(location);

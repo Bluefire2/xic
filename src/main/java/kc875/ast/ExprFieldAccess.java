@@ -7,8 +7,8 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 
 public class ExprFieldAccess extends Expr {
-    Expr obj;
-    ExprId field;
+    private Expr obj;
+    private ExprId field;
 
     public ExprFieldAccess(Expr obj, ExprId field, ComplexSymbolFactory.Location location) {
         super(location);
