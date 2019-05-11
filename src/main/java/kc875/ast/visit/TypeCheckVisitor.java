@@ -487,6 +487,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(AssignableFieldAccess node) {
+        return null;
+    }
+
+    @Override
     public Void visit(StmtReturn node) {
         try {
             TypeSymTableReturn t = (TypeSymTableReturn) symTable.lookup(RETURN_KEY);
@@ -712,14 +717,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             if (prType instanceof TypeSymTableFunc) {
                 TypeSymTableFunc prFunc = (TypeSymTableFunc) prType;
                 node.setSignature(prFunc);
-                TypeT prInputs = prFunc.getInput();
-                TypeT prOutput = prFunc.getOutput();
-                List<Expr> args = node.getArgs();
-                if (!(prOutput instanceof TypeTUnit)) {
+                if (!(prFunc.getOutput() instanceof TypeTUnit)) {
                     throw new SemanticError(node.getName()
                             + " is not a procedure", node.getLocation());
                 }
-                checkFuncArgs(args, prInputs, node.getLocation());
+                checkFuncArgs(node.getArgs(), prFunc.getInput(), node.getLocation());
                 node.setTypeCheckType(TypeR.Unit);
             } else {
                 throw new SemanticError(node.getName()
@@ -841,17 +843,15 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             }
 
             // the class does have the method!
-            TypeSymTableFunc typeSignature = methodsOfClass.get(methodName);
-            call.setSignature(typeSignature);
-
-            if (!(typeSignature.getOutput() instanceof TypeTUnit)) {
+            TypeSymTableFunc funcSig = methodsOfClass.get(methodName);
+            call.setSignature(funcSig);
+            if (!(funcSig.getOutput() instanceof TypeTUnit)) {
                 throw new SemanticError(
                         String.format("%s.%s is not a procedure", classType.getName(), methodName),
                         node.getLocation()
                 );
             }
-
-            checkFuncArgs(call.getArgs(), typeSignature.getInput(), node.getLocation());
+            checkFuncArgs(call.getArgs(), funcSig.getInput(), node.getLocation());
             node.setTypeCheckType(TypeR.Unit);
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(
