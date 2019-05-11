@@ -609,7 +609,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprNew node) {
-        //TODO;
+        //TODO allocate mem of size according to pre-calculated memory layout
         return null;
     }
 
@@ -848,6 +848,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRCompUnit visit(FileProgram node) {
+        //TODO update this
         IRCompUnit program = new IRCompUnit(name);
         for (FuncDefn d : node.getFuncDefns()) {
             program.appendFunc((IRFuncDecl) d.accept(this));
@@ -893,13 +894,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(ClassDecl node) {
-        //TODO
+        //TODO use this to handle translating memory layout and dispatch table
         return null;
     }
 
     @Override
     public IRNode visit(ClassDefn node) {
-        //TODO
+        //TODO use this to handle translating the actual methods
+        //can use toDecl or getDecl or something like that to convert to Decl for handling mem layout
         return null;
     }
 
@@ -908,14 +910,18 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return null;
     }
 
-    //TODO
     @Override
-    public IRNode visit(StmtDeclMulti node) {
-        return null;
+    public IRSeq visit(StmtDeclMulti node) {
+        List<IRStmt> s = new ArrayList<>();
+        for (String v:node.getVars()) {
+            s.add(initDecl(v, node.getType()));
+        }
+        return new IRSeq(s);
     }
 
     @Override
     public IRNode visit(ExprThis node) {
-        return null;
+        //self pointer is always first arg
+        return new IRTemp(funcArgName(0));
     }
 }
