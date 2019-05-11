@@ -832,35 +832,159 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             checkTypeT(funcSig.getOutput(), f);
 
             try {
-                TypeSymTable existing = symTable.lookup(name);
-                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
+                TypeSymTableFunc existingf =
+                        (TypeSymTableFunc) symTable.lookup(name);
                 //existing function has already been defined
                 if (!existingf.canDecl()) {
                     throw new SemanticError(
-                            String.format("Function with name %s has already been defined", name),
+                            "Function with name " + name +
+                                    " has already been defined",
                             f.getLocation());
                 }
                 //existing function has different signature
-                if (!(existingf.getInput().equals(funcSig.getInput()) &&
-                        existingf.getOutput().equals(funcSig.getOutput()))) {
+                if (!existingf.equals(funcSig)) {
                     throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", name),
+                            "Existing function with name " + name +
+                                    " has different signature",
                             f.getLocation());
                 }
                 existingf.setCanDecl(false);
             } catch (NotFoundException e) {
-                // funcSig is already set to not re-declarable
+                // funcSig is already set to not re-declarable (funcSig is a
+                // funcDefn)
                 symTable.add(name, funcSig);
             }
         }
 
     }
 
-    private void collectClassContents(List<ClassDefn> cs) {
-        cs.forEach(c -> symTable.add(
-                c.getName(),
-                new TypeSymTableClass(new TypeTTauClass(c.getName()), c)
-        ));
+    private void checkDuplicateInStmtDecls(List<StmtDecl> sds) {
+        // Check for duplicate fields; need to do a manual iter
+        // for throwing errors at the correct locations.
+        Set<String> vars = new HashSet<>();
+        for (StmtDecl sd : sds) {
+            for (String var : sd.varsOf()) {
+                if (vars.contains(var))
+                    throw new SemanticError(
+                            "Duplicate variable " + var, sd.getLocation()
+                    );
+                vars.add(var);
+            }
+        }
+    }
+
+    private void checkDuplicateInFuncDecls(List<FuncDecl> fds) {
+        // Check for duplicate methods; need to do a manual iter
+        // for throwing errors at the correct locations.
+        Set<String> funcNames = new HashSet<>();
+        for (FuncDecl fd : fds) {
+            if (funcNames.contains(fd.getName()))
+                throw new SemanticError(
+                        "Function with name " + fd.getName() +
+                                " has already been defined",
+                        fd.getLocation()
+                );
+            funcNames.add(fd.getName());
+        }
+    }
+
+    private void checkOverrideFields(List<StmtDecl> subFields,
+                                     Map<String, TypeSymTableVar> superFields) {
+        // Check that overriden fields of d and overrider fields
+        // of c have the same signatures.
+        // For all fields of c, throw an error if d has that
+        // field but has a different type
+        for (StmtDecl subField : subFields) {
+            subField.applyToAll((name, type) -> {
+                if (superFields.containsKey(name)
+                        && !superFields.get(name).getTypeTTau().equals(type)) {
+                    throw new SemanticTypeCheckError(
+                            superFields.get(name).getTypeTTau(),
+                            type,
+                            subField.getLocation()
+                    );
+                }
+            });
+        }
+    }
+
+    private void checkOverrideMethods(List<FuncDecl> subMethods,
+                                      Map<String, TypeSymTableFunc> superMethods) {
+        // Check that overriden methods of d and overrider methods
+        // of d have the same signatures.
+        for (FuncDecl subMethod : subMethods) {
+            String fName = subMethod.getName();
+            if (superMethods.containsKey(fName)
+                    && !superMethods.get(fName).equals(
+                    subMethod.getSignature().part2()
+            )) {
+                throw new SemanticError(
+                        "Mismatch signatures of " +
+                                "overriden function with name " + fName,
+                        subMethod.getLocation()
+                );
+            }
+        }
+    }
+
+    private void collectClassContents(List<? extends ClassXi> cs) {
+        for (ClassXi c : cs) {
+            if (!c.getSuperClass().isKnown()) {
+                // c doesn't extend anything, simply add it to sym table
+                symTable.add(c.getName(), new TypeSymTableClass(
+                                new TypeTTauClass(c.getName()), c
+                        )
+                );
+                return;
+            }
+            // else
+            // c extends d --> collect d, check overrode fields and
+            // methods, then add c + d fields and methods to sym table
+            c.getSuperClass().thenDo(d -> {
+                if (!symTable.contains(d))
+                    // d hasn't been collected, i.e., added to sym table, so
+                    // do that first
+                    symTable.add(d, new TypeSymTableClass(
+                            new TypeTTauClass(d),
+                            classNameToClassMap.get(d)
+                    ));
+                try {
+                    // d exists in the sym table now
+                    TypeSymTableClass dClass =
+                            (TypeSymTableClass) symTable.lookup(d);
+                    checkDuplicateInStmtDecls(c.getFields());
+                    checkDuplicateInFuncDecls(c.getMethodDecls());
+                    checkOverrideFields(c.getFields(), dClass.getFields());
+                    checkOverrideMethods(c.getMethodDecls(), dClass.getMethods());
+
+                    // Now all fields and variables have the same types, c
+                    // can be collected. Also add the fields and methods of d
+                    Map<String, TypeSymTableVar> cFields =
+                            new HashMap<>(dClass.getFields());
+                    Map<String, TypeSymTableFunc> cMethods =
+                            new HashMap<>(dClass.getMethods());
+                    // for all fields of c, add (name, type) to cFields
+                    for (StmtDecl sd : c.getFields()) {
+                        sd.applyToAll((name, type) ->
+                                cFields.put(name, new TypeSymTableVar(type)));
+                    }
+                    for (FuncDecl fd : c.getMethodDecls()) {
+                        Pair<String, TypeSymTable> sig = fd.getSignature();
+                        cMethods.put(sig.part1(),
+                                (TypeSymTableFunc) sig.part2());
+                    }
+
+                    symTable.add(c.getName(), new TypeSymTableClass(
+                            new TypeTTauClass(c.getName()), cFields, cMethods
+                    ));
+
+                } catch (NotFoundException e) {
+                    throw new IllegalStateException(
+                            "Added " + d + " to sym table but couldn't look up"
+                    );
+                }
+            });
+        }
     }
 
     @Override
@@ -953,7 +1077,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         ));
 
         node.getFields().forEach(f -> f.accept(this));
-        node.getMethods().forEach(m -> m.accept(this));
+        node.getMethodDefns().forEach(m -> m.accept(this));
         // TODO:
 
         // check the methods

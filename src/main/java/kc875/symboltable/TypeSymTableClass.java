@@ -1,6 +1,9 @@
 package kc875.symboltable;
 
-import kc875.ast.*;
+import kc875.ast.ClassXi;
+import kc875.ast.FuncDecl;
+import kc875.ast.TypeTTau;
+import kc875.ast.TypeTTauClass;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,44 +14,20 @@ public class TypeSymTableClass extends TypeSymTable {
     private Map<String, TypeSymTableVar> fields;
     private Map<String, TypeSymTableFunc> methods;
 
-    private static Map<String, TypeSymTableVar> fieldsOf(ClassDecl decl) {
+    private static Map<String, TypeSymTableVar> fieldsOf(ClassXi classXi) {
         Map<String, TypeSymTableVar> fields = new HashMap<>();
-        decl.getFields().forEach(f ->
+        classXi.getFields().forEach(f ->
                 f.applyToAll((String name, TypeTTau type) ->
                         fields.put(name, new TypeSymTableVar(type))));
         return fields;
     }
 
-    private static Map<String, TypeSymTableVar> fieldsOf(ClassDefn defn) {
-        return fieldsOf(defn.toDecl());
-    }
-
-    private static Map<String, TypeSymTableFunc> methodsOf(ClassDecl decl) {
-        return decl.getMethods().stream()
+    private static Map<String, TypeSymTableFunc> methodsOf(ClassXi classXi) {
+        return classXi.getMethodDecls().stream()
                 .collect(Collectors.toMap(
                         FuncDecl::getName,
                         funcDecl -> (TypeSymTableFunc) funcDecl.getSignature().part2()
                 ));
-    }
-
-    private static Map<String, TypeSymTableFunc> methodsOf(ClassDefn defn) {
-        return defn.getMethods().stream()
-                .collect(Collectors.toMap(
-                        FuncDefn::getName,
-                        funcDecl -> (TypeSymTableFunc) funcDecl.getSignature().part2()
-                ));
-    }
-
-    public TypeSymTableClass(TypeTTauClass type, ClassDecl decl) {
-        this.type = type;
-        this.fields = fieldsOf(decl);
-        this.methods = methodsOf(decl);
-    }
-
-    public TypeSymTableClass(TypeTTauClass type, ClassDefn defn) {
-        this.type = type;
-        this.fields = fieldsOf(defn);
-        this.methods = methodsOf(defn);
     }
 
     public TypeSymTableClass(TypeTTauClass type,
@@ -57,6 +36,10 @@ public class TypeSymTableClass extends TypeSymTable {
         this.type = type;
         this.fields = fields;
         this.methods = methods;
+    }
+
+    public TypeSymTableClass(TypeTTauClass type, ClassXi classXi) {
+        this(type, fieldsOf(classXi), methodsOf(classXi));
     }
 
     public TypeTTauClass getType() {

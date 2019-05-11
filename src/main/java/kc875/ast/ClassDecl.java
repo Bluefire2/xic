@@ -10,15 +10,12 @@ import kc875.utils.Maybe;
 import java.util.List;
 
 public class ClassDecl extends ClassXi {
-    private List<FuncDecl> methods;
-
     public ClassDecl(String name,
                      Maybe<String> superClass,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location) {
-        super(name, superClass, fields, location);
-        this.methods = methods;
+        super(name, superClass, fields, methods, location);
     }
 
     public ClassDecl(String name,
@@ -26,20 +23,14 @@ public class ClassDecl extends ClassXi {
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location) {
-        super(name, superClass, fields, location);
-        this.methods = methods;
+        super(name, superClass, fields, methods, location);
     }
 
     public ClassDecl(String name,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location) {
-        super(name, fields, location);
-        this.methods = methods;
-    }
-
-    public List<FuncDecl> getMethods() {
-        return methods;
+        super(name, fields, methods, location);
     }
 
     @Override
@@ -60,7 +51,7 @@ public class ClassDecl extends ClassXi {
         fields.forEach(f -> f.prettyPrint(w));
         w.endList();
         w.startList();
-        methods.forEach(m -> m.prettyPrint(w));
+        methodDecls.forEach(m -> m.prettyPrint(w));
         w.endList();
         w.endList();
     }

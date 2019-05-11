@@ -32,6 +32,14 @@ public class TypeSymTableFunc extends TypeSymTable {
         this.canDecl = can_decl;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TypeSymTableFunc that = (TypeSymTableFunc) o;
+        return input.equals(that.input) && output.equals(that.output);
+    }
+
     public boolean canDecl() {
         return canDecl;
     }
