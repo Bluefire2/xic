@@ -1138,9 +1138,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeTTauArray snd_ = (TypeTTauArray) snd;
         if (fst.getTypeTTau() == null || snd_.getTypeTTau() == null)
             return true;
-        // TODO: make this invariant instead of covariant? Think about class
-        //  subtyping on the taus here.
-        return subTypeOf(fst.getTypeTTau(), snd_.getTypeTTau());
+        // Invariant subtyping for arrays
+        return fst.getTypeTTau().equals(snd_.getTypeTTau());
     }
 
     private boolean subTypeOf(TypeTTauBool fst, TypeT snd) {
