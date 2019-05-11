@@ -5,12 +5,10 @@ import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
-import kc875.utils.Maybe;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.HashSet;
 
 public class ClassDefn extends ClassXi {
     private List<FuncDefn> methods;
@@ -50,19 +48,7 @@ public class ClassDefn extends ClassXi {
                 .map(FuncDefn::getName)
                 .collect(Collectors.toSet());
     }
-
-    public String getName() {
-        return name;
-    }
-
-    public Maybe<String> getSuperClass() {
-        return superClass;
-    }
-
-    public List<StmtDecl> getFields() {
-        return fields;
-    }
-
+    
     public List<FuncDefn> getMethods() {
         return methods;
     }

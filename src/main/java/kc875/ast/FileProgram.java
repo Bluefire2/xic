@@ -115,9 +115,6 @@ public class FileProgram extends FileSource {
     @Override
     public void accept(TypeCheckVisitor visitor) {
         visitor.visit(this);
-        for (FuncDefn  d : funcDefns) {
-            d.accept(visitor);
-        }
     }
 
     @Override
