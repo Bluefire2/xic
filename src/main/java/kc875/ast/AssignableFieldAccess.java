@@ -15,7 +15,7 @@ public class AssignableFieldAccess extends Assignable {
         this.access = access;
     }
 
-    public Expr getAccess() {
+    public ExprFieldAccess getAccess() {
         return access;
     }
 

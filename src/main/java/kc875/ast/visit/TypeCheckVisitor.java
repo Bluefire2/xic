@@ -558,8 +558,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             ExprIndex index = (ExprIndex) ai.getIndex();
             // type of LHS index is already pre-calculated
             expectedType = index.getTypeCheckType();
+        } else if (lhs instanceof AssignableFieldAccess) {
+            AssignableFieldAccess afa = (AssignableFieldAccess) lhs;
+            ExprFieldAccess access = afa.getAccess();
+            expectedType = access.getTypeCheckType();
         } else {
-            // TODO: can also be a field
             throw new SemanticError(
                     "Expression can't be assigned to",
                     node.getLocation()
