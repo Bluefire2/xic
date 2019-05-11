@@ -39,8 +39,39 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     /**
+     * Check if a given type is valid. This means that it is either:
+     * <p>
+     * - A primitive type
+     * - A class that has been defined
+     * - An array of valid types as defined above
+     *
+     * @param type The type to check.
+     * @throws SemanticError if the type is not valid.
+     */
+    private void checkTypeT(TypeT type, ASTNode node) {
+        if (type instanceof TypeTTau) {
+            if (type instanceof TypeTTauClass) {
+                String className = ((TypeTTauClass) type).getName();
+                if (!classHierarchy.containsKey(className)) {
+                    throw new SemanticUnresolvedNameError(
+                            className,
+                            node.getLocation()
+                    );
+                }
+            } else if (type instanceof TypeTTauArray) {
+                checkTypeT(((TypeTTauArray) type).getTypeTTau(), node);
+            }
+            // otherwise, it has to be bool or int, both of which are valid
+        } else if (type instanceof TypeTList) {
+            ((TypeTList) type).getTTauList().forEach(t -> checkTypeT(t, node));
+        }
+        // has to be a unit, which is valid
+    }
+
+    /**
      * Throws SemanticErrorException for binary op AST node. Helper function
      * to visit(BinopExpr node).
+     *
      * @param node that results in a type checking error.
      */
     private void throwSemanticErrorBinopVisit(ExprBinop node)
@@ -234,7 +265,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 );
             // else
             node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
-        } catch (NotFoundException e){
+        } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
         return null;
@@ -349,7 +380,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             TypeSymTableInClass t =
                     (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
             node.setTypeCheckType(t.getTypeTTauClass());
-        } catch (NotFoundException e){
+        } catch (NotFoundException e) {
             throw new SemanticError(
                     "null not allowed outside a class definition",
                     node.getLocation()
@@ -364,7 +395,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             TypeSymTableInClass t =
                     (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
             node.setTypeCheckType(t.getTypeTTauClass());
-        } catch (NotFoundException e){
+        } catch (NotFoundException e) {
             throw new SemanticError(
                     "this not allowed outside a class definition",
                     node.getLocation()
@@ -457,13 +488,13 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     node.getLocation()
             );
         }
-        if (givenType instanceof TypeTList){
+        if (givenType instanceof TypeTList) {
             throw new SemanticError(
                     "Mismatched number of values",
                     node.getLocation()
             );
         }
-        if (!subTypeOf(givenType, expectedType)){
+        if (!subTypeOf(givenType, expectedType)) {
             throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
         }
         node.setTypeCheckType(TypeR.Unit);
@@ -514,8 +545,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
      * Checks that decl and givenType are compatible, and adds the binding
      * [decl.vi -> decl.typeOf()] for all vi in decl.varsOf() if
      * compatibility test passed. Throws SemanticError if not compatible.
-     * @param node StmtDeclAssign node of the assignment.
-     * @param decl declaration.
+     *
+     * @param node      StmtDeclAssign node of the assignment.
+     * @param decl      declaration.
      * @param givenType type of the corresponding RHS function call.
      */
     private void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
@@ -693,8 +725,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             TypeR s2r = node.getElseStmt().getTypeCheckType();
             if (s1r != null && s2r != null) {
                 node.setTypeCheckType(lub(s1r, s2r));
-            }
-            else node.setTypeCheckType(TypeR.Unit);
+            } else node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError(
                     "Guard of if-else statement must be a bool",
@@ -759,7 +790,21 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
-    private void checkForDanglingSuperClasses() {
+    private void collectTauClasses(List<ClassDefn> cs) {
+        for (ClassDefn c : cs) {
+            if (classHierarchy.containsKey(c.getName())) {
+                throw new SemanticError(
+                        "Class " + c.getName() + " already defined",
+                        c.getLocation()
+                );
+            }
+
+            classHierarchy.put(c.getName(), c.getSuperClass());
+            classNameToClassMap.put(c.getName(), c);
+        }
+
+        // Make sure that every super class is defined as a class in the
+        // class hierarchy
         for (Map.Entry<String, Maybe<String>> entry : classHierarchy.entrySet()) {
             Maybe<String> superClassName = entry.getValue();
             superClassName.thenDo(
@@ -773,21 +818,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     }
             );
         }
-    }
-
-    private void collectTauClasses(List<ClassDefn> cs) {
-        for (ClassDefn c : cs) {
-            if (classHierarchy.containsKey(c.getName())) {
-                throw new SemanticError(
-                        "Class " + c.getName() + " already defined",
-                        c.getLocation()
-                );
-            }
-
-            classHierarchy.put(c.getName(), c.getSuperClass());
-            classNameToClassMap.put(c.getName(), c);
-        }
-        checkForDanglingSuperClasses();
     }
 
     private void collectFuncs(List<FuncDefn> fs) {
@@ -824,36 +854,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             }
         }
 
-    }
-
-    /**
-     * Check if a given type is valid. This means that it is either:
-     *
-     * - A primitive type
-     * - A class that has been defined
-     * - An array of valid types as defined above
-     *
-     * @param type The type to check.
-     * @throws SemanticError if the type is not valid.
-     */
-    private void checkTypeT(TypeT type, ASTNode node) {
-        if (type instanceof TypeTTau) {
-            if (type instanceof TypeTTauClass) {
-                String className = ((TypeTTauClass) type).getName();
-                if (!classHierarchy.containsKey(className)) {
-                    throw new SemanticUnresolvedNameError(
-                            className,
-                            node.getLocation()
-                    );
-                }
-            } else if (type instanceof TypeTTauArray) {
-                checkTypeT(((TypeTTauArray) type).getTypeTTau(), node);
-            }
-            // otherwise, it has to be bool or int, both of which are valid
-        } else if (type instanceof TypeTList) {
-            ((TypeTList) type).getTTauList().forEach(t -> checkTypeT(t, node));
-        }
-        // has to be a unit, which is valid
     }
 
     private void collectClassContents(List<ClassDefn> cs) {
@@ -914,7 +914,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
         symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
-        for (Pair<String, TypeTTau> param : node.getParams()){
+        for (Pair<String, TypeTTau> param : node.getParams()) {
             if (symTable.contains(param.part1())) {
                 throw new SemanticError(
                         "No shadowing allowed in function params",
@@ -990,7 +990,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason
             throw new SemanticError(
-                    "Could not find interface "+node.getName(),
+                    "Could not find interface " + node.getName(),
                     node.getLocation());
         }
         return null;
