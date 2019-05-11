@@ -130,13 +130,13 @@ nonterminal List<TopLevelDecl> decl_or_defn_list;
 
 
 precedence left COMMA;
-precedence left DOT;
 precedence left OR;
 precedence left AND;
 precedence left NEQ, EQEQ;
 precedence left LT, GT, LTEQ, GTEQ;
 precedence left PLUS, MINUS;
 precedence left MULT, DIV, MOD, HI_MULT;
+precedence left DOT;
 precedence nonassoc UMINUS, NOT;
 precedence left LBRAC, RBRAC, LPAREN, RPAREN;
 
@@ -328,8 +328,8 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
-| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i, ixleft), oxleft); :}
-| expr:e1 DOT:o func_expr:f {: RESULT = new ExprBinop(Binop.DOT, e1, f, oxleft); :}
+| expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
+| expr:e1 DOT:o func_expr:f {: RESULT = new ExprMethodCall(e1, f, oxleft); :}
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
@@ -384,15 +384,14 @@ matched_stmt ::=
     RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e matched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 | block:b {: RESULT = b; :}
+| expr:e1 DOT:o func_expr:f {: RESULT = new StmtMethodCall(e1, f, oxleft); :}
 | assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
 | decl_assign_stmt:d {: RESULT = d; :}
 | decl_annotated_var:d {: RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
 | annotated_var:d {: RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
 | multi_var_decl:m {: RESULT = m; :}
-| ID:i LPAREN expr_list:el RPAREN {:
-    RESULT = new StmtProcedureCall(i, el, ixleft); :}
-| ID:i LPAREN RPAREN {:
-    RESULT = new StmtProcedureCall(i, new ArrayList<Expr>(), ixleft); :}
+| func_expr:f {:
+    RESULT = new StmtProcedureCall(f.getName(), f.getArgs(), fxleft); :}
 ;
 
 
@@ -439,7 +438,7 @@ block ::=
 | LCURL:c RCURL {: RESULT = new StmtBlock(cxleft); :}
 ;
 
-//CLASSES TODO do we want to allow empty classes?
+//CLASSES
 
 field_list ::=
   decl_annotated_var:d {:
@@ -464,21 +463,21 @@ field_list ::=
 ;
 
 class_defn ::=
-  CLASS ID:c LBRAC field_list:fl func_defn_list:dl RBRAC {:
+  CLASS ID:c LCURL field_list:fl func_defn_list:dl RCURL {:
     RESULT = new ClassDefn(c, fl, dl, cxleft); :}
-| CLASS ID:c LBRAC func_defn_list:dl RBRAC {:
+| CLASS ID:c LCURL func_defn_list:dl RCURL {:
     RESULT = new ClassDefn(c, new ArrayList<StmtDecl>(), dl, cxleft); :}
-| CLASS ID:c LBRAC field_list:fl RBRAC {:
+| CLASS ID:c LCURL field_list:fl RCURL {:
       RESULT = new ClassDefn(c, fl, new ArrayList<FuncDefn>(), cxleft); :}
-| CLASS ID:c LBRAC  RBRAC {:
+| CLASS ID:c LCURL RCURL {:
       RESULT = new ClassDefn(c, new ArrayList<StmtDecl>(), new ArrayList<FuncDefn>(), cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_defn_list:dl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL field_list:fl func_defn_list:dl RCURL {:
     RESULT = new ClassDefn(c, e, fl, dl, cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC func_defn_list:dl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL func_defn_list:dl RCURL {:
     RESULT = new ClassDefn(c, e, new ArrayList<StmtDecl>(), dl, cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL field_list:fl RCURL {:
       RESULT = new ClassDefn(c, e, fl, new ArrayList<FuncDefn>(), cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL RCURL {:
       RESULT = new ClassDefn(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDefn>(), cxleft); :}
 ;
 

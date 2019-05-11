@@ -15,6 +15,8 @@ interface ASTVisitor<T> {
     T visit(ExprNull node);
     T visit(ExprNew node);
     T visit(ExprThis node);
+    T visit(ExprFieldAccess node);
+    T visit(ExprMethodCall node);
 
     T visit(AssignableIndex node);
     T visit(AssignableId node);
@@ -30,6 +32,7 @@ interface ASTVisitor<T> {
     T visit(StmtWhile node);
     T visit(StmtBlock node);
     T visit(StmtBreak node);
+    T visit(StmtMethodCall node);
 
     T visit(FileProgram node);
     T visit(FileInterface node);

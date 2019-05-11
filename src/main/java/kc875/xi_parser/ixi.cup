@@ -341,21 +341,21 @@ field_list ::=
 ;
 
 class_decl ::=
-  CLASS ID:c LBRAC field_list:fl func_decl_list:dl RBRAC {:
+  CLASS ID:c LCURL field_list:fl func_decl_list:dl RCURL {:
     RESULT = new ClassDecl(c, fl, dl, cxleft); :}
-| CLASS ID:c LBRAC func_decl_list:dl RBRAC {:
+| CLASS ID:c LCURL func_decl_list:dl RCURL {:
     RESULT = new ClassDecl(c, new ArrayList<>(), dl, cxleft); :}
-| CLASS ID:c LBRAC field_list:fl RBRAC {:
+| CLASS ID:c LCURL field_list:fl RCURL {:
       RESULT = new ClassDecl(c, fl, new ArrayList<>(), cxleft); :}
-| CLASS ID:c LBRAC  RBRAC {:
+| CLASS ID:c LCURL RCURL {:
       RESULT = new ClassDecl(c, new ArrayList<>(), new ArrayList<>(), cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl func_decl_list:dl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL field_list:fl func_decl_list:dl RCURL {:
     RESULT = new ClassDecl(c, e, fl, dl, cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC func_decl_list:dl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL func_decl_list:dl RCURL {:
     RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), dl, cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC field_list:fl RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL field_list:fl RCURL {:
       RESULT = new ClassDecl(c, e, fl, new ArrayList<FuncDecl>(), cxleft); :}
-| CLASS ID:c EXTENDS ID:e LBRAC  RBRAC {:
+| CLASS ID:c EXTENDS ID:e LCURL RCURL {:
       RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDecl>(), cxleft); :}
 ;
 
