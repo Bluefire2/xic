@@ -50,7 +50,7 @@ public class ClassDefn extends ClassXi {
                 .map(FuncDefn::getName)
                 .collect(Collectors.toSet());
     }
-    
+
     public String getName() {
         return name;
     }

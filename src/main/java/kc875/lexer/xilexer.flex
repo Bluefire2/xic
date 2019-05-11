@@ -51,8 +51,7 @@ NON_EOL = [^\r\n]
 WHITESPACE = {EOL} | [ \t\f]
 HEX = ([0-9A-Fa-f]{1,4})
 // Variables can be both, classes must be capitalized
-ID_LOWER = [a-z][A-Za-z0-9\'_]*
-ID_UPPER = [A-Z][A-Za-z0-9\'_]*
+ID = [A-Za-z][A-Za-z0-9\'_]*
 COMMENT = "//"{NON_EOL}*{EOL}? // {EOL}? since comment may be last line in file
 INTEGER = 0 | [1-9][0-9]*
 
@@ -89,8 +88,7 @@ INTEGER = 0 | [1-9][0-9]*
     "break"     { return symbol(yytext(), sym.BREAK, yyline, yycolumn); }
 
     /* identifiers */
-    {ID_LOWER}        { return symbol("id " + yytext(), sym.ID_LOWER, yyline, yycolumn, yytext()); }
-    {ID_UPPER}        { return symbol("id " + yytext(), sym.ID_UPPER, yyline, yycolumn, yytext()); }
+    {ID}        { return symbol("id " + yytext(), sym.ID, yyline, yycolumn, yytext()); }
 
     /* literals */
     {INTEGER}   {

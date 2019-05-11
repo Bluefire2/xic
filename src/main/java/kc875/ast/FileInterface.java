@@ -68,12 +68,16 @@ public class FileInterface extends FileSource {
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startUnifiedList();
-        w.startUnifiedList();
-        imports.forEach((i) -> i.prettyPrint(w));
-        w.endList();
-        w.startUnifiedList();
-        classes.forEach((i) -> i.prettyPrint(w));
-        w.endList();
+        if (!imports.isEmpty()) {
+            w.startUnifiedList();
+            imports.forEach((i) -> i.prettyPrint(w));
+            w.endList();
+        }
+        if (!classes.isEmpty()) {
+            w.startUnifiedList();
+            classes.forEach((i) -> i.prettyPrint(w));
+            w.endList();
+        }
         w.startUnifiedList();
         funcDecls.forEach((i) -> i.prettyPrint(w));
         w.endList();
