@@ -45,8 +45,6 @@ scan with
     }
 :};
 
-terminal String ID_LOWER;
-terminal String ID_UPPER;
 terminal String STRING_LIT;
 terminal Character CHAR_LIT;
 terminal Long INT_LIT;
@@ -361,7 +359,8 @@ class_decl ::=
       RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDecl>(), cxleft); :}
 ;
 
-// unordered list of global variable decl/defn, function defn, or class defns...
+// unordered list of function decl or class decl...
+//different from nonterminal of same name in xiparser b/c we don't allow defns and global
 decl_or_defn_list ::=
   class_decl:c {:
     ArrayList<TopLevelDecl> l = new ArrayList<>();

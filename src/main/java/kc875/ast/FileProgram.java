@@ -5,7 +5,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import java_cup.runtime.ComplexSymbolFactory;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
-import kc875.symboltable.TypeSymTable;
+import kc875.symboltable.*;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
@@ -39,21 +39,12 @@ public class FileProgram extends FileSource {
                 new Pair<>(d.getName(), d.toDecl())));
 
         //global vars are private to each module
-//        globalDecls.forEach((d) -> {
+        //TODO
+//        globalVars.forEach((d) -> {
 //            Pair<String, TypeTTau> declType = d.getDecl().getPair();
 //            signatures.add(new Pair<>(declType.part1(),
 //                    new TypeSymTableVar(declType.part2())));
 //        });
-//
-//        globalDefns.forEach((d) -> {
-//            List<TypeDeclVar> typeDecls = d.getDecls();
-//            for (TypeDeclVar t: typeDecls) {
-//                Pair<String, TypeTTau> declType = t.getPair();
-//                        signatures.add(new Pair<>(declType.part1(),
-//                                new TypeSymTableVar(declType.part2())));
-//            }
-//        });
-
 
     }
 
@@ -105,12 +96,16 @@ public class FileProgram extends FileSource {
         w.startUnifiedList();
         imports.forEach((i) -> i.prettyPrint(w));
         w.endList();
-        w.startUnifiedList();
-        globalVars.forEach((i) -> i.prettyPrint(w));
-        w.endList();
-        w.startUnifiedList();
-        classDefns.forEach((i) -> i.prettyPrint(w));
-        w.endList();
+        if (!globalVars.isEmpty()) {
+            w.startUnifiedList();
+            globalVars.forEach((i) -> i.prettyPrint(w));
+            w.endList();
+        }
+        if (!classDefns.isEmpty()) {
+            w.startUnifiedList();
+            classDefns.forEach((i) -> i.prettyPrint(w));
+            w.endList();
+        }
         w.startUnifiedList();
         funcDefns.forEach((d) -> d.prettyPrint(w));
         w.endList();

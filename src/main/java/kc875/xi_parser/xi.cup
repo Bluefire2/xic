@@ -45,8 +45,6 @@ scan with
     }
 :};
 
-terminal String ID_LOWER;
-terminal String ID_UPPER;
 terminal String STRING_LIT;
 terminal Character CHAR_LIT;
 terminal Long INT_LIT;
