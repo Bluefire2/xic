@@ -329,6 +329,7 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
+// TODO: this should build a recursively nested structure, like the one used for array indices
 | expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 | expr:e1 DOT:o func_expr:f {: RESULT = new ExprMethodCall(e1, f, oxleft); :}
 // Unops
@@ -385,6 +386,7 @@ matched_stmt ::=
     RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e matched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 | block:b {: RESULT = b; :}
+// TODO: this should also be recursively nested
 | expr:e1 DOT:o func_expr:f {: RESULT = new StmtMethodCall(e1, f, oxleft); :}
 | assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
 | decl_assign_stmt:d {: RESULT = d; :}
