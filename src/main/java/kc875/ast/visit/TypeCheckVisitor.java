@@ -164,9 +164,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     break;
                 }
                 throwSemanticErrorBinopVisit(node);
-            case DOT:
-                // TODO
-                break;
             default:
                 throw new IllegalArgumentException("Operation Type of " +
                         "Binop node is invalid");
@@ -412,6 +409,71 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             );
         }
         return null;
+    }
+
+    @Override
+    public Void visit(ExprFieldAccess node) {
+        // recursively traverse up the tree, type checking each field/method access as we go
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String fieldName = node.getField().getName();
+            Map<String, TypeSymTableVar> fieldsOfClass = clazz.getFields();
+            if (!fieldsOfClass.containsKey(fieldName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + fieldName, node.getLocation());
+            }
+
+            // the class does have the field!
+            node.setTypeCheckType(fieldsOfClass.get(fieldName).getTypeTTau());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprMethodCall node) {
+        ExprFunctionCall call = node.getCall();
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String methodName = call.getName();
+            Map<String, TypeSymTableFunc> methodsOfClass = clazz.getMethods();
+            if (!methodsOfClass.containsKey(methodName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + methodName, node.getLocation());
+            }
+
+            // the class does have the method!
+            TypeSymTableFunc typeSignature = methodsOfClass.get(methodName);
+            call.setSignature(typeSignature);
+            checkFuncType(call, typeSignature);
+            node.setTypeCheckType(typeSignature.getOutput());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
+        }
+
+        return null;
+    }
+
+    private TypeTTauClass getClassType(Expr obj) {
+        obj.accept(this);
+        TypeT objType = obj.getTypeCheckType();
+        if (!(objType instanceof TypeTTauClass)) {
+            throw new SemanticError("Expression is not an object", obj.getLocation());
+        }
+
+        return (TypeTTauClass) objType;
     }
 
     @Override
@@ -761,6 +823,43 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             throw new SemanticError(
                     "break not allowed outside a loop", node.getLocation()
             );
+        return null;
+    }
+
+    @Override
+    public Void visit(StmtMethodCall node) {
+        ExprFunctionCall call = node.getCall();
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String methodName = call.getName();
+            Map<String, TypeSymTableFunc> methodsOfClass = clazz.getMethods();
+            if (!methodsOfClass.containsKey(methodName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + methodName, node.getLocation());
+            }
+
+            // the class does have the method!
+            TypeSymTableFunc typeSignature = methodsOfClass.get(methodName);
+            call.setSignature(typeSignature);
+
+            if (!(typeSignature.getOutput() instanceof TypeTUnit)) {
+                throw new SemanticError(
+                        String.format("%s.%s is not a procedure", classType.getName(), methodName),
+                        node.getLocation()
+                );
+            }
+
+            checkFuncArgs(call.getArgs(), typeSignature.getInput(), node.getLocation());
+            node.setTypeCheckType(TypeR.Unit);
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
+        }
+
         return null;
     }
 
