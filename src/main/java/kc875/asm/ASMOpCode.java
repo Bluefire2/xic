@@ -19,11 +19,6 @@ public enum ASMOpCode {
     XOR,
     NOT,
 
-    //Shift and rotate
-    SHR,
-    SHL,
-    SAR,
-
     //Data transfer
     MOV,
     MOVABS,
@@ -92,11 +87,9 @@ public enum ASMOpCode {
             case XOR:
                 return ASMOpCode.XOR;
             case LSHIFT:
-                return ASMOpCode.SHL;
             case RSHIFT:
-                return ASMOpCode.SHR;
             case ARSHIFT:
-                return ASMOpCode.SAR;
+                throw new InternalCompilerError(op + " not supported");
             default:
                 throw new InternalCompilerError("Cannot translate op type");
         }

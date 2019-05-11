@@ -60,9 +60,6 @@ public class ASMInstr_2Arg extends ASMInstr {
             case AND:
             case OR:
             case XOR:
-            case SHR:
-            case SHL:
-            case SAR:
             case MOV:
             case MOVZX:
                 return true;

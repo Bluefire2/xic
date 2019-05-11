@@ -4,6 +4,7 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.asm.*;
 import kc875.utils.XiUtils;
+import polyglot.util.InternalCompilerError;
 import polyglot.util.Pair;
 
 import java.util.*;
@@ -496,11 +497,14 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
         final List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
-            case ADD:
-            case SUB:
             case LSHIFT:
             case RSHIFT:
             case ARSHIFT:
+                throw new InternalCompilerError(
+                        node.opType() + " not supported"
+                );
+            case ADD:
+            case SUB:
                 /*
                  * Boolean binops can also be tiled this way: we can use x86
                  * bitwise instructions because booleans are all 0/1 anyway.
