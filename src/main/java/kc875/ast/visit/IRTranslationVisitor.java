@@ -73,6 +73,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             return "b";
         } else if (type instanceof TypeTUnit) {
             return "";
+        } else if (type instanceof TypeTTauClass) {
+            TypeTTauClass c = (TypeTTauClass) type;
+            return "o" + c.getName().length() + c.getName().replaceAll("_", "__");
         } else {
             throw new IllegalArgumentException("invalid type");
         }
@@ -419,7 +422,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprBinop node) {
-        //TODO update for function and method calls!
         IRExpr l = (IRExpr) node.getLeftExpr().accept(this);
         IRExpr r = (IRExpr) node.getRightExpr().accept(this);
         Binop op = node.getOp();
@@ -939,15 +941,16 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRTemp(funcArgName(0));
     }
 
-    // TODO
     @Override
     public IRNode visit(ExprFieldAccess node) {
+        //TODO
         return null;
     }
 
-    // TODO
     @Override
     public IRNode visit(ExprMethodCall node) {
+        //TODO
         return null;
     }
+    
 }
