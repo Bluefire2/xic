@@ -679,6 +679,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return id.accept(this);
     }
 
+    // TODO
+    @Override
+    public IRNode visit(AssignableFieldAccess node) {
+        return null;
+    }
+
     @Override
     public IRNode visit(StmtReturn node) {
         // Translate each expr into IR and pass it into IRReturn
@@ -849,6 +855,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRJump(new IRName(currentLoopEndLabel));
     }
 
+    // TODO
+    @Override
+    public IRNode visit(StmtMethodCall node) {
+        return null;
+    }
+
     @Override
     public IRCompUnit visit(FileProgram node) {
         //TODO update this
@@ -940,16 +952,5 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         //TODO
         return null;
     }
-
-    @Override
-    public IRNode visit(AssignableFieldAccess node) {
-        //TODO
-        return null;
-    }
-
-    @Override
-    public IRNode visit(StmtMethodCall node) {
-        //TODO
-        return null;
-    }
+    
 }
