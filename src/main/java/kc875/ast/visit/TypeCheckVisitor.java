@@ -911,6 +911,10 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 );
             }
 
+            // Make sure fields and methods aren't duplicated
+            checkDuplicateInStmtDecls(c.getFields());
+            checkDuplicateInFuncDecls(c.getMethodDecls());
+
             classHierarchy.put(c.getName(), c.getSuperClass());
             classNameToClassMap.put(c.getName(), c);
         }
@@ -954,8 +958,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 if (f instanceof FuncDefn) {
                     if (!existingf.canDecl()) {
                         throw new SemanticError(
-                                "Function with name " + name +
-                                        " has already been defined",
+                                "Function " + name + " already defined",
                                 f.getLocation());
                     }
                     existingf.setCanDecl(false);
@@ -999,31 +1002,10 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         for (FuncDecl fd : fds) {
             if (funcNames.contains(fd.getName()))
                 throw new SemanticError(
-                        "Function with name " + fd.getName() +
-                                " has already been defined",
+                        "Function " + fd.getName() + " already defined",
                         fd.getLocation()
                 );
             funcNames.add(fd.getName());
-        }
-    }
-
-    private void checkOverrideFields(List<StmtDecl> subFields,
-                                     Map<String, TypeSymTableVar> superFields) {
-        // Check that overriden fields of d and overrider fields
-        // of c have the same signatures.
-        // For all fields of c, throw an error if d has that
-        // field but has a different type
-        for (StmtDecl subField : subFields) {
-            subField.applyToAll((name, type) -> {
-                if (superFields.containsKey(name)
-                        && !superFields.get(name).getTypeTTau().equals(type)) {
-                    throw new SemanticTypeCheckError(
-                            superFields.get(name).getTypeTTau(),
-                            type,
-                            subField.getLocation()
-                    );
-                }
-            });
         }
     }
 
@@ -1071,9 +1053,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     // d exists in the sym table now
                     TypeSymTableClass dClass =
                             (TypeSymTableClass) symTable.lookup(d);
-                    checkDuplicateInStmtDecls(c.getFields());
-                    checkDuplicateInFuncDecls(c.getMethodDecls());
-                    checkOverrideFields(c.getFields(), dClass.getFields());
                     checkOverrideMethods(c.getMethodDecls(), dClass.getMethods());
 
                     // Now all fields and variables have the same types, c
@@ -1176,20 +1155,18 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         symTable.add(INCLASS_KEY, new TypeSymTableInClass(
                 new TypeTTauClass(className)
         ));
-        // Add all methods and super class' fields to sym table
-        // This class' fields are automatically added by StmtDecl visitors.
         try {
             TypeSymTableClass c = (TypeSymTableClass) symTable.lookup(className);
-            c.getMethods().forEach(
-                    (methName, methSig) -> symTable.add(methName, methSig)
-            );
+            // Add super class' fields to sym table. Visiting c's
+            // fields after this will result in duplicate variable if
+            // c tries to override a field of d (design decision).
             classHierarchy.get(c.getType().getName()).thenDo(dName -> {
                 // c extends d
                 try {
                     TypeSymTableClass d =
                             (TypeSymTableClass) symTable.lookup(dName);
                     d.getFields().forEach(
-                            (methName, methSig) -> symTable.add(methName, methSig)
+                            (field, type) -> symTable.add(field, type)
                     );
                 } catch (NotFoundException e) {
                     // Shouldn't happen since d should have been collected as
@@ -1199,6 +1176,16 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     );
                 }
             });
+            // Add methods of c to sym table so fields can use the methods
+            // for initialization
+            c.getMethods().forEach(
+                    (methName, methSig) -> symTable.add(methName, methSig)
+            );
+
+            // Now visit the fields and methods
+            node.getFields().forEach(f -> f.accept(this));
+            node.getMethodDefns().forEach(m -> m.accept(this));
+
         } catch (NotFoundException e) {
             // Shouldn't happen since the class should have been collected
             // in the sym table before this visitor is called.
@@ -1206,9 +1193,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     className + " collected but not present in symtable"
             );
         }
-
-        node.getFields().forEach(f -> f.accept(this));
-        node.getMethodDefns().forEach(m -> m.accept(this));
 
         symTable.exitScope();
         return null;

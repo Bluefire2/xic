@@ -237,6 +237,7 @@ decl_annotated_var ::=
 
 multi_var_decl ::=
   id_list:l COLON type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
+| id_list:l COLON init_list_type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
 ;
 
 type_decl ::=

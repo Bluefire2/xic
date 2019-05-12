@@ -28,20 +28,7 @@
 #
 # xth runs the commands in order of appearance.
 
-xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
-    appel_prog14_1.xi;
-    appel_prog14_2.xi;
-    appel_prog14_3.xi;
-    break_creates_unreachable_stmt.xi;
-    break_in_loop_multiple_places.xi;
-    break_outside_loop.xi;
-    class_dup_def.xi;
-    class_field_init_by_methods.xi;
-    class_field_shadow_by_field.xi;
-    class_field_shadow_by_method.xi;
-    class_incorrect_override_diff_params.xi;
-    class_incorrect_override_diff_ret.xi;
-    class_method_shadow_by_method.xi;
-    class_method_use_super_method.xi;
-    lang_spec_point_example.xi;
+xic ("Test --parse") "-libpath $(testpath) --parse" {
+    class_field_after_method.xi;
+    field_assign_direct.xi;
 }
