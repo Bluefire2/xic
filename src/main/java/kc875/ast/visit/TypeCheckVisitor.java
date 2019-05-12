@@ -105,9 +105,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         boolean lTypeIsInt = lType instanceof TypeTTauInt;
         boolean lTypeIsBool = lType instanceof TypeTTauBool;
         boolean lTypeIsArray = lType instanceof TypeTTauArray;
+        boolean lTypeIsClass = lType instanceof TypeTTauClass;
         boolean rTypeIsInt = rType instanceof TypeTTauInt;
         boolean rTypeIsBool = rType instanceof TypeTTauBool;
         boolean rTypeIsArray = rType instanceof TypeTTauArray;
+        boolean rTypeIsClass = rType instanceof TypeTTauClass;
 
         switch (node.getOp()) {
             case PLUS:
@@ -145,6 +147,34 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     if (lTau.equals(rTau)) {
                         node.setTypeCheckType(new TypeTTauBool());
                         break;
+                    }
+                }
+                if (lTypeIsClass && rTypeIsClass) {
+                    TypeTTauClass lClass = (TypeTTauClass) lType;
+                    TypeTTauClass rClass = (TypeTTauClass) rType;
+                    checkTypeT(lClass, node.getLeftExpr());
+                    checkTypeT(rClass, node.getRightExpr());
+
+                    try {
+                        TypeTTauClass c = ((TypeSymTableInClass)
+                                symTable.lookup(INCLASS_KEY)).getTypeTTauClass();
+                        if (!(lClass.equals(c) || rClass.equals(c))) {
+                            // neither of left or right are objects of c
+                            throw new SemanticError(
+                                    "Neither operands of " + node.getOp() +
+                                            " are objects of class " + c,
+                                    node.getLocation()
+                            );
+                        }
+                        // either left or right are objects of c
+                        node.setTypeCheckType(new TypeTTauBool());
+                        break;
+                    } catch (NotFoundException e) {
+                        throw new SemanticError(
+                                node.getOp() + " can only be used inside a " +
+                                        "class definition",
+                                node.getLocation()
+                        );
                     }
                 }
                 throwSemanticErrorBinopVisit(node);
@@ -453,6 +483,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
             // the class does have the method!
             TypeSymTableFunc typeSignature = methodsOfClass.get(methodName);
+            // type check the function call's args
+            for (Expr arg : call.getArgs())
+                arg.accept(this);
             call.setSignature(typeSignature);
             checkFuncType(call, typeSignature);
             node.setTypeCheckType(typeSignature.getOutput());
