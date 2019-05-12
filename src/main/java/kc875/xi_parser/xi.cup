@@ -304,6 +304,7 @@ assignable_indexable_expr ::=
 | func_expr:f {: RESULT = f; :}
 // TODO: why is length(e) an assignable?
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
+| simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 ;
 
 simple_expr ::=
@@ -316,7 +317,6 @@ simple_expr ::=
         curr = new ExprIndex(curr, e, ixleft);
     }
     RESULT = curr; :}
-| simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 //classes
 | NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
 | NULL:n {: RESULT = new ExprNull(nxleft); :}
@@ -363,6 +363,8 @@ expr ::=
 
 assignable ::=
   ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
+| simple_expr:e1 DOT:o ID:i {: RESULT = new AssignableFieldAccess(
+new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft), oxleft); :}
 | assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
