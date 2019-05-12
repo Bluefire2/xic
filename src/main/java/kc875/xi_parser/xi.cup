@@ -107,9 +107,10 @@ nonterminal TypeTTau type, basic_type, init_list_type, list_type;
 nonterminal FuncDefn func_defn;
 nonterminal UseInterface use_interface;
 
-nonterminal Expr expr, assignable_indexable_expr;
+nonterminal Expr expr, assignable_indexable_expr, simple_expr;
 nonterminal ExprFunctionCall func_expr;
 nonterminal Assignable assignable;
+nonterminal ExprMethodCall method_call;
 
 nonterminal Stmt stmt, matched_stmt, unmatched_stmt, return, block;
 nonterminal StmtDeclAssign decl_assign_stmt;
@@ -306,14 +307,29 @@ assignable_indexable_expr ::=
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
 
-expr ::=
+simple_expr ::=
   assignable_indexable_expr:e {: RESULT = e; :}
-// Array literals
+| simple_expr:e DOT:o func_expr:f {: RESULT = new ExprMethodCall(e, f, oxleft); :}
+| LPAREN expr:e RPAREN {: RESULT = e; :}
+| simple_expr:e1 indices:i {:
+    Expr curr = e1;
+    for (Expr e : i) {
+        curr = new ExprIndex(curr, e, ixleft);
+    }
+    RESULT = curr; :}
+| simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
+//classes
+| NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
+| NULL:n {: RESULT = new ExprNull(nxleft); :}
+| THIS:t {: RESULT = new ExprThis(txleft); :}
+;
+
+expr ::=
+  simple_expr:e {: RESULT = e; :}
+//array literals
+| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
-| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
-// Grouping expressions
-| LPAREN expr:e RPAREN {: RESULT = e; :}
 // Binops
 | expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
 | expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
@@ -329,16 +345,9 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
-// TODO: this should build a recursively nested structure, like the one used for array indices
-| expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
-| expr:e1 DOT:o func_expr:f {: RESULT = new ExprMethodCall(e1, f, oxleft); :}
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
-//classes
-| NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
-| NULL:n {: RESULT = new ExprNull(nxleft); :}
-| THIS:t {: RESULT = new ExprThis(txleft); :}
 // Literals
 | BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
 | INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
@@ -386,8 +395,7 @@ matched_stmt ::=
     RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e matched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 | block:b {: RESULT = b; :}
-// TODO: this should also be recursively nested
-| expr:e1 DOT:o func_expr:f {: RESULT = new StmtMethodCall(e1, f, oxleft); :}
+| simple_expr:e DOT:o func_expr:f {: RESULT = new StmtMethodCall(e, f, oxleft); :}
 | assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
 | decl_assign_stmt:d {: RESULT = d; :}
 | decl_annotated_var:d {: RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
