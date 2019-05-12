@@ -29,5 +29,5 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
-    point.xi;
+    lang_spec_point_example.xi;
 }

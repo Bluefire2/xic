@@ -1051,7 +1051,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                                 new TypeTTauClass(c.getName()), c
                         )
                 );
-                return;
+                continue;
             }
             // else
             // c extends d --> collect d, check overrode fields and
@@ -1168,10 +1168,26 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(ClassDefn node) {
+        String className = node.getName();
         symTable.enterScope();
         symTable.add(INCLASS_KEY, new TypeSymTableInClass(
-                new TypeTTauClass(node.getName())
+                new TypeTTauClass(className)
         ));
+        // Add methods to sym table, fields are automatically added by
+        // StmtDecl visitors.
+        try {
+            TypeSymTableClass c = (TypeSymTableClass) symTable.lookup(className);
+            Map<String, TypeSymTableFunc> methods = c.getMethods();
+            c.getMethods().forEach(
+                    (methName, methSig) -> symTable.add(methName, methSig)
+            );
+        } catch (NotFoundException e) {
+            // Shouldn't happen since the class should have been collected
+            // in the sym table before this visitor is called.
+            throw new SemanticUnresolvedNameError(
+                    className, node.getLocation()
+            );
+        }
 
         node.getFields().forEach(f -> f.accept(this));
         node.getMethodDefns().forEach(m -> m.accept(this));

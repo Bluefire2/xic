@@ -23,3 +23,23 @@ class Point{ // a mutable point
 createPoint(x: int, y:int): Point {
     return new Point.initPoint(x, y)
 }
+
+class Color {
+    r, g, b: int
+}
+
+class ColoredPoint extends Point {
+    col: Color
+    color(): Color { return col }
+
+    initColoredPoint(x0: int, y0: int, c: Color): ColoredPoint {
+        col = c
+        _ = initPoint(x0, y0)
+        return this
+    }
+}
+
+center: Point
+corner: Point
+len: int = 10
+tenpoints: Point[len]
