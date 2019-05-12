@@ -137,9 +137,8 @@ precedence left NEQ, EQEQ;
 precedence left LT, GT, LTEQ, GTEQ;
 precedence left PLUS, MINUS;
 precedence left MULT, DIV, MOD, HI_MULT;
-precedence left DOT;
 precedence nonassoc UMINUS, NOT;
-precedence left LBRAC, RBRAC, LPAREN, RPAREN;
+precedence left LBRAC, RBRAC, LPAREN, RPAREN, DOT;
 
 start with program;
 

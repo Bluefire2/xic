@@ -36,9 +36,9 @@ class Truck extends Vehicle {
 }
 
 main(args:int[][]) {
-    Truck t = new Truck.initTruck(0)
-    Car c = new Car.initCar(0, 10)
-    Vehicle v = c
+    t: Truck = new Truck.initTruck(0)
+    c: Car = new Car.initCar(0, 10)
+    v: Vehicle = c
     c.passengers = 2
     c.move(60)
     v.move(70)
