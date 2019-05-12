@@ -30,4 +30,5 @@
 
 xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     lang_spec_point_example.xi;
+    red_book_prog14_1_example.xi;
 }
