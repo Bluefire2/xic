@@ -227,7 +227,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 );
             // function with 1 arg
             Expr arg = args.get(0);
-            if (!arg.getTypeCheckType().equals(inTypes))
+            if (!subTypeOf(arg.getTypeCheckType(), inTypes))
                 throw new SemanticTypeCheckError(
                         inTypes, arg.getTypeCheckType(), arg.getLocation()
                 );
@@ -244,8 +244,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             for (int i = 0; i < args.size(); ++i) {
                 Expr ei = args.get(i);
                 TypeTTau ti = inTauList.get(i);
-                if (!ei.getTypeCheckType().equals(ti)) {
-                    // Gamma |- ei : tj and tj != ti
+                if (!subTypeOf(ei.getTypeCheckType(), ti)) {
+                    // Gamma |- ei : tj and !(tj <= ti)
                     throw new SemanticTypeCheckError(
                             ti, ei.getTypeCheckType(), ei.getLocation()
                     );
@@ -880,6 +880,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
             // the class does have the method!
             TypeSymTableFunc funcSig = methodsOfClass.get(methodName);
+            // type check the procedure's args
+            for (Expr arg : call.getArgs())
+                arg.accept(this);
             call.setSignature(funcSig);
             if (!(funcSig.getOutput() instanceof TypeTUnit)) {
                 throw new SemanticError(
@@ -1173,19 +1176,34 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         symTable.add(INCLASS_KEY, new TypeSymTableInClass(
                 new TypeTTauClass(className)
         ));
-        // Add methods to sym table, fields are automatically added by
-        // StmtDecl visitors.
+        // Add all methods and super class' fields to sym table
+        // This class' fields are automatically added by StmtDecl visitors.
         try {
             TypeSymTableClass c = (TypeSymTableClass) symTable.lookup(className);
-            Map<String, TypeSymTableFunc> methods = c.getMethods();
             c.getMethods().forEach(
                     (methName, methSig) -> symTable.add(methName, methSig)
             );
+            classHierarchy.get(c.getType().getName()).thenDo(dName -> {
+                // c extends d
+                try {
+                    TypeSymTableClass d =
+                            (TypeSymTableClass) symTable.lookup(dName);
+                    d.getFields().forEach(
+                            (methName, methSig) -> symTable.add(methName, methSig)
+                    );
+                } catch (NotFoundException e) {
+                    // Shouldn't happen since d should have been collected as
+                    // it is a super class of c
+                    throw new IllegalStateException(
+                            dName + " collected but not present in symtable"
+                    );
+                }
+            });
         } catch (NotFoundException e) {
             // Shouldn't happen since the class should have been collected
             // in the sym table before this visitor is called.
-            throw new SemanticUnresolvedNameError(
-                    className, node.getLocation()
+            throw new IllegalStateException(
+                    className + " collected but not present in symtable"
             );
         }
 

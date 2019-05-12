@@ -29,6 +29,8 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
+    appel_prog14_1.xi;
+    appel_prog14_2.xi;
+    appel_prog14_3.xi;
     lang_spec_point_example.xi;
-    red_book_prog14_1_example.xi;
 }
