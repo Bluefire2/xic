@@ -608,7 +608,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             );
         }
         if (!subTypeOf(givenType, expectedType)) {
-            throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
+            throw new SemanticTypeCheckError(
+                    expectedType, givenType, node.getLocation()
+            );
         }
         node.setTypeCheckType(TypeR.Unit);
         return null;
@@ -667,7 +669,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
         if (!subTypeOf(givenType, varType)) {
-            throw new SemanticTypeCheckError(varType, givenType, node.getLocation());
+            throw new SemanticTypeCheckError(
+                    varType, givenType, node.getLocation()
+            );
         }
         // givenType is a subtype of varType == good
         // check that the var isn't already declared in the context
@@ -1286,15 +1290,15 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // fst <= snd if either is true
         // - fst == snd
         // - fst extends d and d is subtype of snd
-        // If fst doesn't extend anything and fst != snd, then false (isKnown
-        // check at the end implements this)
+        // If fst doesn't extend anything and fst != snd, then false
+        // (otherwise becomes active)
         // If fst extends d and d is not a subtype of snd, then false
-        // (isKnown after Maybe.unknown() implements this)
+        // (Maybe<false> returned from to(), and otherwise on it takes the
+        // false out from the Maybe
         return fstName.equals(snd_.getName())
                 || classHierarchy.get(fstName).to(
                 d -> subTypeOf(new TypeTTauClass(d), snd_)
-                        ? Maybe.definitely(true) : Maybe.unknown()
-        ).isKnown();
+        ).otherwise(false);
     }
 
     private boolean subTypeOf(TypeTTauInt fst, TypeT snd) {

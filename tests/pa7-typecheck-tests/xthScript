@@ -32,16 +32,27 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     appel_prog14_1.xi;
     appel_prog14_2.xi;
     appel_prog14_3.xi;
+    array_subtyping_invariance.xi;
     break_creates_unreachable_stmt.xi;
     break_in_loop_multiple_places.xi;
     break_outside_loop.xi;
     class_dup_def.xi;
     class_field_init_by_methods.xi;
+    class_field_not_found.xi;
     class_field_shadow_by_field.xi;
     class_field_shadow_by_method.xi;
     class_incorrect_override_diff_params.xi;
     class_incorrect_override_diff_ret.xi;
+    class_method_not_found.xi;
     class_method_shadow_by_method.xi;
     class_method_use_super_method.xi;
+    class_multiple_field_method_access.xi;
+    class_mutually_recursive_methods.xi;
+    class_override_field_error.xi;
+    class_recursive_method.xi;
+    class_same_field_methods_multiple_classes.xi;
+    class_subtyping_assign.xi;
+    class_subtyping_assign_error0.xi;
+    class_subtyping_assign_error1.xi;
     lang_spec_point_example.xi;
 }
