@@ -32,5 +32,8 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     appel_prog14_1.xi;
     appel_prog14_2.xi;
     appel_prog14_3.xi;
+    break_creates_unreachable_stmt.xi;
+    break_in_loop_multiple_places.xi;
+    break_outside_loop.xi;
     lang_spec_point_example.xi;
 }

@@ -396,6 +396,7 @@ matched_stmt ::=
     RESULT = new StmtIfElse(e,s1,s2, ixleft); :}
 | WHILE:w expr:e matched_stmt:s {: RESULT = new StmtWhile(e,s, wxleft); :}
 | block:b {: RESULT = b; :}
+| BREAK:b {: RESULT = new StmtBreak(bxleft); :}
 | simple_expr:e DOT:o func_expr:f {: RESULT = new StmtMethodCall(e, f, oxleft); :}
 | assignable:a EQ expr:e {: RESULT = new StmtAssign(a, e, axleft); :}
 | decl_assign_stmt:d {: RESULT = d; :}
