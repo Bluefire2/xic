@@ -54,5 +54,7 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     class_subtyping_assign.xi;
     class_subtyping_assign_error0.xi;
     class_subtyping_assign_error1.xi;
+    lang_spec_color_colored_point_example.xi;
     lang_spec_point_example.xi;
+    lang_spec_point_interface.ixi;
 }

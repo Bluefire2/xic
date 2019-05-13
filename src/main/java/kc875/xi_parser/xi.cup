@@ -305,7 +305,6 @@ assignable_indexable_expr ::=
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
 // TODO: why is length(e) an assignable?
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 | simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 ;
 
@@ -327,6 +326,7 @@ simple_expr ::=
 
 expr ::=
   simple_expr:e {: RESULT = e; :}
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 //array literals
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
@@ -366,7 +366,7 @@ expr ::=
 assignable ::=
   ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
 | simple_expr:e1 DOT:o ID:i {: RESULT = new AssignableFieldAccess(
-new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft), oxleft); :}
+    new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft), oxleft); :}
 | assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
@@ -462,6 +462,7 @@ global ::=
     RESULT = m; :}
 | global:g SEMICOLON {: RESULT = g; :}
 ;
+
 //CLASSES
 
 field_list ::=
