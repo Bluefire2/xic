@@ -35,6 +35,5 @@ public interface IRExpr extends IRNode {
                    Function<IRConst, T> c,
                    Function<IRMem, T> d,
                    Function<IRName, T> e,
-                   Function<IRTemp, T> f,
-                   Function<IRExprLabel, T> g);
+                   Function<IRTemp, T> f);
 }

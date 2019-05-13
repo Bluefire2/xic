@@ -575,7 +575,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRExpr visit(ExprId node) {
         if (global_names.contains(node.getName())) {
             String name = "_I_g_"+className(node.getName())+"_"+typeName(node.getTypeCheckType());
-            return new IRMem(new IRExprLabel(name));
+            return new IRMem(new IRName(name));
         }
         return new IRTemp(node.getName());
     }
@@ -638,12 +638,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String vt = "_I_vt_"+name;
         List<IRStmt> seq = new ArrayList<>();
         String t = newTemp();//size of class
-        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRExprLabel(size))));
+        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
         String t2 = newTemp();//pointer to new obj
         //allocate memory for size of class
         seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
         //move vt pointer to first location in obj
-        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRExprLabel(vt))));
+        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
         return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
@@ -1041,7 +1041,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRNode visit(ExprFieldAccess node) {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
-        //TODO this class name should be the class the field was originally declared in
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
         String classSize = "_I_size_"+className(className);
         String fieldName = node.getField().getName();
@@ -1054,23 +1053,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         //based on mandelbrot 463
 
         //
-        int field_index; //TODO what index is the field within the containing class, disregarding superclasses
-        int n_fields; //number of total fields in this class, disregarding superclasses
+        int field_index; //TODO what index is the field within the layout of class
 
-        //t = t + [size of class]
+        //nth field is at ptr + 8(n+1)
         seq.add(new IRMove(
                 new IRTemp(t),
                 new IRBinOp(OpType.ADD,
                         new IRTemp(t),
-                        new IRMem(new IRExprLabel(classSize))
-                )
-        ));
-        //subtract number to get the memory n-th from last field
-        seq.add(new IRMove(
-                new IRTemp(t),
-                new IRBinOp(OpType.ADD,
-                        new IRTemp(t),
-                        new IRConst((field_index - n_fields) * 8)
+                        new IRConst((field_index + 1) * 8)
                 )
         ));
 

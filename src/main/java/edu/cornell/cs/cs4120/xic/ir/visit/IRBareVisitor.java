@@ -13,7 +13,6 @@ interface IRBareVisitor<T> {
     T visit(IRCJump node);
     T visit(IRCompUnit node);
     T visit(IRConst node, ASMExprRT destreg);
-    T visit(IRExprLabel node, ASMExprRT destreg);
     T visit(IRExp node);
     T visit(IRFuncDecl node);
     T visit(IRJump node);
@@ -23,4 +22,5 @@ interface IRBareVisitor<T> {
     T visit(IRReturn node);
     T visit(IRSeq node);
     T visit(IRTemp node, ASMExprRT destreg);
+    T visit(IRName node, ASMExprRT destreg);
 }
