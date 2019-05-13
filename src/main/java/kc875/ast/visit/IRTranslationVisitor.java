@@ -19,8 +19,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private int tempcounter;
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
-    public boolean inClass;
-    public String currentClass; //name of current class
 
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
@@ -88,18 +86,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
-    }
-
-    public String className(String name) {
-        return name.replaceAll("_", "__");
-    }
-
-    public String methodName(String name, String className, TypeSymTableFunc signature) {
-        String newName = name.replaceAll("_", "__");
-        String newClassName = className.replaceAll("_", "__");
-        String returnType = returnTypeName(signature.getOutput());
-        String inputType = typeName(signature.getInput());
-        return "_I_" + newClassName + "_" + newName + "_" + returnType + inputType;
     }
 
     private IRStmt conditionalTranslate(Expr e, String labelt, String labelf) {
@@ -571,11 +557,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprId node) {
-        //TODO implement global check
-        if (node.isGlobal()) {
-            String name = "_I_g_"+className(node.getName())+"_"+typeName(node.getTypeCheckType());
-            return new IRMem(new IRExprLabel(name));
-        }
         return new IRTemp(node.getName());
     }
 
@@ -631,19 +612,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprNew node) {
-        String name = node.getName();
-        name = className(name);
-        String size = "_I_size_"+name;
-        String vt = "_I_vt_"+name;
-        List<IRStmt> seq = new ArrayList<>();
-        String t = newTemp();//size of class
-        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRExprLabel(size))));
-        String t2 = newTemp();//pointer to new obj
-        //allocate memory for size of class
-        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
-        //move vt pointer to first location in obj
-        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRExprLabel(vt))));
-        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
+        //TODO allocate mem of size according to pre-calculated memory layout
+        return null;
     }
 
     @Override
@@ -885,41 +855,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRJump(new IRName(currentLoopEndLabel));
     }
 
+    // TODO
     @Override
     public IRNode visit(StmtMethodCall node) {
-        List<IRStmt> seq = new ArrayList<>();
-        Expr obj = node.getObj();
-        ExprFunctionCall call = node.getCall();
-
-        String t = newTemp();
-        IRExpr objExpr = (IRExpr) obj.accept(this);
-        seq.add(new IRMove(new IRTemp(t), objExpr));
-
-        ArrayList<IRExpr> argsIR = new ArrayList<>();
-        argsIR.add(new IRTemp(t));
-        for (Expr arg : call.getArgs()) {
-            // Add argIR to list of arguments to be passed to IRCall
-            argsIR.add((IRExpr) arg.accept(this));
-        }
-
-        //TODO IRConst is not 0, need layout of functions
-        // t is the obj pointer
-        // [t] is the vt pointer
-        // [[t] + x] is the vt pointer for the method, which is what we call
-        IRExpr methodAddr = new IRBinOp(OpType.ADD,
-                new IRMem(new IRTemp(t)),
-                new IRConst(0));
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
-        return new IRSeq(seq);
+        return null;
     }
 
     @Override
     public IRCompUnit visit(FileProgram node) {
         //TODO update this
-
-        //TODO: class init
-        //TODO: global init
-        //TODO: class methods
         IRCompUnit program = new IRCompUnit(name);
         for (FuncDefn d : node.getFuncDefns()) {
             program.appendFunc((IRFuncDecl) d.accept(this));
@@ -934,10 +878,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRFuncDecl visit(FuncDefn node) {
-        if (this.inClass) {
-            return visitMethod(node);
-        }
-
+        //TODO update for methods!
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
 
@@ -962,48 +903,20 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
     }
 
-    public IRFuncDecl visitMethod(FuncDefn node) {
-        String funcName = methodName(
-                node.getName(), this.currentClass, (TypeSymTableFunc) node.getSignature().part2());
-
-        List<Pair<String, TypeTTau>> params = node.getParams();
-        List<IRStmt> moveArgs = new ArrayList<>();
-        //_ARG0 is "this"
-        for (int i = 1; i < params.size() + 1; ++i) {
-            // Move argi into params
-            moveArgs.add(new IRMove(
-                    new IRTemp(params.get(i).part1()),
-                    new IRTemp(funcArgName(i))
-            ));
-        }
-
-        Stmt body = node.getBody();
-        IRSeq bodyIR = (IRSeq) body.accept(this);
-
-        // Add a return statement if not already present
-        if (body.getTypeCheckType().equals(TypeR.Unit)) {
-            bodyIR = new IRSeq(bodyIR, new IRReturn());
-        }
-
-        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
-    }
-
     @Override
     public IRNode visit(FuncDecl node) {
         return null;
-    } //TODO see below
+    }
 
     @Override
     public IRNode visit(ClassDecl node) {
         //TODO use this to handle translating memory layout and dispatch table
-        // maybe?
         return null;
     }
 
     @Override
     public IRNode visit(ClassDefn node) {
         //TODO use this to handle translating the actual methods
-        // maybe?
         //can use toDecl or getDecl or something like that to convert to Decl for handling mem layout
         return null;
     }
@@ -1030,75 +943,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(ExprFieldAccess node) {
-        List<IRStmt> seq = new ArrayList<>();
-        Expr obj = node.getObj();
-        //TODO this class name should be the class the field was originally declared in
-        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        String classSize = "_I_size_"+className(className);
-        String fieldName = node.getField().getName();
-
-        String t = newTemp();
-        IRExpr objExpr = (IRExpr) obj.accept(this);
-        seq.add(new IRMove(new IRTemp(t), objExpr));
-        //t now holds location of obj
-
-        //based on mandelbrot 463
-
-        //
-        int field_index; //TODO what index is the field within the containing class, disregarding superclasses
-        int n_fields; //number of total fields in this class, disregarding superclasses
-
-        //t = t + [size of class]
-        seq.add(new IRMove(
-                new IRTemp(t),
-                new IRBinOp(OpType.ADD,
-                        new IRTemp(t),
-                        new IRMem(new IRExprLabel(classSize))
-                )
-        ));
-        //subtract number to get the memory n-th from last field
-        seq.add(new IRMove(
-                new IRTemp(t),
-                new IRBinOp(OpType.ADD,
-                        new IRTemp(t),
-                        new IRConst((field_index - n_fields) * 8)
-                )
-        ));
-
-        //move the value into a return temp t2
-        String t2 = newTemp();
-        seq.add(new IRMove(new IRTemp(t2), new IRMem(new IRTemp(t))));
-        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
+        //TODO
+        return null;
     }
 
     @Override
     public IRNode visit(ExprMethodCall node) {
-        List<IRStmt> seq = new ArrayList<>();
-        Expr obj = node.getObj();
-        ExprFunctionCall call = node.getCall();
-
-        String t = newTemp();
-        IRExpr objExpr = (IRExpr) obj.accept(this);
-        seq.add(new IRMove(new IRTemp(t), objExpr));
-
-        ArrayList<IRExpr> argsIR = new ArrayList<>();
-        argsIR.add(new IRTemp(t));
-        for (Expr arg : call.getArgs()) {
-            // Add argIR to list of arguments to be passed to IRCall
-            argsIR.add((IRExpr) arg.accept(this));
-        }
-
-        //TODO IRConst is not 0, need layout of functions
-        // t is the obj pointer
-        // [t] is the vt pointer
-        // [[t] + x] is the vt pointer for the method, which is what we call
-        IRExpr methodAddr = new IRBinOp(OpType.ADD,
-                new IRMem(new IRTemp(t)),
-                new IRConst(0));
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
-        return new IRESeq(
-                new IRSeq(seq),
-                new IRTemp(returnValueName(0)));
+        //TODO
+        return null;
     }
 
 }

@@ -87,8 +87,7 @@ public class IRESeq extends IRExpr_c {
                           Function<IRConst, T> c,
                           Function<IRMem, T> d,
                           Function<IRName, T> e,
-                          Function<IRTemp, T> f,
-                          Function<IRExprLabel, T> g) {
+                          Function<IRTemp, T> f) {
         throw new IllegalAccessError("IRESeq can't be matched upon by the " +
                 "lowered IR matcher");
     }

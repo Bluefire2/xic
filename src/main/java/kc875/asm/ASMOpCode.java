@@ -52,13 +52,7 @@ public enum ASMOpCode {
     LEAVE,
 
     //comments
-    COMMENT,
-
-    //.
-    DOT,
-
-
-    LEA;
+    COMMENT;
 
     @Override
     public String toString() {

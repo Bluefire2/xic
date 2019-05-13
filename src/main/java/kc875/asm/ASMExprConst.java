@@ -3,7 +3,7 @@ package kc875.asm;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ASMExprConst extends ASMExpr implements ASMExprImm {
+public class ASMExprConst extends ASMExpr {
     private Long val;
 
     public ASMExprConst(long val) {

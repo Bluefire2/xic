@@ -238,35 +238,20 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
-    //add .globl prefix to funcs
-    private List<ASMInstr> funcPrefix(List<ASMInstr> func) {
-        List<ASMInstr> updatedFunc = new ArrayList<>(func);
-        String funcName = ((ASMInstrLabel) updatedFunc.get(0)).getName();
-        updatedFunc.add(0, new ASMInstrDirective("globl", funcName));
-        return updatedFunc;
-    }
-
     public List<ASMInstr> allocate(List<ASMInstr> input){
         List<ASMInstr> instrs = new ArrayList<>();
         input = ASMUtils.execPerFunc(input, this::createTempSpaceOnStack);
         input = ASMUtils.execPerFunc(input, this::saveAllCalleeRegsInFunc);
         input = ASMUtils.execPerFunc(input, this::alignStackInFunc);
-        input = ASMUtils.execPerFunc(input, this::funcPrefix);
         for (ASMInstr instr : input) {
             if (instr  instanceof ASMInstrComment) {
                 instrs.add(instr);
-            }
-            else if (instr  instanceof ASMInstrDirective) {
-                instrs.add(instr);
-            }
-            else {
+            } else {
                 instrs.addAll(instr.accept(this));
             }
         }
         return instrs;
     }
-
-
 
     @Override
     public List<ASMInstr> visit(ASMInstrLabel i) {
