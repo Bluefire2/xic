@@ -29,9 +29,9 @@
 # xth runs the commands in order of appearance.
 
 xic ("Test -target linux --optir initial --optir final -Oreg") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg" {
-  group_of_anonymous_02__reg-alloc.xi;
-  group_of_anonymous_02__reg-alloc2.xi;
-  group_of_anonymous_03__reg4.xi;
+  group_of_anonymous02__reg-alloc.xi;
+  group_of_anonymous02__reg-alloc2.xi;
+  group_of_anonymous03__reg4.xi;
 }
 
 xic ("Test -target linux --optir initial --optir final -Oreg -Ocse") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg -Ocse" {
