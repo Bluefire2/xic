@@ -304,7 +304,7 @@ assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
-// TODO: why is length(e) an assignable?
+| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 | simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 ;
 
@@ -326,7 +326,6 @@ simple_expr ::=
 
 expr ::=
   simple_expr:e {: RESULT = e; :}
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 //array literals
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
