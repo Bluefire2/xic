@@ -128,6 +128,7 @@ nonterminal ClassDefn class_defn;
 nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
 nonterminal List<TopLevelDecl> decl_or_defn_list;
+nonterminal StmtDecl global;
 
 
 precedence left COMMA;
@@ -452,28 +453,25 @@ block ::=
 | LCURL:c RCURL {: RESULT = new StmtBlock(cxleft); :}
 ;
 
+global ::=
+  decl_annotated_var:d {:
+    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
+| annotated_var:d {:
+    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
+| multi_var_decl:m {:
+    RESULT = m; :}
+| global:g SEMICOLON {: RESULT = g; :}
+;
 //CLASSES
 
 field_list ::=
-  decl_annotated_var:d {:
+  global:g {:
     ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
+    l.add(g);
     RESULT = l; :}
-| annotated_var:d {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
+| field_list:l global:g {:
+    l.add(g);
     RESULT = l; :}
-| multi_var_decl:m {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(m);
-    RESULT = l; :}
-| field_list:l multi_var_decl:m {:
-    l.add(m);
-    RESULT = l; :}
-| field_list:l annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
-| field_list:l decl_annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
 ;
 
 class_defn ::=
@@ -509,7 +507,10 @@ decl_or_defn_list ::=
       ArrayList<TopLevelDecl> l = new ArrayList<>();
       l.add(d);
       RESULT = l; :}
-| decl_or_defn_list:l multi_var_decl:m {: l.add(m); RESULT = l; :}
+| decl_assign_stmt:d SEMICOLON {:
+      ArrayList<TopLevelDecl> l = new ArrayList<>();
+      l.add(d);
+      RESULT = l; :}
 | field_list:f func_defn:d {:
     ArrayList<TopLevelDecl> l = new ArrayList<>();
     l.addAll(f);
@@ -525,13 +526,18 @@ decl_or_defn_list ::=
     l.addAll(f);
     l.add(d);
     RESULT = l; :}
+| field_list:f decl_assign_stmt:d SEMICOLON {:
+    ArrayList<TopLevelDecl> l = new ArrayList<>();
+    l.addAll(f);
+    l.add(d);
+    RESULT = l; :}
 | decl_or_defn_list:l func_defn:d {: l.add(d); RESULT = l; :}
 | decl_or_defn_list:l class_defn:c {: l.add(c); RESULT = l; :}
-| decl_or_defn_list:l decl_assign_stmt:d {: l.add(d); RESULT = l; :}
-| decl_or_defn_list:l annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
-| decl_or_defn_list:l decl_annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+| decl_or_defn_list:l global:g {: l.add(g); RESULT = l; :}
+| decl_or_defn_list:l decl_assign_stmt:d {:
+    l.add(d); RESULT = l; :}
+| decl_or_defn_list:l decl_assign_stmt:d SEMICOLON {:
+    l.add(d); RESULT = l; :}
 ;
 
 // IMPORTS
