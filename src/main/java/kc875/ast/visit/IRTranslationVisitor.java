@@ -11,6 +11,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -20,7 +21,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
     public boolean inClass;
-    public String currentClass; //name of current class
+    public ClassDefn currentClass; //name of current class
+    private Set<String> global_names;
 
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
@@ -571,8 +573,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprId node) {
-        //TODO implement global check
-        if (node.isGlobal()) {
+        if (global_names.contains(node.getName())) {
             String name = "_I_g_"+className(node.getName())+"_"+typeName(node.getTypeCheckType());
             return new IRMem(new IRExprLabel(name));
         }
@@ -700,7 +701,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRNode visit(AssignableIndex node) {
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-        return this.visit(idx_expr);
+        return idx_expr.accept(this);
     }
 
     @Override
@@ -709,10 +710,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return id.accept(this);
     }
 
-    // TODO
     @Override
     public IRNode visit(AssignableFieldAccess node) {
-        return null;
+        return node.getAccess().accept(this);
     }
 
     @Override
@@ -915,15 +915,29 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRCompUnit visit(FileProgram node) {
-        //TODO update this
-
-        //TODO: class init
-        //TODO: global init
-        //TODO: class methods
         IRCompUnit program = new IRCompUnit(name);
+
+        //class init
+        for (ClassDefn c : node.getClassDefns()) {
+            program.appendFunc(generateInitClass(c.toDecl()));
+        }
+
+        //global init
+        program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+
+        for (ClassDefn c : node.getClassDefns()) {
+            inClass = true;
+            currentClass = c;
+            for (FuncDefn method : c.getMethodDefns()) {
+                method.accept(this);
+            }
+            inClass = false;
+        }
+
         for (FuncDefn d : node.getFuncDefns()) {
             program.appendFunc((IRFuncDecl) d.accept(this));
         }
+
         return program;
     }
 
@@ -964,7 +978,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     public IRFuncDecl visitMethod(FuncDefn node) {
         String funcName = methodName(
-                node.getName(), this.currentClass, (TypeSymTableFunc) node.getSignature().part2());
+                node.getName(), currentClass.getName(), (TypeSymTableFunc) node.getSignature().part2());
 
         List<Pair<String, TypeTTau>> params = node.getParams();
         List<IRStmt> moveArgs = new ArrayList<>();
@@ -991,20 +1005,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRNode visit(FuncDecl node) {
         return null;
-    } //TODO see below
+    }
 
     @Override
     public IRNode visit(ClassDecl node) {
-        //TODO use this to handle translating memory layout and dispatch table
-        // maybe?
         return null;
     }
 
     @Override
     public IRNode visit(ClassDefn node) {
-        //TODO use this to handle translating the actual methods
-        // maybe?
-        //can use toDecl or getDecl or something like that to convert to Decl for handling mem layout
         return null;
     }
 
@@ -1099,6 +1108,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRESeq(
                 new IRSeq(seq),
                 new IRTemp(returnValueName(0)));
+    }
+
+    //generate _I_global_init function
+    //initialize all globals (incl arrays and objects if necessary)
+    public IRFuncDecl generateInitGlobals(List<StmtDecl> globals) {
+        //TODO
+        return null;
+    }
+
+
+    //generate _I_init_someClass function
+    //initialize size and VT (needs method/field layouts)
+    public IRFuncDecl generateInitClass(ClassDecl c) {
+        //TODO
+        return null;
     }
 
 }
