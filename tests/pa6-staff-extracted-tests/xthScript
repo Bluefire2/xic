@@ -53,5 +53,5 @@ xic ("Test -target linux --optir initial --optir final -Oreg -Odce") "-libpath $
 }
 
 xic ("Test -target linux --optir initial --optir final") "-libpath $(testpath) -target linux --optir initial --optir final" {
-  group_of_anonymous03__availableexprs1.xi
+  group_of_anonymous03__availableexprs1.xi;
 }
