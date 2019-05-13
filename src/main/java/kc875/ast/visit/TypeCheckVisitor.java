@@ -19,7 +19,7 @@ import java.util.*;
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private BiMap<String, ClassXi> classNameToClassMap;
-    private Set<UseInterface> importedInterfaces;
+    public Set<String> visitedInterfaces;
     private Map<String, Maybe<String>> classHierarchy;
     private String libpath;
     private String RETURN_KEY = "__rho__";
@@ -29,7 +29,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
         this.symTable = symTable;
         this.classNameToClassMap = HashBiMap.create();
-        this.importedInterfaces = new HashSet<>();
+        this.visitedInterfaces = new HashSet<>();
         this.classHierarchy = new HashMap<>();
         this.libpath = libpath;
         symTable.enterScope();
@@ -1212,12 +1212,10 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(UseInterface node) {
-        if (importedInterfaces.contains(node))
-            throw new SemanticError(
-                    "Already imported interface " + node.getName(),
-                    node.getLocation()
-            );
-        importedInterfaces.add(node);
+        if (visitedInterfaces.contains(node.getName()))
+            // Already imported this interface, return
+            return null;
+        visitedInterfaces.add(node.getName());
 
         String filename = node.getName() + ".ixi";
         String inputFilePath = Paths.get(libpath, filename).toString();
