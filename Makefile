@@ -3,7 +3,7 @@ XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
 XTH_VERBOSITY_LEVEL=2
 
-SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-tests tests/pa3-staff-extracted-tests tests/pa4-tests tests/pa4-staff-extracted-tests tests/pa5-tests tests/pa5-staff-extracted-tests tests/pa6-tests tests/pa7-parse-tests tests/pa7-typecheck-tests
+SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-tests tests/pa3-staff-extracted-tests tests/pa4-tests tests/pa4-staff-extracted-tests tests/pa5-tests tests/pa5-staff-extracted-tests tests/pa6-tests tests/pa6-staff-extracted-tests tests/pa7-parse-tests tests/pa7-typecheck-tests
 PA1_OTHER_TEST_DIRS=xth/tests/pa1
 PA2_OTHER_TEST_DIRS=xth/tests/pa2
 PA3_OTHER_TEST_DIRS=xth/tests/pa3 tests/pa3-staff-examples-tests

@@ -397,18 +397,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         // after both are computed. So, lhs and rhs computation can
         // be separated.
 
-        // Get the Expr representation of the left side. Depending on
-        // the left child of this binop, the repr can be a temp t, a
-        // mem location [...] (if the right child is not a mem) etc.
-        ASMExpr leftDest = left.matchLow(
-                // no, this can't be extracted into a variable
-                irBinOpChildToASM(leftDestTemp, instrs),
-                irBinOpChildToASM(leftDestTemp, instrs),
-                irBinOpChildToASM(leftDestTemp, instrs),
-                (IRMem m) -> asmMemTileOf(m, instrs),
-                illegalAccessErrorLambda(),
-                irBinOpChildToASM(leftDestTemp, instrs)
-        );
         ASMExpr rightDest = right.matchLow(
                 // no, this can't be extracted into a variable
                 irBinOpChildToASM(rightDestTemp, instrs),
@@ -430,6 +418,18 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     }},
                 illegalAccessErrorLambda(),
                 this::toASM
+        );
+        // Get the Expr representation of the left side. Depending on
+        // the left child of this binop, the repr can be a temp t, a
+        // mem location [...] (if the right child is not a mem) etc.
+        ASMExpr leftDest = left.matchLow(
+                // no, this can't be extracted into a variable
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                (IRMem m) -> asmMemTileOf(m, instrs),
+                illegalAccessErrorLambda(),
+                irBinOpChildToASM(leftDestTemp, instrs)
         );
         return new Pair<>(leftDest, rightDest);
     }
