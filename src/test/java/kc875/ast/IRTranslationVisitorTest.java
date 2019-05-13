@@ -21,6 +21,7 @@ public class IRTranslationVisitorTest {
 
     @Before
     public void setUp() {
+        // TODO: fix this
         visitor = new IRTranslationVisitor(true, "test");
         l = new XiTokenLocation(0,0);
     }

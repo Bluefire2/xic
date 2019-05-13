@@ -4,13 +4,15 @@ import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.ast.*;
+import kc875.symboltable.SymbolTable;
+import kc875.symboltable.TypeSymTable;
+import kc875.symboltable.TypeSymTableClass;
 import kc875.symboltable.TypeSymTableFunc;
+import kc875.utils.Maybe;
 import polyglot.util.Pair;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -20,6 +22,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
 
+    // map from class names to their ordered fields
+    private Map<String, SortedSet<String>> classFields;
+    // map from class names to super class names (if a superclass exists)
+    private Map<String, Maybe<String>> classHierarchy;
+
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
     }
@@ -28,11 +35,27 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public IRTranslationVisitor(boolean optimCF, String name) {
+    public IRTranslationVisitor(boolean optimCF,
+                                String name,
+                                SymbolTable<TypeSymTable> symbolTable,
+                                Map<String, Maybe<String>> classHierarchy) {
         this.labelcounter = 0;
         this.tempcounter = 0;
         this.optimCF = optimCF;
         this.name = name;
+
+        this.classFields = new HashMap<>();
+        for (Map.Entry<String, TypeSymTable> entry : symbolTable.scopeView().entrySet()) {
+            TypeSymTable type = entry.getValue();
+            if (type instanceof TypeSymTableClass) {
+                String id = entry.getKey();
+                SortedSet<String> orderedFields =
+                        new TreeSet<>(((TypeSymTableClass) type).getFields().keySet());
+                classFields.put(id, orderedFields);
+            }
+        }
+
+        this.classHierarchy = classHierarchy;
     }
 
     private String returnValueName(int i) {

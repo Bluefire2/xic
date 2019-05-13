@@ -181,6 +181,8 @@ public class CLI implements Runnable {
             description = "File(s) to process.")
     private File[] optInputFiles;
 
+    private static TypeCheckVisitor typeCheckVisitor;
+
     /**
      * Returns -1 if path not found, 0 otherwise.
      */
@@ -372,9 +374,11 @@ public class CLI implements Runnable {
         XiLexer lexer = new XiLexer(fileReader, xtf);
         XiParser parser = new XiParser(lexer, xtf);
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new TypeCheckVisitor(
+
+        CLI.typeCheckVisitor = new TypeCheckVisitor(
                 new HashMapSymbolTable<>(), libPath.toString()
-        ));
+        );
+        root.accept(CLI.typeCheckVisitor);
         return root;
     }
 
@@ -415,14 +419,19 @@ public class CLI implements Runnable {
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
             ir = root.accept(new IRTranslationVisitor(
-                    false, fPath
+                    false,
+                    fPath,
+                    CLI.typeCheckVisitor.getSymTable(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
             ));
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
         } else {
             // Normal IR translation and lowering
             IRNode mir = root.accept(new IRTranslationVisitor(
                     activeOptims.get(Optims.CF),
-                    FilenameUtils.removeExtension(f.getName())
+                    FilenameUtils.removeExtension(f.getName()),
+                    CLI.typeCheckVisitor.getSymTable(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
             ));
             LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
             ir = lv.visit(mir);
