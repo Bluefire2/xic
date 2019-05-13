@@ -35,6 +35,10 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         symTable.enterScope();
     }
 
+    public SymbolTable<TypeSymTable> getSymTable() {
+        return symTable;
+    }
+
     /**
      * Check if a given type is valid. This means that it is either:
      * <p>
