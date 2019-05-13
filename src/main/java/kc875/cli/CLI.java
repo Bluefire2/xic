@@ -584,11 +584,10 @@ public class CLI implements Runnable {
      * @param fileWriter file writer.
      * @throws IOException when problems with fileWriter.
      */
-    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
-        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
-        fileWriter.write(INDENT_ASM + ".text\n");
-        fileWriter.write(INDENT_ASM + ".globl" +
-                INDENT_ASM + "_Imain_paai\n");
+    private void asmFilePrologueWrite(FileWriter fileWriter, String file_name) throws IOException {
+        fileWriter.write(".file \""+file_name+"\"\n");
+        fileWriter.write(".intel_syntax noprefix\n");
+        fileWriter.write(".text\n\n");
     }
 
     private void asmGen() {
@@ -675,7 +674,8 @@ public class CLI implements Runnable {
                 }
 
                 // Write ASM
-                asmFilePrologueWrite(fileWriter);
+                asmFilePrologueWrite(fileWriter,
+                        FilenameUtils.removeExtension(f.getName()) + ".xi");
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
                 }

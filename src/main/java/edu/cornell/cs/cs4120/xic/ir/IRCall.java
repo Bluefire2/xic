@@ -98,7 +98,8 @@ public class IRCall extends IRExpr_c {
                           Function<IRConst, T> c,
                           Function<IRMem, T> d,
                           Function<IRName, T> e,
-                          Function<IRTemp, T> f) {
+                          Function<IRTemp, T> f,
+                          Function<IRExprLabel, T> g) {
         return b.apply(this);
     }
 

@@ -32,7 +32,7 @@ public class ASMInstrLabel extends ASMInstr {
      * Returns true if this label is for a function, false otherwise.
      */
     public boolean isFunction() {
-        return name.startsWith("_I"); // based on the ABI spec
+        return name.startsWith("_I") && !name.startsWith("_I_g_"); // based on the ABI spec
     }
 
     @Override
