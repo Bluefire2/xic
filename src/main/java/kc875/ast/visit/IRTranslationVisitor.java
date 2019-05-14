@@ -11,6 +11,7 @@ import polyglot.util.Pair;
 
 import java.math.BigInteger;
 import java.util.*;
+
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -19,6 +20,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private int tempcounter;
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
+    public boolean inClass;
+    Set<String> global_names;
+    public ClassDefn currentClass; //name of current class
 
     // a class cannot possibly have this name:
     private static String CLASS_SUPER_PARENT = "_";
@@ -30,8 +34,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // a top-down tree representing the class hierarchy
     @SuppressWarnings ("UnstableApiUsage")
     private Traverser<String> classTree;
-    // map from class names to the locations of their dispatch vectors (allocated on the heap)
-    private Map<String, IRName> dispatchVectorLocations;
     // map from class names to the *new* methods defined by that class
     // i.e. inherited methods are not included, even if they are overridden!
     private Map<String, List<String>> dispatchVectorLayouts;
@@ -53,47 +55,49 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         this.optimCF = optimCF;
         this.name = name;
 
-        this.classFields = new HashMap<>();
-        for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
-            String className = entry.getKey();
-            ClassXi clazz = entry.getValue();
-            List<String> orderedFields = clazz.getFields().stream()
-                    .flatMap((StmtDecl field) -> field.varsOf().stream())
-                    .collect(Collectors.toList());
-            classFields.put(className, orderedFields);
-        }
+        if (classes.entrySet().size() != 0) {
+            // classes exist
+            this.classFields = new HashMap<>();
+            for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
+                String className = entry.getKey();
+                ClassXi clazz = entry.getValue();
+                List<String> orderedFields = clazz.getFields().stream()
+                        .flatMap((StmtDecl field) -> field.varsOf().stream())
+                        .collect(Collectors.toList());
+                classFields.put(className, orderedFields);
+            }
 
-        this.classHierarchy = classHierarchy;
-        this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
+            this.classHierarchy = classHierarchy;
+            this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
 
-        /* The traverser allows us to visit each class in an order that
-         * guarantees that a child can never be visited before its parent. This
-         * ensures that when we start building a child class' dispatch vector,
-         * its parent's DV will have already been built. */
-        Iterable<String> classHierarchyTraversal =
-                this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
+            /* The traverser allows us to visit each class in an order that
+             * guarantees that a child can never be visited before its parent. This
+             * ensures that when we start building a child class' dispatch vector,
+             * its parent's DV will have already been built. */
+            Iterable<String> classHierarchyTraversal =
+                    this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
 
-        this.dispatchVectorLocations = new HashMap<>();
-        this.dispatchVectorLayouts = new HashMap<>();
-        for (String className : classHierarchyTraversal) {
-            // skip the top parent node
-            if (className.equals(CLASS_SUPER_PARENT)) continue;
+            this.dispatchVectorLayouts = new HashMap<>();
+            for (String className : classHierarchyTraversal) {
+                // skip the top parent node
+                if (className.equals(CLASS_SUPER_PARENT)) continue;
 
-            List<String> dvLayout = new ArrayList<>();
-            // build on the parent's dispatch vector, if it exists
-            classHierarchy.get(className).thenDo(parent ->
-                    dvLayout.addAll(
-                            this.dispatchVectorLayouts.get(parent)
-                    )
-            );
+                List<String> dvLayout = new ArrayList<>();
+                // build on the parent's dispatch vector, if it exists
+                classHierarchy.get(className).thenDo(parent ->
+                        dvLayout.addAll(
+                                this.dispatchVectorLayouts.get(parent)
+                        )
+                );
 
-            // add all methods that are defined in the class (not inherited/overridden)
-            ClassXi clazz = classes.get(className);
-            List<String> classMethodNames = clazz.getMethodDecls().stream()
-                    .map(Func::getName)
-                    .collect(Collectors.toList());
-            dvLayout.addAll(classMethodNames);
-            this.dispatchVectorLayouts.put(className, dvLayout);
+                // add all methods that are defined in the class (not inherited/overridden)
+                ClassXi clazz = classes.get(className);
+                List<String> classMethodNames = clazz.getMethodDecls().stream()
+                        .map(Func::getName)
+                        .collect(Collectors.toList());
+                dvLayout.addAll(classMethodNames);
+                this.dispatchVectorLayouts.put(className, dvLayout);
+            }
         }
     }
 
@@ -101,14 +105,17 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private <T> Traverser<T> invertHierarchy(Map<T, Maybe<T>> hierarchy, T superParent) {
         // first, build a graph from the hierarchy
         MutableGraph<T> graph = GraphBuilder.directed().build();
+        graph.addNode(superParent);
         for (Map.Entry<T, Maybe<T>> entry : hierarchy.entrySet()) {
             T child = entry.getKey();
             Maybe<T> parentMaybe = entry.getValue();
 
             graph.addNode(child);
-            T parent = parentMaybe.otherwise(superParent);
-            graph.addNode(parent);
-            graph.putEdge(child, parent);
+            parentMaybe.thenDo(graph::addNode);
+            graph.putEdge(
+                    child,
+                    parentMaybe.to(parent -> parent).otherwise(superParent)
+            );
         }
 
         // now, we transpose the graph
@@ -132,6 +139,20 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     private String funcArgName(int i) {
         return "_ARG" + i;
+    }
+
+    private String dispatchVectorLoc(String className) {
+        return "_I_vt_"+className(className);
+    }
+
+    private String classSizeLoc(String className) {
+        return "_I_size_"+className(className);
+    }
+
+    public String globalName(String name, TypeTTau signature) {
+        String newName = name.replaceAll("_", "__");
+        String type = typeName(signature);
+        return "_I_g_" + newName + "_" + type;
     }
 
     private String currentLoopEndLabel;
@@ -172,11 +193,25 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
     }
 
+    //_I_function_types
     public String functionName(String name, TypeSymTableFunc signature) {
         String newName = name.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
+    }
+
+    public String className(String name) {
+        return name.replaceAll("_", "__");
+    }
+
+    //_I_class_function_types
+    public String methodName(String name, String className, TypeSymTableFunc signature) {
+        String newName = name.replaceAll("_", "__");
+        String newClassName = className.replaceAll("_", "__");
+        String returnType = returnTypeName(signature.getOutput());
+        String inputType = typeName(signature.getInput());
+        return "_I_" + newClassName + "_" + newName + "_" + returnType + inputType;
     }
 
     private IRStmt conditionalTranslate(Expr e, String labelt, String labelf) {
@@ -647,6 +682,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprId node) {
+        if (global_names.contains(node.getName())) {
+            String name = "_I_g_"+className(node.getName())+"_"+typeName(node.getTypeCheckType());
+            return new IRMem(new IRName(name));
+        }
         return new IRTemp(node.getName());
     }
 
@@ -716,7 +755,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         // store a pointer to the dispatch vector in our new temp
         IRMove storeDV = new IRMove(
                 new IRMem(new IRTemp(objectBaseAddress)),
-                this.dispatchVectorLocations.get(className)
+                new IRName(dispatchVectorLoc(className))
                 // TODO make sure that we allocate and populate DVs properly
         );
 
@@ -724,6 +763,19 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRSeq(baseAllocAddress, storeDV),
                 new IRTemp(objectBaseAddress)
         );
+//        String name = node.getName();
+//        name = className(name);
+//        String size = "_I_size_"+name;
+//        String vt = "_I_vt_"+name;
+//        List<IRStmt> seq = new ArrayList<>();
+//        String t = newTemp();//size of class
+//        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
+//        String t2 = newTemp();//pointer to new obj
+//        //allocate memory for size of class
+//        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
+//        //move vt pointer to first location in obj
+//        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
+//        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
     @Override
@@ -780,7 +832,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRNode visit(AssignableIndex node) {
         ExprIndex idx_expr = (ExprIndex) node.getIndex();
-        return this.visit(idx_expr);
+        return idx_expr.accept(this);
     }
 
     @Override
@@ -789,10 +841,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return id.accept(this);
     }
 
-    // TODO
     @Override
     public IRNode visit(AssignableFieldAccess node) {
-        return null;
+        return node.getAccess().accept(this);
     }
 
     @Override
@@ -843,7 +894,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtDeclAssign node) {
+    public IRStmt visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
         IRExpr rhsIR = (IRExpr) node.getRhs().accept(this);
 
@@ -965,19 +1016,61 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRJump(new IRName(currentLoopEndLabel));
     }
 
-    // TODO
     @Override
     public IRNode visit(StmtMethodCall node) {
-        return null;
+        List<IRStmt> seq = new ArrayList<>();
+        Expr obj = node.getObj();
+        ExprFunctionCall call = node.getCall();
+
+        String t = newTemp();
+        IRExpr objExpr = (IRExpr) obj.accept(this);
+        seq.add(new IRMove(new IRTemp(t), objExpr));
+
+        ArrayList<IRExpr> argsIR = new ArrayList<>();
+        argsIR.add(new IRTemp(t));
+        for (Expr arg : call.getArgs()) {
+            // Add argIR to list of arguments to be passed to IRCall
+            argsIR.add((IRExpr) arg.accept(this));
+        }
+
+        //TODO IRConst is not 0, need layout of functions
+        // t is the obj pointer
+        // [t] is the vt pointer
+        // [[t] + x] is the vt pointer for the method, which is what we call
+        IRExpr methodAddr = new IRBinOp(OpType.ADD,
+                new IRMem(new IRTemp(t)),
+                new IRConst(0));
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        return new IRSeq(seq);
     }
 
     @Override
     public IRCompUnit visit(FileProgram node) {
-        //TODO update this
         IRCompUnit program = new IRCompUnit(name);
+
+        global_names = node.getGlobalNames();
+
+        //class init
+        for (ClassDefn c : node.getClassDefns()) {
+            program.appendFunc(generateInitClass(c.toDecl()));
+        }
+
+        //global init
+        program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+
+        for (ClassDefn c : node.getClassDefns()) {
+            inClass = true;
+            currentClass = c;
+            for (FuncDefn method : c.getMethodDefns()) {
+                method.accept(this);
+            }
+            inClass = false;
+        }
+
         for (FuncDefn d : node.getFuncDefns()) {
             program.appendFunc((IRFuncDecl) d.accept(this));
         }
+
         return program;
     }
 
@@ -988,13 +1081,42 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRFuncDecl visit(FuncDefn node) {
-        //TODO update for methods!
+        if (this.inClass) {
+            return visitMethod(node);
+        }
+
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
 
         List<Pair<String, TypeTTau>> params = node.getParams();
         List<IRStmt> moveArgs = new ArrayList<>();
         for (int i = 0; i < params.size(); ++i) {
+            // Move argi into params
+            moveArgs.add(new IRMove(
+                    new IRTemp(params.get(i).part1()),
+                    new IRTemp(funcArgName(i))
+            ));
+        }
+
+        Stmt body = node.getBody();
+        IRSeq bodyIR = (IRSeq) body.accept(this);
+
+        // Add a return statement if not already present
+        if (body.getTypeCheckType().equals(TypeR.Unit)) {
+            bodyIR = new IRSeq(bodyIR, new IRReturn());
+        }
+
+        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
+    }
+
+    public IRFuncDecl visitMethod(FuncDefn node) {
+        String funcName = methodName(
+                node.getName(), currentClass.getName(), (TypeSymTableFunc) node.getSignature().part2());
+
+        List<Pair<String, TypeTTau>> params = node.getParams();
+        List<IRStmt> moveArgs = new ArrayList<>();
+        //_ARG0 is "this"
+        for (int i = 1; i < params.size() + 1; ++i) {
             // Move argi into params
             moveArgs.add(new IRMove(
                     new IRTemp(params.get(i).part1()),
@@ -1020,14 +1142,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(ClassDecl node) {
-        //TODO use this to handle translating memory layout and dispatch table
         return null;
     }
 
     @Override
     public IRNode visit(ClassDefn node) {
-        //TODO use this to handle translating the actual methods
-        //can use toDecl or getDecl or something like that to convert to Decl for handling mem layout
         return null;
     }
 
@@ -1053,12 +1172,115 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(ExprFieldAccess node) {
-        //TODO
-        return null;
+        List<IRStmt> seq = new ArrayList<>();
+        Expr obj = node.getObj();
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+        String classSize = classSizeLoc(className);
+        String fieldName = node.getField().getName();
+
+        String t = newTemp();
+        IRExpr objExpr = (IRExpr) obj.accept(this);
+        seq.add(new IRMove(new IRTemp(t), objExpr));
+        //t now holds location of obj
+
+        //nth field is at ptr + 8(n+1)
+        seq.add(new IRMove(
+                new IRTemp(t),
+                new IRBinOp(OpType.ADD,
+                        new IRTemp(t),
+                        new IRConst(classFieldOffset(className, fieldName))
+                )
+        ));
+
+        //move the value into a return temp t2
+        String t2 = newTemp();
+        seq.add(new IRMove(new IRTemp(t2), new IRMem(new IRTemp(t))));
+        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
     @Override
     public IRNode visit(ExprMethodCall node) {
+        List<IRStmt> seq = new ArrayList<>();
+        Expr obj = node.getObj();
+        ExprFunctionCall call = node.getCall();
+
+        String t = newTemp();
+        IRExpr objExpr = (IRExpr) obj.accept(this);
+        seq.add(new IRMove(new IRTemp(t), objExpr));
+
+        ArrayList<IRExpr> argsIR = new ArrayList<>();
+        argsIR.add(new IRTemp(t));
+        for (Expr arg : call.getArgs()) {
+            // Add argIR to list of arguments to be passed to IRCall
+            argsIR.add((IRExpr) arg.accept(this));
+        }
+
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+
+        // t is the obj pointer
+        // [t] is the vt pointer
+        // [[t] + x] is the vt pointer for the method, which is what we call
+        IRExpr methodAddr = new IRBinOp(OpType.ADD,
+                new IRMem(new IRTemp(t)),
+                new IRConst(classMethodOffset(className, call.getName()))); //offset for method
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        return new IRESeq(
+                new IRSeq(seq),
+                new IRTemp(returnValueName(0)));
+    }
+
+    //generate _I_global_init function
+    //initialize all globals (incl arrays and objects if necessary)
+    //this initializes them all into named temps but immediately moves them to the global memory location
+    //mostly done for code reuse
+    private IRFuncDecl generateInitGlobals(List<StmtDecl> globals) {
+        String funcName = "_I_global_init";
+        List<IRStmt> body = new ArrayList<>();
+        for (StmtDecl d : globals) {
+            String gname;
+            TypeTTau gtype;
+            if (d instanceof StmtDeclSingle) {
+                StmtDeclSingle s = (StmtDeclSingle) d;
+                gname = s.getName();
+                gtype = s.getDecl().getType();
+                body.add(this.visit(s));
+                body.add(new IRMove(
+                        new IRMem(new IRName(globalName(gname, gtype))),
+                        new IRTemp(gname)));
+            } else if (d instanceof StmtDeclAssign) {
+                StmtDeclAssign s = (StmtDeclAssign) d;
+                body.add(this.visit(s));
+                List<String> names = s.getNames();
+                for (int i = 0; i < names.size(); i++) {
+                    gname = names.get(i);
+                    TypeT t = s.getDecls().get(i).typeOf();
+                    if (t instanceof TypeTTau) {
+                        gtype = (TypeTTau) t;
+                        body.add(new IRMove(
+                                new IRMem(new IRName(globalName(gname, gtype))),
+                                new IRTemp(gname)));
+                    }
+                }
+            } else if (d instanceof StmtDeclMulti) {
+                List<String> names = ((StmtDeclMulti) d).getVars();
+                for (String name : names) {
+                    gname = name;
+                    gtype = ((StmtDeclMulti) d).getType();
+                    body.add(initDecl(gname, gtype));
+                    body.add(new IRMove(
+                            new IRMem(new IRName(globalName(gname, gtype))),
+                            new IRTemp(gname)));
+                }
+            }
+        }
+        body.add(new IRReturn());
+        return new IRFuncDecl(funcName, new IRSeq(body));
+    }
+
+
+    //generate _I_init_someClass function
+    //initialize size and VT (needs method/field layouts)
+    private IRFuncDecl generateInitClass(ClassDecl c) {
         //TODO
         return null;
     }

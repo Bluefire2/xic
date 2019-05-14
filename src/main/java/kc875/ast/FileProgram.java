@@ -11,6 +11,8 @@ import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 public class FileProgram extends FileSource {
     private List<StmtDecl> globalVars;
@@ -133,5 +135,21 @@ public class FileProgram extends FileSource {
 
     public List<ClassDefn> getClassDefns() {
         return classDefns;
+    }
+
+    public Set<String> getGlobalNames() {
+        Set<String> names = new HashSet<>();
+        for (StmtDecl d : globalVars) {
+            if (d instanceof StmtDeclSingle) {
+                names.add(((StmtDeclSingle) d).getName());
+            } else if (d instanceof StmtDeclAssign) {
+                List<String> dnames = ((StmtDeclAssign) d).getNames();
+                names.addAll(dnames);
+            } else if (d instanceof StmtDeclMulti) {
+                List<String> dnames = ((StmtDeclMulti) d).getVars();
+                names.addAll(dnames);
+            }
+        }
+        return names;
     }
 }

@@ -17,6 +17,9 @@ public class ASMInstr_1Arg extends ASMInstr {
 
     public ASMInstr_1Arg(ASMOpCode opCode, ASMExpr arg) {
         super(opCode);
+        if (arg instanceof ASMExprLabel) {
+            throw new IllegalAccessError("labels cannot be used as operands!");
+        }
         this.arg = arg;
     }
 

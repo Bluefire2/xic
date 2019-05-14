@@ -22,4 +22,5 @@ interface IRBareVisitor<T> {
     T visit(IRReturn node);
     T visit(IRSeq node);
     T visit(IRTemp node, ASMExprRT destreg);
+    T visit(IRName node, ASMExprRT destreg);
 }

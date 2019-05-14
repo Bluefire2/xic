@@ -12,6 +12,9 @@ public class ASMInstr_2Arg extends ASMInstr {
 
     public ASMInstr_2Arg(ASMOpCode opCode, ASMExpr dest, ASMExpr src) {
         super(opCode);
+        if (dest instanceof ASMExprLabel || src instanceof ASMExprLabel) {
+            throw new IllegalAccessError("labels cannot be used as operands!");
+        }
         this.dest = dest;
         this.src = src;
     }

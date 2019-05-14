@@ -1,12 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir.dfa;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.visit.ListChildrenVisitor;
 import kc875.cfg.DFAFramework;
-import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
 import kc875.utils.XiUtils;
 

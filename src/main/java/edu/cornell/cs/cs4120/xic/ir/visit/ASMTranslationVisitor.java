@@ -295,7 +295,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 exprToTileMem(this),
                 exprToTileMem(this),
                 exprToTileMem(this),
-                illegalAccessErrorLambda(),
+                (IRName e) -> new Pair<>(
+                        new ArrayList<>(), new ASMExprMem(toASM(e))
+                ),
                 (IRTemp e) -> new Pair<>(
                         new ArrayList<>(), new ASMExprMem(toASM(e))
                 )
@@ -397,6 +399,19 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         // after both are computed. So, lhs and rhs computation can
         // be separated.
 
+        // Get the Expr representation of the left side. Depending on
+        // the left child of this binop, the repr can be a temp t, a
+        // mem location [...] (if the right child is not a mem) etc.
+        ASMExpr leftDest = left.matchLow(
+                // no, this can't be extracted into a variable
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                (IRMem m) -> asmMemTileOf(m, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs),
+                irBinOpChildToASM(leftDestTemp, instrs)
+        );
+
         ASMExpr rightDest = right.matchLow(
                 // no, this can't be extracted into a variable
                 irBinOpChildToASM(rightDestTemp, instrs),
@@ -416,21 +431,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     } else {
                         return asmMemTileOf(m, instrs);
                     }},
-                illegalAccessErrorLambda(),
+                irBinOpChildToASM(rightDestTemp, instrs),
                 this::toASM
         );
-        // Get the Expr representation of the left side. Depending on
-        // the left child of this binop, the repr can be a temp t, a
-        // mem location [...] (if the right child is not a mem) etc.
-        ASMExpr leftDest = left.matchLow(
-                // no, this can't be extracted into a variable
-                irBinOpChildToASM(leftDestTemp, instrs),
-                irBinOpChildToASM(leftDestTemp, instrs),
-                irBinOpChildToASM(leftDestTemp, instrs),
-                (IRMem m) -> asmMemTileOf(m, instrs),
-                illegalAccessErrorLambda(),
-                irBinOpChildToASM(leftDestTemp, instrs)
-        );
+
         return new Pair<>(leftDest, rightDest);
     }
 
@@ -467,6 +471,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     private ASMExprTemp toASM(IRTemp t) {
         return new ASMExprTemp(t.name());
+    }
+
+    /**
+     * Convert an IR label to an ASM label. Note: DO NOT USE THIS INSTEAD OF VISIT!
+     *
+     * @param l The label.
+     * @return The ASM expression.
+     */
+    private ASMExprLabel toASM(IRName l) {
+        return new ASMExprLabel(l.name());
     }
 
     /**
@@ -956,7 +970,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     testJumpNEtoLabel(t, node.trueLabel(), instrs);
                     return null;
                 },
-                illegalAccessErrorLambda(),
+                illegalAccessErrorLambda(), //TODO
                 (IRTemp c) -> {
                     ASMExprTemp t = toASM(c);
                     testJumpNEtoLabel(t, node.trueLabel(), instrs);
@@ -1328,13 +1342,26 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
+    // label tiles to: lea dest, [label]
+    @Override
+    public List<ASMInstr> visit(IRName node, ASMExprRT destreg) {
+        List<ASMInstr> instrs = new ArrayList<>();
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.LEA,
+                destreg,
+                new ASMExprMem(new ASMExprLabel(node.name()))
+                )
+        );
+        return instrs;
+    }
+
     private List<ASMInstr> visitExpr(IRExpr e, ASMExprRT tmp) {
         return e.matchLow(
                 (IRBinOp n) -> visit(n, tmp),
                 (IRCall n) -> visit(n, tmp),
                 (IRConst n) -> visit(n, tmp),
                 (IRMem n) -> visit(n, tmp),
-                illegalAccessErrorLambda(),
+                (IRName n) -> visit(n, tmp),
                 (IRTemp n) -> visit(n, tmp)
         );
     }
