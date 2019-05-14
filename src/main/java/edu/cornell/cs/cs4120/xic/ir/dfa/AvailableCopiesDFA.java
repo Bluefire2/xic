@@ -69,15 +69,16 @@ public class AvailableCopiesDFA extends
             // Ask Anmol if more explanation needed
             return new SetWithInf<>();// kill everything
 
+        SetWithInf<Pair<IRTemp, IRTemp>> lAfterKill = new SetWithInf<>(l.getSet());
         if (stmt instanceof IRMove) {
             IRMove m = (IRMove) stmt;
             if (m.target() instanceof IRTemp) {
                 // x = e; kill (x, z), (z, x) for any z
                 IRTemp x = (IRTemp) m.target();
                 // Remove all elements from l with l.part1() = x
-                l.removeIf(p -> p.part1().equals(x));
+                lAfterKill.removeIf(p -> p.part1().equals(x));
                 // Remove all elements from l with l.part2() = x
-                l.removeIf(p -> p.part2().equals(x));
+                lAfterKill.removeIf(p -> p.part2().equals(x));
             }
             if (m.source() instanceof IRCall
                     && ((IRCall) m.source()).target() instanceof IRName
@@ -92,13 +93,13 @@ public class AvailableCopiesDFA extends
                     // kill (_RETi, z), (z, _RETi) for any z
                     IRTemp _RETi = new IRTemp("_RET" + i);
                     // Remove all elements from l with l.part1() = _RETi
-                    l.removeIf(p -> p.part1().equals(_RETi));
+                    lAfterKill.removeIf(p -> p.part1().equals(_RETi));
                     // Remove all elements from l with l.part2() = _RETi
-                    l.removeIf(p -> p.part2().equals(_RETi));
+                    lAfterKill.removeIf(p -> p.part2().equals(_RETi));
                 }
             }
-            return l;
+            return lAfterKill;
         }
-        return l;// kill nothing
+        return lAfterKill;// kill nothing
     }
 }
