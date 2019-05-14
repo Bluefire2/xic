@@ -1165,7 +1165,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         //based on mandelbrot 463
 
         //
-        int field_index; //TODO what index is the field within the layout of class
+        int field_index = 0; //TODO what index is the field within the layout of
+        // class
 
         //nth field is at ptr + 8(n+1)
         seq.add(new IRMove(

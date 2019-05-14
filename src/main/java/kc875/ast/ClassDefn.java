@@ -84,7 +84,7 @@ public class ClassDefn extends ClassXi {
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
         visitor.inClass = true;
-        visitor.currentClass = name;
+        visitor.currentClass = this;
         IRNode n = visitor.visit(this);
         visitor.inClass = false;
         return n;
