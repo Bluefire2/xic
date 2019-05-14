@@ -1,0 +1,3 @@
+use interface_cyclic_import1
+
+f(a: int): int
