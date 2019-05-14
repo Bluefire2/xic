@@ -381,7 +381,7 @@ public class CLI implements Runnable {
         ASTNode root = (ASTNode) parser.parse().value;
 
         CLI.typeCheckVisitor = new TypeCheckVisitor(
-                new HashMapSymbolTable<>(), libPath.toString()
+                new HashMapSymbolTable<>(), inputFilePath, libPath.toString()
         );
         if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
             // Parser loses info about the file name. If an interface is

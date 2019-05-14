@@ -10,9 +10,11 @@ import kc875.symboltable.*;
 import kc875.utils.Maybe;
 import kc875.xi_parser.IxiParser;
 import kc875.xic_error.*;
+import org.apache.commons.io.FilenameUtils;
 import polyglot.util.Pair;
 
 import java.io.FileReader;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,17 +32,21 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     // Mapping from subclasses to superclasses (if they exist)
     private Map<String, Maybe<String>> classHierarchy;
 
+    private String inputFilePath;
     private String libpath;
     private String RETURN_KEY = "__rho__";
     private String BREAK_KEY = "__beta__";
     private String INCLASS_KEY = "__kappa__";
 
-    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath) {
+    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable,
+                            String inputFilePath,
+                            String libpath) {
         this.symTable = symTable;
         this.classNameToClassMap = HashBiMap.create();
         this.visitedInterfaces = new HashSet<>();
         this.interfaceClasses = HashBiMap.create();
         this.classHierarchy = new HashMap<>();
+        this.inputFilePath = inputFilePath;
         this.libpath = libpath;
         symTable.enterScope();
     }
@@ -1224,7 +1230,27 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(FileProgram node) {
-        node.getImports().forEach(i -> i.accept(this));
+        // Implicitly import the interface for this program if not explicitly
+        // defined in imports
+        List<UseInterface> fileImports = node.getImports();
+        if (FilenameUtils.getExtension(inputFilePath).equals("xi")) {
+            // typechecking a xi file
+            String fileBaseName = FilenameUtils.getBaseName(inputFilePath);
+            if (fileImports.stream().map(UseInterface::getName)
+                    .noneMatch(expImport -> expImport.equals(fileBaseName))) {
+                // None of the explicit imports match the file name, add this
+                // file interface to the top (if it exists)
+                if (Files.exists(Paths.get(
+                        libpath.toString(), fileBaseName + ".ixi"
+                ))) {
+                    fileImports.add(0, new UseInterface(
+                            fileBaseName, new XiTokenLocation(0, 0)
+                    ));
+                }
+            }
+        }
+
+        fileImports.forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
 
         // Make sure that every super class is defined as a class in the
