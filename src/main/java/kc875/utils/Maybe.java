@@ -23,6 +23,7 @@ public abstract class Maybe<T> implements Iterable<T> {
     public abstract <U> Maybe<U> toMaybe(Function<? super T, Maybe<U>> mapping);
     public abstract void thenDo(Consumer<T> cons);
     public abstract Maybe<Boolean> query(Predicate<? super T> mapping);
+    public abstract T get() throws NoMaybeValueException;
 
     /**
      * Returns true if fst and snd are the same maybes, i.e., either fst and
@@ -81,6 +82,11 @@ public abstract class Maybe<T> implements Iterable<T> {
             @Override
             public Maybe<Boolean> query(Predicate<? super T> mapping) {
                 return unknown();
+            }
+
+            @Override
+            public T get() throws NoMaybeValueException {
+                throw new NoMaybeValueException("Maybe does not contain a value");
             }
 
             @Override
@@ -157,6 +163,11 @@ public abstract class Maybe<T> implements Iterable<T> {
         }
 
         @Override
+        public T get() throws NoMaybeValueException {
+            return theValue;
+        }
+
+        @Override
         public String toString() {
             return "definitely " + theValue.toString();
         }
@@ -175,6 +186,12 @@ public abstract class Maybe<T> implements Iterable<T> {
         @Override
         public int hashCode() {
             return theValue.hashCode();
+        }
+    }
+
+    public static class NoMaybeValueException extends Exception {
+        NoMaybeValueException(String message) {
+            super(message);
         }
     }
 }

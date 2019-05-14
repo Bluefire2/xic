@@ -1,12 +1,10 @@
 package kc875.ast.visit;
 
+import com.google.common.graph.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.ast.*;
-import kc875.symboltable.SymbolTable;
-import kc875.symboltable.TypeSymTable;
-import kc875.symboltable.TypeSymTableClass;
 import kc875.symboltable.TypeSymTableFunc;
 import kc875.utils.Maybe;
 import polyglot.util.Pair;
@@ -22,10 +20,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
 
+    // a class cannot possibly have this name:
+    private static String CLASS_SUPER_PARENT = "_";
+
     // map from class names to their ordered fields
-    private Map<String, SortedSet<String>> classFields;
+    private Map<String, List<String>> classFields;
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
+    // a top-down tree representing the class hierarchy
+    @SuppressWarnings ("UnstableApiUsage")
+    private Traverser<String> classTree;
+    // map from class names to the locations of their dispatch vectors (allocated on the heap)
+    private Map<String, IRName> dispatchVectorLocations;
+    // map from class names to the *new* methods defined by that class
+    // i.e. inherited methods are not included, even if they are overridden!
+    private Map<String, List<String>> dispatchVectorLayouts;
 
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
@@ -37,7 +46,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     public IRTranslationVisitor(boolean optimCF,
                                 String name,
-                                SymbolTable<TypeSymTable> symbolTable,
+                                Map<String, ClassXi> classes,
                                 Map<String, Maybe<String>> classHierarchy) {
         this.labelcounter = 0;
         this.tempcounter = 0;
@@ -45,17 +54,68 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         this.name = name;
 
         this.classFields = new HashMap<>();
-        for (Map.Entry<String, TypeSymTable> entry : symbolTable.scopeView().entrySet()) {
-            TypeSymTable type = entry.getValue();
-            if (type instanceof TypeSymTableClass) {
-                String id = entry.getKey();
-                SortedSet<String> orderedFields =
-                        new TreeSet<>(((TypeSymTableClass) type).getFields().keySet());
-                classFields.put(id, orderedFields);
-            }
+        for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
+            String className = entry.getKey();
+            ClassXi clazz = entry.getValue();
+            List<String> orderedFields = clazz.getFields().stream()
+                    .flatMap((StmtDecl field) -> field.varsOf().stream())
+                    .collect(Collectors.toList());
+            classFields.put(className, orderedFields);
         }
 
         this.classHierarchy = classHierarchy;
+        this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
+
+        /* The traverser allows us to visit each class in an order that
+         * guarantees that a child can never be visited before its parent. This
+         * ensures that when we start building a child class' dispatch vector,
+         * its parent's DV will have already been built. */
+        Iterable<String> classHierarchyTraversal =
+                this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
+
+        this.dispatchVectorLocations = new HashMap<>();
+        this.dispatchVectorLayouts = new HashMap<>();
+        for (String className : classHierarchyTraversal) {
+            // skip the top parent node
+            if (className.equals(CLASS_SUPER_PARENT)) continue;
+
+            List<String> dvLayout = new ArrayList<>();
+            // build on the parent's dispatch vector, if it exists
+            classHierarchy.get(className).thenDo(parent ->
+                    dvLayout.addAll(
+                            this.dispatchVectorLayouts.get(parent)
+                    )
+            );
+
+            // add all methods that are defined in the class (not inherited/overridden)
+            ClassXi clazz = classes.get(className);
+            List<String> classMethodNames = clazz.getMethodDecls().stream()
+                    .map(Func::getName)
+                    .collect(Collectors.toList());
+            dvLayout.addAll(classMethodNames);
+            this.dispatchVectorLayouts.put(className, dvLayout);
+        }
+    }
+
+    @SuppressWarnings ("UnstableApiUsage")
+    private <T> Traverser<T> invertHierarchy(Map<T, Maybe<T>> hierarchy, T superParent) {
+        // first, build a graph from the hierarchy
+        MutableGraph<T> graph = GraphBuilder.directed().build();
+        for (Map.Entry<T, Maybe<T>> entry : hierarchy.entrySet()) {
+            T child = entry.getKey();
+            Maybe<T> parentMaybe = entry.getValue();
+
+            graph.addNode(child);
+            T parent = parentMaybe.otherwise(superParent);
+            graph.addNode(parent);
+            graph.putEdge(child, parent);
+        }
+
+        // now, we transpose the graph
+        Graph<T> transposed = Graphs.transpose(graph);
+
+        // finally, use the transposed graph's definition of successor nodes to create a traverser
+        return Traverser.forTree(transposed);
     }
 
     private String returnValueName(int i) {
@@ -272,10 +332,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         Expr size = arr.getSize();
         if (size != null) {
             String sizeTemp = sizeTemps.get(0);
-            List<IRStmt> allocIR = new ArrayList<>();
 
             // Create an array of size sizeTemp
-            allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
+            List<IRStmt> allocIR = new ArrayList<>(allocateArray(t, new IRTemp(sizeTemp)));
 
             if (innerType instanceof TypeTTauArray
                     && ((TypeTTauArray) innerType).getSize() != null) {
