@@ -56,15 +56,14 @@ public enum ASMOpCode {
     //comments
     COMMENT,
 
-    //.
+    //. (for directives)
     DOT,
-
 
     LEA;
 
     @Override
     public String toString() {
-        return this.name().toLowerCase();
+        return this == DOT ? "." : this.name().toLowerCase();
     }
 
     /**
