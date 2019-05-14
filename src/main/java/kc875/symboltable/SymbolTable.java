@@ -1,5 +1,7 @@
 package kc875.symboltable;
 
+import com.google.common.collect.ImmutableMap;
+
 public interface SymbolTable<T> {
     /**
      * Look up the type of an identifier.
@@ -26,11 +28,23 @@ public interface SymbolTable<T> {
      */
     void add(String id, T type);
 
-    /** Create and enter a new scope */
+    /**
+     * Create and enter a new scope.
+     */
     void enterScope();
 
-    /** Exit the current scope */
+    /**
+     * Exit the current scope.
+     */
     void exitScope();
+
+    /**
+     * Get an immutable view of the current scope that maps defined identifiers
+     * to their types.
+     *
+     * @return The scope view as a map.
+     */
+    ImmutableMap<String, T> scopeView();
 
     /**
      * Create a copy of the symbol table.

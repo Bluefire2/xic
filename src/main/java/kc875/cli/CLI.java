@@ -181,6 +181,8 @@ public class CLI implements Runnable {
             description = "File(s) to process.")
     private File[] optInputFiles;
 
+    private static TypeCheckVisitor typeCheckVisitor;
+
     /**
      * Returns -1 if path not found, 0 otherwise.
      */
@@ -367,14 +369,29 @@ public class CLI implements Runnable {
         }
     }
 
-    private ASTNode buildAST(FileReader fileReader) throws Exception {
+    private ASTNode buildAST(FileReader fileReader, String inputFilePath) throws Exception {
         XiTokenFactory xtf = new XiTokenFactory();
         XiLexer lexer = new XiLexer(fileReader, xtf);
-        XiParser parser = new XiParser(lexer, xtf);
+        java_cup.runtime.lr_parser parser;
+        if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
+            parser = new IxiParser(lexer, xtf);
+        } else {
+            parser = new XiParser(lexer, xtf);
+        }
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new TypeCheckVisitor(
+
+        CLI.typeCheckVisitor = new TypeCheckVisitor(
                 new HashMapSymbolTable<>(), libPath.toString()
-        ));
+        );
+        if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
+            // Parser loses info about the file name. If an interface is
+            // being typechecked, need to add the interface's name to the
+            // set of visited ones
+            CLI.typeCheckVisitor.visitedInterfaces.add(
+                    FilenameUtils.getBaseName(inputFilePath)
+            );
+        }
+        root.accept(CLI.typeCheckVisitor);
         return root;
     }
 
@@ -388,7 +405,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                buildAST(fileReader);
+                buildAST(fileReader, inputFilePath);
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -400,7 +417,7 @@ public class CLI implements Runnable {
     }
 
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
-        ASTNode root = buildAST(fileReader);
+        ASTNode root = buildAST(fileReader, f.getPath());
         String fPath = FilenameUtils.removeExtension(f.getName());
 
         IRNode ir;
@@ -415,14 +432,19 @@ public class CLI implements Runnable {
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
             ir = root.accept(new IRTranslationVisitor(
-                    false, fPath
+                    false,
+                    fPath,
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
             ));
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
         } else {
             // Normal IR translation and lowering
             IRNode mir = root.accept(new IRTranslationVisitor(
                     activeOptims.get(Optims.CF),
-                    FilenameUtils.removeExtension(f.getName())
+                    FilenameUtils.removeExtension(f.getName()),
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
             ));
             LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
             ir = lv.visit(mir);

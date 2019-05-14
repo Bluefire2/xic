@@ -1,17 +1,17 @@
 package kc875.ast.visit;
 
+import com.google.common.graph.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.ast.*;
 import kc875.symboltable.TypeSymTableFunc;
+import kc875.utils.Maybe;
 import polyglot.util.Pair;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -24,6 +24,22 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public ClassDefn currentClass; //name of current class
     private Set<String> global_names;
 
+    // a class cannot possibly have this name:
+    private static String CLASS_SUPER_PARENT = "_";
+
+    // map from class names to their ordered fields
+    private Map<String, List<String>> classFields;
+    // map from class names to super class names (if a superclass exists)
+    private Map<String, Maybe<String>> classHierarchy;
+    // a top-down tree representing the class hierarchy
+    @SuppressWarnings ("UnstableApiUsage")
+    private Traverser<String> classTree;
+    // map from class names to the locations of their dispatch vectors (allocated on the heap)
+    private Map<String, IRName> dispatchVectorLocations;
+    // map from class names to the *new* methods defined by that class
+    // i.e. inherited methods are not included, even if they are overridden!
+    private Map<String, List<String>> dispatchVectorLayouts;
+
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
     }
@@ -32,11 +48,86 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return String.format("_mir_t%d", (tempcounter++));
     }
 
-    public IRTranslationVisitor(boolean optimCF, String name) {
+    public IRTranslationVisitor(boolean optimCF,
+                                String name,
+                                Map<String, ClassXi> classes,
+                                Map<String, Maybe<String>> classHierarchy) {
         this.labelcounter = 0;
         this.tempcounter = 0;
         this.optimCF = optimCF;
         this.name = name;
+
+        this.classFields = new HashMap<>();
+        for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
+            String className = entry.getKey();
+            ClassXi clazz = entry.getValue();
+            List<String> orderedFields = clazz.getFields().stream()
+                    .flatMap((StmtDecl field) -> field.varsOf().stream())
+                    .collect(Collectors.toList());
+            classFields.put(className, orderedFields);
+        }
+
+        this.classHierarchy = classHierarchy;
+        this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
+
+        /* The traverser allows us to visit each class in an order that
+         * guarantees that a child can never be visited before its parent. This
+         * ensures that when we start building a child class' dispatch vector,
+         * its parent's DV will have already been built. */
+        Iterable<String> classHierarchyTraversal =
+                this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
+
+        this.dispatchVectorLocations = new HashMap<>();
+        this.dispatchVectorLayouts = new HashMap<>();
+        for (String className : classHierarchyTraversal) {
+            // skip the top parent node
+            if (className.equals(CLASS_SUPER_PARENT)) continue;
+
+            List<String> dvLayout = new ArrayList<>();
+            // build on the parent's dispatch vector, if it exists
+            classHierarchy.get(className).thenDo(parent ->
+                    dvLayout.addAll(
+                            this.dispatchVectorLayouts.get(parent)
+                    )
+            );
+
+            // add all methods that are defined in the class (not inherited/overridden)
+            ClassXi clazz = classes.get(className);
+            List<String> classMethodNames = clazz.getMethodDecls().stream()
+                    .map(Func::getName)
+                    .collect(Collectors.toList());
+            dvLayout.addAll(classMethodNames);
+            this.dispatchVectorLayouts.put(className, dvLayout);
+        }
+    }
+
+    @SuppressWarnings ("UnstableApiUsage")
+    private <T> Traverser<T> invertHierarchy(Map<T, Maybe<T>> hierarchy, T superParent) {
+        // first, build a graph from the hierarchy
+        MutableGraph<T> graph = GraphBuilder.directed().build();
+        for (Map.Entry<T, Maybe<T>> entry : hierarchy.entrySet()) {
+            T child = entry.getKey();
+            Maybe<T> parentMaybe = entry.getValue();
+
+            graph.addNode(child);
+            T parent = parentMaybe.otherwise(superParent);
+            graph.addNode(parent);
+            graph.putEdge(child, parent);
+        }
+
+        // now, we transpose the graph
+        Graph<T> transposed = Graphs.transpose(graph);
+
+        // finally, use the transposed graph's definition of successor nodes to create a traverser
+        return Traverser.forTree(transposed);
+    }
+
+    private int classFieldOffset(String className, String fieldName) {
+        return this.classFields.get(className).indexOf(fieldName) * 8 + 8;
+    }
+
+    private int classMethodOffset(String className, String methodName) {
+        return this.dispatchVectorLayouts.get(className).indexOf(methodName) * 8;
     }
 
     private String returnValueName(int i) {
@@ -265,10 +356,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         Expr size = arr.getSize();
         if (size != null) {
             String sizeTemp = sizeTemps.get(0);
-            List<IRStmt> allocIR = new ArrayList<>();
 
             // Create an array of size sizeTemp
-            allocIR.addAll(allocateArray(t, new IRTemp(sizeTemp)));
+            List<IRStmt> allocIR = new ArrayList<>(allocateArray(t, new IRTemp(sizeTemp)));
 
             if (innerType instanceof TypeTTauArray
                     && ((TypeTTauArray) innerType).getSize() != null) {
@@ -632,19 +722,41 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprNew node) {
-        String name = node.getName();
-        name = className(name);
-        String size = "_I_size_"+name;
-        String vt = "_I_vt_"+name;
-        List<IRStmt> seq = new ArrayList<>();
-        String t = newTemp();//size of class
-        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
-        String t2 = newTemp();//pointer to new obj
-        //allocate memory for size of class
-        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
-        //move vt pointer to first location in obj
-        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
-        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
+        // the memory layout is found in classFields
+        String className = node.getName();
+        List<String> orderedFields = classFields.get(className); // must exist due to typechecking
+
+        String objectBaseAddress = newTemp();
+        int bytesForObject = 8 * (1 + orderedFields.size()); // extra cell for dispatch vector
+        IRMove baseAllocAddress = new IRMove(
+                new IRTemp(objectBaseAddress),
+                allocateMem(new IRConst(bytesForObject))
+        );
+
+        // store a pointer to the dispatch vector in our new temp
+        IRMove storeDV = new IRMove(
+                new IRMem(new IRTemp(objectBaseAddress)),
+                this.dispatchVectorLocations.get(className)
+                // TODO make sure that we allocate and populate DVs properly
+        );
+
+        return new IRESeq(
+                new IRSeq(baseAllocAddress, storeDV),
+                new IRTemp(objectBaseAddress)
+        );
+//        String name = node.getName();
+//        name = className(name);
+//        String size = "_I_size_"+name;
+//        String vt = "_I_vt_"+name;
+//        List<IRStmt> seq = new ArrayList<>();
+//        String t = newTemp();//size of class
+//        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
+//        String t2 = newTemp();//pointer to new obj
+//        //allocate memory for size of class
+//        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
+//        //move vt pointer to first location in obj
+//        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
+//        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
     @Override

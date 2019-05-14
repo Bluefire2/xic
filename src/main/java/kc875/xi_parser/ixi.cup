@@ -65,7 +65,7 @@ terminal
     NEW,
     EXTENDS,
     CLASS,
-    DOT,
+    DOT,// never used though; need it so that Lexer can produce it
     BREAK,
 
     EQ,
@@ -115,13 +115,13 @@ nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
 
 //pa7 new stuff
 nonterminal ClassDecl class_decl;
+nonterminal StmtDecl field;
 nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
 nonterminal List<TopLevelDecl> decl_or_defn_list;
 nonterminal List<FuncDecl> func_decl_list;
 
 precedence left COMMA;
-precedence left DOT;
 precedence left OR;
 precedence left AND;
 precedence left NEQ, EQEQ;
@@ -170,19 +170,6 @@ indices ::=
 | indices:l LBRAC expr:e RBRAC {: l.add(e); RESULT = l; :}
 ;
 
-type_list ::=
-  type:t {:
-    ArrayList<TypeTTau> l = new ArrayList<>();
-    l.add(t);
-    RESULT = l; :}
-| type_list:l COMMA type:t {: l.add(t); RESULT = l; :}
-;
-
-decl_annotated_var ::=
-  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
-;
-
-
 // List types with initialized lengths, can only be used in decl w/o assign
 // Example: int[3][n]
 init_list_type ::=
@@ -214,6 +201,18 @@ init_list_type ::=
   :}
 ;
 
+type_list ::=
+  type:t {:
+    ArrayList<TypeTTau> l = new ArrayList<>();
+    l.add(t);
+    RESULT = l; :}
+| type_list:l COMMA type:t {: l.add(t); RESULT = l; :}
+;
+
+annotated_var ::=
+  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
 annotated_var_list ::=
   annotated_var:a {:
     ArrayList<Pair<String, TypeTTau>> l = new ArrayList<>();
@@ -222,8 +221,14 @@ annotated_var_list ::=
 | annotated_var_list:l COMMA annotated_var:a {: l.add(a); RESULT = l; :}
 ;
 
-annotated_var ::=
-  ID:i COLON type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+decl_annotated_var ::=
+  ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
+;
+
+// TODO: add to the top
+multi_var_decl ::=
+  id_list:l COLON type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
+| id_list:l COLON init_list_type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
 ;
 
 // EXPRESSIONS
@@ -240,17 +245,14 @@ expr_list ::= // NOTE: THIS DOES NOT SUPPORT COMMAS AT THE END
 assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
-//| func_expr:f {: RESULT = f; :} //TODO currently this is removed
-| LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 ;
-
 
 expr ::=
   assignable_indexable_expr:e {: RESULT = e; :}
 // Array literals
+| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
-| LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 // Grouping expressions
 | LPAREN expr:e RPAREN {: RESULT = e; :}
 // Binops
@@ -268,13 +270,9 @@ expr ::=
 | expr:e1 LT:o expr:e2 {: RESULT = new ExprBinop(Binop.LT, e1, e2, oxleft); :}
 | expr:e1 GTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.GTEQ, e1, e2, oxleft); :}
 | expr:e1 LTEQ:o expr:e2 {: RESULT = new ExprBinop(Binop.LTEQ, e1, e2, oxleft); :}
-//| expr:e1 DOT:o ID:i {: RESULT = new ExprBinop(Binop.DOT, e1, new ExprId(i, ixleft), oxleft); :}
-//| expr:e1 DOT:o func_expr:f {: RESULT = new ExprBinop(Binop.DOT, e1, f, oxleft); :}
 // Unops
 | MINUS:o expr:e {: RESULT = new ExprUnop(Unop.UMINUS, e, oxleft); :} %prec UMINUS
 | NOT:o expr:e {: RESULT = new ExprUnop(Unop.NOT, e, oxleft); :}
-//classes TODO currently this is removed
-//| NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
 // Literals
 | BOOL_LIT:b {: RESULT = new ExprBoolLiteral(b, bxleft); :}
 | INT_LIT:i {: RESULT = new ExprIntLiteral(i, ixleft); :}
@@ -318,27 +316,45 @@ func_decl_list ::=
 | func_decl_list:l func_decl:d {: l.add(d); RESULT = l; :}
 ;
 
-field_list ::=
+field ::=
   decl_annotated_var:d {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
-    RESULT = l; :}
+    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
 | annotated_var:d {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
-    RESULT = l; :}
+    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
 | multi_var_decl:m {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(m);
-    RESULT = l; :}
-| field_list:l multi_var_decl:m {:
-    l.add(m);
-    RESULT = l; :}
-| field_list:l annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
-| field_list:l decl_annotated_var:d {:
-    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+    RESULT = m; :}
+| field:f SEMICOLON {: RESULT = f; :}
 ;
+
+field_list ::=
+  field:f {:
+    ArrayList<StmtDecl> l = new ArrayList<>();
+    l.add(f);
+    RESULT = l; :}
+| field_list:l field:f {:
+    l.add(f);
+    RESULT = l; :}
+;
+//  decl_annotated_var:d {:
+//    ArrayList<StmtDecl> l = new ArrayList<>();
+//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
+//    RESULT = l; :}
+//| annotated_var:d {:
+//    ArrayList<StmtDecl> l = new ArrayList<>();
+//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
+//    RESULT = l; :}
+//| multi_var_decl:m {:
+//    ArrayList<StmtDecl> l = new ArrayList<>();
+//    l.add(m);
+//    RESULT = l; :}
+//| field_list:l multi_var_decl:m {:
+//    l.add(m);
+//    RESULT = l; :}
+//| field_list:l annotated_var:d {:
+//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+//| field_list:l decl_annotated_var:d {:
+//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
+//;
 
 class_decl ::=
   CLASS ID:c LCURL field_list:fl func_decl_list:dl RCURL {:

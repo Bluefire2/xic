@@ -42,8 +42,6 @@ xic ("Test --parse") "--parse" {
     combo-test-group_of_anonymous06_02.xi;
     combo-test-group_of_anonymous07_01.xi;
     combo-test-group_of_anonymous08_03.xi;
-    ixi-error-ex1_xi_as_ixi.ixi;
     ixi-error-ex2_xi_as_ixi.ixi;
-    ixi-error-x03.ixi;
     ixi-error-x05.ixi;
 }

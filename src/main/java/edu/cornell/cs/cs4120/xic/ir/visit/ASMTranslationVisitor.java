@@ -411,6 +411,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(leftDestTemp, instrs),
                 irBinOpChildToASM(leftDestTemp, instrs)
         );
+
         ASMExpr rightDest = right.matchLow(
                 // no, this can't be extracted into a variable
                 irBinOpChildToASM(rightDestTemp, instrs),
@@ -433,6 +434,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 irBinOpChildToASM(rightDestTemp, instrs),
                 this::toASM
         );
+
         return new Pair<>(leftDest, rightDest);
     }
 
@@ -498,6 +500,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
     //special behavior - if dest is null, result is stored in LHS operand, if it is mem or temp
     public List<ASMInstr> visit(IRBinOp node, ASMExprRT dest) {
+        final List<ASMInstr> instrs = new ArrayList<>();
         if (dest == null && !(node.left() instanceof IRTemp || node.left() instanceof IRMem)){
             throw new IllegalAccessError(
                     "if no destination provided, LHS must be a temp or mem"
@@ -507,7 +510,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         if (dest == null && node.left() instanceof IRTemp){
             dest = new ASMExprTemp(((IRTemp) node.left()).name());
         }
-        final List<ASMInstr> instrs = new ArrayList<>();
         switch (node.opType()) {
             case LSHIFT:
             case RSHIFT:
@@ -566,19 +568,33 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 // we want to do left / right
                 // rax <- left
                 // t <- right
-                ASMExprReg leftDestTemp = new ASMExprReg("rax"); // rax
+                ASMExprTemp leftDestTemp = new ASMExprTemp(newTemp()); // rax
                 ASMExprTemp rightDestTemp = new ASMExprTemp(newTemp()); // t
                 Pair<ASMExpr, ASMExpr> dests = asmExprOfBinOp(
                         node.left(), node.right(),
                         leftDestTemp, rightDestTemp, instrs
                 );
 
+                //TODO: need 2nd pass to remove back to back push/pops
+
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.PUSH,
+                        new ASMExprReg("rax")
+                ));
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.PUSH,
+                        new ASMExprReg("rdx")
+                ));
+
+
+
                 if (dests.part1() instanceof ASMExprMem) {
                     // left needs to be moved into rax
                     instrs.add(new ASMInstr_2Arg(
-                            ASMOpCode.MOV, leftDestTemp, dests.part1()
+                            ASMOpCode.MOV, new ASMExprReg("rax"), dests.part1()
                     ));
                 }
+                else instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), leftDestTemp));
 
                 //move 0 to rdx
                 instrs.add(new ASMInstr_2Arg(
@@ -617,6 +633,16 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
                     ));
                 }
+
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.POP,
+                        new ASMExprReg("rdx")
+                ));
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.POP,
+                        new ASMExprReg("rax")
+                ));
+
                 return instrs;
             }
             case EQ:

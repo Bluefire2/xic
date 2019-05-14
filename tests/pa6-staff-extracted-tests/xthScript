@@ -28,37 +28,30 @@
 #
 # xth runs the commands in order of appearance.
 
-xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
-    appel_prog14_1.xi;
-    appel_prog14_2.xi;
-    appel_prog14_3.xi;
-    array_subtyping_invariance.xi;
-    break_creates_unreachable_stmt.xi;
-    break_in_loop_multiple_places.xi;
-    break_outside_loop.xi;
-    class_dup_def.xi;
-    class_field_init_by_methods.xi;
-    class_field_not_found.xi;
-    class_field_shadow_by_field.xi;
-    class_field_shadow_by_method.xi;
-    class_implements_interface.xi;
-    class_incorrect_override_diff_params.xi;
-    class_incorrect_override_diff_ret.xi;
-    class_method_not_found.xi;
-    class_method_shadow_by_method.xi;
-    class_method_use_super_method.xi;
-    class_multiple_field_method_access.xi;
-    class_mutually_recursive_methods.xi;
-    class_nested_interface_imports.xi;
-    class_override_field_error.xi;
-    class_recursive_method.xi;
-    class_same_field_methods_multiple_classes.xi;
-    class_subtyping_assign.xi;
-    class_subtyping_assign_error0.xi;
-    class_subtyping_assign_error1.xi;
-    interface_cyclic_import0.ixi;
-    interface_cyclic_import1.ixi;
-    lang_spec_color_colored_point_example.xi;
-    lang_spec_point_example.xi;
-    lang_spec_point_interface.ixi;
+xic ("Test -target linux --optir initial --optir final -Oreg") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg" {
+  group_of_anonymous02__reg-alloc.xi;
+  group_of_anonymous02__reg-alloc2.xi;
+  group_of_anonymous03__reg4.xi;
+}
+
+xic ("Test -target linux --optir initial --optir final -Oreg -Ocse") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg -Ocse" {
+  group_of_anonymous06__attackCseCpDce.xi;
+  group_of_anonymous22__cse_4.xi;
+  group_of_anonymous12__cse2.xi;
+  group_of_anonymous12__cse3.xi;
+  group_of_anonymous23__cse1.xi;
+  group_of_anonymous23__cse2.xi;
+  group_of_anonymous13__cse3.xi;
+}
+
+xic ("Test -target linux --optir initial --optir final -Oreg -Ocopy") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg -Ocopy" {
+  group_of_anonymous20__benchmark_copy_03.xi;
+}
+
+xic ("Test -target linux --optir initial --optir final -Oreg -Odce") "-libpath $(testpath) -target linux --optir initial --optir final -Oreg -Odce" {
+  group_of_anonymous06__attackCseCpDce.xi;
+}
+
+xic ("Test -target linux --optir initial --optir final") "-libpath $(testpath) -target linux --optir initial --optir final" {
+  group_of_anonymous03__availableexprs1.xi;
 }

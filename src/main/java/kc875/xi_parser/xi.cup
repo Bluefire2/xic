@@ -304,7 +304,6 @@ assignable_indexable_expr ::=
   STRING_LIT:s {: RESULT = new ExprArrayLiteral(s, sxleft); :} // strings are really lists of ints
 | ID:i {: RESULT = new ExprId(i, ixleft); :}
 | func_expr:f {: RESULT = f; :}
-// TODO: why is length(e) an assignable?
 | LENGTH:l LPAREN expr:e RPAREN {: RESULT = new ExprLength(e, lxleft); :}
 | simple_expr:e1 DOT:o ID:i {: RESULT = new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft); :}
 ;
@@ -366,7 +365,7 @@ expr ::=
 assignable ::=
   ID:i {: RESULT = new AssignableId(new ExprId(i, ixleft), ixleft); :}
 | simple_expr:e1 DOT:o ID:i {: RESULT = new AssignableFieldAccess(
-new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft), oxleft); :}
+    new ExprFieldAccess(e1, new ExprId(i, ixleft), oxleft), oxleft); :}
 | assignable_indexable_expr:e1 indices:l {:
     Expr idx = e1;
     for (Expr e : l){
@@ -462,6 +461,7 @@ global ::=
     RESULT = m; :}
 | global:g SEMICOLON {: RESULT = g; :}
 ;
+
 //CLASSES
 
 field_list ::=

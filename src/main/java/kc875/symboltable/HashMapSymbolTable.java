@@ -1,5 +1,7 @@
 package kc875.symboltable;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -57,6 +59,15 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
     @Override
     public void exitScope() {
         scopes.pop();
+    }
+
+    @Override
+    public ImmutableMap<String, T> scopeView() {
+        if (scopes.empty()) {
+            throw new IllegalStateException("Cannot get view of current scope: no scopes have been defined");
+        }
+
+        return ImmutableMap.copyOf(scopes.peek());
     }
 
     @Override
