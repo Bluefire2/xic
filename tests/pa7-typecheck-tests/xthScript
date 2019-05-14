@@ -47,6 +47,7 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     class_field_shadow_by_field.xi;
     class_field_shadow_by_method.xi;
     class_implements_interface.xi;
+    class_implicit_import.xi;
     class_incorrect_override_diff_params.xi;
     class_incorrect_override_diff_ret.xi;
     class_inherit_itself_error.xi;

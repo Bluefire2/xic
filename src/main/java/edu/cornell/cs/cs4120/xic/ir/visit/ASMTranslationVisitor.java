@@ -575,19 +575,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         leftDestTemp, rightDestTemp, instrs
                 );
 
-                //TODO: need 2nd pass to remove back to back push/pops
-
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.PUSH,
-                        new ASMExprReg("rax")
-                ));
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.PUSH,
-                        new ASMExprReg("rdx")
-                ));
-
-
-
                 if (dests.part1() instanceof ASMExprMem) {
                     // left needs to be moved into rax
                     instrs.add(new ASMInstr_2Arg(
@@ -596,12 +583,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 }
                 else instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), leftDestTemp));
 
-                //move 0 to rdx
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOV,
-                        new ASMExprReg("rdx"),
-                        new ASMExprConst(0)
-                ));
+                // sign extend rax to rdx:rax
+                instrs.add(new ASMInstr_0Arg(ASMOpCode.CQO));
 
                 ASMExpr rightDest = dests.part2();
 
@@ -633,15 +616,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
                     ));
                 }
-
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.POP,
-                        new ASMExprReg("rdx")
-                ));
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.POP,
-                        new ASMExprReg("rax")
-                ));
 
                 return instrs;
             }
@@ -863,12 +837,80 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     }
 
     /**
+     * Returns 0 if optimization successfully performed (in which necessary
+     * instructions added), and a non-zero if failed (instrs untouched).
+     *
+     * Preconditions:
+     * - condition of cjump node must be a binop.
+     *
+     * Optimizations performed:
+     * - If the condition of the CJump is of the form (x < 0) || (x >= n)
+     * (which is for array bounds checking), then the function adds two
+     * instructions:
+     *      cmp x, n
+     *      jae false_label
+     *
+     * @param node cjump node.
+     * @param instrs instructions to add to.
+     */
+    private int cjumpBinOpOptims(IRCJump node, List<ASMInstr> instrs) {
+        IRBinOp cond = (IRBinOp) node.cond();
+        IRExpr left = cond.left();
+        IRExpr right = cond.right();
+        if (cond.opType() == OpType.OR
+                && left instanceof IRBinOp && right instanceof IRBinOp) {
+            IRBinOp orLeft = (IRBinOp) left;
+            IRBinOp orRight = (IRBinOp) right;
+            if (orLeft.opType() == OpType.LT && orRight.opType() == OpType.GEQ
+                    && orLeft.left().equals(orRight.left())
+                    && orLeft.right().equals(new IRConst(0))) {
+                // same x on left of both sides, x < 0 and x >= some n present
+                // optimization possible
+
+                // Get x into a temp
+                IRExpr xIR = orLeft.left();
+                ASMExprTemp x;
+                if (xIR instanceof IRTemp) {
+                    x = new ASMExprTemp(((IRTemp) xIR).name());
+                } else {
+                    x = new ASMExprTemp(newTemp());
+                    instrs.addAll(xIR.accept(this, x));
+                }
+
+                // Get n into a temp/mem/const
+                IRExpr nIR = orRight.right();
+                ASMExpr n;
+                if (nIR instanceof IRTemp || nIR instanceof IRMem) {
+                    n = asmExprOfMemOrTemp(nIR, instrs);
+                } else if (nIR instanceof IRConst) {
+                    n = new ASMExprConst(((IRConst) nIR).value());
+                } else {
+                    throw new IllegalStateException(
+                            "GEQ in a CJUMP cannot be applied to " + nIR
+                    );
+                }
+
+                instrs.add(new ASMInstr_2Arg(ASMOpCode.CMP, x, n));
+                instrs.add(new ASMInstr_1Arg(
+                        ASMOpCode.JAE, new ASMExprName(node.trueLabel())
+                ));
+                return 0;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Adds asm instructions when the condition of the CJump node is a IRBinOp.
      *
      * @param node node.cond() must be IRBinOp instance.
      * @param instrs instructions to add to.
      */
     private void cjumpBinOpToASMInstr(IRCJump node, List<ASMInstr> instrs) {
+        // If arrayBoundsCheck optimization passed (necessary instructions
+        // added after function ran), return immediately
+        if (cjumpBinOpOptims(node, instrs) == 0) return;
+
         IRBinOp cond = (IRBinOp) node.cond();
 
         // Visit left child and add the relevant moving ASMs.

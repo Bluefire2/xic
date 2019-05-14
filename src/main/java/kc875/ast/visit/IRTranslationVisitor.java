@@ -22,8 +22,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
     public boolean inClass;
+    Set<String> global_names;
     public ClassDefn currentClass; //name of current class
-    private Set<String> global_names;
 
     // a class cannot possibly have this name:
     private static String CLASS_SUPER_PARENT = "_";
@@ -35,8 +35,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // a top-down tree representing the class hierarchy
     @SuppressWarnings ("UnstableApiUsage")
     private Traverser<String> classTree;
-    // map from class names to the locations of their dispatch vectors (allocated on the heap)
-    private Map<String, IRName> dispatchVectorLocations;
     // map from class names to the *new* methods defined by that class
     // i.e. inherited methods are not included, even if they are overridden!
     private Map<String, List<String>> dispatchVectorLayouts;
@@ -80,7 +78,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             Iterable<String> classHierarchyTraversal =
                     this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
 
-            this.dispatchVectorLocations = new HashMap<>();
             this.dispatchVectorLayouts = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
@@ -145,6 +142,20 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return "_ARG" + i;
     }
 
+    private String dispatchVectorLoc(String className) {
+        return "_I_vt_"+className(className);
+    }
+
+    private String classSizeLoc(String className) {
+        return "_I_size_"+className(className);
+    }
+
+    public String globalName(String name, TypeTTau signature) {
+        String newName = name.replaceAll("_", "__");
+        String type = typeName(signature);
+        return "_I_g_" + newName + "_" + type;
+    }
+
     private String currentLoopEndLabel;
 
     private String returnTypeName(TypeT type) {
@@ -183,6 +194,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
     }
 
+    //_I_function_types
     public String functionName(String name, TypeSymTableFunc signature) {
         String newName = name.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
@@ -194,6 +206,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return name.replaceAll("_", "__");
     }
 
+    //_I_class_function_types
     public String methodName(String name, String className, TypeSymTableFunc signature) {
         String newName = name.replaceAll("_", "__");
         String newClassName = className.replaceAll("_", "__");
@@ -743,7 +756,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         // store a pointer to the dispatch vector in our new temp
         IRMove storeDV = new IRMove(
                 new IRMem(new IRTemp(objectBaseAddress)),
-                this.dispatchVectorLocations.get(className)
+                new IRName(dispatchVectorLoc(className))
                 // TODO make sure that we allocate and populate DVs properly
         );
 
@@ -882,7 +895,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtDeclAssign node) {
+    public IRStmt visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
         IRExpr rhsIR = (IRExpr) node.getRhs().accept(this);
 
@@ -1036,6 +1049,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRCompUnit visit(FileProgram node) {
         IRCompUnit program = new IRCompUnit(name);
 
+        global_names = node.getGlobalNames();
+
         //class init
         for (ClassDefn c : node.getClassDefns()) {
             program.appendFunc(generateInitClass(c.toDecl()));
@@ -1161,7 +1176,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        String classSize = "_I_size_"+className(className);
+        String classSize = classSizeLoc(className);
         String fieldName = node.getField().getName();
 
         String t = newTemp();
@@ -1169,18 +1184,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         seq.add(new IRMove(new IRTemp(t), objExpr));
         //t now holds location of obj
 
-        //based on mandelbrot 463
-
-        //
-        int field_index = 0; //TODO what index is the field within the layout of
-        // class
-
         //nth field is at ptr + 8(n+1)
         seq.add(new IRMove(
                 new IRTemp(t),
                 new IRBinOp(OpType.ADD,
                         new IRTemp(t),
-                        new IRConst((field_index + 1) * 8)
+                        new IRConst(classFieldOffset(className, fieldName))
                 )
         ));
 
@@ -1207,13 +1216,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             argsIR.add((IRExpr) arg.accept(this));
         }
 
-        //TODO IRConst is not 0, need layout of functions
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+
         // t is the obj pointer
         // [t] is the vt pointer
         // [[t] + x] is the vt pointer for the method, which is what we call
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
                 new IRMem(new IRTemp(t)),
-                new IRConst(0));
+                new IRConst(classMethodOffset(className, call.getName()))); //offset for method
         seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
         return new IRESeq(
                 new IRSeq(seq),
@@ -1222,15 +1232,56 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     //generate _I_global_init function
     //initialize all globals (incl arrays and objects if necessary)
-    public IRFuncDecl generateInitGlobals(List<StmtDecl> globals) {
-        //TODO
-        return null;
+    //this initializes them all into named temps but immediately moves them to the global memory location
+    //mostly done for code reuse
+    private IRFuncDecl generateInitGlobals(List<StmtDecl> globals) {
+        String funcName = "_I_global_init";
+        List<IRStmt> body = new ArrayList<>();
+        for (StmtDecl d : globals) {
+            String gname;
+            TypeTTau gtype;
+            if (d instanceof StmtDeclSingle) {
+                StmtDeclSingle s = (StmtDeclSingle) d;
+                gname = s.getName();
+                gtype = s.getDecl().getType();
+                body.add(this.visit(s));
+                body.add(new IRMove(
+                        new IRMem(new IRName(globalName(gname, gtype))),
+                        new IRTemp(gname)));
+            } else if (d instanceof StmtDeclAssign) {
+                StmtDeclAssign s = (StmtDeclAssign) d;
+                body.add(this.visit(s));
+                List<String> names = s.getNames();
+                for (int i = 0; i < names.size(); i++) {
+                    gname = names.get(i);
+                    TypeT t = s.getDecls().get(i).typeOf();
+                    if (t instanceof TypeTTau) {
+                        gtype = (TypeTTau) t;
+                        body.add(new IRMove(
+                                new IRMem(new IRName(globalName(gname, gtype))),
+                                new IRTemp(gname)));
+                    }
+                }
+            } else if (d instanceof StmtDeclMulti) {
+                List<String> names = ((StmtDeclMulti) d).getVars();
+                for (String name : names) {
+                    gname = name;
+                    gtype = ((StmtDeclMulti) d).getType();
+                    body.add(initDecl(gname, gtype));
+                    body.add(new IRMove(
+                            new IRMem(new IRName(globalName(gname, gtype))),
+                            new IRTemp(gname)));
+                }
+            }
+        }
+        body.add(new IRReturn());
+        return new IRFuncDecl(funcName, new IRSeq(body));
     }
 
 
     //generate _I_init_someClass function
     //initialize size and VT (needs method/field layouts)
-    public IRFuncDecl generateInitClass(ClassDecl c) {
+    private IRFuncDecl generateInitClass(ClassDecl c) {
         //TODO
         return null;
     }

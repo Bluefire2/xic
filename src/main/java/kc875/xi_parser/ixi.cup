@@ -335,26 +335,6 @@ field_list ::=
     l.add(f);
     RESULT = l; :}
 ;
-//  decl_annotated_var:d {:
-//    ArrayList<StmtDecl> l = new ArrayList<>();
-//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
-//    RESULT = l; :}
-//| annotated_var:d {:
-//    ArrayList<StmtDecl> l = new ArrayList<>();
-//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft));
-//    RESULT = l; :}
-//| multi_var_decl:m {:
-//    ArrayList<StmtDecl> l = new ArrayList<>();
-//    l.add(m);
-//    RESULT = l; :}
-//| field_list:l multi_var_decl:m {:
-//    l.add(m);
-//    RESULT = l; :}
-//| field_list:l annotated_var:d {:
-//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
-//| field_list:l decl_annotated_var:d {:
-//    l.add(new StmtDeclSingle(new TypeDeclVar(d), dxleft)); RESULT = l; :}
-//;
 
 class_decl ::=
   CLASS ID:c LCURL field_list:fl func_decl_list:dl RCURL {:
@@ -407,7 +387,9 @@ import_list ::=
 
 // HIGHEST LEVEL
 interface ::=
-  import_list:il decl_or_defn_list:dl {:
+  import_list:il {:
+    RESULT = new FileInterface(il, new ArrayList<>(), ilxleft); :}
+| import_list:il decl_or_defn_list:dl {:
     RESULT = new FileInterface(il, dl, ilxleft); :}
 | decl_or_defn_list:dl {:
     RESULT = new FileInterface(new ArrayList<UseInterface>(), dl, dlxleft); :}

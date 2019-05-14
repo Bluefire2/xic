@@ -23,6 +23,7 @@ public enum ASMOpCode {
     MOV,
     MOVABS,
     MOVZX,
+    CQO,
     PUSH,
     POP,
 
@@ -40,6 +41,7 @@ public enum ASMOpCode {
     JGE,
     JL,
     JLE,
+    JAE,
 
     SETE,
     SETNE,
@@ -54,15 +56,14 @@ public enum ASMOpCode {
     //comments
     COMMENT,
 
-    //.
+    //. (for directives)
     DOT,
-
 
     LEA;
 
     @Override
     public String toString() {
-        return this.name().toLowerCase();
+        return this == DOT ? "." : this.name().toLowerCase();
     }
 
     /**
