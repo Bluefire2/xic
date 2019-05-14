@@ -36,6 +36,11 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     break_creates_unreachable_stmt.xi;
     break_in_loop_multiple_places.xi;
     break_outside_loop.xi;
+    class_decl_defn_dont_match_error0.xi;
+    class_decl_defn_dont_match_error1.xi;
+    class_decl_defn_dont_match_error2.xi;
+    class_decl_defn_dont_match_error3.xi;
+    class_decl_defn_dont_match_error4.xi;
     class_dup_def.xi;
     class_field_init_by_methods.xi;
     class_field_not_found.xi;
@@ -44,6 +49,7 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     class_implements_interface.xi;
     class_incorrect_override_diff_params.xi;
     class_incorrect_override_diff_ret.xi;
+    class_inherit_itself_error.xi;
     class_method_not_found.xi;
     class_method_shadow_by_method.xi;
     class_method_use_super_method.xi;
