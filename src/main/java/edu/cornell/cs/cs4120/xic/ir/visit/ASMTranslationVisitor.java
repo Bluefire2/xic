@@ -583,12 +583,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 }
                 else instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), leftDestTemp));
 
-                //move 0 to rdx
-                instrs.add(new ASMInstr_2Arg(
-                        ASMOpCode.MOV,
-                        new ASMExprReg("rdx"),
-                        new ASMExprConst(0)
-                ));
+                // sign extend rax to rdx:rax
+                instrs.add(new ASMInstr_0Arg(ASMOpCode.CQO));
 
                 ASMExpr rightDest = dests.part2();
 

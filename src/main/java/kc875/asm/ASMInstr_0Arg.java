@@ -29,12 +29,18 @@ public class ASMInstr_0Arg extends ASMInstr {
 
     @Override
     public Set<ASMExprReg> implicitDefRegs() {
-        return new HashSet<>();
+        Set<ASMExprReg> s = new HashSet<>();
+        if (getOpCode() == ASMOpCode.CQO)
+            s.add(new ASMExprReg("rdx"));
+        return s;
     }
 
     @Override
     public Set<ASMExprReg> implicitUsedRegs() {
-        return new HashSet<>();
+        Set<ASMExprReg> s = new HashSet<>();
+        if (getOpCode() == ASMOpCode.CQO)
+            s.add(new ASMExprReg("rax"));
+        return s;
     }
 
     @Override

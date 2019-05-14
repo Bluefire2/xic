@@ -23,6 +23,7 @@ public enum ASMOpCode {
     MOV,
     MOVABS,
     MOVZX,
+    CQO,
     PUSH,
     POP,
 
