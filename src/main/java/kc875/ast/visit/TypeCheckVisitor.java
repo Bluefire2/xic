@@ -1040,6 +1040,13 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // Initial pass for duplicate classes, fields and methods in this file
         Set<String> classNames = new HashSet<>();
         for (ClassXi c : cs) {
+            // Class can't inherit itself
+            c.getSuperClass().thenDo(sc -> {
+                if (sc.equals(c.getName()))
+                    throw new SemanticError(
+                            "Class can't inherit itself", c.getLocation()
+                    );
+            });
             // Duplicate classes not allowed
             String cName = c.getName();
             if (classNames.contains(cName)) {
