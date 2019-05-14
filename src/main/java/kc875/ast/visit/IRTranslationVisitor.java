@@ -57,47 +57,50 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         this.optimCF = optimCF;
         this.name = name;
 
-        this.classFields = new HashMap<>();
-        for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
-            String className = entry.getKey();
-            ClassXi clazz = entry.getValue();
-            List<String> orderedFields = clazz.getFields().stream()
-                    .flatMap((StmtDecl field) -> field.varsOf().stream())
-                    .collect(Collectors.toList());
-            classFields.put(className, orderedFields);
-        }
+        if (classes.entrySet().size() != 0) {
+            // classes exist
+            this.classFields = new HashMap<>();
+            for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
+                String className = entry.getKey();
+                ClassXi clazz = entry.getValue();
+                List<String> orderedFields = clazz.getFields().stream()
+                        .flatMap((StmtDecl field) -> field.varsOf().stream())
+                        .collect(Collectors.toList());
+                classFields.put(className, orderedFields);
+            }
 
-        this.classHierarchy = classHierarchy;
-        this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
+            this.classHierarchy = classHierarchy;
+            this.classTree = invertHierarchy(classHierarchy, CLASS_SUPER_PARENT);
 
-        /* The traverser allows us to visit each class in an order that
-         * guarantees that a child can never be visited before its parent. This
-         * ensures that when we start building a child class' dispatch vector,
-         * its parent's DV will have already been built. */
-        Iterable<String> classHierarchyTraversal =
-                this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
+            /* The traverser allows us to visit each class in an order that
+             * guarantees that a child can never be visited before its parent. This
+             * ensures that when we start building a child class' dispatch vector,
+             * its parent's DV will have already been built. */
+            Iterable<String> classHierarchyTraversal =
+                    this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
 
-        this.dispatchVectorLocations = new HashMap<>();
-        this.dispatchVectorLayouts = new HashMap<>();
-        for (String className : classHierarchyTraversal) {
-            // skip the top parent node
-            if (className.equals(CLASS_SUPER_PARENT)) continue;
+            this.dispatchVectorLocations = new HashMap<>();
+            this.dispatchVectorLayouts = new HashMap<>();
+            for (String className : classHierarchyTraversal) {
+                // skip the top parent node
+                if (className.equals(CLASS_SUPER_PARENT)) continue;
 
-            List<String> dvLayout = new ArrayList<>();
-            // build on the parent's dispatch vector, if it exists
-            classHierarchy.get(className).thenDo(parent ->
-                    dvLayout.addAll(
-                            this.dispatchVectorLayouts.get(parent)
-                    )
-            );
+                List<String> dvLayout = new ArrayList<>();
+                // build on the parent's dispatch vector, if it exists
+                classHierarchy.get(className).thenDo(parent ->
+                        dvLayout.addAll(
+                                this.dispatchVectorLayouts.get(parent)
+                        )
+                );
 
-            // add all methods that are defined in the class (not inherited/overridden)
-            ClassXi clazz = classes.get(className);
-            List<String> classMethodNames = clazz.getMethodDecls().stream()
-                    .map(Func::getName)
-                    .collect(Collectors.toList());
-            dvLayout.addAll(classMethodNames);
-            this.dispatchVectorLayouts.put(className, dvLayout);
+                // add all methods that are defined in the class (not inherited/overridden)
+                ClassXi clazz = classes.get(className);
+                List<String> classMethodNames = clazz.getMethodDecls().stream()
+                        .map(Func::getName)
+                        .collect(Collectors.toList());
+                dvLayout.addAll(classMethodNames);
+                this.dispatchVectorLayouts.put(className, dvLayout);
+            }
         }
     }
 
@@ -105,14 +108,17 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private <T> Traverser<T> invertHierarchy(Map<T, Maybe<T>> hierarchy, T superParent) {
         // first, build a graph from the hierarchy
         MutableGraph<T> graph = GraphBuilder.directed().build();
+        graph.addNode(superParent);
         for (Map.Entry<T, Maybe<T>> entry : hierarchy.entrySet()) {
             T child = entry.getKey();
             Maybe<T> parentMaybe = entry.getValue();
 
             graph.addNode(child);
-            T parent = parentMaybe.otherwise(superParent);
-            graph.addNode(parent);
-            graph.putEdge(child, parent);
+            parentMaybe.thenDo(graph::addNode);
+            graph.putEdge(
+                    child,
+                    parentMaybe.to(parent -> parent).otherwise(superParent)
+            );
         }
 
         // now, we transpose the graph
