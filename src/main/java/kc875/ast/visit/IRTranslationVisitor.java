@@ -12,6 +12,7 @@ import polyglot.util.Pair;
 import java.math.BigInteger;
 import java.util.*;
 
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -117,7 +118,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             parentMaybe.thenDo(graph::addNode);
             graph.putEdge(
                     child,
-                    parentMaybe.to(parent -> parent).otherwise(superParent)
+                    parentMaybe.to(Function.identity()).otherwise(superParent)
             );
         }
 
