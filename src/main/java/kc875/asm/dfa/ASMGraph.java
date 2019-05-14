@@ -24,7 +24,8 @@ public class ASMGraph extends Graph<ASMInstr> {
                     ASMOpCode.JGE,
                     ASMOpCode.JL,
                     ASMOpCode.JLE,
-                    ASMOpCode.JNE
+                    ASMOpCode.JNE,
+                    ASMOpCode.JAE
             )
     );
 

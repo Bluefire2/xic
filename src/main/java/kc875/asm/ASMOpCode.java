@@ -41,6 +41,7 @@ public enum ASMOpCode {
     JGE,
     JL,
     JLE,
+    JAE,
 
     SETE,
     SETNE,
