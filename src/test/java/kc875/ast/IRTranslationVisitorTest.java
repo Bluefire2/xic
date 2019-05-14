@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -21,8 +22,8 @@ public class IRTranslationVisitorTest {
 
     @Before
     public void setUp() {
-        // TODO: fix this
-        visitor = new IRTranslationVisitor(true, "test");
+        visitor = new IRTranslationVisitor(true, "test",
+                new HashMap<>(), new HashMap<>());
         l = new XiTokenLocation(0,0);
     }
 
