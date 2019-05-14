@@ -575,17 +575,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                         leftDestTemp, rightDestTemp, instrs
                 );
 
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.PUSH,
-                        new ASMExprReg("rax")
-                ));
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.PUSH,
-                        new ASMExprReg("rdx")
-                ));
-
-
-
                 if (dests.part1() instanceof ASMExprMem) {
                     // left needs to be moved into rax
                     instrs.add(new ASMInstr_2Arg(
@@ -631,15 +620,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                             useRAX ? new ASMExprReg("rax") : new ASMExprReg("rdx")
                     ));
                 }
-
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.POP,
-                        new ASMExprReg("rdx")
-                ));
-                instrs.add(new ASMInstr_1Arg(
-                        ASMOpCode.POP,
-                        new ASMExprReg("rax")
-                ));
 
                 return instrs;
             }
@@ -980,27 +960,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
-    private List<ASMInstr> removeRedundantBinopStackOps(List<ASMInstr> lst) {
-        List<ASMInstr> instrs = lst;
-        ASMInstr poprdx = new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rdx"));
-        ASMInstr poprax = new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg("rax"));
-        ASMInstr pushrax = new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rax"));
-        ASMInstr pushrdx = new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg("rdx"));
-        for (int i = 0; i < lst.size() - 4; i++) {
-            if (lst.get(i).equals(poprdx) && lst.get(i+1).equals(poprax)
-            && lst.get(i+2).equals(pushrax) && lst.get(i+3).equals(pushrdx)) {
-                instrs.subList(i, i+4).clear();
-            }
-        }
-        return instrs;
-    }
-
     public List<ASMInstr> visit(IRCompUnit node) {
         List<ASMInstr> instrs = new ArrayList<>();
         for (IRFuncDecl f : node.functions().values()) {
             instrs.addAll(visit(f));
         }
-        instrs = removeRedundantBinopStackOps(instrs);
         return instrs;
     }
 
