@@ -298,7 +298,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 illegalAccessErrorLambda(),
                 (IRTemp e) -> new Pair<>(
                         new ArrayList<>(), new ASMExprMem(toASM(e))
-                )
+                ),
+                (IRExprLabel e) -> new Pair<>(
+                        new ArrayList<>(), new ASMExprMem(toASM(e))
+                ),
         );
     }
 
@@ -467,6 +470,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
      */
     private ASMExprTemp toASM(IRTemp t) {
         return new ASMExprTemp(t.name());
+    }
+
+
+    private ASMExprLabel toASM(IRExprLabel l) {
+        return new ASMExprLabel(l.getName());
     }
 
     /**
@@ -1314,6 +1322,19 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return instrs;
     }
 
+    // label tiles to: lea dest, [label]
+    @Override
+    public List<ASMInstr> visit(IRExprLabel node, ASMExprRT destreg) {
+        List<ASMInstr> instrs = new ArrayList<>();
+        instrs.add(new ASMInstr_2Arg(
+                ASMOpCode.LEA,
+                destreg,
+                new ASMExprMem(new ASMExprLabel(node.getName()))
+                )
+        );
+        return instrs;
+    }
+
     private List<ASMInstr> visitExpr(IRExpr e, ASMExprRT tmp) {
         return e.matchLow(
                 (IRBinOp n) -> visit(n, tmp),
@@ -1321,7 +1342,8 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                 (IRConst n) -> visit(n, tmp),
                 (IRMem n) -> visit(n, tmp),
                 illegalAccessErrorLambda(),
-                (IRTemp n) -> visit(n, tmp)
+                (IRTemp n) -> visit(n, tmp),
+                (IRExprLabel n) -> visit(n, tmp)
         );
     }
 
