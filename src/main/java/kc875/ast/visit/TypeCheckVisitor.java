@@ -19,11 +19,17 @@ import java.util.stream.Collectors;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
+
+    // If a program implements a class that was declared in an interface, then
+    // classNameToClassMap will contain the implementation
     private BiMap<String, ClassXi> classNameToClassMap;
-    // classes defined in interfaces
+    // Classes defined in interfaces
     private BiMap<String, ClassDecl> interfaceClasses;
+    // Interfaces that have been visited
     public Set<String> visitedInterfaces;
+    // Mapping from subclasses to superclasses (if they exist)
     private Map<String, Maybe<String>> classHierarchy;
+
     private String libpath;
     private String RETURN_KEY = "__rho__";
     private String BREAK_KEY = "__beta__";
@@ -41,6 +47,22 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     public SymbolTable<TypeSymTable> getSymTable() {
         return symTable;
+    }
+
+    public Map<String, ClassXi> getClassesMapOrdered() {
+        Map<String, ClassXi> classes = new HashMap<>();
+        for (Map.Entry<String, ClassXi> e : classNameToClassMap.entrySet()) {
+            // If this class was defined in an interface, use that ordering
+            String c = e.getKey();
+            classes.put(
+                    c, interfaceClasses.containsKey(c)
+                            // interface declares, get that declaration
+                            ? interfaceClasses.get(c)
+                            // no interface declares, get from the class map
+                            : classNameToClassMap.get(c)
+            );
+        }
+        return classes;
     }
 
     public Map<String, Maybe<String>> getClassHierarchy() {
