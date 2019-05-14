@@ -434,7 +434,7 @@ public class CLI implements Runnable {
             ir = root.accept(new IRTranslationVisitor(
                     false,
                     fPath,
-                    CLI.typeCheckVisitor.getSymTable(),
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
                     CLI.typeCheckVisitor.getClassHierarchy()
             ));
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
@@ -443,7 +443,7 @@ public class CLI implements Runnable {
             IRNode mir = root.accept(new IRTranslationVisitor(
                     activeOptims.get(Optims.CF),
                     FilenameUtils.removeExtension(f.getName()),
-                    CLI.typeCheckVisitor.getSymTable(),
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
                     CLI.typeCheckVisitor.getClassHierarchy()
             ));
             LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());

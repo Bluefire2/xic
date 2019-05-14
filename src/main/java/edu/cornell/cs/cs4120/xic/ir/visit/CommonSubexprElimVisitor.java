@@ -65,7 +65,7 @@ public class CommonSubexprElimVisitor {
 
             Map<Integer, IRStmt> insmap = new HashMap<>();
 
-            for (IRExpr e : dfa.exprsKilledBy(n)) {
+            for (IRExpr e : dfa.exprsKilledBy(n, tempExprMap.keySet())) {
                 tempExprMap.remove(e);
             }
 
