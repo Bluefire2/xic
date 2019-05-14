@@ -118,6 +118,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return Traverser.forTree(transposed);
     }
 
+    private int classFieldOffset(String className, String fieldName) {
+        return this.classFields.get(className).indexOf(fieldName) * 8 + 8;
+    }
+
+    private int classMethodOffset(String className, String methodName) {
+        return this.dispatchVectorLayouts.get(className).indexOf(methodName) * 8;
+    }
+
     private String returnValueName(int i) {
         return "_RET" + i;
     }
@@ -694,8 +702,28 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprNew node) {
-        //TODO allocate mem of size according to pre-calculated memory layout
-        return null;
+        // the memory layout is found in classFields
+        String className = node.getName();
+        List<String> orderedFields = classFields.get(className); // must exist due to typechecking
+
+        String objectBaseAddress = newTemp();
+        int bytesForObject = 8 * (1 + orderedFields.size()); // extra cell for dispatch vector
+        IRMove baseAllocAddress = new IRMove(
+                new IRTemp(objectBaseAddress),
+                allocateMem(new IRConst(bytesForObject))
+        );
+
+        // store a pointer to the dispatch vector in our new temp
+        IRMove storeDV = new IRMove(
+                new IRMem(new IRTemp(objectBaseAddress)),
+                this.dispatchVectorLocations.get(className)
+                // TODO make sure that we allocate and populate DVs properly
+        );
+
+        return new IRESeq(
+                new IRSeq(baseAllocAddress, storeDV),
+                new IRTemp(objectBaseAddress)
+        );
     }
 
     @Override
