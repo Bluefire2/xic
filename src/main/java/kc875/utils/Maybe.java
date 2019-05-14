@@ -24,6 +24,19 @@ public abstract class Maybe<T> implements Iterable<T> {
     public abstract void thenDo(Consumer<T> cons);
     public abstract Maybe<Boolean> query(Predicate<? super T> mapping);
 
+    /**
+     * Returns true if fst and snd are the same maybes, i.e., either fst and
+     * snd are both unknowns or if both are definitelys with the same value
+     * as determined by T.equals().
+     * @param fst first maybe.
+     * @param snd second maybe.
+     */
+    public static <T> boolean sameMaybe(Maybe<T> fst, Maybe<T> snd) {
+        return !fst.isKnown() && !snd.isKnown()
+                || fst.to(f -> snd.to(f::equals).otherwise(false)).otherwise(false);
+
+    }
+
     public static <T> Maybe<T> unknown() {
         return new Maybe<T>() {
             @Override

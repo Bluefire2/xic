@@ -8,7 +8,6 @@ import kc875.ast.visit.TypeCheckVisitor;
 
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 //should be typechecked as multiple stmtdecls
 public class StmtDeclMulti extends StmtDecl {
@@ -44,6 +43,7 @@ public class StmtDeclMulti extends StmtDecl {
         return visitor.visit(this);
     }
 
+    // TODO: remove this, use varsOf
     public List<String> getVars() {
         return vars;
     }

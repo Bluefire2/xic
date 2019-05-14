@@ -15,10 +15,13 @@ import polyglot.util.Pair;
 import java.io.FileReader;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
     private BiMap<String, ClassXi> classNameToClassMap;
+    // classes defined in interfaces
+    private BiMap<String, ClassDecl> interfaceClasses;
     public Set<String> visitedInterfaces;
     private Map<String, Maybe<String>> classHierarchy;
     private String libpath;
@@ -30,6 +33,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         this.symTable = symTable;
         this.classNameToClassMap = HashBiMap.create();
         this.visitedInterfaces = new HashSet<>();
+        this.interfaceClasses = HashBiMap.create();
         this.classHierarchy = new HashMap<>();
         this.libpath = libpath;
         symTable.enterScope();
@@ -914,37 +918,129 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
+    private void collectTauClass(ClassDecl c) {
+        String cName = c.getName();
+        if (classHierarchy.containsKey(cName)) {
+            // Can't redeclare a class (design decision). Interfaces are
+            // visited before the program file, and if classHierarchy
+            // contains cName, then an interface must have declared it (maybe
+            // the one containing c). So c is a redeclaration, throw an error
+            throw new SemanticError(
+                    "Cannot redeclare class " + cName,
+                    c.getLocation()
+            );
+        }
+        classHierarchy.put(cName, c.getSuperClass());
+        classNameToClassMap.put(cName, c);
+        interfaceClasses.put(cName, c);
+    }
+
+    private void collectTauClass(ClassDefn c) {
+        String cName = c.getName();
+        if (!classHierarchy.containsKey(cName)) {
+            // class hierarchy doesn't have c, so add it
+            classHierarchy.put(cName, c.getSuperClass());
+            classNameToClassMap.put(cName, c);
+        } else {
+            // class hierarchy has c
+            if (!interfaceClasses.containsKey(cName)) {
+                // c wasn't declared in an interface ==> was defined in this
+                // program file. Should not happen because collectTauClasses
+                // already checks for duplicate class names in a file
+                throw new IllegalStateException(
+                        "Already checked for duplicate classes, but class " +
+                                "hierarchy contains duplicate keys for the " +
+                                "same class"
+                );
+            } else {
+                // class hierarchy has c because c was declared in an interface
+                // Check that the inheritance for c and the interface
+                // declaration are the same, and that all fields and methods
+                // are the same. Throw an error if not.
+                if (!Maybe.sameMaybe(
+                        classHierarchy.get(cName), c.getSuperClass()
+                )) {
+                    // super classes aren't the same
+                    throw new SemanticError(
+                            "Declaration and definition for class" +
+                                    cName + " don't inherit the same class",
+                            c.getLocation()
+                    );
+                }
+
+                ClassDecl decl = interfaceClasses.get(cName);
+                Set<String> declFields = decl.getFields().stream()
+                        .flatMap(sd -> sd.varsOf().stream())
+                        .collect(Collectors.toSet());
+                Set<String> cFields = c.getFields().stream()
+                        .flatMap(sd -> sd.varsOf().stream())
+                        .collect(Collectors.toSet());
+                if (!declFields.equals(cFields)) {
+                    throw new SemanticError(
+                            "Different fields in declaration and definition " +
+                                    "of class " + cName,
+                            c.getLocation()
+                    );
+                }
+                // Convert list of methods to a set since ordering doesn't
+                // matter for typechecking
+                // method name -> ([(param, paramtype), ...], output)
+                Map<String, Pair<List<Pair<String, TypeTTau>>, TypeT>> declMeths =
+                        decl.getMethodDecls().stream()
+                                .collect(Collectors.toMap(
+                                        Func::getName,
+                                        (Func f) -> new Pair<>(
+                                                f.getParams(), f.getOutput()
+                                        )
+                                ));
+                Map<String, Pair<List<Pair<String, TypeTTau>>, TypeT>> cMeths =
+                        c.getMethodDecls().stream()
+                                .collect(Collectors.toMap(
+                                        Func::getName,
+                                        (Func f) -> new Pair<>(
+                                                f.getParams(), f.getOutput()
+                                        )
+                                ));
+                if (!declMeths.equals(cMeths)) {
+                    throw new SemanticError(
+                            "Different methods in declaration and definition " +
+                                    "of class " + cName,
+                            c.getLocation()
+                    );
+                }
+                // Update classNameToClassMap with this defn
+                classNameToClassMap.put(cName, c);
+            }
+        }
+    }
+
     private void collectTauClasses(List<? extends ClassXi> cs) {
+        // Initial pass for duplicate classes, fields and methods in this file
+        Set<String> classNames = new HashSet<>();
         for (ClassXi c : cs) {
-            if (classHierarchy.containsKey(c.getName())) {
+            // Duplicate classes not allowed
+            String cName = c.getName();
+            if (classNames.contains(cName)) {
                 throw new SemanticError(
-                        "Class " + c.getName() + " already defined",
+                        "Class " + cName + " already defined",
                         c.getLocation()
                 );
             }
-
             // Make sure fields and methods aren't duplicated
             checkDuplicateInStmtDecls(c.getFields());
             checkDuplicateInFuncDecls(c.getMethodDecls());
-
-            classHierarchy.put(c.getName(), c.getSuperClass());
-            classNameToClassMap.put(c.getName(), c);
+            classNames.add(cName);
         }
 
-        // Make sure that every super class is defined as a class in the
-        // class hierarchy
-        for (Map.Entry<String, Maybe<String>> entry : classHierarchy.entrySet()) {
-            Maybe<String> superClassName = entry.getValue();
-            superClassName.thenDo(
-                    // c extends d
-                    d -> {
-                        if (!classHierarchy.containsKey(d))
-                            // d doesn't exist in the list of classes
-                            throw new SemanticUnresolvedNameError(
-                                    d, classNameToClassMap.get(d).getLocation()
-                            );
-                    }
-            );
+        // Check for fields
+        for (ClassXi c : cs) {
+            if (c instanceof ClassDecl) {
+                collectTauClass((ClassDecl) c);
+            } else if (c instanceof ClassDefn) {
+                collectTauClass((ClassDefn) c);
+            } else {
+                throw new IllegalStateException("Class neither a Decl or Defn");
+            }
         }
     }
 
@@ -1101,6 +1197,22 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     public Void visit(FileProgram node) {
         node.getImports().forEach(i -> i.accept(this));
         collectTauClasses(node.getClassDefns());
+
+        // Make sure that every super class is defined as a class in the
+        // class hierarchy
+        for (Map.Entry<String, Maybe<String>> entry : classHierarchy.entrySet()) {
+            Maybe<String> superClassName = entry.getValue();
+            superClassName.thenDo(
+                    // c extends d
+                    d -> {
+                        if (!classHierarchy.containsKey(d))
+                            // d doesn't exist in the list of classes
+                            throw new SemanticUnresolvedNameError(
+                                    d, classNameToClassMap.get(d).getLocation()
+                            );
+                    }
+            );
+        }
 
         collectFuncs(node.getFuncDefns());
         collectClassContents(node.getClassDefns());
