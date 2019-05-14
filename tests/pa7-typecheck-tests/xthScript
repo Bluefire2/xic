@@ -64,6 +64,7 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     class_subtyping_assign_error1.xi;
     interface_cyclic_import0.ixi;
     interface_cyclic_import1.ixi;
+    interface_dup_classes.ixi;
     lang_spec_color_colored_point_example.xi;
     lang_spec_point_example.xi;
     lang_spec_point_interface.ixi;

@@ -5,8 +5,10 @@ class A {
     fa(p: int): bool { return true }
 }
 
+// Also checks that order of methods and fields doesn't matter
 class B extends A {
-    b: int
+    b_, b: int
+    fb_(p: bool) {}
     fb(p: int): int { return 0 }
 }
 
