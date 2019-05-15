@@ -36,6 +36,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // a top-down tree representing the class hierarchy
     @SuppressWarnings ("UnstableApiUsage")
     private Traverser<String> classTree;
+
+    /* For each class, this contains a map from method names to the earliest
+     * ancestor of the class that defines that method (could be the class
+     * itself).
+     */
+    private Map<String, Map<String, String>> classMethodDefinitions;
+
+    // ordered layouts of dispatch vectors for each class
     private Map<String, List<String>> dispatchVectorLayouts;
 
     private String newLabel() {
@@ -84,23 +92,41 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             this.dispatchVectorLayouts = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
-                if (className.equals(CLASS_SUPER_PARENT)) continue;
+                if (className.equals(CLASS_SUPER_PARENT)) {
+                    // define an empty method map for the super parent
+                    classMethodDefinitions.put(CLASS_SUPER_PARENT, new HashMap<>());
+                    continue;
+                }
 
                 List<String> dvLayout = new ArrayList<>();
-                // build on the parent's dispatch vector, if it exists
-                classHierarchy.get(className).thenDo(parent ->
-                        dvLayout.addAll(
-                                this.dispatchVectorLayouts.get(parent)
-                        )
-                );
+                Map<String, String> methodMap = new HashMap<>();
+                // build on the parent's dispatch vector and method map, if a parent exists
+                classHierarchy.get(className).thenDo(parent -> {
+                    // inherit the parent's method map
+                    methodMap.putAll(
+                            this.classMethodDefinitions.get(parent)
+                    );
+
+                    // inherit the parent's DV layout
+                    dvLayout.addAll(
+                            this.dispatchVectorLayouts.get(parent)
+                    );
+                });
 
                 // add all methods that are defined in the class (not inherited/overridden)
                 ClassXi clazz = classes.get(className);
-                List<String> classMethodNames = clazz.getMethodDecls().stream()
-                        .map(Func::getName)
-                        .collect(Collectors.toList());
-                dvLayout.addAll(classMethodNames);
+                for (FuncDecl methodDecl : clazz.getMethodDecls()) {
+                    String methodName = methodDecl.getName();
+
+                    // add to DV layout
+                    dvLayout.add(methodName);
+
+                    // add to method map (since this class defines the method)
+                    methodMap.put(methodName, className);
+                }
+
                 this.dispatchVectorLayouts.put(className, dvLayout);
+                this.classMethodDefinitions.put(className, methodMap);
             }
         }
     }
