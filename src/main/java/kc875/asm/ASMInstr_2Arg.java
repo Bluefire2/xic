@@ -65,6 +65,7 @@ public class ASMInstr_2Arg extends ASMInstr {
             case XOR:
             case MOV:
             case MOVZX:
+            case LEA:
                 return true;
             default:
                 return false;
@@ -90,6 +91,7 @@ public class ASMInstr_2Arg extends ASMInstr {
         switch (this.getOpCode()) {
             case MOV:
             case MOVZX:
+            case LEA:
                 return true;
             default:
                 return false;
