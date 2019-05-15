@@ -764,7 +764,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     new IRTemp(t),
                     new IRBinOp(OpType.ADD,
                             new IRTemp(t),
-                            new IRConst(classFieldOffsetFromBack(className, fieldName))
+                            new IRConst(classFieldOffsetFromBack(className, fieldName) -8)
                     )
             ));
             //t is now the location of the field data
@@ -1285,7 +1285,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRTemp(t),
                 new IRBinOp(OpType.ADD,
                         new IRTemp(t),
-                        new IRConst(classFieldOffsetFromBack(className, fieldName))
+                        new IRConst(classFieldOffsetFromBack(className, fieldName) -8)
                 )
         ));
         //t is now the location of the field data
