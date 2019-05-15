@@ -1053,7 +1053,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
 
         //global init
-        program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+        if (node.getGlobalVars().size() != 0) {
+            program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+        }
 
         for (ClassDefn c : node.getClassDefns()) {
             inClass = true;

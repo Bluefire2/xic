@@ -82,7 +82,6 @@ public class ASMDirectivesVisitor {
         instrs.add(new ASMInstrDirective("globl",labelName));
         instrs.add(new ASMInstrLabel(labelName));
         instrs.add(new ASMInstrDirective("zero", size.toString()));
-        instrs.add(new ASMInstrComment("\n"));
         return instrs;
     }
 
@@ -134,15 +133,19 @@ public class ASMDirectivesVisitor {
         */
         List<ASMInstr> instrs = new ArrayList<>();
 
-        instrs.add(new ASMInstrDirective("section", ".ctors"));
-        instrs.add(new ASMInstrDirective("align", "8"));
-        if (ast.getClassDefns().size() != 0) {
-            for (ClassDefn c : ast.getClassDefns()) {
-                instrs.add(new ASMInstrDirective("quad", "_I_init_" + className(c.getName())));
+        if (ast.getClassDefns().size() != 0 || ast.getGlobalVars().size() != 0) {
+            instrs.add(new ASMInstrDirective("section", ".ctors"));
+            instrs.add(new ASMInstrDirective("align", "8"));
+            if (ast.getClassDefns().size() != 0) {
+                for (ClassDefn c : ast.getClassDefns()) {
+                    instrs.add(new ASMInstrDirective("quad", "_I_init_" + className(c.getName())));
+                }
             }
+            if (ast.getGlobalVars().size() != 0) {
+                instrs.add(new ASMInstrDirective("quad", "_I_global_init"));
+            }
+            instrs.add(new ASMInstrDirective("text\n"));
         }
-        instrs.add(new ASMInstrDirective("quad", "_I_global_init"));
-        instrs.add(new ASMInstrDirective("text\n"));
 
         //class size directives/labels //.bss (zero 8)
         /* Example
@@ -177,7 +180,7 @@ public class ASMDirectivesVisitor {
                 int dvSize = dispatchVectorLayouts.get(c.getName()).size();
                 instrs.addAll(generateBss("_I_vt_"+className(c.getName()), 8 * dvSize));
             }
-            instrs.add(new ASMInstrDirective("text"));
+            instrs.add(new ASMInstrDirective("text\n"));
         }
         return instrs;
     }
