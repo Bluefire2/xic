@@ -133,7 +133,8 @@ bare_expr ::=
         RESULT = parser.nf.IRMem(e);
     :}
     | CALL expr:target exprs_opt:args {:
-        RESULT = parser.nf.IRCall(target, args);
+        // args.size() is the number of returns of this call
+        RESULT = parser.nf.IRCall(target, args.size(), args);
     :}
     | NAME name:n {:
         RESULT = parser.nf.IRName(n);

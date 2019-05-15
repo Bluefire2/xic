@@ -535,7 +535,7 @@ class CUP$IRParser$actions {
                 IRExpr target = CUP$IRParser$stack.elementAt(CUP$IRParser$top-1).<IRExpr> value();
                 List<IRExpr> args = CUP$IRParser$stack.peek().<List<IRExpr>> value();
                 
-        RESULT = parser.nf.IRCall(target, args);
+        RESULT = parser.nf.IRCall(target, args.size(), args);
     
                 CUP$IRParser$result = parser.getSymbolFactory().newSymbol("bare_expr",10, RESULT);
             }

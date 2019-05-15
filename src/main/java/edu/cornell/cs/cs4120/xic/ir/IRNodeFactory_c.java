@@ -13,13 +13,13 @@ public class IRNodeFactory_c implements IRNodeFactory {
     }
 
     @Override
-    public IRCall IRCall(IRExpr target, IRExpr... args) {
-        return new IRCall(target, args);
+    public IRCall IRCall(IRExpr target, int numRets, IRExpr... args) {
+        return new IRCall(target, numRets, args);
     }
 
     @Override
-    public IRCall IRCall(IRExpr target, List<IRExpr> args) {
-        return new IRCall(target, args);
+    public IRCall IRCall(IRExpr target, int numRets, List<IRExpr> args) {
+        return new IRCall(target, numRets, args);
     }
 
     @Override

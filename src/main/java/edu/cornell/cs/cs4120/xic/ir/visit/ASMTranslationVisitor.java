@@ -680,9 +680,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     public List<ASMInstr> visit(IRCall node, ASMExprRT destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
 
-        if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
-        String name = ((IRName) node.target()).name();
-
         List<ASMExprReg> argRegs = Arrays.asList(
                 new ASMExprReg("rdi"),
                 new ASMExprReg("rsi"),
@@ -693,7 +690,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
 
         int numArgs = node.args().size();
-        int numRets = XiUtils.getNumReturns(name);
+        int numRets = node.getNumRets();
 
         // Evaluate each func arg
         List<ASMExprTemp> argTemps = new ArrayList<>();
@@ -757,7 +754,19 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
 
         // Function call
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
+        IRExpr target = node.target();
+        if (target instanceof IRName) {
+            instrs.add(new ASMInstr_1Arg(
+                    ASMOpCode.CALL, new ASMExprName(((IRName) target).name())
+            ));
+        } else if (target instanceof IRMem || target instanceof IRTemp) {
+            ASMExpr m = asmExprOfMemOrTemp(target, instrs);
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, m));
+        } else {
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            instrs.addAll(target.accept(this, t));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, t));
+        }
 
         // Free space of argsOnStack
         if (argsOnStack.size() > 0) {
@@ -1131,10 +1140,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ASMOpCode.JMP,
                     new ASMExprName(((IRName) node.target()).name())
             ));
-            return instrs;
         } else {
-            throw new IllegalAccessError();
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            instrs.addAll(node.target().accept(this, t));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.JMP, t));
         }
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRLabel node) {

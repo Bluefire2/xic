@@ -205,9 +205,14 @@ public class CommonSubexprElimVisitor {
         if (exprTempMap.containsKey(expr.target())) {
             String t = exprTempMap.get(expr.target());
             tempUsedMap.put(t, Boolean.TRUE);
-            return new IRCall(new IRTemp(t), newArgs);
+            return new IRCall(new IRTemp(t), expr.getNumRets(), newArgs);
+        } else {
+            return new IRCall(
+                    visit(expr.target(), exprTempMap, tempUsedMap),
+                    expr.getNumRets(),
+                    newArgs
+            );
         }
-        else return new IRCall(visit(expr.target(), exprTempMap, tempUsedMap), newArgs);
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {

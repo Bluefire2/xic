@@ -12,16 +12,18 @@ public interface IRNodeFactory {
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    IRCall IRCall(IRExpr target, IRExpr... args);
+    IRCall IRCall(IRExpr target, int numRets, IRExpr... args);
 
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    IRCall IRCall(IRExpr target, List<IRExpr> args);
+    IRCall IRCall(IRExpr target, int numRets, List<IRExpr> args);
 
     /**
      * Construct a CJUMP instruction with fall-through on false.

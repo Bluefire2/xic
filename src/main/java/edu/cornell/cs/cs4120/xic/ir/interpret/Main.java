@@ -55,7 +55,7 @@ public class Main {
                 new IRSeq(new IRMove(new IRTemp("i"), new IRTemp(arg0)),
                           new IRMove(new IRTemp("j"), new IRTemp(arg1)),
                           new IRMove(new IRTemp("x"),
-                                     new IRCall(new IRName("a"),
+                                     new IRCall(new IRName("a"), 2,
                                                 new IRTemp("i"),
                                                 new IRTemp("j"))),
                           new IRMove(new IRTemp("y"), new IRTemp(ret1)),

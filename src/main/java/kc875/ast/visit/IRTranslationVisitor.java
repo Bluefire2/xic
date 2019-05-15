@@ -7,6 +7,7 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.ast.*;
 import kc875.symboltable.TypeSymTableFunc;
 import kc875.utils.Maybe;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 import java.math.BigInteger;
@@ -271,7 +272,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRSeq(
                 new IRCJump(test, lt, lf),
                 new IRLabel(lt),
-                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
+                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"), 0)),
                 new IRLabel(lf)
         );
     }
@@ -283,7 +284,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
      * @return A function call expression.
      */
     private IRCall allocateMem(IRExpr size) {
-        return new IRCall(new IRName("_xi_alloc"), size);
+        return new IRCall(new IRName("_xi_alloc"), 1, size);
     }
 
     /**
@@ -671,6 +672,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
+        int numRets = XiUtils.getNumReturns(funcName);
         ArrayList<IRExpr> argsIR = new ArrayList<>();
 
         for (Expr arg : node.getArgs()) {
@@ -678,7 +680,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             argsIR.add((IRExpr) arg.accept(this));
         }
         return new IRESeq(
-                new IRExp(new IRCall(new IRName(funcName), argsIR)),
+                new IRExp(new IRCall(new IRName(funcName), numRets, argsIR)),
                 new IRTemp(returnValueName(0)));
     }
 
@@ -941,7 +943,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         for (Expr arg : node.getArgs()) {
             argsIR.add((IRExpr) arg.accept(this));
         }
-        return new IRSeq(new IRExp(new IRCall(new IRName(funcName), argsIR)));
+        // procedure returns nothing
+        return new IRSeq(new IRExp(new IRCall(new IRName(funcName), 0, argsIR)));
     }
 
     @Override
@@ -1024,7 +1027,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
                 new IRMem(new IRTemp(t)),//DV + offset
                 new IRConst(classMethodOffset(className, call.getName())));
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        // stmt method (procedure) returns nothing
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), 0, argsIR)));
         return new IRSeq(seq);
     }
 
@@ -1213,6 +1217,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
 
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+        int numRets = XiUtils.getNumReturns(
+                methodName(call.getName(), className, call.getSignature())
+        );
 
         // t is the obj pointer
         // [t] is the vt pointer
@@ -1220,7 +1227,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
                 new IRMem(new IRTemp(t)),
                 new IRConst(classMethodOffset(className, call.getName()))); //offset for method
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), numRets, argsIR)));
         return new IRESeq(
                 new IRSeq(seq),
                 new IRTemp(returnValueName(0)));

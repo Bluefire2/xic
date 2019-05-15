@@ -21,23 +21,27 @@ import java.util.function.Function;
 public class IRCall extends IRExpr_c {
     protected IRExpr target;
     protected List<IRExpr> args;
+    private int numRets;
 
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    public IRCall(IRExpr target, IRExpr... args) {
-        this(target, Arrays.asList(args));
+    public IRCall(IRExpr target, int numRets, IRExpr... args) {
+        this(target, numRets, Arrays.asList(args));
     }
 
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    public IRCall(IRExpr target, List<IRExpr> args) {
+    public IRCall(IRExpr target, int numRets, List<IRExpr> args) {
         this.target = target;
+        this.numRets = numRets;
         this.args = args;
     }
 
@@ -47,6 +51,14 @@ public class IRCall extends IRExpr_c {
 
     public List<IRExpr> args() {
         return args;
+    }
+
+    public int getNumArgs() {
+        return args.size();
+    }
+
+    public int getNumRets() {
+        return numRets;
     }
 
     @Override
@@ -68,7 +80,7 @@ public class IRCall extends IRExpr_c {
             results.add(newExpr);
         }
 
-        if (modified) return v.nodeFactory().IRCall(target, results);
+        if (modified) return v.nodeFactory().IRCall(target, numRets, results);
 
         return this;
     }

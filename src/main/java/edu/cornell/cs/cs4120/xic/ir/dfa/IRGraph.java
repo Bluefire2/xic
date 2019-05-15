@@ -39,7 +39,8 @@ public class IRGraph extends Graph<IRStmt> {
 
         while (iter.hasNext()) {
             stmt = iter.next();
-            if (stmt instanceof IRSeq && ((IRSeq) stmt).stmts().size() == 0) continue;
+            if (stmt instanceof IRSeq && ((IRSeq) stmt).stmts().size() == 0)
+                continue;
             Node node = new Node(stmt);
             addOtherNode(node);
             nodeStmtMap.put(node, nodeIdx++);
@@ -69,15 +70,16 @@ public class IRGraph extends Graph<IRStmt> {
 
             // we need to add another edge to the jumped-to node
             if (stmt instanceof IRJump) {
-                // TODO: change for A7 since we'll be able to jump to non-labels
-                IRName arg = (IRName) ((IRJump) stmt).target();
-
-                // If the arg is not for a function, then we can jump to it
-                // inside this function
-                // get the node we jump to and add an edge to it
-                if (!XiUtils.isNonLibFunction(arg.name())) {
-                    Node to = labelToNodeMap.get(arg.name());
-                    addEdge(node, to);
+                IRExpr arg = ((IRJump) stmt).target();
+                if (arg instanceof IRName) {
+                    IRName arg_ = (IRName) arg;
+                    // If the arg is not for a function, then we can jump to it
+                    // inside this function
+                    // get the node we jump to and add an edge to it
+                    if (!XiUtils.isNonLibFunction(arg_.name())) {
+                        Node to = labelToNodeMap.get(arg_.name());
+                        addEdge(node, to);
+                    }
                 }
             } else {
                 // stmt is CJUMP
