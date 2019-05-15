@@ -94,4 +94,10 @@ public class ClassDefn extends ClassXi {
         }
         return null;
     }
+
+    public Set<String> getFieldNames(){
+        return this.getFields().stream()
+                .flatMap(sd -> sd.varsOf().stream())
+                .collect(Collectors.toSet());
+    }
 }

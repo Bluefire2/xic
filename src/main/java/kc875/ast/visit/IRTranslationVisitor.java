@@ -8,6 +8,7 @@ import kc875.ast.*;
 import kc875.symboltable.TypeSymTableFunc;
 import kc875.utils.Maybe;
 import polyglot.util.Pair;
+import java_cup.runtime.ComplexSymbolFactory.Location;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -214,7 +215,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String newClassName = className.replaceAll("_", "__");
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
-        return "_I_" + newClassName + "_" + newName + "_" + returnType + inputType;
+        return "_I" + newClassName + newName + "_" + returnType + inputType;
     }
 
     private IRStmt conditionalTranslate(Expr e, String labelt, String labelf) {
@@ -700,6 +701,43 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         if (global_names.contains(node.getName())) {
             String name = "_I_g_"+ escapeName(node.getName())+"_"+typeName(node.getTypeCheckType());
             return new IRMem(new IRName(name));
+        } else if (inClass && currentClass.getFieldNames().contains(node.getName())) {
+            //treat like a field access for "this"
+            List<IRStmt> seq = new ArrayList<>();
+            Expr obj = new ExprThis(node.getLocation());
+            String fieldName = node.getName();
+            String className = currentClass.getName();
+            while (!classFields.get(className).contains(fieldName)){
+                try {
+                    className = classHierarchy.get(className).get();
+                } catch (Maybe.NoMaybeValueException e) {
+                    break;
+                }
+            }
+            String classSize = classSizeLoc(className);
+            String t = newTemp();
+            IRExpr objExpr = (IRExpr) obj.accept(this);
+            seq.add(new IRMove(new IRTemp(t), objExpr));
+            //t is the location of obj
+
+            //get n-th to last field by adding size and then subtracting field idx from back
+            seq.add(new IRMove(
+                    new IRTemp(t),
+                    new IRBinOp(OpType.ADD,
+                            new IRTemp(t),
+                            new IRMem(new IRName(classSize))
+                    )
+            ));
+            seq.add(new IRMove(
+                    new IRTemp(t),
+                    new IRBinOp(OpType.ADD,
+                            new IRTemp(t),
+                            new IRConst(classFieldOffsetFromBack(className, fieldName))
+                    )
+            ));
+            //t is now the location of the field data
+            //eval to a mem because we want this to be compatible with IRMoves
+            return new IRESeq(new IRSeq(seq), new IRMem(new IRTemp(t)));
         }
         return new IRTemp(node.getName());
     }
@@ -1063,7 +1101,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             inClass = true;
             currentClass = c;
             for (FuncDefn method : c.getMethodDefns()) {
-                method.accept(this);
+                program.appendFunc(visitMethod(method));
             }
             inClass = false;
         }
@@ -1082,10 +1120,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRFuncDecl visit(FuncDefn node) {
-        if (this.inClass) {
+        if (inClass) {
             return visitMethod(node);
         }
-
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
 
@@ -1178,7 +1215,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprFieldAccess node) {
+    public IRExpr visit(ExprFieldAccess node) {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
         String fieldName = node.getField().getName();
@@ -1212,10 +1249,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 )
         ));
         //t is now the location of the field data
-        //move the value into a return temp t2
-        String t2 = newTemp();
-        seq.add(new IRMove(new IRTemp(t2), new IRMem(new IRTemp(t))));
-        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
+        //eval to a mem because we want this to be compatible with IRMoves
+        return new IRESeq(new IRSeq(seq), new IRMem(new IRTemp(t)));
     }
 
     @Override
@@ -1329,9 +1364,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String funcName = "_I_init_" + escapeName(c.getName());
         String classSize = classSizeLoc(c.getName());
         String classVt = dispatchVectorLoc(c.getName());
-        int n_fields =  c.getFields().stream()
-                .flatMap(sd -> sd.varsOf().stream())
-                .collect(Collectors.toSet()).size();
+        int n_fields = c.getFieldNames().size();
         List<IRStmt> body = new ArrayList<>();
 
         String l_body = newLabel();

@@ -9,6 +9,8 @@ import kc875.utils.Maybe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Set;
 
 public class ClassDecl extends ClassXi {
     public ClassDecl(String name,
