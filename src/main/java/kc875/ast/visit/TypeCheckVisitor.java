@@ -438,7 +438,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         try {
             TypeSymTable t = symTable.lookup(className);
             if (!(t instanceof TypeSymTableClass))
-                // className not in context
+                // escapeName not in context
                 throw new SemanticUnresolvedNameError(
                         className, node.getLocation()
                 );
