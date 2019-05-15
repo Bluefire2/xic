@@ -1,6 +1,5 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import com.google.common.collect.Sets;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
@@ -131,7 +130,8 @@ public class CommonSubexprElimVisitor {
         }
 
         return new IRFuncDecl(
-                func.name(), removeNestedIRSeqs(new IRSeq(listStmt))
+                func.name(), func.getNumParams(), func.getNumRets(),
+                removeNestedIRSeqs(new IRSeq(listStmt))
         );
     }
 
@@ -205,9 +205,14 @@ public class CommonSubexprElimVisitor {
         if (exprTempMap.containsKey(expr.target())) {
             String t = exprTempMap.get(expr.target());
             tempUsedMap.put(t, Boolean.TRUE);
-            return new IRCall(new IRTemp(t), newArgs);
+            return new IRCall(new IRTemp(t), expr.getNumRets(), newArgs);
+        } else {
+            return new IRCall(
+                    visit(expr.target(), exprTempMap, tempUsedMap),
+                    expr.getNumRets(),
+                    newArgs
+            );
         }
-        else return new IRCall(visit(expr.target(), exprTempMap, tempUsedMap), newArgs);
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {

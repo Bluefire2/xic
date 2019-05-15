@@ -42,7 +42,16 @@ public class ASMCopyPropagationVisitor {
             ASMInstr instr,
             Map<ASMExprRT, ASMExprRT> copies
     ) {
-        if (instr instanceof ASMInstr_1Arg) {
+        if (instr instanceof ASMInstr_1ArgCall) {
+            ASMInstr_1ArgCall i = (ASMInstr_1ArgCall) instr;
+            return new ASMInstr_1ArgCall(
+                    !i.destHasNewDef()
+                            ? replaceExprTempsWithCopies(i.getArg(), copies)
+                            : i.getArg(),
+                    i.getNumParams(),
+                    i.getNumRets()
+            );
+        } else if (instr instanceof ASMInstr_1Arg) {
             return new ASMInstr_1Arg(
                     instr.getOpCode(),
                     // only replace arg with copy if no this instr is not def

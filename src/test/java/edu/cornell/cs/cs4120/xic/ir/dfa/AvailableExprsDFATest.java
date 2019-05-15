@@ -35,7 +35,8 @@ public class AvailableExprsDFATest {
                 new IRBinOp(IRBinOp.OpType.ADD, temp, new IRConst(5)),
                 new IRMem(new IRBinOp(IRBinOp.OpType.ADD,
                         new IRConst(6), temp)),
-                new IRCall(new IRMem(temp)),
+                // num rets don't matter
+                new IRCall(new IRMem(temp), 0),
                 new IRESeq(new IRSeq(), temp),
                 new IRBinOp(IRBinOp.OpType.ADD,
                         new IRConst(9), new IRConst(8)),
@@ -77,7 +78,10 @@ public class AvailableExprsDFATest {
                         new IRConst(7), new IRConst(8))
         );
         assertEquals(
-                AvailableExprsDFA.exprsCanBeModified("f", new HashSet<>(exprs)),
+                AvailableExprsDFA.exprsCanBeModified(
+                        new IRCall(new IRName("f"), 0),
+                        new HashSet<>(exprs)
+                ),
                 new HashSet<>(exprs.subList(0, 2))
         );
     }

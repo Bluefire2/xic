@@ -3,6 +3,7 @@ package kc875.asm.visit;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import kc875.asm.*;
 import kc875.utils.XiUtils;
+import polyglot.util.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -152,7 +153,12 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         // Go through the func, and get all the unique temps referenced in it
         Set<String> tempsInFunc = new HashSet<>();
         for (ASMInstr instr : func) {
-            if (instr instanceof ASMInstr_1Arg) {
+            if (instr instanceof ASMInstr_1ArgCall) {
+                ASMInstr_1ArgCall ins1 = (ASMInstr_1ArgCall) instr;
+                if (ins1.getArg() instanceof ASMExprTemp) {
+                    tempsInFunc.add(((ASMExprTemp) ins1.getArg()).getName());
+                }
+            } else if (instr instanceof ASMInstr_1Arg) {
                 ASMInstr_1Arg ins1 = (ASMInstr_1Arg) instr;
                 if (ins1.getArg() instanceof ASMExprTemp) {
                     tempsInFunc.add(((ASMExprTemp) ins1.getArg()).getName());
@@ -180,11 +186,15 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         return updatedFunc;
     }
 
-    private String getCallName(List<ASMInstr> func, int pos) {
+    private Pair<Integer, Integer> getNumParamRets(List<ASMInstr> func,
+                                                   int pos) {
         for (int i = pos; i < func.size(); i++){
             ASMInstr curr = func.get(i);
-            if (curr instanceof ASMInstr_1Arg && curr.getOpCode() == ASMOpCode.CALL) {
-                return ((ASMExprName) ((ASMInstr_1Arg) curr).getArg()).getName();
+            if (curr instanceof ASMInstr_1ArgCall) {
+                return new Pair<>(
+                        ((ASMInstr_1ArgCall) curr).getNumParams(),
+                        ((ASMInstr_1ArgCall) curr).getNumRets()
+                );
             }
         }
         throw new InternalCompilerError("`call func` instruction not found");
@@ -210,9 +220,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             if (curr instanceof ASMInstrComment &&
                     ((ASMInstrComment) curr).getComment().equals("CALL_START")) {
                 //execute for each call
-                String callFuncName = getCallName(updatedFunc, i);
-                int numParams = XiUtils.getNumParams(callFuncName);
-                int numReturns = XiUtils.getNumReturns(callFuncName);
+                Pair<Integer, Integer> pr = getNumParamRets(updatedFunc, i);
+                int numParams = pr.part1();
+                int numReturns = pr.part2();
                 // stack space required for extra rets, params for the callee
                 int numStackCallFunc = Math.max(numReturns - 2, 0) +
                         Math.max(numParams - (numReturns > 2 ? 5 : 6), 0);
@@ -270,7 +280,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     @Override
     public List<ASMInstr> visit(ASMInstrLabel i) {
-        if (i.isFunction()) {
+        if (XiUtils.isFunction(i.getName())) {
             // this label is a function, start a new hashmap
             tempToStackAddrMap.clear();
 
@@ -377,7 +387,9 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
 
     private List<String> getRegsInInstr(ASMInstr i) {
         List<String> regs = new ArrayList<>();
-        if (i instanceof ASMInstr_1Arg) {
+        if (i instanceof ASMInstr_1ArgCall) {
+            regs.addAll(getRegsInExpr(((ASMInstr_1ArgCall) i).getArg()));
+        } else if (i instanceof ASMInstr_1Arg) {
             regs.addAll(getRegsInExpr(((ASMInstr_1Arg) i).getArg()));
         } else if (i instanceof ASMInstr_2Arg) {
             regs.addAll(getRegsInExpr(((ASMInstr_2Arg) i).getSrc()));
@@ -571,6 +583,11 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                     +i.toString()));
         }
         return instrs;
+    }
+
+    @Override
+    public List<ASMInstr> visit(ASMInstr_1ArgCall i) {
+        return visit((ASMInstr_1Arg) i);
     }
 
     @Override

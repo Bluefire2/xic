@@ -4,6 +4,7 @@ package edu.cornell.cs.cs4120.xic.ir.parse;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
 import java_cup.runtime.ComplexSymbolFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -313,8 +314,9 @@ class CUP$IRParser$actions {
                 IRFuncDecl RESULT = null;
                 String n = CUP$IRParser$stack.elementAt(CUP$IRParser$top-2).<String> value();
                 IRStmt s = CUP$IRParser$stack.elementAt(CUP$IRParser$top-1).<IRStmt> value();
-                
-        RESULT = parser.nf.IRFuncDecl(n, s);
+
+        // It doesn't matter for the sim what the numparams and numrets are
+        RESULT = parser.nf.IRFuncDecl(n, 0, 0, s);
     
                 CUP$IRParser$result = parser.getSymbolFactory().newSymbol("funcdecl",2, RESULT);
             }
@@ -535,7 +537,7 @@ class CUP$IRParser$actions {
                 IRExpr target = CUP$IRParser$stack.elementAt(CUP$IRParser$top-1).<IRExpr> value();
                 List<IRExpr> args = CUP$IRParser$stack.peek().<List<IRExpr>> value();
                 
-        RESULT = parser.nf.IRCall(target, args);
+        RESULT = parser.nf.IRCall(target, args.size(), args);
     
                 CUP$IRParser$result = parser.getSymbolFactory().newSymbol("bare_expr",10, RESULT);
             }

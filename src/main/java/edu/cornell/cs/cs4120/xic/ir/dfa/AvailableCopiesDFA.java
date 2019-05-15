@@ -80,15 +80,9 @@ public class AvailableCopiesDFA extends
                 // Remove all elements from l with l.part2() = x
                 lAfterKill.removeIf(p -> p.part2().equals(x));
             }
-            if (m.source() instanceof IRCall
-                    && ((IRCall) m.source()).target() instanceof IRName
-                    && XiUtils.isFunction(
-                    ((IRName) ((IRCall) m.source()).target()).name()
-            )) {
-                // call is to a function, _RETi get redefined
-                int nRets = XiUtils.getNumReturns(
-                        ((IRName) ((IRCall) m.source()).target()).name()
-                );
+            if (m.source() instanceof IRCall) {
+                // call to a function, _RETi get redefined
+                int nRets = ((IRCall) m.source()).getNumRets();
                 for (int i = 0; i < nRets; i++) {
                     // kill (_RETi, z), (z, _RETi) for any z
                     IRTemp _RETi = new IRTemp("_RET" + i);

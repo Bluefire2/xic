@@ -78,7 +78,6 @@ public class ASMGraph extends Graph<ASMInstr> {
 
             // we need to add another edge to the jumped-to node!
             if (instr instanceof ASMInstr_1Arg) {
-                // TODO: change for A7 since we'll be able to jump to non-labels
                 ASMExprName arg = (ASMExprName) ((ASMInstr_1Arg) instr).getArg();
 
                 // If the arg is not for a function, then we can jump to it

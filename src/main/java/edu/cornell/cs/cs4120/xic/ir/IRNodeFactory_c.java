@@ -1,9 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+
 import java.util.List;
 import java.util.Map;
-
-import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 public class IRNodeFactory_c implements IRNodeFactory {
 
@@ -13,13 +13,13 @@ public class IRNodeFactory_c implements IRNodeFactory {
     }
 
     @Override
-    public IRCall IRCall(IRExpr target, IRExpr... args) {
-        return new IRCall(target, args);
+    public IRCall IRCall(IRExpr target, int numRets, IRExpr... args) {
+        return new IRCall(target, numRets, args);
     }
 
     @Override
-    public IRCall IRCall(IRExpr target, List<IRExpr> args) {
-        return new IRCall(target, args);
+    public IRCall IRCall(IRExpr target, int numRets, List<IRExpr> args) {
+        return new IRCall(target, numRets, args);
     }
 
     @Override
@@ -59,8 +59,9 @@ public class IRNodeFactory_c implements IRNodeFactory {
     }
 
     @Override
-    public IRFuncDecl IRFuncDecl(String name, IRStmt stmt) {
-        return new IRFuncDecl(name, stmt);
+    public IRFuncDecl IRFuncDecl(String name, int numParams,
+                                 int numRets, IRStmt stmt) {
+        return new IRFuncDecl(name, numParams, numRets, stmt);
     }
 
     @Override

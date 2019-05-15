@@ -3,7 +3,6 @@ package edu.cornell.cs.cs4120.xic.ir.visit;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.asm.*;
-import kc875.utils.XiUtils;
 import polyglot.util.InternalCompilerError;
 import polyglot.util.Pair;
 
@@ -680,9 +679,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
     public List<ASMInstr> visit(IRCall node, ASMExprRT destreg) {
         List<ASMInstr> instrs = new ArrayList<>();
 
-        if (!(node.target() instanceof IRName)) throw new IllegalAccessError();
-        String name = ((IRName) node.target()).name();
-
         List<ASMExprReg> argRegs = Arrays.asList(
                 new ASMExprReg("rdi"),
                 new ASMExprReg("rsi"),
@@ -693,7 +689,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         );
 
         int numArgs = node.args().size();
-        int numRets = XiUtils.getNumReturns(name);
+        int numRets = node.getNumRets();
 
         // Evaluate each func arg
         List<ASMExprTemp> argTemps = new ArrayList<>();
@@ -757,7 +753,17 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         }
 
         // Function call
-        instrs.add(new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName(name)));
+        IRExpr target = node.target();
+        ASMExpr targetASM;
+        if (target instanceof IRName) {
+            targetASM = new ASMExprName(((IRName) target).name());
+        } else if (target instanceof IRMem || target instanceof IRTemp) {
+            targetASM = asmExprOfMemOrTemp(target, instrs);
+        } else {
+            targetASM = new ASMExprTemp(newTemp());
+            instrs.addAll(target.accept(this, (ASMExprTemp) targetASM));
+        }
+        instrs.add(new ASMInstr_1ArgCall(targetASM, numArgs, numRets));
 
         // Free space of argsOnStack
         if (argsOnStack.size() > 0) {
@@ -1043,9 +1049,63 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return visitExpr(node.expr(), new ASMExprTemp(newTemp()));
     }
 
+    /**
+     * Remove all non-digit characters from a string, and return the integer
+     * value of the result.
+     *
+     * @param s string containing one or more digit
+     * @return number contained within the string
+     */
+    private static int numFromString(String s) {
+        return Integer.parseInt(s.replaceAll("\\D+", ""));
+    }
+
+    /**
+     * Return the number of values that the function declaration returns.
+     *
+     * @param name name of the function from IRFuncDecl instance
+     * @return number of return values
+     */
+    private static int getNumReturns(String name) {
+        if (name.equals("_xi_array_out_of_bounds"))
+            return 0;
+        if (name.equals("_xi_alloc"))
+            return 1;
+        String sig = name.substring(name.lastIndexOf('_') + 1);
+        if (sig.startsWith("p")) {
+            // procedure
+            return 0;
+        } else if (sig.startsWith("t")) {
+            // tuple return, get the number after "t"
+            return numFromString(sig);
+        } else {
+            // single return
+            return 1;
+        }
+    }
+
+    /**
+     * Return the number of parameters that the function declaration takes in.
+     *
+     * @param name name of the function from IRFuncDecl instance
+     * @return number of parameters
+     */
+    public static int getNumParams(String name) {
+        if (name.equals("_xi_array_out_of_bounds"))
+            return 0;
+        if (name.equals("_xi_alloc"))
+            return 1;
+        String sig = name.substring(name.lastIndexOf('_') + 1);
+        // the number of parameters is the total number of i and b in params
+        // sub the returnCount since that also gets counted in iCount and bCount
+        int iCount = (int) sig.chars().filter(c -> c == 'i').count();
+        int bCount = (int) sig.chars().filter(c -> c == 'b').count();
+        return iCount + bCount - getNumReturns(name);
+    }
+
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numParams = XiUtils.getNumParams(node.name());
+        int numParams = getNumParams(node.name());
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -1062,7 +1122,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         IRStmt body = node.body();
         IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
 
-        int numRets = XiUtils.getNumReturns(node.name());
+        int numRets = getNumReturns(node.name());
         if (numRets > 2 && numParams == 0) {
             // procedure with multiple returns. The body won't contain any
             // references to _ARG0, which we need here for the return asm at
@@ -1131,10 +1191,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ASMOpCode.JMP,
                     new ASMExprName(((IRName) node.target()).name())
             ));
-            return instrs;
         } else {
-            throw new IllegalAccessError();
+            ASMExprTemp t = new ASMExprTemp(newTemp());
+            instrs.addAll(node.target().accept(this, t));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.JMP, t));
         }
+        return instrs;
     }
 
     public List<ASMInstr> visit(IRLabel node) {

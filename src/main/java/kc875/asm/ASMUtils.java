@@ -1,5 +1,7 @@
 package kc875.asm;
 
+import kc875.utils.XiUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -13,7 +15,8 @@ public class ASMUtils {
      * @param ins instruction to test.
      */
     private static boolean instrIsFunction(ASMInstr ins) {
-        return ins instanceof ASMInstrLabel && ((ASMInstrLabel) ins).isFunction();
+        return ins instanceof ASMInstrLabel
+                && XiUtils.isFunction(((ASMInstrLabel) ins).getName());
     }
 
     /**

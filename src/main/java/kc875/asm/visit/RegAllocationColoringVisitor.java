@@ -599,8 +599,14 @@ public class RegAllocationColoringVisitor {
     }
 
     private ASMInstr rewriteInstr(ASMInstr i, Set<Graph<ASMExprRT>.Node> spilledNodes) {
-//        System.out.println("_" + i);
-        if (i instanceof ASMInstr_1Arg) {
+        if (i instanceof ASMInstr_1ArgCall) {
+            ASMInstr_1ArgCall i1 = (ASMInstr_1ArgCall) i;
+            return new ASMInstr_1ArgCall(
+                    rewriteExpr(i1.getArg(), spilledNodes),
+                    i1.getNumParams(),
+                    i1.getNumRets()
+            );
+        } else if (i instanceof ASMInstr_1Arg) {
             ASMInstr_1Arg i1 = (ASMInstr_1Arg) i;
             return new ASMInstr_1Arg(i1.getOpCode(), rewriteExpr(i1.getArg(), spilledNodes));
         } else if (i instanceof ASMInstr_2Arg) {
@@ -762,7 +768,9 @@ public class RegAllocationColoringVisitor {
     public Set<ASMExprRT> getAllRT(List<ASMInstr> instrs) {
         Set<ASMExprRT> temps = new HashSet<>();
         for (ASMInstr i : instrs) {
-            if (i instanceof ASMInstr_1Arg) {
+            if (i instanceof ASMInstr_1ArgCall) {
+                temps.addAll(getRTExpr(((ASMInstr_1ArgCall) i).getArg()));
+            } else if (i instanceof ASMInstr_1Arg) {
                 temps.addAll(getRTExpr(((ASMInstr_1Arg) i).getArg()));
             } else if (i instanceof ASMInstr_2Arg) {
                 ASMInstr_2Arg i2 = (ASMInstr_2Arg) i;
