@@ -180,7 +180,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     public String globalName(String name, TypeTTau signature) {
-        String newName = name.replaceAll("_", "__");
+        String newName = escapeName(name);
         String type = typeName(signature);
         return "_I_g_" + newName + "_" + type;
     }
@@ -191,7 +191,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         if (type instanceof TypeTList) {
             TypeTList tuple = (TypeTList) type;
             ArrayList<String> types = new ArrayList<>();
-            tuple.getTTauList().forEach((t) -> types.add(returnTypeName(t)));
+            tuple.getTTauList().forEach((t) -> types.add(typeName(t)));
             return "t" + tuple.getLength() + String.join("", types);
         } else if (type instanceof TypeTUnit) { //TypeTUnit
             return "p";
@@ -206,6 +206,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             ArrayList<String> types = new ArrayList<>();
             tuple.getTTauList().forEach((t) -> types.add(typeName(t)));
             return String.join("", types);
+        } else if (type instanceof TypeTUnit) {
+            return "";
         } else if (type instanceof TypeTTauArray) {
             TypeTTauArray a = (TypeTTauArray) type;
             return "a" + typeName(a.getTypeTTau());
@@ -213,11 +215,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             return "i";
         } else if (type instanceof TypeTTauBool) {
             return "b";
-        } else if (type instanceof TypeTUnit) {
-            return "";
         } else if (type instanceof TypeTTauClass) {
             TypeTTauClass c = (TypeTTauClass) type;
-            return "o" + c.getName().length() + c.getName().replaceAll("_", "__");
+            return "o" + c.getName().length() + escapeName(c.getName());
         } else {
             throw new IllegalArgumentException("invalid type");
         }
@@ -225,7 +225,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     //_I_function_types
     public String functionName(String name, TypeSymTableFunc signature) {
-        String newName = name.replaceAll("_", "__");
+        String newName = escapeName(name);
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
         return "_I" + newName + "_" + returnType + inputType;
@@ -236,12 +236,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     //_I_class_function_types
-    public String methodName(String name, String className, TypeSymTableFunc signature) {
-        String newName = name.replaceAll("_", "__");
-        String newClassName = className.replaceAll("_", "__");
+    public String methodName(String name, TypeTTauClass clazz,
+                             TypeSymTableFunc signature) {
+        String newName = escapeName(name);
+        String newClassName = typeName(clazz);
         String returnType = returnTypeName(signature.getOutput());
         String inputType = typeName(signature.getInput());
-        return "_I" + newClassName + newName + "_" + returnType + inputType;
+        return "_I" + newName + "_" + returnType + newClassName + inputType;
     }
 
     private IRStmt conditionalTranslate(Expr e, String labelt, String labelf) {
@@ -709,7 +710,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprFunctionCall node) {
-        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+        if (inClass && dispatchVectorLayouts.get(currentClass.getName()).contains(node.getName())) {
             Location loc = node.getLocation();
             return visit(new ExprMethodCall(
                     new ExprThis(currentClass.getName(), loc),
@@ -746,7 +747,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 }
             }
             String classSize = classSizeLoc(className);
-            String t = newTemp();
+            String t = newTemp(); //move this into temp t
             seq.add(new IRMove(new IRTemp(t), new IRTemp(funcArgName(0))));
             //t is the location of obj
 
@@ -1016,7 +1017,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
-        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+        if (inClass && dispatchVectorLayouts.get(currentClass.getName()).contains(node.getName())) {
             Location loc = node.getLocation();
             return visit(new StmtMethodCall(
                     new ExprThis(currentClass.getName(), loc),
@@ -1138,7 +1139,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             inClass = true;
             currentClass = c;
             for (FuncDefn method : c.getMethodDefns()) {
-                program.appendFunc(visitMethod(method));
+                program.appendFunc(visitMethod(c.getName(), method));
             }
             inClass = false;
         }
@@ -1158,7 +1159,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRFuncDecl visit(FuncDefn node) {
         if (inClass) {
-            return visitMethod(node);
+            return visitMethod(currentClass.getName(), node);
         }
         String funcName = functionName(
                 node.getName(), (TypeSymTableFunc) node.getSignature().part2());
@@ -1187,9 +1188,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         );
     }
 
-    public IRFuncDecl visitMethod(FuncDefn node) {
+    public IRFuncDecl visitMethod(String className, FuncDefn node) {
         String funcName = methodName(
-                node.getName(), currentClass.getName(), (TypeSymTableFunc) node.getSignature().part2());
+                node.getName(), new TypeTTauClass(className),
+                (TypeSymTableFunc) node.getSignature().part2());
 
         List<Pair<String, TypeTTau>> params = node.getParams();
         List<IRStmt> moveArgs = new ArrayList<>();
@@ -1464,7 +1466,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 } else {
                     //[classVT + offset] <- methodLabel
                     FuncDefn m = c.getMethodDefn(methodName);
-                    String mLabelName = methodName(m.getName(), c.getName(),
+                    String mLabelName = methodName(m.getName(),
+                            new TypeTTauClass(c.getName()),
                             (TypeSymTableFunc) m.getSignature().part2());
                     body.add(new IRMove(
                             new IRMem(
@@ -1484,8 +1487,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             body.add(new IRMove(new IRTemp(t), new IRName(classVt)));
             for (int i = 0; i<c.getMethodDefns().size(); i++) {
                 FuncDefn m = c.getMethodDefns().get(i);
-                String mLabelName = methodName(m.getName(), c.getName(),
-                        (TypeSymTableFunc) m.getSignature().part2());
+                String mLabelName = methodName(
+                        m.getName(), new TypeTTauClass(c.getName()),
+                        (TypeSymTableFunc) m.getSignature().part2()
+                );
                 //[classVT + offset] <- methodLabel
                 body.add(new IRMove(
                         new IRMem(
