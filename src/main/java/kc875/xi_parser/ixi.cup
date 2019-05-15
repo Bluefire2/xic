@@ -115,8 +115,6 @@ nonterminal List<Pair<String, TypeTTau>> annotated_var_list, func_args;
 
 //pa7 new stuff
 nonterminal ClassDecl class_decl;
-nonterminal StmtDecl field;
-nonterminal List<StmtDecl> field_list;
 nonterminal StmtDeclMulti multi_var_decl;
 nonterminal List<TopLevelDecl> decl_or_defn_list;
 nonterminal List<FuncDecl> func_decl_list;
@@ -316,43 +314,17 @@ func_decl_list ::=
 | func_decl_list:l func_decl:d {: l.add(d); RESULT = l; :}
 ;
 
-field ::=
-  decl_annotated_var:d {:
-    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
-| annotated_var:d {:
-    RESULT = new StmtDeclSingle(new TypeDeclVar(d), dxleft); :}
-| multi_var_decl:m {:
-    RESULT = m; :}
-| field:f SEMICOLON {: RESULT = f; :}
-;
-
-field_list ::=
-  field:f {:
-    ArrayList<StmtDecl> l = new ArrayList<>();
-    l.add(f);
-    RESULT = l; :}
-| field_list:l field:f {:
-    l.add(f);
-    RESULT = l; :}
-;
-
 class_decl ::=
-  CLASS ID:c LCURL field_list:fl func_decl_list:dl RCURL {:
-    RESULT = new ClassDecl(c, fl, dl, cxleft); :}
-| CLASS ID:c LCURL func_decl_list:dl RCURL {:
-    RESULT = new ClassDecl(c, new ArrayList<>(), dl, cxleft); :}
-| CLASS ID:c LCURL field_list:fl RCURL {:
-      RESULT = new ClassDecl(c, fl, new ArrayList<>(), cxleft); :}
+//no extends
+  CLASS ID:c LCURL func_decl_list:dl RCURL {:
+    RESULT = new ClassDecl(c, dl, cxleft); :}
 | CLASS ID:c LCURL RCURL {:
-      RESULT = new ClassDecl(c, new ArrayList<>(), new ArrayList<>(), cxleft); :}
-| CLASS ID:c EXTENDS ID:e LCURL field_list:fl func_decl_list:dl RCURL {:
-    RESULT = new ClassDecl(c, e, fl, dl, cxleft); :}
+      RESULT = new ClassDecl(c, new ArrayList<FuncDecl>(), cxleft); :}
+//extends
 | CLASS ID:c EXTENDS ID:e LCURL func_decl_list:dl RCURL {:
-    RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), dl, cxleft); :}
-| CLASS ID:c EXTENDS ID:e LCURL field_list:fl RCURL {:
-      RESULT = new ClassDecl(c, e, fl, new ArrayList<FuncDecl>(), cxleft); :}
+    RESULT = new ClassDecl(c, e, dl, cxleft); :}
 | CLASS ID:c EXTENDS ID:e LCURL RCURL {:
-      RESULT = new ClassDecl(c, e, new ArrayList<StmtDecl>(), new ArrayList<FuncDecl>(), cxleft); :}
+      RESULT = new ClassDecl(c, e, new ArrayList<FuncDecl>(), cxleft); :}
 ;
 
 // unordered list of function decl or class decl...

@@ -27,7 +27,6 @@ public class FileInterface extends FileSource {
         this.funcDecls = decls;
         this.signatures = new ArrayList<>();
         this.class_signatures = new ArrayList<>();
-        //TODO currently uses placeholders
         decls.forEach((d) -> signatures.add(d.getSignature()));
         classDecls.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
     }

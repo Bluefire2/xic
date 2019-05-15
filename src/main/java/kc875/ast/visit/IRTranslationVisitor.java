@@ -1292,7 +1292,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String funcName = "_I_init_" + className(c.getName());
         String classSize = classSizeLoc(c.getName());
         String classVt = dispatchVectorLoc(c.getName());
-        int n_fields = c.getFieldNames().size();
+        int n_fields =  c.getFields().stream()
+                .flatMap(sd -> sd.varsOf().stream())
+                .collect(Collectors.toSet()).size();
         List<IRStmt> body = new ArrayList<>();
 
         String l_body = newLabel();
@@ -1333,7 +1335,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             body.add(new IRMove(new IRTemp(t3), new IRName(superClassVt)));
 
             List<String> dvLayout = dispatchVectorLayouts.get(c.getName());
-            Set<String> defMethods = c.getMethodNames();
+            Set<String> defMethods = c.getMethodDefns().stream()
+                    .map(FuncDefn::getName)
+                    .collect(Collectors.toSet());
+
             for (int i = 0; i < dvLayout.size(); i++){
                 String methodName = dvLayout.get(i);
                 //only copy if method is not overridden
