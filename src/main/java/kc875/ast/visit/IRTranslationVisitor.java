@@ -1412,10 +1412,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     new IRTemp(t))
             );
 
-            String t2 = newTemp();
-            body.add(new IRMove(new IRTemp(t2), new IRName(classVt)));
-            String t3 = newTemp();
-            body.add(new IRMove(new IRTemp(t3), new IRName(superClassVt)));
+            String classVT_ = newTemp();
+            body.add(new IRMove(new IRTemp(classVT_), new IRName(classVt)));
+            String superClassVT_ = newTemp();
+            body.add(new IRMove(new IRTemp(superClassVT_), new IRName(superClassVt)));
 
             List<String> dvLayout = dispatchVectorLayouts.get(c.getName());
             Set<String> defMethods = c.getMethodDefns().stream()
@@ -1430,11 +1430,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     body.add(new IRMove(
                             new IRMem(
                                     new IRBinOp(OpType.ADD,
-                                            new IRTemp(t2),
+                                            new IRTemp(classVT_),
                                             new IRConst(i * 8))),
                             new IRMem(
                                     new IRBinOp(OpType.ADD,
-                                            new IRTemp(t3),
+                                            new IRTemp(superClassVT_),
                                             new IRConst(i * 8)))
                     ));
                 } else {
@@ -1446,7 +1446,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     body.add(new IRMove(
                             new IRMem(
                                     new IRBinOp(OpType.ADD,
-                                            new IRTemp(t2),
+                                            new IRTemp(classVT_),
                                             new IRConst(i * 8))),
                             new IRName(mLabelName)
                     ));
