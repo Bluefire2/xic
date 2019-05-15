@@ -585,6 +585,36 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
         ASMExpr r = i.getSrc();
         List<ASMInstr> instrs = new ArrayList<>();
         ASMExpr dest;
+
+        // LEAs need a special case
+        if (i.getOpCode() == ASMOpCode.LEA) {
+            // LEA's dest must be a register, and its src must be a mem
+            // when we generate LEAs, we always do so correctly (mem into a temp)
+            if (l instanceof ASMExprTemp) {
+                List<String> availRegs = getAvailRegs(getRegsInExpr(r)); // mem expression may contain registers
+                dest = new ASMExprReg(availRegs.get(0));
+
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.LEA,
+                        dest,
+                        r // has to be a mem
+                ));
+
+                // now, we need to spill the left hand side temp onto the stack
+                ASMExprMem loc = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
+                instrs.add(new ASMInstr_2Arg(
+                        ASMOpCode.MOV,
+                        loc,
+                        dest
+                ));
+            } else {
+                // lhs has to be a register due to our invariant, so this is fine:
+                instrs.add(i);
+            }
+
+            return instrs;
+        }
+
         if (l instanceof ASMExprTemp) {//if LHS is a temp it gets turned into a mem
             dest = getMemForTemp(((ASMExprTemp) l).getName(), instrs);
         } else if (l instanceof ASMExprMem) {// if LHS is a mem it gets turned into a mem
