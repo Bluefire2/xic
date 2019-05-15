@@ -684,7 +684,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprFunctionCall node) {
-        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+        if (inClass && dispatchVectorLayouts.get(currentClass.getName()).contains(node.getName())) {
             Location loc = node.getLocation();
             return visit(new ExprMethodCall(
                     new ExprThis(currentClass.getName(), loc),
@@ -721,7 +721,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 }
             }
             String classSize = classSizeLoc(className);
-            String t = newTemp();
+            String t = newTemp(); //move this into temp t
             seq.add(new IRMove(new IRTemp(t), new IRTemp(funcArgName(0))));
             //t is the location of obj
 
@@ -991,7 +991,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
-        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+        if (inClass && dispatchVectorLayouts.get(currentClass.getName()).contains(node.getName())) {
             Location loc = node.getLocation();
             return visit(new StmtMethodCall(
                     new ExprThis(currentClass.getName(), loc),
