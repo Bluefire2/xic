@@ -1,7 +1,7 @@
 use a
 
 class B extends A {
-    b: int
+    mb()
 }
 
 fb()

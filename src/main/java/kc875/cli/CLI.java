@@ -1,6 +1,7 @@
 package kc875.cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
@@ -420,6 +421,10 @@ public class CLI implements Runnable {
         ASTNode root = buildAST(fileReader, f.getPath());
 
         //need to use for ASM directives
+        if (!(root instanceof FileProgram))
+            throw new InternalCompilerError(
+                    "IR can only be built for a .xi file"
+            );
         fileProgram = (FileProgram) root;
 
         String fPath = FilenameUtils.removeExtension(f.getName());
