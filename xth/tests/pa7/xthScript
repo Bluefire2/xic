@@ -30,17 +30,6 @@
 
 xic-ext ("Test -target linux") "-libpath $(testpath) -target linux" {
     ex01.xi;
-    ex02.xi (Lexical, "empty character literal");
-    ex03.xi (Syntax, "Unexpected token +");
-    ex04.xi (Semantic, "Cannot assign");
-    ex05.xi (Semantic, "Operands");
-    ex06.xi (Semantic, "Name .* cannot be resolved");
-    ex07.xi (Semantic, "Expected .*, but found .*");
-    ex08.xi (Semantic, "Missing return");
-    ex09.xi (Semantic, "Expected function call");
-    ex10.xi (Semantic, "Mismatched number of values");
-    ex11.xi (Semantic, "Expected .*, but found .*");
-    ex12.xi (Semantic, "not a function");
     ack.xi;
     primes.xi;
     pointexample.xi;

@@ -63,6 +63,9 @@ xic ("Test --typecheck") "-libpath $(testpath) --typecheck" {
     class_subtyping_assign.xi;
     class_subtyping_assign_error0.xi;
     class_subtyping_assign_error1.xi;
+    globals_init_import_class.xi;
+    globals_init.xi;
+    globals_funcs_classes.xi;
     interface_cyclic_import0.ixi;
     interface_cyclic_import1.ixi;
     interface_dup_classes.ixi;

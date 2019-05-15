@@ -30,5 +30,8 @@
 
 xic ("Test --parse") "-libpath $(testpath) --parse" {
     class_field_after_method.xi;
+    classdecl-error.xi;
     field_assign_direct.xi;
+    interface_has_classdef_error.ixi;
+    multi-decl-error.xi;
 }

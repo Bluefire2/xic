@@ -1,4 +1,4 @@
-use point
+use lang_spec_point_interface
 use io
 use conv
 
@@ -32,7 +32,7 @@ f1(){
     h:ColoredPoint = new ColoredPoint;
 }
 
-z:int[x - 1 + 1] = "hello";
-a,b,c:int;
+z:int[] = "hello";
+aa,bb,cc:int;
 
 
