@@ -43,11 +43,6 @@ public class StmtDeclMulti extends StmtDecl {
         return visitor.visit(this);
     }
 
-    // TODO: remove this, use varsOf
-    public List<String> getVars() {
-        return vars;
-    }
-
     public TypeTTau getType() {
         return type;
     }

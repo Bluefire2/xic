@@ -733,7 +733,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(StmtDeclMulti node) {
-        List<String> vars = node.getVars();
+        List<String> vars = node.varsOf();
         TypeTTau type = node.getType();
 
         for (String var : vars) {

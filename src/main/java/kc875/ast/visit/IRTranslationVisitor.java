@@ -1142,7 +1142,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRSeq visit(StmtDeclMulti node) {
         List<IRStmt> s = new ArrayList<>();
-        for (String v:node.getVars()) {
+        for (String v:node.varsOf()) {
             s.add(initDecl(v, node.getType()));
         }
         return new IRSeq(s);
@@ -1259,7 +1259,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     }
                 }
             } else if (d instanceof StmtDeclMulti) {
-                List<String> names = ((StmtDeclMulti) d).getVars();
+                List<String> names = ((StmtDeclMulti) d).varsOf();
                 for (String name : names) {
                     gname = name;
                     gtype = ((StmtDeclMulti) d).getType();
