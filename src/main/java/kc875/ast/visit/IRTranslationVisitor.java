@@ -21,7 +21,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private boolean optimCF; // whether constant folding should be switched on
     private String name; //name of the comp unit
     public boolean inClass;
-    Set<String> global_names;
+    private Set<String> global_names;
     public ClassDefn currentClass; //name of current class
 
     // a class cannot possibly have this name:
@@ -44,6 +44,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     private String newTemp() {
         return String.format("_mir_t%d", (tempcounter++));
+    }
+
+    public Map<String, List<String>> getDispatchVectorLayouts() {
+        return dispatchVectorLayouts;
     }
 
     public IRTranslationVisitor(boolean optimCF,
@@ -125,8 +129,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return Traverser.forTree(transposed);
     }
 
-    private int classFieldOffset(String className, String fieldName) {
-        return this.classFields.get(className).indexOf(fieldName) * 8 + 8;
+    private int classFieldOffsetFromBack(String className, String fieldName) {
+        return this.classFields.get(className).indexOf(fieldName) * -8;
     }
 
     private int classMethodOffset(String className, String methodName) {
@@ -1033,13 +1037,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             argsIR.add((IRExpr) arg.accept(this));
         }
 
-        //TODO IRConst is not 0, need layout of functions
-        // t is the obj pointer
-        // [t] is the vt pointer
-        // [[t] + x] is the vt pointer for the method, which is what we call
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
-                new IRMem(new IRTemp(t)),
-                new IRConst(0));
+                new IRMem(new IRTemp(t)),//DV + offset
+                new IRConst(classMethodOffset(className, call.getName())));
         seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
         return new IRSeq(seq);
     }
@@ -1052,7 +1053,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
         //class init
         for (ClassDefn c : node.getClassDefns()) {
-            program.appendFunc(generateInitClass(c.toDecl()));
+            program.appendFunc(generateInitClass(c));
         }
 
         //global init
@@ -1181,17 +1182,24 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         String t = newTemp();
         IRExpr objExpr = (IRExpr) obj.accept(this);
         seq.add(new IRMove(new IRTemp(t), objExpr));
-        //t now holds location of obj
+        //t is the location of obj
 
-        //nth field is at ptr + 8(n+1)
+        //get n-th to last field by adding size and then subtracting field idx from back
         seq.add(new IRMove(
                 new IRTemp(t),
                 new IRBinOp(OpType.ADD,
                         new IRTemp(t),
-                        new IRConst(classFieldOffset(className, fieldName))
+                        new IRMem(new IRName(classSize))
                 )
         ));
-
+        seq.add(new IRMove(
+                new IRTemp(t),
+                new IRBinOp(OpType.ADD,
+                        new IRTemp(t),
+                        new IRConst(classFieldOffsetFromBack(className, fieldName))
+                )
+        ));
+        //t is now the location of the field data
         //move the value into a return temp t2
         String t2 = newTemp();
         seq.add(new IRMove(new IRTemp(t2), new IRMem(new IRTemp(t))));
@@ -1280,9 +1288,105 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     //generate _I_init_someClass function
     //initialize size and VT (needs method/field layouts)
-    private IRFuncDecl generateInitClass(ClassDecl c) {
-        //TODO
-        return null;
+    private IRFuncDecl generateInitClass(ClassDefn c) {
+        String funcName = "_I_init_" + className(c.getName());
+        String classSize = classSizeLoc(c.getName());
+        String classVt = dispatchVectorLoc(c.getName());
+        int n_fields = c.getFieldNames().size();
+        List<IRStmt> body = new ArrayList<>();
+
+        String l_body = newLabel();
+        String l_end = newLabel();
+
+        //if size != 0 (means already init)  jump to end
+        body.add(new IRCJump(
+                new IRBinOp(OpType.NEQ,
+                        new IRMem(new IRName(classSize)),
+                        new IRConst(0)),
+                l_end, l_body));
+        body.add(new IRLabel(l_body));
+        try {//has superclasses
+            String superClass = c.getSuperClass().get();
+            String superClassSize = classSizeLoc(superClass);
+            String superClassVt = dispatchVectorLoc(superClass);
+            String superClassInit = "_I_init_" + className(superClass);
+
+            String t = newTemp(); //size = superClassSize + n_fields
+            body.add(new IRMove(
+                            new IRTemp(t),
+                    new IRMem(new IRName(superClassSize)))
+            );
+            body.add(new IRMove(
+                    new IRTemp(t),
+                    new IRBinOp(OpType.ADD,
+                            new IRTemp(t),
+                            new IRConst(n_fields * 8))) //no need for vt ptr because superclass already has
+            );
+            body.add(new IRMove(
+                    new IRMem(new IRName(classSize)),
+                    new IRTemp(t))
+            );
+
+            String t2 = newTemp();
+            body.add(new IRMove(new IRTemp(t2), new IRName(classVt)));
+            String t3 = newTemp();
+            body.add(new IRMove(new IRTemp(t3), new IRName(superClassVt)));
+
+            List<String> dvLayout = dispatchVectorLayouts.get(c.getName());
+            Set<String> defMethods = c.getMethodNames();
+            for (int i = 0; i < dvLayout.size(); i++){
+                String methodName = dvLayout.get(i);
+                //only copy if method is not overridden
+                if (!defMethods.contains(methodName)) {
+                    //[classVT + offset] <- [superVT + offset]
+                    body.add(new IRMove(
+                            new IRMem(
+                                    new IRBinOp(OpType.ADD,
+                                            new IRTemp(t2),
+                                            new IRConst(i * 8))),
+                            new IRMem(
+                                    new IRBinOp(OpType.ADD,
+                                            new IRTemp(t3),
+                                            new IRConst(i * 8)))
+                    ));
+                } else {
+                    //[classVT + offset] <- methodLabel
+                    FuncDefn m = c.getMethodDefn(methodName);
+                    String mLabelName = methodName(m.getName(), c.getName(),
+                            (TypeSymTableFunc) m.getSignature().part2());
+                    body.add(new IRMove(
+                            new IRMem(
+                                    new IRBinOp(OpType.ADD,
+                                            new IRTemp(t2),
+                                            new IRConst(i * 8))),
+                            new IRName(mLabelName)
+                    ));
+                }
+            }
+        } catch (Maybe.NoMaybeValueException e) {//no superclasses
+            body.add(new IRMove(
+                    new IRMem(new IRName(classSize)),
+                    new IRConst(n_fields * 8 + 8))
+            );
+            String t = newTemp();
+            body.add(new IRMove(new IRTemp(t), new IRName(classVt)));
+            for (int i = 0; i<c.getMethodDefns().size(); i++) {
+                FuncDefn m = c.getMethodDefns().get(i);
+                String mLabelName = methodName(m.getName(), c.getName(),
+                        (TypeSymTableFunc) m.getSignature().part2());
+                //[classVT + offset] <- methodLabel
+                body.add(new IRMove(
+                        new IRMem(
+                                new IRBinOp(OpType.ADD,
+                                        new IRTemp(t),
+                                        new IRConst(i * 8))),
+                        new IRName(mLabelName)
+                ));
+            }
+        }
+        body.add(new IRLabel(l_end));
+        body.add(new IRReturn());
+        return new IRFuncDecl(funcName, new IRSeq(body));
     }
 
 }

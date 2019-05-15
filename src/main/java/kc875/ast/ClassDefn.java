@@ -111,4 +111,13 @@ public class ClassDefn extends ClassXi {
     public ClassDecl toDecl() {
         return new ClassDecl(name, superClass, fields, methodDecls, getLocation());
     }
+
+    public FuncDefn getMethodDefn(String name){
+        for (FuncDefn f : methodDefns) {
+            if (f.getName().equals(name)) {
+                return f;
+            }
+        }
+        return null;
+    }
 }
