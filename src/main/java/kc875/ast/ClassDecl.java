@@ -31,9 +31,8 @@ public class ClassDecl extends ClassXi {
         super(name, new ArrayList<>(), methods, location);
     }
 
-    // Preserved fields for toDecl function in ClassDefn (not accessible
-    // outside this package)
-    ClassDecl(String name,
+    // Preserved fields for toDecl function in ClassDefn
+    public ClassDecl(String name,
               Maybe<String> superClass,
               List<StmtDecl> fields,
               List<FuncDecl> methods,
