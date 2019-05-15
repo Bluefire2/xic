@@ -1,11 +1,8 @@
 class A {
-    a: int
     fa(p: int): bool
 }
 
 class B extends A {
-    b: int
-    b_: int
     fb(p: int): int
     fb_(p: bool)
 }

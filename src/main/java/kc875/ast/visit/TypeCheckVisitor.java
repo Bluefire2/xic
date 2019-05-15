@@ -438,7 +438,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         try {
             TypeSymTable t = symTable.lookup(className);
             if (!(t instanceof TypeSymTableClass))
-                // escapeName not in context
+                // className not in context
                 throw new SemanticUnresolvedNameError(
                         className, node.getLocation()
                 );
@@ -983,7 +983,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             } else {
                 // class hierarchy has c because c was declared in an interface
                 // Check that the inheritance for c and the interface
-                // declaration are the same, and that all fields and methods
+                // declaration are the same, and that all methods
                 // are the same. Throw an error if not.
                 if (!Maybe.sameMaybe(
                         classHierarchy.get(cName), c.getSuperClass()
@@ -997,19 +997,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 }
 
                 ClassDecl decl = interfaceClasses.get(cName);
-                Set<String> declFields = decl.getFields().stream()
-                        .flatMap(sd -> sd.varsOf().stream())
-                        .collect(Collectors.toSet());
-                Set<String> cFields = c.getFields().stream()
-                        .flatMap(sd -> sd.varsOf().stream())
-                        .collect(Collectors.toSet());
-                if (!declFields.equals(cFields)) {
-                    throw new SemanticError(
-                            "Different fields in declaration and definition " +
-                                    "of class " + cName,
-                            c.getLocation()
-                    );
-                }
                 // Convert list of methods to a set since ordering doesn't
                 // matter for typechecking
                 // method name -> ([(param, paramtype), ...], output)
@@ -1062,6 +1049,9 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 );
             }
             // Make sure fields and methods aren't duplicated
+            // Checking for fields is redundant for interfaces (ClassDecl) as
+            // interfaces can't have fields, but we avoid refactoring if we
+            // just check on fields for any ClassXi
             checkDuplicateInStmtDecls(c.getFields());
             checkDuplicateInFuncDecls(c.getMethodDecls());
             classNames.add(cName);
@@ -1240,9 +1230,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                     .noneMatch(expImport -> expImport.equals(fileBaseName))) {
                 // None of the explicit imports match the file name, add this
                 // file interface to the top (if it exists)
-                if (Files.exists(Paths.get(
-                        libpath.toString(), fileBaseName + ".ixi"
-                ))) {
+                if (Files.exists(Paths.get(libpath, fileBaseName + ".ixi"))) {
                     fileImports.add(0, new UseInterface(
                             fileBaseName, new XiTokenLocation(0, 0)
                     ));
