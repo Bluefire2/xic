@@ -756,33 +756,32 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         Expr rhs = node.getRhs();
 
         if (decls.size() > 1) {
-            try {
-                // multi-assign with function that returns multiple things
-                ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
-                TypeT output = fnCall.getTypeCheckType();
+            TypeT output;
+            if (rhs instanceof ExprFunctionCall) {
+                output = rhs.getTypeCheckType();
+            } else if (rhs instanceof ExprMethodCall) {
+                output = rhs.getTypeCheckType();
+            } else
+                throw new SemanticError(
+                        "Expected function call", node.getLocation()
+                );
+            // multi-assign with function that returns multiple things
+            if (output instanceof TypeTList) {
+                TypeTList outputList = (TypeTList) output;
+                List<TypeTTau> givenTypes = outputList.getTTauList();
 
-                if (output instanceof TypeTList) {
-                    TypeTList outputList = (TypeTList) output;
-                    List<TypeTTau> givenTypes = outputList.getTTauList();
-
-                    if (givenTypes.size() == decls.size()) {
-                        for (int i = 0; i < givenTypes.size(); i++)
-                            checkDeclaration(node, decls.get(i),
-                                    givenTypes.get(i));
-                    } else {
-                        throw new SemanticError(
-                                "Mismatched number of values",
-                                node.getLocation()
-                        );
-                    }
+                if (givenTypes.size() == decls.size()) {
+                    for (int i = 0; i < givenTypes.size(); i++)
+                        checkDeclaration(node, decls.get(i), givenTypes.get(i));
                 } else {
                     throw new SemanticError(
-                            "Mismatched number of values",
-                            node.getLocation()
+                            "Mismatched number of values", node.getLocation()
                     );
                 }
-            } catch (ClassCastException e) {
-                throw new SemanticError("Expected function call", node.getLocation());
+            } else {
+                throw new SemanticError(
+                        "Mismatched number of values", node.getLocation()
+                );
             }
         } else {
             // handle type compatibility for one decl
