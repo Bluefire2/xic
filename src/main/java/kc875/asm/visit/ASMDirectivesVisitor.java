@@ -89,34 +89,36 @@ public class ASMDirectivesVisitor {
     //generates but does not initialize globals
     private List<ASMInstr> generateGlobalVarDirectives(FileProgram ast) {
         List<ASMInstr> instrs = new ArrayList<>();
-        instrs.add(new ASMInstrDirective("bss"));
-        for (StmtDecl d : ast.getGlobalVars()) {
-            String gname;
-            TypeTTau gtype;
-            if (d instanceof StmtDeclSingle) {
-                gname = ((StmtDeclSingle) d).getName();
-                gtype = ((StmtDeclSingle) d).getDecl().getType();
-                instrs.addAll(generateBss(globalName(gname, gtype), 8));
-            } else if (d instanceof StmtDeclAssign) {
-                List<String> names = ((StmtDeclAssign) d).getNames();
-                for (int i = 0; i < names.size(); i++) {
-                    gname = names.get(i);
-                    TypeT t = ((StmtDeclAssign) d).getDecls().get(i).typeOf();
-                    if (t instanceof TypeTTau) {
-                        gtype = (TypeTTau) t;
+        if (ast.getGlobalVars().size() != 0) {
+            instrs.add(new ASMInstrDirective("bss"));
+            for (StmtDecl d : ast.getGlobalVars()) {
+                String gname;
+                TypeTTau gtype;
+                if (d instanceof StmtDeclSingle) {
+                    gname = ((StmtDeclSingle) d).getName();
+                    gtype = ((StmtDeclSingle) d).getDecl().getType();
+                    instrs.addAll(generateBss(globalName(gname, gtype), 8));
+                } else if (d instanceof StmtDeclAssign) {
+                    List<String> names = ((StmtDeclAssign) d).getNames();
+                    for (int i = 0; i < names.size(); i++) {
+                        gname = names.get(i);
+                        TypeT t = ((StmtDeclAssign) d).getDecls().get(i).typeOf();
+                        if (t instanceof TypeTTau) {
+                            gtype = (TypeTTau) t;
+                            instrs.addAll(generateBss(globalName(gname, gtype),8));
+                        }
+                    }
+                } else if (d instanceof StmtDeclMulti) {
+                    List<String> names = ((StmtDeclMulti) d).varsOf();
+                    for (String name : names) {
+                        gname = name;
+                        gtype = ((StmtDeclMulti) d).getType();
                         instrs.addAll(generateBss(globalName(gname, gtype),8));
                     }
                 }
-            } else if (d instanceof StmtDeclMulti) {
-                List<String> names = ((StmtDeclMulti) d).varsOf();
-                for (String name : names) {
-                    gname = name;
-                    gtype = ((StmtDeclMulti) d).getType();
-                    instrs.addAll(generateBss(globalName(gname, gtype),8));
-                }
             }
+            instrs.add(new ASMInstrDirective("text\n"));
         }
-        instrs.add(new ASMInstrDirective("text"));
         return instrs;
     }
 
@@ -131,15 +133,16 @@ public class ASMDirectivesVisitor {
 
         */
         List<ASMInstr> instrs = new ArrayList<>();
+
         instrs.add(new ASMInstrDirective("section", ".ctors"));
         instrs.add(new ASMInstrDirective("align", "8"));
-        for (ClassDefn c : ast.getClassDefns()) {
-            instrs.add(new ASMInstrDirective("quad", "_I_init_"+className(c.getName())));
+        if (ast.getClassDefns().size() != 0) {
+            for (ClassDefn c : ast.getClassDefns()) {
+                instrs.add(new ASMInstrDirective("quad", "_I_init_" + className(c.getName())));
+            }
         }
         instrs.add(new ASMInstrDirective("quad", "_I_global_init"));
-        instrs.add(new ASMInstrDirective("text"));
-        instrs.add(new ASMInstrComment("\n"));
-
+        instrs.add(new ASMInstrDirective("text\n"));
 
         //class size directives/labels //.bss (zero 8)
         /* Example
@@ -152,12 +155,13 @@ public class ASMDirectivesVisitor {
             .text
 
          */
-        instrs.add(new ASMInstrDirective("bss"));
-        for (ClassDefn c : ast.getClassDefns()) {
-            instrs.addAll(generateBss("_I_size_"+className(c.getName()), 8));
+        if (ast.getClassDefns().size() != 0) {
+            instrs.add(new ASMInstrDirective("bss"));
+            for (ClassDefn c : ast.getClassDefns()) {
+                instrs.addAll(generateBss("_I_size_"+className(c.getName()), 8));
+            }
+            instrs.add(new ASMInstrDirective("text\n"));
         }
-        instrs.add(new ASMInstrDirective("text"));
-        instrs.add(new ASMInstrComment("\n"));
 
         /*
             .bss
@@ -167,13 +171,14 @@ public class ASMDirectivesVisitor {
             .zero 632 //we need the vt size - how?
             .text
          */
-
-        instrs.add(new ASMInstrDirective("bss"));
-        for (ClassDefn c : ast.getClassDefns()) {
-            int dvSize = dispatchVectorLayouts.get(c.getName()).size();
-            instrs.addAll(generateBss("_I_vt_"+className(c.getName()), 8 * dvSize));
+        if (ast.getClassDefns().size() != 0) {
+            instrs.add(new ASMInstrDirective("bss"));
+            for (ClassDefn c : ast.getClassDefns()) {
+                int dvSize = dispatchVectorLayouts.get(c.getName()).size();
+                instrs.addAll(generateBss("_I_vt_"+className(c.getName()), 8 * dvSize));
+            }
+            instrs.add(new ASMInstrDirective("text"));
         }
-        instrs.add(new ASMInstrDirective("text"));
         return instrs;
     }
 
