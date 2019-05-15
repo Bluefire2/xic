@@ -351,6 +351,26 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(ExprTernary node) {
+        Expr e1 = node.getCond();
+        Expr e2 = node.getTrueCase();
+        Expr e3 = node.getFalseCase();
+        if (! (e1.getTypeCheckType() instanceof TypeTTauBool)){
+            throw new SemanticError("Guard of ternary must be a " +
+                    "bool", node.getLocation());
+        }
+        if (!e2.getTypeCheckType().equals(e3.getTypeCheckType())) {
+            throw new SemanticError(
+                    String.format("Branches of ternary are not same type: %s, %s",
+                            e2.getTypeCheckType(),
+                            e3.getTypeCheckType()),
+                    node.getLocation());
+        }
+        node.setTypeCheckType(e2.getTypeCheckType());
+        return null;
+    }
+
+    @Override
     public Void visit(ExprIndex node) {
         Expr array = node.getArray();
         Expr idx = node.getIndex();
