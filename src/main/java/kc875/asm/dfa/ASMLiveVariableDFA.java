@@ -1,10 +1,7 @@
 package kc875.asm.dfa;
 
 import com.google.common.collect.Sets;
-import kc875.asm.ASMExprRT;
-import kc875.asm.ASMInstr;
-import kc875.asm.ASMInstr_1Arg;
-import kc875.asm.ASMInstr_2Arg;
+import kc875.asm.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 
@@ -38,7 +35,12 @@ public class ASMLiveVariableDFA extends DFAFramework<Set<ASMExprRT>,
         Set<ASMExprRT> s = instr.implicitUsedRegs().stream()
                 .map(r -> (ASMExprRT) r).collect(Collectors.toSet());
 
-        if (instr instanceof ASMInstr_1Arg) {
+        if (instr instanceof ASMInstr_1ArgCall) {
+            if (instr.destIsDefButNoUse())
+                return s;
+            s.addAll(((ASMInstr_1ArgCall) instr).getArg().vars());
+            return s;
+        } else if (instr instanceof ASMInstr_1Arg) {
             // If the arg gets changed (arg is a reg/temp, the opCode modifies),
             // then the use set is empty. Otherwise, get vars()
             if (instr.destIsDefButNoUse())
@@ -65,7 +67,10 @@ public class ASMLiveVariableDFA extends DFAFramework<Set<ASMExprRT>,
                 .map(r -> (ASMExprRT) r).collect(Collectors.toSet());
 
         if (instr.destHasNewDef()) {
-            if (instr instanceof ASMInstr_1Arg) {
+            if (instr instanceof ASMInstr_1ArgCall) {
+                s.addAll(((ASMInstr_1ArgCall) instr).getArg().vars());
+                return s;
+            } else if (instr instanceof ASMInstr_1Arg) {
                 s.addAll(((ASMInstr_1Arg) instr).getArg().vars());
                 return s;
             } else if (instr instanceof ASMInstr_2Arg) {

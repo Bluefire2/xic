@@ -31,12 +31,12 @@ public class ClassDecl extends ClassXi {
         super(name, new ArrayList<>(), methods, location);
     }
 
-    //preserved fields for toDecl function in ClassDefn
+    // Preserved fields for toDecl function in ClassDefn
     public ClassDecl(String name,
-                     Maybe<String> superClass,
-                     List<StmtDecl> fields,
-                     List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location) {
+              Maybe<String> superClass,
+              List<StmtDecl> fields,
+              List<FuncDecl> methods,
+              ComplexSymbolFactory.Location location) {
         super(name, superClass, fields, methods, location);
     }
 

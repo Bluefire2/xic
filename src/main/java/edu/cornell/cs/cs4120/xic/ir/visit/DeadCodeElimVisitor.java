@@ -62,6 +62,9 @@ public class DeadCodeElimVisitor {
             optimStmts.add(s);
         }
 
-        return new IRFuncDecl(func.name(), new IRSeq(optimStmts));
+        return new IRFuncDecl(
+                func.name(), func.getNumParams(), func.getNumRets(),
+                new IRSeq(optimStmts)
+        );
     }
 }

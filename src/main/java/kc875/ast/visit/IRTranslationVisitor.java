@@ -28,15 +28,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // a class cannot possibly have this name:
     private static String CLASS_SUPER_PARENT = "_";
 
-    // map from class names to their ordered fields
+    // map from class names to their ordered fields (only those declared in that class)
     private Map<String, List<String>> classFields;
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
     // a top-down tree representing the class hierarchy
     @SuppressWarnings ("UnstableApiUsage")
     private Traverser<String> classTree;
-    // map from class names to the *new* methods defined by that class
-    // i.e. inherited methods are not included, even if they are overridden!
     private Map<String, List<String>> dispatchVectorLayouts;
 
     private String newLabel() {
@@ -274,7 +272,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRSeq(
                 new IRCJump(test, lt, lf),
                 new IRLabel(lt),
-                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"))),
+                new IRExp(new IRCall(new IRName("_xi_out_of_bounds"), 0)),
                 new IRLabel(lf)
         );
     }
@@ -286,7 +284,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
      * @return A function call expression.
      */
     private IRCall allocateMem(IRExpr size) {
-        return new IRCall(new IRName("_xi_alloc"), size);
+        return new IRCall(new IRName("_xi_alloc"), 1, size);
     }
 
     /**
@@ -671,9 +669,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRConst(node.getValue() ? 1 : 0);
     }
 
+    private int getNumRets(TypeT output) {
+        if (output instanceof TypeTUnit)
+            return 0;
+        else if (output instanceof TypeTTau)
+            return 1;
+        else if (output instanceof TypeTList)
+            return ((TypeTList) output).getLength();
+        else
+            throw new IllegalStateException("TypeT not a unit/tau/tau list");
+    }
+
     @Override
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
+        int numRets = getNumRets(node.getSignature().getOutput());
         ArrayList<IRExpr> argsIR = new ArrayList<>();
 
         for (Expr arg : node.getArgs()) {
@@ -681,7 +691,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             argsIR.add((IRExpr) arg.accept(this));
         }
         return new IRESeq(
-                new IRExp(new IRCall(new IRName(funcName), argsIR)),
+                new IRExp(new IRCall(new IRName(funcName), numRets, argsIR)),
                 new IRTemp(returnValueName(0)));
     }
 
@@ -748,13 +758,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRExpr visit(ExprNew node) {
         // the memory layout is found in classFields
         String className = node.getName();
-        List<String> orderedFields = classFields.get(className); // must exist due to typechecking
+        // must exist due to typechecking
 
         String objectBaseAddress = newTemp();
-        int bytesForObject = 8 * (1 + orderedFields.size()); // extra cell for dispatch vector
         IRMove baseAllocAddress = new IRMove(
                 new IRTemp(objectBaseAddress),
-                allocateMem(new IRConst(bytesForObject))
+                allocateMem(new IRMem(new IRName(classSizeLoc(className))))
         );
 
         // store a pointer to the dispatch vector in our new temp
@@ -767,19 +776,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRSeq(baseAllocAddress, storeDV),
                 new IRTemp(objectBaseAddress)
         );
-//        String name = node.getName();
-//        name = escapeName(name);
-//        String size = "_I_size_"+name;
-//        String vt = "_I_vt_"+name;
-//        List<IRStmt> seq = new ArrayList<>();
-//        String t = newTemp();//size of class
-//        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
-//        String t2 = newTemp();//pointer to new obj
-//        //allocate memory for size of class
-//        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
-//        //move vt pointer to first location in obj
-//        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
-//        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
     @Override
@@ -958,7 +954,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         for (Expr arg : node.getArgs()) {
             argsIR.add((IRExpr) arg.accept(this));
         }
-        return new IRSeq(new IRExp(new IRCall(new IRName(funcName), argsIR)));
+        // procedure returns nothing
+        return new IRSeq(new IRExp(new IRCall(new IRName(funcName), 0, argsIR)));
     }
 
     @Override
@@ -1041,7 +1038,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
                 new IRMem(new IRTemp(t)),//DV + offset
                 new IRConst(classMethodOffset(className, call.getName())));
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        // stmt method (procedure) returns nothing
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), 0, argsIR)));
         return new IRSeq(seq);
     }
 
@@ -1057,7 +1055,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
 
         //global init
-        program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+        if (node.getGlobalVars().size() != 0) {
+            program.appendFunc(generateInitGlobals(node.getGlobalVars()));
+        }
 
         for (ClassDefn c : node.getClassDefns()) {
             inClass = true;
@@ -1107,7 +1107,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
 
-        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
+        return new IRFuncDecl(
+                funcName, params.size(), getNumRets(node.getOutput()),
+                new IRSeq(new IRSeq(moveArgs), bodyIR)
+        );
     }
 
     public IRFuncDecl visitMethod(FuncDefn node) {
@@ -1117,11 +1120,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         List<Pair<String, TypeTTau>> params = node.getParams();
         List<IRStmt> moveArgs = new ArrayList<>();
         //_ARG0 is "this"
-        for (int i = 1; i < params.size() + 1; ++i) {
+        for (int i = 0; i < params.size(); ++i) {
             // Move argi into params
             moveArgs.add(new IRMove(
                     new IRTemp(params.get(i).part1()),
-                    new IRTemp(funcArgName(i))
+                    new IRTemp(funcArgName(i + 1))
             ));
         }
 
@@ -1133,7 +1136,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
 
-        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
+        return new IRFuncDecl(
+                funcName, params.size(), getNumRets(node.getOutput()),
+                new IRSeq(new IRSeq(moveArgs), bodyIR)
+        );
     }
 
     @Override
@@ -1159,7 +1165,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRSeq visit(StmtDeclMulti node) {
         List<IRStmt> s = new ArrayList<>();
-        for (String v:node.getVars()) {
+        for (String v:node.varsOf()) {
             s.add(initDecl(v, node.getType()));
         }
         return new IRSeq(s);
@@ -1175,10 +1181,16 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRNode visit(ExprFieldAccess node) {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
-        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        String classSize = classSizeLoc(className);
         String fieldName = node.getField().getName();
-
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+        while (!classFields.get(className).contains(fieldName)){
+            try {
+                className = classHierarchy.get(className).get();
+            } catch (Maybe.NoMaybeValueException e) {
+                break;
+            }
+        }
+        String classSize = classSizeLoc(className);
         String t = newTemp();
         IRExpr objExpr = (IRExpr) obj.accept(this);
         seq.add(new IRMove(new IRTemp(t), objExpr));
@@ -1224,6 +1236,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
 
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+        int numRets = getNumRets(call.getSignature().getOutput());
 
         // t is the obj pointer
         // [t] is the vt pointer
@@ -1231,7 +1244,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         IRExpr methodAddr = new IRBinOp(OpType.ADD,
                 new IRMem(new IRTemp(t)),
                 new IRConst(classMethodOffset(className, call.getName()))); //offset for method
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), argsIR)));
+        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), numRets, argsIR)));
         return new IRESeq(
                 new IRSeq(seq),
                 new IRTemp(returnValueName(0)));
@@ -1270,7 +1283,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     }
                 }
             } else if (d instanceof StmtDeclMulti) {
-                List<String> names = ((StmtDeclMulti) d).getVars();
+                List<String> names = ((StmtDeclMulti) d).varsOf();
                 for (String name : names) {
                     gname = name;
                     gtype = ((StmtDeclMulti) d).getType();
@@ -1282,7 +1295,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             }
         }
         body.add(new IRReturn());
-        return new IRFuncDecl(funcName, new IRSeq(body));
+        return new IRFuncDecl(funcName, 0, 0, new IRSeq(body));
     }
 
 
@@ -1391,7 +1404,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
         body.add(new IRLabel(l_end));
         body.add(new IRReturn());
-        return new IRFuncDecl(funcName, new IRSeq(body));
+        return new IRFuncDecl(funcName, 0, 0, new IRSeq(body));
     }
 
 }

@@ -89,7 +89,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
                 if (smove.source() instanceof IRCall) {
                     // mov e, f(e) ==> kill mems that f can modify
                     killSet.addAll(exprsCanBeModified(
-                            ((IRName) ((IRCall) smove.source()).target()).name(),
+                            (IRCall) smove.source(),
                             subexpressions
                     ));
                 }
@@ -97,7 +97,7 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
                 IRCJump jmp = (IRCJump) s;
                 if (jmp.cond() instanceof IRCall) {
                     killSet.addAll(exprsCanBeModified(
-                            ((IRName) ((IRCall) jmp.cond()).target()).name(),
+                            (IRCall) jmp.cond(),
                             subexpressions
                     ));
                 }
@@ -236,12 +236,12 @@ public class AvailableExprsDFA extends DFAFramework<SetWithInf<IRExpr>, IRStmt> 
      * Returns the set of expressions that can be modified by a function call
      * to f.
      *
-     * @param fname An IR function declaration
+     * @param f     An IR function declaration
      * @param exprs expressions to be searched
      * @return The subset of exprlist containing any expression [e] that could
      * be modified by a call to f.
      */
-    public static Set<IRExpr> exprsCanBeModified(String fname,
+    public static Set<IRExpr> exprsCanBeModified(IRCall f,
                                                  Set<IRExpr> exprs) {
         ListChildrenVisitor lcv = new ListChildrenVisitor();
         Set<IRExpr> exprSet = new HashSet<>();

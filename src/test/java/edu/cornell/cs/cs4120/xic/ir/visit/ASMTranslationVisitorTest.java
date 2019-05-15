@@ -567,7 +567,7 @@ public class ASMTranslationVisitorTest {
                         new IRBinOp(OpType.ADD,
                                 new IRTemp("x"),
                                 new IRTemp("y")))));
-        IRCall fcall = new IRCall(new IRName("_If_iii"),
+        IRCall fcall = new IRCall(new IRName("_If_iii"), 1,
                 Arrays.asList(new IRConst(4), new IRConst(5)));
         List<ASMInstr> expected = new ArrayList<>(Arrays.asList(
                 new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t0"), new ASMExprConst(4)),

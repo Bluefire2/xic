@@ -339,7 +339,7 @@ public class LoweringVisitor extends IRVisitor {
         List<IRExpr> temps = tis.stream().map(IRTemp::new).collect(Collectors.toList());
         IRStmt moveCall = new IRMove(
                 new IRTemp(t),
-                new IRCall(irnode.target(), temps)
+                new IRCall(irnode.target(), irnode.getNumRets(), temps)
         );
 
         stmts.add(moveCall);
@@ -401,7 +401,10 @@ public class LoweringVisitor extends IRVisitor {
 
     public IRNode lower(IRFuncDecl irnode) {
         IRSeq body = (IRSeq) irnode.body();
-        return new IRFuncDecl(irnode.name(), reorderBasicBlocks(body));
+        return new IRFuncDecl(
+                irnode.name(), irnode.getNumParams(), irnode.getNumRets(),
+                reorderBasicBlocks(body)
+        );
     }
 
     public IRNode lower(IRJump irnode) {

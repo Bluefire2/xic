@@ -1,9 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+
 import java.util.List;
 import java.util.Map;
-
-import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 public interface IRNodeFactory {
 
@@ -12,16 +12,18 @@ public interface IRNodeFactory {
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    IRCall IRCall(IRExpr target, IRExpr... args);
+    IRCall IRCall(IRExpr target, int numRets, IRExpr... args);
 
     /**
      *
      * @param target address of the code for this function call
+     * @param numRets number of return values for this function call
      * @param args arguments of this function call
      */
-    IRCall IRCall(IRExpr target, List<IRExpr> args);
+    IRCall IRCall(IRExpr target, int numRets, List<IRExpr> args);
 
     /**
      * Construct a CJUMP instruction with fall-through on false.
@@ -64,7 +66,7 @@ public interface IRNodeFactory {
      */
     IRExp IRExp(IRExpr expr);
 
-    IRFuncDecl IRFuncDecl(String name, IRStmt stmt);
+    IRFuncDecl IRFuncDecl(String name, int numParams, int numRets, IRStmt stmt);
 
     /**
      *

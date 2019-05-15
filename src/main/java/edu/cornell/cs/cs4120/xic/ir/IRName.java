@@ -30,8 +30,7 @@ public class IRName extends IRExpr_c {
 
     @Override
     public List<ASMInstr> accept(ASMTranslationVisitor v, ASMExprRT t) {
-        throw new IllegalAccessError("IRName should not be visited by ASM " +
-                "Translator");
+        return v.visit(this, t);
     }
 
     @Override

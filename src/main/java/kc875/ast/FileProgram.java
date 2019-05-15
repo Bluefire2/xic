@@ -146,7 +146,7 @@ public class FileProgram extends FileSource {
                 List<String> dnames = ((StmtDeclAssign) d).getNames();
                 names.addAll(dnames);
             } else if (d instanceof StmtDeclMulti) {
-                List<String> dnames = ((StmtDeclMulti) d).getVars();
+                List<String> dnames = ((StmtDeclMulti) d).varsOf();
                 names.addAll(dnames);
             }
         }

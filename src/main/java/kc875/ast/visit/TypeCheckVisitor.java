@@ -51,22 +51,24 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         symTable.enterScope();
     }
 
-    public SymbolTable<TypeSymTable> getSymTable() {
-        return symTable;
-    }
-
     public Map<String, ClassXi> getClassesMapOrdered() {
         Map<String, ClassXi> classes = new HashMap<>();
         for (Map.Entry<String, ClassXi> e : classNameToClassMap.entrySet()) {
-            // If this class was defined in an interface, use that ordering
             String c = e.getKey();
-            classes.put(
-                    c, interfaceClasses.containsKey(c)
-                            // interface declares, get that declaration
-                            ? interfaceClasses.get(c)
-                            // no interface declares, get from the class map
-                            : classNameToClassMap.get(c)
-            );
+            ClassXi clazz = e.getValue();
+            List<FuncDecl> methods = interfaceClasses.containsKey(c)
+                    // If this class was defined in an interface, use that
+                    // ordering for methods
+                    ? interfaceClasses.get(c).getMethodDecls()
+                    // class not defined in any interfaces, use module's ordering
+                    : clazz.getMethodDecls();
+            classes.put(c, new ClassDecl(
+                    clazz.getName(),
+                    clazz.getSuperClass(),
+                    clazz.getFields(),
+                    methods,
+                    clazz.getLocation()
+            ));
         }
         return classes;
     }
@@ -438,7 +440,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         try {
             TypeSymTable t = symTable.lookup(className);
             if (!(t instanceof TypeSymTableClass))
-                // escapeName not in context
+                // className not in context
                 throw new SemanticUnresolvedNameError(
                         className, node.getLocation()
                 );
@@ -733,7 +735,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(StmtDeclMulti node) {
-        List<String> vars = node.getVars();
+        List<String> vars = node.varsOf();
         TypeTTau type = node.getType();
 
         for (String var : vars) {
