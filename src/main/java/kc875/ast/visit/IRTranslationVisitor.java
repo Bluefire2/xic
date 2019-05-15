@@ -90,6 +90,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     this.classTree.depthFirstPreOrder(CLASS_SUPER_PARENT);
 
             this.dispatchVectorLayouts = new HashMap<>();
+            HashMap<String, Map<String, String>> classMethodDefinitions = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
                 if (className.equals(CLASS_SUPER_PARENT)) {
@@ -126,7 +127,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 }
 
                 this.dispatchVectorLayouts.put(className, dvLayout);
-                this.classMethodDefinitions.put(className, methodMap);
+                classMethodDefinitions.put(className, methodMap);
             }
         }
     }
