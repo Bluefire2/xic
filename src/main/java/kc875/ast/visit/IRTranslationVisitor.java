@@ -7,12 +7,10 @@ import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 import kc875.ast.*;
 import kc875.symboltable.TypeSymTableFunc;
 import kc875.utils.Maybe;
-import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 import java.math.BigInteger;
 import java.util.*;
-
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -669,10 +667,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRConst(node.getValue() ? 1 : 0);
     }
 
+    private int getNumRets(TypeT output) {
+        if (output instanceof TypeTUnit)
+            return 0;
+        else if (output instanceof TypeTTau)
+            return 1;
+        else if (output instanceof TypeTList)
+            return ((TypeTList) output).getLength();
+        else
+            throw new IllegalStateException("TypeT not a unit/tau/tau list");
+    }
+
     @Override
     public IRExpr visit(ExprFunctionCall node) {
         String funcName = functionName(node.getName(), node.getSignature());
-        int numRets = XiUtils.getNumReturns(funcName);
+        int numRets = getNumRets(node.getSignature().getOutput());
         ArrayList<IRExpr> argsIR = new ArrayList<>();
 
         for (Expr arg : node.getArgs()) {
@@ -1217,9 +1226,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
 
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        int numRets = XiUtils.getNumReturns(
-                methodName(call.getName(), className, call.getSignature())
-        );
+        int numRets = getNumRets(call.getSignature().getOutput());
 
         // t is the obj pointer
         // [t] is the vt pointer

@@ -5,6 +5,7 @@ import kc875.asm.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 /**
@@ -70,7 +71,7 @@ public class ASMAvailableCopiesDFA extends
     ) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstrLabel
-                && ((ASMInstrLabel) instr).isFunction()) {
+                && XiUtils.isFunction(((ASMInstrLabel) instr).getName())) {
             // this label is for a function ==> must be the top-level
             // function's label ==> start node; return empty set
             return new SetWithInf<>();
