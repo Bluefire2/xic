@@ -7,30 +7,37 @@ import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
 import kc875.utils.Maybe;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ClassDecl extends ClassXi {
+    public ClassDecl(String name,
+                     Maybe<String> superClass,
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, new ArrayList<>(), methods, location);
+    }
+
+    public ClassDecl(String name,
+                     String superClass,
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location) {
+        super(name, superClass, new ArrayList<>(), methods, location);
+    }
+
+    public ClassDecl(String name,
+                     List<FuncDecl> methods,
+                     ComplexSymbolFactory.Location location) {
+        super(name, new ArrayList<>(), methods, location);
+    }
+
+    //preserved fields for toDecl function in ClassDefn
     public ClassDecl(String name,
                      Maybe<String> superClass,
                      List<StmtDecl> fields,
                      List<FuncDecl> methods,
                      ComplexSymbolFactory.Location location) {
         super(name, superClass, fields, methods, location);
-    }
-
-    public ClassDecl(String name,
-                     String superClass,
-                     List<StmtDecl> fields,
-                     List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location) {
-        super(name, superClass, fields, methods, location);
-    }
-
-    public ClassDecl(String name,
-                     List<StmtDecl> fields,
-                     List<FuncDecl> methods,
-                     ComplexSymbolFactory.Location location) {
-        super(name, fields, methods, location);
     }
 
     @Override

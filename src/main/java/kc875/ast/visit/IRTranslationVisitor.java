@@ -146,11 +146,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     private String dispatchVectorLoc(String className) {
-        return "_I_vt_"+className(className);
+        return "_I_vt_"+ escapeName(className);
     }
 
     private String classSizeLoc(String className) {
-        return "_I_size_"+className(className);
+        return "_I_size_"+ escapeName(className);
     }
 
     public String globalName(String name, TypeTTau signature) {
@@ -205,7 +205,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return "_I" + newName + "_" + returnType + inputType;
     }
 
-    public String className(String name) {
+    public String escapeName(String name) {
         return name.replaceAll("_", "__");
     }
 
@@ -687,7 +687,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRExpr visit(ExprId node) {
         if (global_names.contains(node.getName())) {
-            String name = "_I_g_"+className(node.getName())+"_"+typeName(node.getTypeCheckType());
+            String name = "_I_g_"+ escapeName(node.getName())+"_"+typeName(node.getTypeCheckType());
             return new IRMem(new IRName(name));
         }
         return new IRTemp(node.getName());
@@ -760,7 +760,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         IRMove storeDV = new IRMove(
                 new IRMem(new IRTemp(objectBaseAddress)),
                 new IRName(dispatchVectorLoc(className))
-                // TODO make sure that we allocate and populate DVs properly
         );
 
         return new IRESeq(
@@ -768,7 +767,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRTemp(objectBaseAddress)
         );
 //        String name = node.getName();
-//        name = className(name);
+//        name = escapeName(name);
 //        String size = "_I_size_"+name;
 //        String vt = "_I_vt_"+name;
 //        List<IRStmt> seq = new ArrayList<>();
@@ -1289,10 +1288,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     //generate _I_init_someClass function
     //initialize size and VT (needs method/field layouts)
     private IRFuncDecl generateInitClass(ClassDefn c) {
-        String funcName = "_I_init_" + className(c.getName());
+        String funcName = "_I_init_" + escapeName(c.getName());
         String classSize = classSizeLoc(c.getName());
         String classVt = dispatchVectorLoc(c.getName());
-        int n_fields = c.getFieldNames().size();
+        int n_fields =  c.getFields().stream()
+                .flatMap(sd -> sd.varsOf().stream())
+                .collect(Collectors.toSet()).size();
         List<IRStmt> body = new ArrayList<>();
 
         String l_body = newLabel();
@@ -1309,7 +1310,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             String superClass = c.getSuperClass().get();
             String superClassSize = classSizeLoc(superClass);
             String superClassVt = dispatchVectorLoc(superClass);
-            String superClassInit = "_I_init_" + className(superClass);
+            String superClassInit = "_I_init_" + escapeName(superClass);
 
             String t = newTemp(); //size = superClassSize + n_fields
             body.add(new IRMove(
@@ -1333,7 +1334,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             body.add(new IRMove(new IRTemp(t3), new IRName(superClassVt)));
 
             List<String> dvLayout = dispatchVectorLayouts.get(c.getName());
-            Set<String> defMethods = c.getMethodNames();
+            Set<String> defMethods = c.getMethodDefns().stream()
+                    .map(FuncDefn::getName)
+                    .collect(Collectors.toSet());
+
             for (int i = 0; i < dvLayout.size(); i++){
                 String methodName = dvLayout.get(i);
                 //only copy if method is not overridden
