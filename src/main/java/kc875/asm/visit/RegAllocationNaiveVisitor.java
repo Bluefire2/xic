@@ -612,26 +612,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             //which means RHS cannot be turned into a mem, thus we need extra instruction
             if (r instanceof ASMExprTemp) {
                 ASMExpr srcMem = getMemForTemp(((ASMExprTemp) r).getName(), instrs);
-                usedRegs.addAll(getRegsInExpr(srcMem));
-                List<String> availRegs = getAvailRegs(usedRegs);
-                if (availRegs.size() == 0){
-                    throw new InternalCompilerError("Allocating regs naively: not " +
-                            "enough regs for RHS of 2 argument expr");
-                }
-                src = new ASMExprReg(availRegs.get(0));
-                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
-                usedRegs.add(availRegs.get(0));
+                src = getAsmExprFromMemRHS(instrs, usedRegs, srcMem);
             } else if (r instanceof ASMExprMem) {
                 ASMExpr srcMem = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
-                usedRegs.addAll(getRegsInExpr(srcMem));
-                List<String> availRegs = getAvailRegs(usedRegs);
-                if (availRegs.size() == 0){
-                    throw new InternalCompilerError("Allocating regs naively: not " +
-                            "enough regs for RHS of 2 argument expr");
-                }
-                src = new ASMExprReg(availRegs.get(0));
-                instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
-                usedRegs.add(availRegs.get(0));
+                src = getAsmExprFromMemRHS(instrs, usedRegs, srcMem);
             } else if (r instanceof ASMExprConst) {
                 //if imm is > 64 bits, move to a register
                 src = getAsmExprFromConst(r, instrs, usedRegs);
@@ -669,6 +653,20 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             addASMComment(instrs, i);
         }
         return instrs;
+    }
+
+    private ASMExpr getAsmExprFromMemRHS(List<ASMInstr> instrs, List<String> usedRegs, ASMExpr srcMem) {
+        ASMExpr src;
+        usedRegs.addAll(getRegsInExpr(srcMem));
+        List<String> availRegs = getAvailRegs(usedRegs);
+        if (availRegs.size() == 0) {
+            throw new InternalCompilerError("Allocating regs naively: not " +
+                    "enough regs for RHS of 2 argument expr");
+        }
+        src = new ASMExprReg(availRegs.get(0));
+        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, src, srcMem));
+        usedRegs.add(availRegs.get(0));
+        return src;
     }
 
     private void addASMComment(List<ASMInstr> instrs, ASMInstr i) {
