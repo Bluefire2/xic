@@ -11,6 +11,8 @@ import polyglot.util.Pair;
 
 import java.math.BigInteger;
 import java.util.*;
+
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
@@ -115,7 +117,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             parentMaybe.thenDo(graph::addNode);
             graph.putEdge(
                     child,
-                    parentMaybe.to(parent -> parent).otherwise(superParent)
+                    parentMaybe.to(Function.identity()).otherwise(superParent)
             );
         }
 
@@ -1246,6 +1248,30 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         return new IRESeq(
                 new IRSeq(seq),
                 new IRTemp(returnValueName(0)));
+    }
+
+    @Override
+    public IRNode visit(ExprTernary node) {
+        String t = newTemp();
+        IRStmt stmtT = new IRMove(
+                new IRTemp(t),
+                (IRExpr) node.getTrueCase().accept(this));
+        IRStmt stmtF = new IRMove(
+                new IRTemp(t),
+                (IRExpr) node.getFalseCase().accept(this));
+        String lt = newLabel();
+        String lf = newLabel();
+        String lfin = newLabel();
+        IRStmt condition = conditionalTranslate(node.getCond(), lt, lf);
+        IRJump jmp = new IRJump(new IRName(lfin));
+        return new IRESeq(new IRSeq(condition,
+                new IRLabel(lt),
+                stmtT,
+                jmp,
+                new IRLabel(lf),
+                stmtF,
+                new IRLabel(lfin)
+        ), new IRTemp(t));
     }
 
     //generate _I_global_init function

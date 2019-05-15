@@ -124,6 +124,7 @@ INTEGER = 0 | [1-9][0-9]*
     "&"     { return symbol(yytext(), sym.AND, yyline, yycolumn); }
     "|"     { return symbol(yytext(), sym.OR, yyline, yycolumn); }
     "."     { return symbol(yytext(), sym.DOT, yyline, yycolumn); }
+    "?"     { return symbol(yytext(), sym.QUESTION, yyline, yycolumn); }
 
     /* separators */
     ":"  { return symbol(yytext(), sym.COLON, yyline, yycolumn); }

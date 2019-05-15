@@ -566,21 +566,10 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             instrs.add(i);
         }
         if (mode == NaiveSpillMode.Restore) {
-            Set<String> saveRegs = new HashSet<>();
-            for (ASMInstr instr : instrs) {
-                saveRegs.addAll(getRegsInInstr(instr));
-            }
-            saveRegs.removeAll(getRegsInInstr(i));
-            //saveRegs is the set of registers we need to save/restore
-            for (String reg : saveRegs) {
-                //add(0) means the pushes and pops will be in reversed order from each other
-                instrs.add(0, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(reg)));
-                instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(reg)));
-            }
+            restoreSavedRegs(instrs, getRegsInInstr(i));
         }
         if (addComments) {
-            instrs.add(0, new ASMInstrComment("                           "
-                    +i.toString()));
+            addASMComment(instrs, i);
         }
         return instrs;
     }
@@ -614,19 +603,7 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 src = convertTempsToRegsInMem((ASMExprMem) r, instrs, usedRegs);
             } else if (r instanceof ASMExprConst) {
                 //if imm is > 64 bits, move to a register
-                long v = ((ASMExprConst) r).getVal();
-                if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
-                    List<String> availRegs = getAvailRegs(usedRegs);
-                    if (availRegs.size() == 0){
-                        throw new InternalCompilerError("Allocating regs naively: not " +
-                                "enough regs for RHS of 2 argument expr");
-                    }
-                    src = new ASMExprReg(availRegs.get(0));
-                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
-                    usedRegs.add(availRegs.get(0));
-                } else {
-                    src = r;
-                }
+                src = getAsmExprFromConst(r, instrs, usedRegs);
             } else {
                 src = r;
             }
@@ -657,27 +634,14 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
                 usedRegs.add(availRegs.get(0));
             } else if (r instanceof ASMExprConst) {
                 //if imm is > 64 bits, move to a register
-                long v = ((ASMExprConst) r).getVal();
-                if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
-                    List<String> availRegs = getAvailRegs(usedRegs);
-                    if (availRegs.size() == 0){
-                        throw new InternalCompilerError("Allocating regs naively: not " +
-                                "enough regs for RHS of 2 argument expr");
-                    }
-                    src = new ASMExprReg(availRegs.get(0));
-                    instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
-                    usedRegs.add(availRegs.get(0));
-                } else {
-                    src = r;
-                }
-
+                src = getAsmExprFromConst(r, instrs, usedRegs);
             } else {
                 src = r;
             }
         }
-        if (i.getOpCode() == ASMOpCode.MOVZX){
+        if (i.getOpCode() == ASMOpCode.MOVZX) {
             List<String> availRegs = getAvailRegs(usedRegs);
-            if (availRegs.size() == 0){
+            if (availRegs.size() == 0) {
                 throw new InternalCompilerError("Allocating regs naively: not " +
                         "enough regs for RHS of 2 argument expr");
             }
@@ -699,23 +663,48 @@ public class RegAllocationNaiveVisitor extends RegAllocationVisitor {
             ));
         }
         if (mode == NaiveSpillMode.Restore) {
-            Set<String> saveRegs = new HashSet<>();
-            for (ASMInstr instr : instrs) {
-                saveRegs.addAll(getRegsInInstr(instr));
-            }
-            saveRegs.removeAll(getRegsInInstr(i));
-            //saveRegs is the set of registers we need to save/restore
-            for (String reg : saveRegs) {
-                //add(0) means the pushes and pops will be in reversed order from each other
-                instrs.add(0, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(reg)));
-                instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(reg)));
-            }
+            restoreSavedRegs(instrs, getRegsInInstr(i));
         }
         if (addComments) {
-            instrs.add(0, new ASMInstrComment("                           "
-                    +i.toString()));
+            addASMComment(instrs, i);
         }
         return instrs;
+    }
+
+    private void addASMComment(List<ASMInstr> instrs, ASMInstr i) {
+        instrs.add(0, new ASMInstrComment("                           " + i.toString()));
+    }
+
+    private void restoreSavedRegs(List<ASMInstr> instrs, List<String> regsInInstr) {
+        Set<String> saveRegs = new HashSet<>();
+        for (ASMInstr instr : instrs) {
+            saveRegs.addAll(getRegsInInstr(instr));
+        }
+        saveRegs.removeAll(regsInInstr);
+        //saveRegs is the set of registers we need to save/restore
+        for (String reg : saveRegs) {
+            //add(0) means the pushes and pops will be in reversed order from each other
+            instrs.add(0, new ASMInstr_1Arg(ASMOpCode.PUSH, new ASMExprReg(reg)));
+            instrs.add(new ASMInstr_1Arg(ASMOpCode.POP, new ASMExprReg(reg)));
+        }
+    }
+
+    private ASMExpr getAsmExprFromConst(ASMExpr r, List<ASMInstr> instrs, List<String> usedRegs) {
+        ASMExpr src;
+        long v = ((ASMExprConst) r).getVal();
+        if (v > Integer.MAX_VALUE || v < Integer.MIN_VALUE) {
+            List<String> availRegs = getAvailRegs(usedRegs);
+            if (availRegs.size() == 0) {
+                throw new InternalCompilerError("Allocating regs naively: not " +
+                        "enough regs for RHS of 2 argument expr");
+            }
+            src = new ASMExprReg(availRegs.get(0));
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOVABS, src, r));
+            usedRegs.add(availRegs.get(0));
+        } else {
+            src = r;
+        }
+        return src;
     }
 
 }

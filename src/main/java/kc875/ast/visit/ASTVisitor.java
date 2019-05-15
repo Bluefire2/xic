@@ -17,6 +17,7 @@ interface ASTVisitor<T> {
     T visit(ExprThis node);
     T visit(ExprFieldAccess node);
     T visit(ExprMethodCall node);
+    T visit(ExprTernary node);
 
     T visit(AssignableIndex node);
     T visit(AssignableId node);
