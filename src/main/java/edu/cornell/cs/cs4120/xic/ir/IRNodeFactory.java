@@ -1,9 +1,9 @@
 package edu.cornell.cs.cs4120.xic.ir;
 
+import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+
 import java.util.List;
 import java.util.Map;
-
-import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
 
 public interface IRNodeFactory {
 
@@ -66,7 +66,7 @@ public interface IRNodeFactory {
      */
     IRExp IRExp(IRExpr expr);
 
-    IRFuncDecl IRFuncDecl(String name, IRStmt stmt);
+    IRFuncDecl IRFuncDecl(String name, int numParams, int numRets, IRStmt stmt);
 
     /**
      *

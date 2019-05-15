@@ -401,7 +401,10 @@ public class LoweringVisitor extends IRVisitor {
 
     public IRNode lower(IRFuncDecl irnode) {
         IRSeq body = (IRSeq) irnode.body();
-        return new IRFuncDecl(irnode.name(), reorderBasicBlocks(body));
+        return new IRFuncDecl(
+                irnode.name(), irnode.getNumParams(), irnode.getNumRets(),
+                reorderBasicBlocks(body)
+        );
     }
 
     public IRNode lower(IRJump irnode) {

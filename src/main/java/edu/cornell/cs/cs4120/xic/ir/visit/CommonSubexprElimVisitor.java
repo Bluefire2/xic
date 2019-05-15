@@ -1,6 +1,5 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
-import com.google.common.collect.Sets;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.dfa.AvailableExprsDFA;
 import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
@@ -131,7 +130,8 @@ public class CommonSubexprElimVisitor {
         }
 
         return new IRFuncDecl(
-                func.name(), removeNestedIRSeqs(new IRSeq(listStmt))
+                func.name(), func.getNumParams(), func.getNumRets(),
+                removeNestedIRSeqs(new IRSeq(listStmt))
         );
     }
 

@@ -61,7 +61,8 @@ funcdecls ::=
 
 funcdecl ::=
     LPAREN FUNC name:n stmt:s RPAREN {:
-        RESULT = parser.nf.IRFuncDecl(n, s);
+        // It doesn't matter for the sim what the numparams and numrets are
+        RESULT = parser.nf.IRFuncDecl(n, 0, 0, s);
     :}
 ;
 

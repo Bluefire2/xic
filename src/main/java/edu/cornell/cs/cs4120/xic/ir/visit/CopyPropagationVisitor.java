@@ -53,7 +53,8 @@ public class CopyPropagationVisitor {
             ));
         }
         return new IRFuncDecl(
-                func.name(), removeNestedIRSeqs(new IRSeq(optimStmts))
+                func.name(), func.getNumParams(), func.getNumRets(),
+                removeNestedIRSeqs(new IRSeq(optimStmts))
         );
     }
 

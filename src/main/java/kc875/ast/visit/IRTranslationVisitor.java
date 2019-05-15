@@ -1103,7 +1103,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
 
-        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
+        return new IRFuncDecl(
+                funcName, params.size(), getNumRets(node.getOutput()),
+                new IRSeq(new IRSeq(moveArgs), bodyIR)
+        );
     }
 
     public IRFuncDecl visitMethod(FuncDefn node) {
@@ -1129,7 +1132,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             bodyIR = new IRSeq(bodyIR, new IRReturn());
         }
 
-        return new IRFuncDecl(funcName, new IRSeq(new IRSeq(moveArgs), bodyIR));
+        return new IRFuncDecl(
+                funcName, params.size(), getNumRets(node.getOutput()),
+                new IRSeq(new IRSeq(moveArgs), bodyIR)
+        );
     }
 
     @Override
@@ -1285,7 +1291,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             }
         }
         body.add(new IRReturn());
-        return new IRFuncDecl(funcName, new IRSeq(body));
+        return new IRFuncDecl(funcName, 0, 0, new IRSeq(body));
     }
 
 
@@ -1394,7 +1400,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
         body.add(new IRLabel(l_end));
         body.add(new IRReturn());
-        return new IRFuncDecl(funcName, new IRSeq(body));
+        return new IRFuncDecl(funcName, 0, 0, new IRSeq(body));
     }
 
 }
