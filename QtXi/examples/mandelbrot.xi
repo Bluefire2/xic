@@ -22,9 +22,12 @@ done:bool = false
 RAMPSIZE:int = 8
 RAMPS:int = 12
 
-size, zoom:int
-x_offset, y_offset:int
-x_final, y_final:int
+size:int
+zoom:int
+x_offset:int
+y_offset:int
+x_final:int
+y_final:int
 
 histogram: int[HISTLEN]
 colors: Color[HISTLEN]
