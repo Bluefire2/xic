@@ -4,15 +4,14 @@ import com.google.common.graph.*;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.*;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp.OpType;
+import java_cup.runtime.ComplexSymbolFactory.Location;
 import kc875.ast.*;
 import kc875.symboltable.TypeSymTableFunc;
 import kc875.utils.Maybe;
 import polyglot.util.Pair;
-import java_cup.runtime.ComplexSymbolFactory.Location;
 
 import java.math.BigInteger;
 import java.util.*;
-
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -749,7 +748,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             }
             String classSize = classSizeLoc(className);
             String t = newTemp(); //move this into temp t
-            seq.add(new IRMove(new IRTemp(t), new IRTemp(funcArgName(0))));
+            seq.add(new IRMove(new IRTemp(t), new IRTemp("this")));
             //t is the location of obj
 
             //get n-th to last field by adding size and then subtracting field idx from back
@@ -1105,18 +1104,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         seq.add(new IRMove(new IRTemp(t), objExpr));
 
         ArrayList<IRExpr> argsIR = new ArrayList<>();
-        argsIR.add(new IRTemp(t));
+        argsIR.add(new IRTemp(t));// t added to the list of arguments
         for (Expr arg : call.getArgs()) {
             // Add argIR to list of arguments to be passed to IRCall
             argsIR.add((IRExpr) arg.accept(this));
         }
 
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        IRExpr methodAddr = new IRBinOp(OpType.ADD,
+        // method = [[DV] + offset]
+        IRExpr method = new IRMem(new IRBinOp(
+                OpType.ADD,
                 new IRMem(new IRTemp(t)),//DV + offset
-                new IRConst(classMethodOffset(className, call.getName())));
+                new IRConst(classMethodOffset(className, call.getName()))
+        ));
         // stmt method (procedure) returns nothing
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), 0, argsIR)));
+        seq.add(new IRExp(new IRCall(method, 0, argsIR)));
         return new IRSeq(seq);
     }
 
@@ -1189,19 +1191,21 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         );
     }
 
-    public IRFuncDecl visitMethod(String className, FuncDefn node) {
+    private IRFuncDecl visitMethod(String className, FuncDefn node) {
         String funcName = methodName(
                 node.getName(), new TypeTTauClass(className),
-                (TypeSymTableFunc) node.getSignature().part2());
+                (TypeSymTableFunc) node.getSignature().part2()
+        );
 
         List<Pair<String, TypeTTau>> params = node.getParams();
+        // Make "this" the first argument
+        params.add(0, new Pair<>("this", new TypeTTauClass(className)));
         List<IRStmt> moveArgs = new ArrayList<>();
-        //_ARG0 is "this"
         for (int i = 0; i < params.size(); ++i) {
             // Move argi into params
             moveArgs.add(new IRMove(
                     new IRTemp(params.get(i).part1()),
-                    new IRTemp(funcArgName(i + 1))
+                    new IRTemp(funcArgName(i))
             ));
         }
 
@@ -1250,8 +1254,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(ExprThis node) {
-        //self pointer is always first arg
-        return new IRTemp(funcArgName(0));
+        return new IRTemp("this");
     }
 
     @Override
@@ -1304,7 +1307,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         seq.add(new IRMove(new IRTemp(t), objExpr));
 
         ArrayList<IRExpr> argsIR = new ArrayList<>();
-        argsIR.add(new IRTemp(t));
+        argsIR.add(new IRTemp(t));// add t to the list of arguments
         for (Expr arg : call.getArgs()) {
             // Add argIR to list of arguments to be passed to IRCall
             argsIR.add((IRExpr) arg.accept(this));
@@ -1316,13 +1319,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         // t is the obj pointer
         // [t] is the vt pointer
         // [[t] + x] is the vt pointer for the method, which is what we call
-        IRExpr methodAddr = new IRBinOp(OpType.ADD,
+        IRExpr method = new IRMem(new IRBinOp(
+                OpType.ADD,
                 new IRMem(new IRTemp(t)),
-                new IRConst(classMethodOffset(className, call.getName()))); //offset for method
-        seq.add(new IRExp(new IRCall(new IRMem(methodAddr), numRets, argsIR)));
-        return new IRESeq(
-                new IRSeq(seq),
-                new IRTemp(returnValueName(0)));
+                new IRConst(classMethodOffset(className, call.getName()))
+        ));
+        seq.add(new IRExp(new IRCall(method, numRets, argsIR)));
+        return new IRESeq(new IRSeq(seq), new IRTemp(returnValueName(0)));
     }
 
     @Override
