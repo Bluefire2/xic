@@ -27,15 +27,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // a class cannot possibly have this name:
     private static String CLASS_SUPER_PARENT = "_";
 
-    // map from class names to their ordered fields
+    // map from class names to their ordered fields (only those declared in that class)
     private Map<String, List<String>> classFields;
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
     // a top-down tree representing the class hierarchy
     @SuppressWarnings ("UnstableApiUsage")
     private Traverser<String> classTree;
-    // map from class names to the *new* methods defined by that class
-    // i.e. inherited methods are not included, even if they are overridden!
     private Map<String, List<String>> dispatchVectorLayouts;
 
     private String newLabel() {
@@ -747,13 +745,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRExpr visit(ExprNew node) {
         // the memory layout is found in classFields
         String className = node.getName();
-        List<String> orderedFields = classFields.get(className); // must exist due to typechecking
+        // must exist due to typechecking
 
         String objectBaseAddress = newTemp();
-        int bytesForObject = 8 * (1 + orderedFields.size()); // extra cell for dispatch vector
         IRMove baseAllocAddress = new IRMove(
                 new IRTemp(objectBaseAddress),
-                allocateMem(new IRConst(bytesForObject))
+                allocateMem(new IRMem(new IRName(classSizeLoc(className))))
         );
 
         // store a pointer to the dispatch vector in our new temp
@@ -766,19 +763,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRSeq(baseAllocAddress, storeDV),
                 new IRTemp(objectBaseAddress)
         );
-//        String name = node.getName();
-//        name = escapeName(name);
-//        String size = "_I_size_"+name;
-//        String vt = "_I_vt_"+name;
-//        List<IRStmt> seq = new ArrayList<>();
-//        String t = newTemp();//size of class
-//        seq.add(new IRMove(new IRTemp(t), new IRMem(new IRName(size))));
-//        String t2 = newTemp();//pointer to new obj
-//        //allocate memory for size of class
-//        seq.addAll(allocateArray(new IRTemp(t2), new IRTemp(t)));
-//        //move vt pointer to first location in obj
-//        seq.add(new IRMove(new IRMem(new IRTemp(t2)), new IRMem(new IRName(vt))));
-//        return new IRESeq(new IRSeq(seq), new IRTemp(t2));
     }
 
     @Override
@@ -1174,10 +1158,16 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     public IRNode visit(ExprFieldAccess node) {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
-        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        String classSize = classSizeLoc(className);
         String fieldName = node.getField().getName();
-
+        String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
+        while (!classFields.get(className).contains(fieldName)){
+            try {
+                className = classHierarchy.get(className).get();
+            } catch (Maybe.NoMaybeValueException e) {
+                break;
+            }
+        }
+        String classSize = classSizeLoc(className);
         String t = newTemp();
         IRExpr objExpr = (IRExpr) obj.accept(this);
         seq.add(new IRMove(new IRTemp(t), objExpr));
