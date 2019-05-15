@@ -29,16 +29,6 @@ public class ClassDefn extends ClassXi {
                         .collect(Collectors.toList()),
                 location);
         this.methodDefns = methodDefns;
-
-        // TODO: problem. We want to throw errors when the same named field
-        //  is defined, but collecting them in a set loses this information
-        this.fieldNames = fields.stream()
-                .flatMap(sd -> sd.varsOf().stream())
-                .collect(Collectors.toSet());
-
-        this.methodNames = methodDefns.stream()
-                .map(FuncDefn::getName)
-                .collect(Collectors.toSet());
     }
 
     public ClassDefn(String name,
@@ -58,22 +48,6 @@ public class ClassDefn extends ClassXi {
 
     public List<FuncDefn> getMethodDefns() {
         return methodDefns;
-    }
-
-    public Set<String> getFieldNames() {
-        return fieldNames;
-    }
-
-    public Set<String> getMethodNames() {
-        return methodNames;
-    }
-
-    public boolean hasField(String name) {
-        return fieldNames.contains(name);
-    }
-
-    public boolean hasMethod(String name) {
-        return methodNames.contains(name);
     }
 
     @Override
@@ -110,5 +84,14 @@ public class ClassDefn extends ClassXi {
      */
     public ClassDecl toDecl() {
         return new ClassDecl(name, superClass, fields, methodDecls, getLocation());
+    }
+
+    public FuncDefn getMethodDefn(String name){
+        for (FuncDefn f : methodDefns) {
+            if (f.getName().equals(name)) {
+                return f;
+            }
+        }
+        return null;
     }
 }

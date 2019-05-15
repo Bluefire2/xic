@@ -1,6 +1,7 @@
 package kc875.cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
@@ -8,14 +9,12 @@ import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
-import kc875.asm.visit.ASMCopyPropagationVisitor;
-import kc875.asm.visit.ASMDeadCodeEliminationVisitor;
-import kc875.asm.visit.RegAllocationNaiveVisitor;
-import kc875.asm.visit.RegAllocationOptimVisitor;
+import kc875.asm.visit.*;
 import kc875.ast.ASTNode;
 import kc875.ast.Printable;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
+import kc875.ast.*;
 import kc875.lexer.XiLexer;
 import kc875.lexer.XiTokenFactory;
 import kc875.symboltable.HashMapSymbolTable;
@@ -182,6 +181,8 @@ public class CLI implements Runnable {
     private File[] optInputFiles;
 
     private static TypeCheckVisitor typeCheckVisitor;
+    private Map<String, List<String>> dispatchVectorLayouts;
+    private FileProgram fileProgram;
 
     /**
      * Returns -1 if path not found, 0 otherwise.
@@ -418,9 +419,18 @@ public class CLI implements Runnable {
 
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
         ASTNode root = buildAST(fileReader, f.getPath());
+
+        //need to use for ASM directives
+        if (!(root instanceof FileProgram))
+            throw new InternalCompilerError(
+                    "IR can only be built for a .xi file"
+            );
+        fileProgram = (FileProgram) root;
+
         String fPath = FilenameUtils.removeExtension(f.getName());
 
         IRNode ir;
+        IRTranslationVisitor tv;
         if (activeOptims.get(Optims.CF) && (
                 activeOptimIRPhases.get(OptimPhases.INITIAL)
                         || activeOptimCFGPhases.get(OptimPhases.INITIAL)
@@ -431,24 +441,29 @@ public class CLI implements Runnable {
             // phase by constructing the LIR with CF switched off. This means
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
-            ir = root.accept(new IRTranslationVisitor(
+            tv = new IRTranslationVisitor(
                     false,
                     fPath,
                     CLI.typeCheckVisitor.getClassesMapOrdered(),
                     CLI.typeCheckVisitor.getClassHierarchy()
-            ));
+            );
+            ir = root.accept(tv);
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
         } else {
             // Normal IR translation and lowering
-            IRNode mir = root.accept(new IRTranslationVisitor(
+            tv = new IRTranslationVisitor(
                     activeOptims.get(Optims.CF),
                     FilenameUtils.removeExtension(f.getName()),
                     CLI.typeCheckVisitor.getClassesMapOrdered(),
                     CLI.typeCheckVisitor.getClassHierarchy()
-            ));
+            );
+            IRNode mir = root.accept(tv);
             LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
             ir = lv.visit(mir);
         }
+
+        //need to use for ASM directives
+        dispatchVectorLayouts = tv.getDispatchVectorLayouts();
 
         // CFG Phases
         // INITIAL IR and CFG
@@ -694,6 +709,11 @@ public class CLI implements Runnable {
                         instrs = regVisitor.allocate(instrs);
                     }
                 }
+
+                //set up directives
+                ASMDirectivesVisitor dv = new ASMDirectivesVisitor(dispatchVectorLayouts);
+                List<ASMInstr> directives = dv.generateDirectives(fileProgram);
+                instrs.addAll(directives);
 
                 // Write ASM
                 asmFilePrologueWrite(fileWriter,

@@ -6,8 +6,14 @@ import kc875.symboltable.TypeSymTableVar;
 import kc875.symboltable.TypeSymTableFunc;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class ASMDirectivesVisitor {
+    private Map<String, List<String>> dispatchVectorLayouts;
+
+    public ASMDirectivesVisitor(Map<String, List<String>> dvs) {
+        dispatchVectorLayouts = dvs;
+    }
 
     private String returnTypeName(TypeT type) {
         if (type instanceof TypeTList) {
@@ -81,7 +87,7 @@ public class ASMDirectivesVisitor {
     }
 
     //generates but does not initialize globals
-    public List<ASMInstr> generateGlobalVarDirectives(FileProgram ast) {
+    private List<ASMInstr> generateGlobalVarDirectives(FileProgram ast) {
         List<ASMInstr> instrs = new ArrayList<>();
         instrs.add(new ASMInstrDirective("bss"));
         for (StmtDecl d : ast.getGlobalVars()) {
@@ -115,7 +121,7 @@ public class ASMDirectivesVisitor {
     }
 
     //generates class related directives (startup funcs, vt, size)
-    public List<ASMInstr> generateClassDirectives(FileProgram ast) {
+    private List<ASMInstr> generateClassDirectives(FileProgram ast) {
         /* Example
 
         .section .ctors
@@ -134,8 +140,6 @@ public class ASMDirectivesVisitor {
         instrs.add(new ASMInstrDirective("text"));
         instrs.add(new ASMInstrComment("\n"));
 
-        //TODO use bss or data? classes where we know the size and globals where it's an integer value we can initialize the value here,
-        // otherwise we init to zeros with bss OR we can just use bss consistently and initialize them all in the function (I do the latter)
 
         //class size directives/labels //.bss (zero 8)
         /* Example
@@ -164,22 +168,18 @@ public class ASMDirectivesVisitor {
             .text
          */
 
-        //TODO finish this using mem layouts - class vt directives/labels
         instrs.add(new ASMInstrDirective("bss"));
         for (ClassDefn c : ast.getClassDefns()) {
-            //TODO NOT 8, need vt size
-            instrs.addAll(generateBss("_I_vt_"+className(c.getName()), 8));
+            int dvSize = dispatchVectorLayouts.get(c.getName()).size();
+            instrs.addAll(generateBss("_I_vt_"+className(c.getName()), 8 * dvSize));
         }
         instrs.add(new ASMInstrDirective("text"));
         return instrs;
     }
 
-    //TODO - for the below, we prob need to generate at IR level
-    // this means we might need to do this in a new file, and use IRExprLabel
-
-    //TODO - initialize globals function (name _I_global_init) see 1693 of mandelbrot
-
-    //TODO - class init functions see 319 of mandelbrot (need mem layouts)
-    // ALL the classes sizes and VT's need to be initialized to actual things,
-    // currently everything is .bss, which is zeros
+    public List<ASMInstr> generateDirectives(FileProgram ast){
+        List<ASMInstr> instrs = new ArrayList<>(generateClassDirectives(ast));
+        instrs.addAll(generateGlobalVarDirectives(ast));
+        return instrs;
+    }
 }

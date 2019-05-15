@@ -1175,6 +1175,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         IRExpr src = node.source();
         List<ASMInstr> instrs = new ArrayList<>();
 
+        if (src instanceof IRName && dest instanceof IRTemp) {
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.LEA,
+                    toASM((IRTemp) dest), new ASMExprMem(toASM((IRName) src))));
+            return instrs;
+        }
+
         if (!(dest instanceof IRTemp || dest instanceof IRMem)) {
             throw new IllegalAccessError(
                     "only Mem and Temp allowed as destination for move"
