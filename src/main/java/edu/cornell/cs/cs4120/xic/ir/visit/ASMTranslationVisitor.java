@@ -1084,7 +1084,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
             // procedure with multiple returns. The body won't contain any
             // references to _ARG0, which we need here for the return asm at
             // the end. So add it before rest of body
-            System.out.println("debugpt0" + node.name());
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprTemp("_ARG0"),
@@ -1112,7 +1111,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ));
             }
             // mov _ARGi, r**
-            System.out.println("debugpt2" + node.name() + " " + totalParams);
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprTemp("_ARG" + argNum),
