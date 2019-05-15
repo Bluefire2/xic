@@ -323,6 +323,8 @@ simple_expr ::=
 | NEW:n ID:i {: RESULT = new ExprNew(i, nxleft); :} %prec UMINUS
 | NULL:n {: RESULT = new ExprNull(nxleft); :}
 | THIS:t {: RESULT = new ExprThis(txleft); :}
+//ternaries
+| LPAREN expr:e1 RPAREN QUESTION:q expr:e2 COLON expr:e3 {: RESULT = new ExprTernary(e1, e2, e3, qxleft); :}
 ;
 
 expr ::=
@@ -331,8 +333,6 @@ expr ::=
 | LCURL:l RCURL {: RESULT = new ExprArrayLiteral(new ArrayList<Expr>(), lxleft); :}
 | LCURL:l expr_list:e RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
 | LCURL:l expr_list:e COMMA RCURL {: RESULT = new ExprArrayLiteral(e, lxleft); :}
-//ternaries
-| LPAREN expr:e1 RPAREN QUESTION:q expr:e2 COLON expr:e3 {: RESULT = new ExprTernary(e1, e2, e3, qxleft); :}
 // Binops
 | expr:e1 AND:o expr:e2 {: RESULT = new ExprBinop(Binop.AND, e1, e2, oxleft); :}
 | expr:e1 OR:o expr:e2 {: RESULT = new ExprBinop(Binop.OR, e1, e2, oxleft); :}
