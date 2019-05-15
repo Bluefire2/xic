@@ -42,7 +42,7 @@ public class CSEVisitorTest {
     public void cseEndToEnd1() {
         HashMap<String, IRFuncDecl> funcMap = new LinkedHashMap<>();
         funcMap.put("f", new IRFuncDecl(
-                "f",
+                "f", 0, 0,
                 new IRSeq(
                         new IRMove(new IRTemp("x"),
                                 new IRBinOp(IRBinOp.OpType.ADD,
@@ -82,7 +82,7 @@ public class CSEVisitorTest {
     public void cseEndToEnd2() {
         HashMap<String, IRFuncDecl> funcMap = new LinkedHashMap<>();
         funcMap.put("f", new IRFuncDecl(
-                "f",
+                "f", 0, 0,
                 new IRSeq(
                         new IRMove(new IRTemp("x"),
                                 new IRBinOp(IRBinOp.OpType.ADD,

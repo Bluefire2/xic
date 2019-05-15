@@ -16,7 +16,7 @@ public class LivenessDFATest {
 
     @Before
     public void setUp() {
-        graph = new IRGraph(new IRFuncDecl("", new IRSeq()));
+        graph = new IRGraph(new IRFuncDecl("", 0, 0, new IRSeq()));
         livenessDFA = new LivenessDFA(graph);
     }
 

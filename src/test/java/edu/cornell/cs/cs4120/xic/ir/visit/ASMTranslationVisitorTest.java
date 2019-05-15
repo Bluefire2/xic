@@ -560,7 +560,7 @@ public class ASMTranslationVisitorTest {
 
     @Test
     public void testFunctionCall_Simple() {
-        IRFuncDecl f = new IRFuncDecl("_If_iii", new IRSeq(
+        IRFuncDecl f = new IRFuncDecl("_If_iii", 0, 0, new IRSeq(
                 new IRMove(new IRTemp("_ARG0"), new IRTemp("x")),
                 new IRMove(new IRTemp("_ARG1"), new IRTemp("y")),
                 new IRReturn(

@@ -39,7 +39,7 @@ public class CopyPropagationAndDCETest {
     public void cpEndToEnd() {
         HashMap<String, IRFuncDecl> funcMap = new HashMap<>();
         funcMap.put("f",
-                new IRFuncDecl("f",
+                new IRFuncDecl("f", 0, 0,
                     new IRSeq(
                             new IRMove(
                                     new IRTemp("x"),
@@ -65,7 +65,7 @@ public class CopyPropagationAndDCETest {
     public void dceEndToEnd() {
         HashMap<String, IRFuncDecl> funcMap = new HashMap<>();
         funcMap.put("f",
-                new IRFuncDecl("f",
+                new IRFuncDecl("f", 0, 0,
                         new IRSeq(
                                 new IRLabel("l1"),
                                 new IRMove(
@@ -95,7 +95,7 @@ public class CopyPropagationAndDCETest {
     public void cpWithDce1() {
         HashMap<String, IRFuncDecl> funcMap = new HashMap<>();
         funcMap.put("f",
-                new IRFuncDecl("f",
+                new IRFuncDecl("f", 0, 0,
                         new IRSeq(
                                 new IRMove(new IRTemp("x"), new IRTemp("y")),
                                 new IRMove(new IRTemp("z"),

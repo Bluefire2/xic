@@ -20,7 +20,7 @@ public class AvailableExprsDFATest {
 
     @Before
     public void setUp() {
-        graph = new IRGraph(new IRFuncDecl("", new IRSeq()));
+        graph = new IRGraph(new IRFuncDecl("", 0, 0, new IRSeq()));
         availableExprsDFA = new AvailableExprsDFA(graph);
     }
 
@@ -91,7 +91,7 @@ public class AvailableExprsDFATest {
         IRSeq seq = new IRSeq(new IRMove(new IRTemp("x"),
                 new IRBinOp(IRBinOp.OpType.ADD,
                         new IRConst(5), new IRConst(6))));
-        IRFuncDecl func = new IRFuncDecl("f", seq);
+        IRFuncDecl func = new IRFuncDecl("f", 0, 0, seq);
         graph = new IRGraph(func);
         availableExprsDFA = new AvailableExprsDFA(graph);
         availableExprsDFA.runWorklistAlgo();
