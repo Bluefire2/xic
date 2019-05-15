@@ -1060,52 +1060,9 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return Integer.parseInt(s.replaceAll("\\D+", ""));
     }
 
-    /**
-     * Return the number of values that the function declaration returns.
-     *
-     * @param name name of the function from IRFuncDecl instance
-     * @return number of return values
-     */
-    private static int getNumReturns(String name) {
-        if (name.equals("_xi_array_out_of_bounds"))
-            return 0;
-        if (name.equals("_xi_alloc"))
-            return 1;
-        String sig = name.substring(name.lastIndexOf('_') + 1);
-        if (sig.startsWith("p")) {
-            // procedure
-            return 0;
-        } else if (sig.startsWith("t")) {
-            // tuple return, get the number after "t"
-            return numFromString(sig);
-        } else {
-            // single return
-            return 1;
-        }
-    }
-
-    /**
-     * Return the number of parameters that the function declaration takes in.
-     *
-     * @param name name of the function from IRFuncDecl instance
-     * @return number of parameters
-     */
-    public static int getNumParams(String name) {
-        if (name.equals("_xi_array_out_of_bounds"))
-            return 0;
-        if (name.equals("_xi_alloc"))
-            return 1;
-        String sig = name.substring(name.lastIndexOf('_') + 1);
-        // the number of parameters is the total number of i and b in params
-        // sub the returnCount since that also gets counted in iCount and bCount
-        int iCount = (int) sig.chars().filter(c -> c == 'i').count();
-        int bCount = (int) sig.chars().filter(c -> c == 'b').count();
-        return iCount + bCount - getNumReturns(name);
-    }
-
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
-        int numParams = getNumParams(node.name());
+        int numParams = node.getNumParams();
 
         instrs.add(new ASMInstrLabel(node.name()));
         //Prologue
@@ -1122,11 +1079,12 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         IRStmt body = node.body();
         IRSeq stmts = body instanceof IRSeq ? (IRSeq) body : new IRSeq(body);
 
-        int numRets = getNumReturns(node.name());
+        int numRets = node.getNumRets();
         if (numRets > 2 && numParams == 0) {
             // procedure with multiple returns. The body won't contain any
             // references to _ARG0, which we need here for the return asm at
             // the end. So add it before rest of body
+            System.out.println("debugpt0" + node.name());
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprTemp("_ARG0"),
@@ -1154,6 +1112,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     ));
             }
             // mov _ARGi, r**
+            System.out.println("debugpt2" + node.name() + " " + totalParams);
             instrs.add(new ASMInstr_2Arg(
                     ASMOpCode.MOV,
                     new ASMExprTemp("_ARG" + argNum),
