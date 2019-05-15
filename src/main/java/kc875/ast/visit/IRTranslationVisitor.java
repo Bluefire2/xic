@@ -1100,11 +1100,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         List<Pair<String, TypeTTau>> params = node.getParams();
         List<IRStmt> moveArgs = new ArrayList<>();
         //_ARG0 is "this"
-        for (int i = 1; i < params.size() + 1; ++i) {
+        for (int i = 0; i < params.size(); ++i) {
             // Move argi into params
             moveArgs.add(new IRMove(
                     new IRTemp(params.get(i).part1()),
-                    new IRTemp(funcArgName(i))
+                    new IRTemp(funcArgName(i + 1))
             ));
         }
 
