@@ -683,6 +683,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRExpr visit(ExprFunctionCall node) {
+        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+            Location loc = node.getLocation();
+            return visit(new ExprMethodCall(
+                    new ExprThis(currentClass.getName(), loc),
+                    node, loc));
+        }
         String funcName = functionName(node.getName(), node.getSignature());
         int numRets = getNumRets(node.getSignature().getOutput());
         ArrayList<IRExpr> argsIR = new ArrayList<>();
@@ -704,7 +710,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         } else if (inClass && currentClass.getFieldNames().contains(node.getName())) {
             //treat like a field access for "this"
             List<IRStmt> seq = new ArrayList<>();
-            Expr obj = new ExprThis(node.getLocation());
             String fieldName = node.getName();
             String className = currentClass.getName();
             while (!classFields.get(className).contains(fieldName)){
@@ -716,8 +721,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             }
             String classSize = classSizeLoc(className);
             String t = newTemp();
-            IRExpr objExpr = (IRExpr) obj.accept(this);
-            seq.add(new IRMove(new IRTemp(t), objExpr));
+            seq.add(new IRMove(new IRTemp(t), new IRTemp(funcArgName(0))));
             //t is the location of obj
 
             //get n-th to last field by adding size and then subtracting field idx from back
@@ -986,6 +990,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     @Override
     public IRNode visit(StmtProcedureCall node) {
+        if (inClass && currentClass.getMethodDefn(node.getName()) != null) {
+            Location loc = node.getLocation();
+            return visit(new StmtMethodCall(
+                    new ExprThis(currentClass.getName(), loc),
+                    new ExprFunctionCall(node.getName(), node.getArgs(), loc),
+                    loc));
+        }
         String funcName = functionName(node.getName(), node.getSignature());
         List<IRExpr> argsIR = new ArrayList<>();
 
@@ -1254,7 +1265,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprMethodCall node) {
+    public IRExpr visit(ExprMethodCall node) {
         List<IRStmt> seq = new ArrayList<>();
         Expr obj = node.getObj();
         ExprFunctionCall call = node.getCall();

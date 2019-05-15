@@ -34,7 +34,7 @@ public class ASMInstrDirective extends ASMInstr {
     @Override
     public String toString() {
         //globl is not indented, the others are
-        String s = (!name.equals("globl")) ? INDENT_TAB : "";
+        String s = (!name.equals("globl") && !name.equals("section")) ? INDENT_TAB : "";
         return s + "." + name + ((!data.equals("")) ? " " + data : "");
     }
 

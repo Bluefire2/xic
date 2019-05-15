@@ -10,6 +10,10 @@ public class ExprThis extends Expr {
     public ExprThis(ComplexSymbolFactory.Location location) {
         super(location);
     }
+    public ExprThis(String cName, ComplexSymbolFactory.Location location) {
+        super(location);
+        this.setTypeCheckType(new TypeTTauClass(cName));
+    }
 
     @Override
     public void accept(TypeCheckVisitor visitor) {
