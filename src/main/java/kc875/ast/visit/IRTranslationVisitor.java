@@ -1444,6 +1444,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             String superClassSize = classSizeLoc(superClass);
             String superClassVt = dispatchVectorLoc(superClass);
             String superClassInit = "_I_init_" + escapeName(superClass);
+            body.add(new IRExp(new IRCall(new IRName(superClassInit), 0)));
 
             String t = newTemp(); //size = superClassSize + n_fields
             body.add(new IRMove(
