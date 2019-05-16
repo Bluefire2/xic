@@ -1,21 +1,20 @@
 package kc875.asm.visit;
 
-import kc875.asm.*;
+import kc875.asm.ASMInstr;
+import kc875.asm.ASMInstrDirective;
+import kc875.asm.ASMInstrLabel;
 import kc875.ast.*;
-import kc875.symboltable.TypeSymTableVar;
 import kc875.symboltable.TypeSymTableFunc;
-import java.util.List;
+
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class ASMDirectivesVisitor {
     private Map<String, List<String>> dispatchVectorLayouts;
-    private Map<String, List<String>> objectLayouts;
 
-    public ASMDirectivesVisitor(Map<String, List<String>> dvs,
-                                Map<String, List<String>> objectLayouts) {
+    public ASMDirectivesVisitor(Map<String, List<String>> dvs) {
         dispatchVectorLayouts = dvs;
-        this.objectLayouts = objectLayouts;
     }
 
     private String returnTypeName(TypeT type) {
@@ -52,6 +51,21 @@ public class ASMDirectivesVisitor {
         } else {
             throw new IllegalArgumentException("invalid type");
         }
+    }
+
+    public String functionName(String name, TypeSymTableFunc signature) {
+        String newName = name.replaceAll("_", "__");
+        String returnType = returnTypeName(signature.getOutput());
+        String inputType = typeName(signature.getInput());
+        return "_I" + newName + "_" + returnType + inputType;
+    }
+
+    public String methodName(String name, String className, TypeSymTableFunc signature) {
+        String newName = name.replaceAll("_", "__");
+        String newClassName = className.replaceAll("_", "__");
+        String returnType = returnTypeName(signature.getOutput());
+        String inputType = typeName(signature.getInput());
+        return "_I_" + newClassName + "_" + newName + "_" + returnType + inputType;
     }
 
     public String globalName(String name, TypeTTau signature) {
@@ -149,9 +163,7 @@ public class ASMDirectivesVisitor {
         if (ast.getClassDefns().size() != 0) {
             instrs.add(new ASMInstrDirective("bss"));
             for (ClassDefn c : ast.getClassDefns()) {
-                int numFields = objectLayouts.get(c.getName()).size();
-                instrs.addAll(generateBss("_I_size_"+className(c.getName()),
-                        8 * (1 + numFields)));
+                instrs.addAll(generateBss("_I_size_"+className(c.getName()), 8));
             }
             instrs.add(new ASMInstrDirective("text\n"));
         }
