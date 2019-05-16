@@ -48,7 +48,7 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
             throw new IllegalStateException("Cannot add type: no scopes have been defined");
         }
 
-        scopes.peek().put(id, typeSymTable); // TODO: should we throw if this ID already exists in the current scope?
+        scopes.peek().put(id, typeSymTable);
     }
 
     @Override

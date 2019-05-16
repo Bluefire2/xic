@@ -10,9 +10,9 @@ import kc875.symboltable.TypeSymTable;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 
 public class FileProgram extends FileSource {
     private List<StmtDecl> globalVars;
@@ -34,19 +34,8 @@ public class FileProgram extends FileSource {
         this.classSignatures = new ArrayList<>();
 
         funcDefns.forEach(d -> signatures.add(d.getSignature()));
-
-        //TODO currently uses placeholder function names
         classDefns.forEach(d -> classSignatures.add(
                 new Pair<>(d.getName(), d.toDecl())));
-
-        //global vars are private to each module
-        //TODO
-//        globalVars.forEach((d) -> {
-//            Pair<String, TypeTTau> declType = d.getDecl().getPair();
-//            signatures.add(new Pair<>(declType.part1(),
-//                    new TypeSymTableVar(declType.part2())));
-//        });
-
     }
 
     public FileProgram(List<UseInterface> imports,
@@ -79,11 +68,8 @@ public class FileProgram extends FileSource {
         this.classSignatures = new ArrayList<>();
 
         funcDefns.forEach(d -> signatures.add(d.getSignature()));
-        //TODO currently uses placeholder function names
         classDefns.forEach(d -> classSignatures.add(
                 new Pair<>(d.getName(), d.toDecl())));
-
-        //TODO for global vars
     }
 
     public List<FuncDefn> getFuncDefns() {
@@ -121,14 +107,6 @@ public class FileProgram extends FileSource {
         return visitor.visit(this);
     }
 
-    public List<Pair<String, TypeSymTable>> getSignatures() {
-        return signatures;
-    }
-
-    public List<Pair<String, ClassDecl>> getClassSignatures() {
-        return classSignatures;
-    }
-
     public List<StmtDecl> getGlobalVars() {
         return globalVars;
     }
@@ -146,7 +124,7 @@ public class FileProgram extends FileSource {
                 List<String> dnames = ((StmtDeclAssign) d).getNames();
                 names.addAll(dnames);
             } else if (d instanceof StmtDeclMulti) {
-                List<String> dnames = ((StmtDeclMulti) d).varsOf();
+                List<String> dnames = d.varsOf();
                 names.addAll(dnames);
             }
         }

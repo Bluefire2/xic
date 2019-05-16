@@ -32,8 +32,6 @@ public class TypeTList extends TypeT {
 
     @Override
     public boolean equals(Object obj) {
-        // TODO: equals and subtypeOf have repetitive code: can we do
-        //  something about it?
         if (obj instanceof TypeTList){
             List<TypeTTau> otherTauList = ((TypeTList) obj).getTTauList();
 

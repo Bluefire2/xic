@@ -224,7 +224,6 @@ decl_annotated_var ::=
   ID:i COLON init_list_type:t {: RESULT = new Pair<String, TypeTTau>(i, t); :}
 ;
 
-// TODO: add to the top
 multi_var_decl ::=
   id_list:l COLON type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
 | id_list:l COLON init_list_type:t {: RESULT = new StmtDeclMulti(l, t, lxleft); :}
