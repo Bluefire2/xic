@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     private static final int WORD_NUM_BYTES = 8;
+    private static final String IMPL_DV_CELL_NAME = "dummyFunc_";
     private int labelcounter;
     private int tempcounter;
     private boolean optimCF; // whether constant folding should be switched on
@@ -115,7 +116,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
                 // add all methods that are defined in the class (not inherited/overridden)
                 ClassXi clazz = classes.get(className);
-                dvLayout.add("dummyFunc_" + className);
+                dvLayout.add(IMPL_DV_CELL_NAME + className);
                 for (FuncDecl methodDecl : clazz.getMethodDecls()) {
                     String methodName = methodDecl.getName();
 
@@ -1457,8 +1458,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     .map(FuncDefn::getName)
                     .collect(Collectors.toSet());
 
+            // num of times sup method seen
+            int numSupMeth = 0;
             for (int i = 0; i < dvLayout.size(); i++){
                 String methodName = dvLayout.get(i);
+                if (methodName.startsWith(IMPL_DV_CELL_NAME)) {
+                    numSupMeth = 1;// start of a super method, seen the dummy
+                    continue;
+                }
                 //only copy if method is not overridden
                 if (!defMethods.contains(methodName)) {
                     //[classVT + offset] <- [superVT + offset]
@@ -1470,7 +1477,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                             new IRMem(
                                     new IRBinOp(OpType.ADD,
                                             new IRTemp(superClassVT_),
-                                            new IRConst(i * 8)))
+                                            new IRConst(numSupMeth * 8)))
                     ));
                 } else {
                     //[classVT + offset] <- methodLabel
@@ -1486,6 +1493,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                             new IRName(mLabelName)
                     ));
                 }
+                numSupMeth++;
             }
         } catch (Maybe.NoMaybeValueException e) {//no superclasses
             body.add(new IRMove(
@@ -1505,7 +1513,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                         new IRMem(
                                 new IRBinOp(OpType.ADD,
                                         new IRTemp(t),
-                                        new IRConst(i * 8))),
+                                        new IRConst(i * 8 + 8))),
                         new IRName(mLabelName)
                 ));
             }
