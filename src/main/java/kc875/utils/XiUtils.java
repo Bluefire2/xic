@@ -16,8 +16,10 @@ public class XiUtils {
      * Returns true if name is for a non-library function, false otherwise.
      */
     public static boolean isNonLibFunction(String name) {
-        return name.startsWith("_I") && !name.startsWith("_I_size_")
-                && !name.startsWith("_I_vt") && !name.startsWith("_I_g");
+        return name.equals("_I_global_init") || (
+                name.startsWith("_I") && !name.startsWith("_I_size_")
+                        && !name.startsWith("_I_vt") && !name.startsWith("_I_g")
+        );
     }
 
     /**
