@@ -29,8 +29,8 @@
 # xth runs the commands in order of appearance.
 
 xic-ext ("Test -target linux") "-libpath $(testpath) -target linux" {
-    globals-import.xi;
     multi-decl.xi;
     simple_break.xi;
+    simple_class.xi;
     ternary_test.xi;
 }
