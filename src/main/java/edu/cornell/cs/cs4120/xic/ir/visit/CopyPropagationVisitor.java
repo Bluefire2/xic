@@ -141,8 +141,7 @@ public class CopyPropagationVisitor {
     }
 
     public IRStmt visit(IRMove stmt, Map<IRTemp, IRTemp> copyMap) {
-        return new IRMove(visit(stmt.target(), copyMap),
-                visit(stmt.source(), copyMap));
+        return new IRMove(stmt.target(), visit(stmt.source(), copyMap));
     }
 
     public IRStmt visit(IRReturn stmt, Map<IRTemp, IRTemp> copyMap) {
