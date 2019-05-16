@@ -182,6 +182,7 @@ public class CLI implements Runnable {
 
     private static TypeCheckVisitor typeCheckVisitor;
     private Map<String, List<String>> dispatchVectorLayouts;
+    private Map<String, List<String>> objectLayouts;
     private FileProgram fileProgram;
 
     /**
@@ -464,6 +465,7 @@ public class CLI implements Runnable {
 
         //need to use for ASM directives
         dispatchVectorLayouts = tv.getDispatchVectorLayouts();
+        objectLayouts = tv.getObjectLayouts();
 
         // CFG Phases
         // INITIAL IR and CFG
@@ -711,7 +713,9 @@ public class CLI implements Runnable {
                 }
 
                 //set up directives
-                ASMDirectivesVisitor dv = new ASMDirectivesVisitor(dispatchVectorLayouts);
+                ASMDirectivesVisitor dv = new ASMDirectivesVisitor(
+                        dispatchVectorLayouts, objectLayouts
+                );
                 List<ASMInstr> directives = dv.generateDirectives(fileProgram);
                 instrs.addAll(directives);
 

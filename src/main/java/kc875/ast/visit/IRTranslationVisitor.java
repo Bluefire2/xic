@@ -44,6 +44,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     // ordered layouts of dispatch vectors for each class
     private Map<String, List<String>> dispatchVectorLayouts;
+    // ordered layout for each class to its fields
+    private Map<String, List<String>> objectLayouts;
 
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
@@ -55,6 +57,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     public Map<String, List<String>> getDispatchVectorLayouts() {
         return dispatchVectorLayouts;
+    }
+
+    public Map<String, List<String>> getObjectLayouts() {
+        return objectLayouts;
     }
 
     public IRTranslationVisitor(boolean optimCF,
@@ -90,6 +96,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
             this.dispatchVectorLayouts = new HashMap<>();
             this.classMethodDefinitions = new HashMap<>();
+            this.objectLayouts = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
                 if (className.equals(CLASS_SUPER_PARENT)) {
@@ -99,6 +106,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 }
 
                 List<String> dvLayout = new ArrayList<>();
+                List<String> objLayout = new ArrayList<>();
                 Map<String, String> methodMap = new HashMap<>();
                 // build on the parent's dispatch vector and method map, if a parent exists
                 classHierarchy.get(className).thenDo(parent -> {
@@ -110,6 +118,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     // inherit the parent's DV layout
                     dvLayout.addAll(
                             this.dispatchVectorLayouts.get(parent)
+                    );
+
+                    // inherit the parent's object layout
+                    objLayout.addAll(
+                            this.objectLayouts.get(parent)
                     );
                 });
 
@@ -123,9 +136,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
                     // add to method map (since this class defines the method)
                     methodMap.put(methodName, className);
+
+                }
+                for (StmtDecl field : clazz.getFields()) {
+                    // add to obj layout
+                    objLayout.addAll(field.varsOf());
                 }
 
                 this.dispatchVectorLayouts.put(className, dvLayout);
+                this.objectLayouts.put(className, objLayout);
                 classMethodDefinitions.put(className, methodMap);
             }
         }
