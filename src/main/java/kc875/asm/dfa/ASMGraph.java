@@ -13,7 +13,7 @@ public class ASMGraph extends Graph<ASMInstr> {
     private BiMap<Graph<ASMInstr>.Node, ASMInstr> nodeInstrMap;
 
     private static Set<ASMOpCode> noFallthrough = new HashSet<>(
-            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET) // TODO
+            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET)
     );
 
     private static Set<ASMOpCode> jumps = new HashSet<>(

@@ -4,7 +4,6 @@ import kc875.asm.ASMInstr;
 import kc875.asm.ASMInstrDirective;
 import kc875.asm.ASMInstrLabel;
 import kc875.ast.*;
-import kc875.symboltable.TypeSymTableFunc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,21 +50,6 @@ public class ASMDirectivesVisitor {
         } else {
             throw new IllegalArgumentException("invalid type");
         }
-    }
-
-    public String functionName(String name, TypeSymTableFunc signature) {
-        String newName = name.replaceAll("_", "__");
-        String returnType = returnTypeName(signature.getOutput());
-        String inputType = typeName(signature.getInput());
-        return "_I" + newName + "_" + returnType + inputType;
-    }
-
-    public String methodName(String name, String className, TypeSymTableFunc signature) {
-        String newName = name.replaceAll("_", "__");
-        String newClassName = className.replaceAll("_", "__");
-        String returnType = returnTypeName(signature.getOutput());
-        String inputType = typeName(signature.getInput());
-        return "_I_" + newClassName + "_" + newName + "_" + returnType + inputType;
     }
 
     public String globalName(String name, TypeTTau signature) {

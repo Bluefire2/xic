@@ -1,12 +1,12 @@
 package kc875.asm.visit;
 
-import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 import kc875.asm.*;
+import kc875.asm.visit.RegAllocationOptimVisitor.SpillMode;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.*;
@@ -307,7 +307,6 @@ public class RegAllocationColoringVisitorTest {
     }
 
     //test coloring for simple program that requires spilling
-    //TODO spilling too many temps
     @Test
     public void testColoringSimpleSpillReserve() {
         //should fail to color 12 live vars - 3 unique temps spilled

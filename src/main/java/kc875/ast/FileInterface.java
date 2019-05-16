@@ -54,17 +54,12 @@ public class FileInterface extends FileSource {
         this.funcDecls = funcDecls;
         this.signatures = new ArrayList<>();
         this.class_signatures = new ArrayList<>();
-        //TODO currently uses placeholders
         funcDecls.forEach((d) -> signatures.add(d.getSignature()));
         classes.forEach((d) -> class_signatures.add(new Pair<>(d.getName(), d)));
     }
 
     public List<FuncDecl> getFuncDecls() {
         return funcDecls;
-    }
-
-    public void addFuncDecl(FuncDecl funcDecl) {
-        funcDecls.add(funcDecl);
     }
 
     public void prettyPrint(CodeWriterSExpPrinter w) {
@@ -85,10 +80,6 @@ public class FileInterface extends FileSource {
         w.endList();
     }
 
-    public List<Pair<String, TypeSymTable>> getSignatures() {
-        return signatures;
-    }
-
     public List<ClassDecl> getClassDecls() {
         return classDecls;
     }
@@ -101,9 +92,5 @@ public class FileInterface extends FileSource {
     @Override
     public IRNode accept(IRTranslationVisitor visitor) {
         return visitor.visit(this);
-    }
-
-    public List<Pair<String, ClassDecl>> getClassSignatures() {
-        return class_signatures;
     }
 }

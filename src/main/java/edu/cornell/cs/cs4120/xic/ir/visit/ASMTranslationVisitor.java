@@ -1021,7 +1021,7 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
                     testJumpNEtoLabel(t, node.trueLabel(), instrs);
                     return null;
                 },
-                illegalAccessErrorLambda(), //TODO
+                illegalAccessErrorLambda(),
                 (IRTemp c) -> {
                     ASMExprTemp t = toASM(c);
                     testJumpNEtoLabel(t, node.trueLabel(), instrs);

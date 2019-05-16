@@ -36,8 +36,6 @@ public abstract class SymbolTableTest {
         assertEquals(table.lookup("a"), "A");
     }
 
-    // TODO: add stress tests
-
     @Before
     public void setUp() {
         table = createInstance();
