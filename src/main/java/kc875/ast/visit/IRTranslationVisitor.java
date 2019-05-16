@@ -115,11 +115,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
                 // add all methods that are defined in the class (not inherited/overridden)
                 ClassXi clazz = classes.get(className);
+                dvLayout.add("dummyFunc_" + className);
                 for (FuncDecl methodDecl : clazz.getMethodDecls()) {
                     String methodName = methodDecl.getName();
 
-                    // add to DV layout
-                    dvLayout.add(methodName);
+                    // add to DV layout if new method is being defined in clazz
+                    if (!dvLayout.contains(methodName))
+                        // This is linear, but the length of the list (dv
+                        // layout) is not expected to be large
+                        dvLayout.add(methodName);
 
                     // add to method map (since this class defines the method)
                     methodMap.put(methodName, className);
