@@ -1459,11 +1459,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     .collect(Collectors.toSet());
 
             // num of times sup method seen
-            int numSupMeth = 0;
             for (int i = 0; i < dvLayout.size(); i++){
                 String methodName = dvLayout.get(i);
                 if (methodName.startsWith(IMPL_DV_CELL_NAME)) {
-                    numSupMeth = 1;// start of a super method, seen the dummy
                     continue;
                 }
                 //only copy if method is not overridden
@@ -1477,7 +1475,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                             new IRMem(
                                     new IRBinOp(OpType.ADD,
                                             new IRTemp(superClassVT_),
-                                            new IRConst(numSupMeth * 8)))
+                                            new IRConst(i * 8)))
                     ));
                 } else {
                     //[classVT + offset] <- methodLabel
@@ -1493,7 +1491,6 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                             new IRName(mLabelName)
                     ));
                 }
-                numSupMeth++;
             }
         } catch (Maybe.NoMaybeValueException e) {//no superclasses
             body.add(new IRMove(

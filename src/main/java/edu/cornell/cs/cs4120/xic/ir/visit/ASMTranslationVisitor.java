@@ -835,10 +835,11 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
 
         instrs.add(new ASMInstrComment("CALL_END"));
 
-        // Move rax into destreg
-        instrs.add(new ASMInstr_2Arg(
-                ASMOpCode.MOV, destreg, new ASMExprTemp("_RET0")
-        ));
+        if (node.getNumRets() > 0)
+            // Move rax into destreg
+            instrs.add(new ASMInstr_2Arg(
+                    ASMOpCode.MOV, destreg, new ASMExprTemp("_RET0")
+            ));
         return instrs;
     }
 
@@ -1186,7 +1187,10 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         ASMExpr x = asmExprOfMemOrTemp(dest, instrs);
         ASMExprTemp t = new ASMExprTemp(newTemp());
         instrs.addAll(src.accept(this, t));
-        instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, x, t));
+        if (!(src instanceof IRCall && ((IRCall) src).getNumRets() == 0)) {
+            // not a procedure call, the dest is important, mov x, t
+            instrs.add(new ASMInstr_2Arg(ASMOpCode.MOV, x, t));
+        }
     }
 
     public List<ASMInstr> visit(IRMove node) {
