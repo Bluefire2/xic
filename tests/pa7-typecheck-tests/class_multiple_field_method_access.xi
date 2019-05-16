@@ -21,7 +21,7 @@ class C {
 class B extends A {
     afield: A
     b: int
-    cs: C[b]
+    cs: C[3]
     fb(): int { return 'b' }
     initB(a_: int, afield_: A, b_: int): B {
         _ = initA(a_)
@@ -29,7 +29,7 @@ class B extends A {
         b = b_
 
         i: int = 0
-        while (i < b) {
+        while (i < 3) {
             cs[i] = new C.initC(i)
             i = i + 1
         }
@@ -40,7 +40,7 @@ class B extends A {
     }
 }
 
-f() {
+main(args:int[][]) {
     aobj_inB: A = new A.initA(1)
     bobj: B = new B.initB(0, aobj_inB, 2)
 

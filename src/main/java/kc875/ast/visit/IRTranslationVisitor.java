@@ -57,6 +57,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // ordered layouts of dispatch vectors for each class
     private Map<String, List<String>> dispatchVectorLayouts;
 
+    // maps class names to all stmt decls accessible by the class
+    private Map<String, List<StmtDecl>> classAllStmtDecls;
+
     private String newLabel() {
         return String.format("_mir_l%d", (labelcounter++));
     }
@@ -106,6 +109,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             this.classAllFields = new HashMap<>();
             this.furthestParents = new HashMap<>();
             this.closestInterfaceParents = new HashMap<>();
+            this.classAllStmtDecls = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
                 if (className.equals(CLASS_SUPER_PARENT)) {
@@ -117,6 +121,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 List<String> dvLayout = new ArrayList<>();
                 Map<String, String> methodMap = new HashMap<>();
                 List<String> allFields = new ArrayList<>();
+                List<StmtDecl> allStmtDecls = new ArrayList<>();
                 // build on the parent's dispatch vector and method map, if a parent exists
                 try {
                     // get the parent class, if it exists
@@ -135,6 +140,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     // inherit the parent's known field layout
                     allFields.addAll(
                             this.classAllFields.get(parent)
+                    );
+
+                    // inherit the parent's stmtdecls
+                    allStmtDecls.addAll(
+                            this.classAllStmtDecls.get(parent)
                     );
 
                     // if the class is an interface, its closes interface parent is itself
@@ -172,11 +182,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
                 for (StmtDecl field : clazz.getFields()) {
                     allFields.addAll(field.varsOf());
+                    allStmtDecls.add(field);
                 }
 
                 this.dispatchVectorLayouts.put(className, dvLayout);
                 this.classMethodDefinitions.put(className, methodMap);
                 this.classAllFields.put(className, allFields);
+                this.classAllStmtDecls.put(className, allStmtDecls);
             }
         }
     }
@@ -779,6 +791,29 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRTemp(returnValueName(0)));
     }
 
+    private IRMem getFieldOffset(IRExpr obj,
+                                 String className,
+                                 String fieldName,
+                                 List<IRStmt> seq) {
+        String t = newTemp();
+        seq.add(new IRMove(new IRTemp(t), obj));
+
+        int idxField = this.classAllFields.get(className).indexOf(fieldName);
+        Maybe<String> cWithSizeNotAvail = this.closestInterfaceParents.get(className);
+
+        IRExpr offsetObjLayoutAccess = cWithSizeNotAvail.to(
+                interfaceName -> (IRExpr) new IRName(classSizeLoc(interfaceName))
+        ).otherwise(new IRConst(8));
+
+        seq.add(new IRMove(new IRTemp(t), new IRBinOp(
+                OpType.ADD, new IRTemp(t), offsetObjLayoutAccess
+        )));
+
+        return new IRMem(new IRBinOp(OpType.ADD,
+                new IRTemp(t), new IRConst(idxField * 8)
+        ));
+    }
+
     @Override
     public IRExpr visit(ExprId node) {
         if (global_names.contains(node.getName())) {
@@ -787,38 +822,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         } else if (inClass && currentClass.getFieldNames().contains(node.getName())) {
             //treat like a field access for "this"
             List<IRStmt> seq = new ArrayList<>();
-            String fieldName = node.getName();
-            String className = currentClass.getName();
-            while (!classFields.get(className).contains(fieldName)){
-                try {
-                    className = classHierarchy.get(className).get();
-                } catch (Maybe.NoMaybeValueException e) {
-                    break;
-                }
-            }
-            String classSize = classSizeLoc(className);
-            String t = newTemp(); //move this into temp t
-            seq.add(new IRMove(new IRTemp(t), new IRTemp("this")));
-            //t is the location of obj
-
-            //get n-th to last field by adding size and then subtracting field idx from back
-            seq.add(new IRMove(
-                    new IRTemp(t),
-                    new IRBinOp(OpType.ADD,
-                            new IRTemp(t),
-                            new IRMem(new IRName(classSize))
-                    )
-            ));
-            seq.add(new IRMove(
-                    new IRTemp(t),
-                    new IRBinOp(OpType.ADD,
-                            new IRTemp(t),
-                            new IRConst(classFieldOffsetFromBack(className, fieldName) -8)
-                    )
-            ));
-            //t is now the location of the field data
-            //eval to a mem because we want this to be compatible with IRMoves
-            return new IRESeq(new IRSeq(seq), new IRMem(new IRTemp(t)));
+            IRMem fieldLoc = getFieldOffset(
+                    new IRTemp("this"), currentClass.getName(),
+                    node.getName(), seq
+            );
+            return new IRESeq(new IRSeq(seq), fieldLoc);
         }
         return new IRTemp(node.getName());
     }
@@ -891,10 +899,52 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRName(dispatchVectorLoc(className))
         );
 
-        return new IRESeq(
-                new IRSeq(baseAllocAddress, storeDV),
-                new IRTemp(objectBaseAddress)
-        );
+        List<IRStmt> stmts = new ArrayList<>();
+        stmts.add(baseAllocAddress);
+        stmts.add(storeDV);
+
+        // Initialize the fields
+        for (StmtDecl field : this.classAllStmtDecls.get(className)) {
+            String fieldName;
+            TypeTTau fieldType;
+
+            if (field instanceof StmtDeclSingle) {
+                StmtDeclSingle s = (StmtDeclSingle) field;
+                fieldName = s.getName();
+                stmts.add(this.visit(s));
+                // Calculate offset for fieldName
+                IRMem fieldLoc = getFieldOffset(
+                        new IRTemp(objectBaseAddress), className, fieldName, stmts
+                );
+                stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
+            } else if (field instanceof StmtDeclAssign) {
+                StmtDeclAssign s = (StmtDeclAssign) field;
+                stmts.add(this.visit(s));
+                List<String> names = s.getNames();
+                for (int i = 0; i < names.size(); i++) {
+                    fieldName = names.get(i);
+                    TypeT t = s.getDecls().get(i).typeOf();
+                    if (t instanceof TypeTTau) {
+                        IRMem fieldLoc = getFieldOffset(
+                                new IRTemp(objectBaseAddress), className, fieldName, stmts
+                        );
+                        stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
+                    }
+                }
+            } else if (field instanceof StmtDeclMulti) {
+                List<String> names = (field).varsOf();
+                for (String name : names) {
+                    fieldName = name;
+                    fieldType = ((StmtDeclMulti) field).getType();
+                    stmts.add(initDecl(fieldName, fieldType));
+                    IRMem fieldLoc = getFieldOffset(
+                            new IRTemp(objectBaseAddress), className, fieldName, stmts
+                    );
+                    stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
+                }
+            }
+        }
+        return new IRESeq(new IRSeq(stmts), new IRTemp(objectBaseAddress));
     }
 
     @Override
@@ -1314,37 +1364,27 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         Expr obj = node.getObj();
         String fieldName = node.getField().getName();
         String className = ((TypeTTauClass) obj.getTypeCheckType()).getName();
-        while (!classFields.get(className).contains(fieldName)){
-            try {
-                className = classHierarchy.get(className).get();
-            } catch (Maybe.NoMaybeValueException e) {
-                break;
-            }
-        }
-        String classSize = classSizeLoc(className);
+
         String t = newTemp();
         IRExpr objExpr = (IRExpr) obj.accept(this);
         seq.add(new IRMove(new IRTemp(t), objExpr));
-        //t is the location of obj
 
-        //get n-th to last field by adding size and then subtracting field idx from back
-        seq.add(new IRMove(
-                new IRTemp(t),
-                new IRBinOp(OpType.ADD,
-                        new IRTemp(t),
-                        new IRMem(new IRName(classSize))
-                )
+        int idxField = this.classAllFields.get(className).indexOf(fieldName);
+        Maybe<String> cWithSizeNotAvail = this.closestInterfaceParents.get(className);
+
+        IRExpr offsetObjLayoutAccess = cWithSizeNotAvail.to(
+                interfaceName -> (IRExpr) new IRName(classSizeLoc(interfaceName))
+        ).otherwise(new IRConst(8));
+
+        seq.add(new IRMove(new IRTemp(t), new IRBinOp(
+                OpType.ADD, new IRTemp(t), offsetObjLayoutAccess
+        )));
+
+        IRMem fieldLoc = new IRMem(new IRBinOp(OpType.ADD,
+                new IRTemp(t), new IRConst(idxField * 8)
         ));
-        seq.add(new IRMove(
-                new IRTemp(t),
-                new IRBinOp(OpType.ADD,
-                        new IRTemp(t),
-                        new IRConst(classFieldOffsetFromBack(className, fieldName) -8)
-                )
-        ));
-        //t is now the location of the field data
-        //eval to a mem because we want this to be compatible with IRMoves
-        return new IRESeq(new IRSeq(seq), new IRMem(new IRTemp(t)));
+
+        return new IRESeq(new IRSeq(seq), fieldLoc);
     }
 
     @Override
