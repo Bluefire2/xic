@@ -1020,23 +1020,31 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 ClassDecl decl = interfaceClasses.get(cName);
                 // Convert list of methods to a set since ordering doesn't
                 // matter for typechecking
-                // method name -> ([(param, paramtype), ...], output)
-                Map<String, Pair<List<Pair<String, TypeTTau>>, TypeT>> declMeths =
+                // method name -> ([paramtype, ...], output)
+                Map<String, Pair<List<TypeTTau>, TypeT>> declMeths =
                         decl.getMethodDecls().stream()
                                 .collect(Collectors.toMap(
                                         Func::getName,
                                         (Func f) -> new Pair<>(
-                                                f.getParams(), f.getOutput()
+                                                f.getParams().stream()
+                                                        .map(Pair::part2)
+                                                        .collect(Collectors.toList()),
+                                                f.getOutput()
                                         )
                                 ));
-                Map<String, Pair<List<Pair<String, TypeTTau>>, TypeT>> cMeths =
+                Map<String, Pair<List<TypeTTau>, TypeT>> cMeths =
                         c.getMethodDecls().stream()
                                 .collect(Collectors.toMap(
                                         Func::getName,
                                         (Func f) -> new Pair<>(
-                                                f.getParams(), f.getOutput()
+                                                f.getParams().stream()
+                                                        .map(Pair::part2)
+                                                        .collect(Collectors.toList()),
+                                                f.getOutput()
                                         )
                                 ));
+                System.out.println(declMeths);
+                System.out.println(cMeths);
                 if (!declMeths.equals(cMeths)) {
                     throw new SemanticError(
                             "Different methods in declaration and definition " +

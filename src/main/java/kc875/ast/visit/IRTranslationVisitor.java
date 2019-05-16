@@ -975,7 +975,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         List<IRStmt> declsInitIR = new ArrayList<>();
         List<IRStmt> moveRetIR = new ArrayList<>();
 
-        if (node.getRhs() instanceof ExprFunctionCall) {
+        if (node.getRhs() instanceof ExprFunctionCall
+                || node.getRhs() instanceof ExprMethodCall) {
             for (int i = 0; i < decls.size(); ++i) {
                 TypeDecl di = decls.get(i);
                 // if di is an underscore, the _RETi is ignored, i.e., don't
