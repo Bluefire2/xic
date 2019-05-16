@@ -302,7 +302,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         func.setSignature(targetSig);
         if (targetSig.getOutput() instanceof TypeTUnit) {
             throw new SemanticError(
-                    String.format("%s is not a function", func),
+                    String.format("%s is not a function", func.getName()),
                     func.getLocation()
             );
         }
