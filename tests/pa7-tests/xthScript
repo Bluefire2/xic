@@ -31,6 +31,7 @@
 xic-ext ("Test -target linux") "-libpath $(testpath) -target linux" {
     class_equality.xi;
     multi-decl.xi;
+    nested_break.xi;
     simple_break.xi;
     simple_class.xi;
     ternary_test.xi;

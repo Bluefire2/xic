@@ -46,8 +46,7 @@ test-unit:	## Run unit tests in the project
 	./gradle_exec.sh --no-daemon test
 
 zip: clean	## Zip Xi Compiler source files into xic.zip
-	# netid of a random group member added to the zip file name
-	zip -r xic-kc875.zip $(GRADLE_SETUP_FILES) Makefile lib src runtime xic-build xic tests/xthScriptBuild $(SUBMIT_TEST_DIRS) -x *.results*
+	zip -r xic.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic tests/xthScriptBuild $(SUBMIT_TEST_DIRS) -x "*.results"
 
 clean:	## Clean temporary build files from the directory
 	rm -rf xic.zip build .gradle ~/bin/xic
