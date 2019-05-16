@@ -31,6 +31,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     // map from class names to their ordered fields (only those declared in that class)
     private Map<String, List<String>> classFields;
+
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
     // a top-down tree representing the class hierarchy
@@ -42,6 +43,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
      * itself).
      */
     private Map<String, Map<String, String>> classMethodDefinitions;
+
+    // maps class names to the class' furthest parent (highest up in the hierarchy); can be the class itself
+    private Map<String, String> furthestParents;
 
     // ordered layouts of dispatch vectors for each class
     private Map<String, List<String>> dispatchVectorLayouts;
@@ -70,13 +74,14 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         if (classes.entrySet().size() != 0) {
             // classes exist
             this.classFields = new HashMap<>();
+
             for (Map.Entry<String, ClassXi> entry : classes.entrySet()) {
                 String className = entry.getKey();
                 ClassXi clazz = entry.getValue();
                 List<String> orderedFields = clazz.getFields().stream()
                         .flatMap((StmtDecl field) -> field.varsOf().stream())
                         .collect(Collectors.toList());
-                classFields.put(className, orderedFields);
+                this.classFields.put(className, orderedFields);
             }
 
             this.classHierarchy = classHierarchy;
@@ -91,6 +96,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
             this.dispatchVectorLayouts = new HashMap<>();
             this.classMethodDefinitions = new HashMap<>();
+            this.furthestParents = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
                 if (className.equals(CLASS_SUPER_PARENT)) {
@@ -102,7 +108,8 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 List<String> dvLayout = new ArrayList<>();
                 Map<String, String> methodMap = new HashMap<>();
                 // build on the parent's dispatch vector and method map, if a parent exists
-                classHierarchy.get(className).thenDo(parent -> {
+                try {
+                    String parent = classHierarchy.get(className).get();
                     // inherit the parent's method map
                     methodMap.putAll(
                             this.classMethodDefinitions.get(parent)
@@ -112,7 +119,13 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     dvLayout.addAll(
                             this.dispatchVectorLayouts.get(parent)
                     );
-                });
+
+                    // the class has a parent, so its furthest parent is its parent's furthest parent
+                    this.furthestParents.put(className, this.furthestParents.get(parent));
+                } catch (Maybe.NoMaybeValueException e) {
+                    // class has no parent, so its furthest parent is itself
+                    this.furthestParents.put(className, className);
+                }
 
                 // add all methods that are defined in the class (not inherited/overridden)
                 ClassXi clazz = classes.get(className);
