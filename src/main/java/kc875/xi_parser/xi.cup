@@ -389,6 +389,10 @@ decl_assign_stmt ::=
     ArrayList<TypeDecl> l = new ArrayList<>();
     l.add(new TypeDeclUnderscore());
     RESULT = new StmtDeclAssign(l, e, uxleft); :}
+| UNDERSCORE:u EQ simple_expr:o DOT func_expr:f {:
+    ArrayList<TypeDecl> l = new ArrayList<>();
+    l.add(new TypeDeclUnderscore());
+    RESULT = new StmtDeclAssign(l, new ExprMethodCall(o, f, oxleft), uxleft); :}
 // To declare multiple variables, with underscores allowed (RHS must be func)
 | type_decl_list:l COMMA type_decl:t EQ func_expr:e {:
     l.add(t);
