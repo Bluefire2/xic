@@ -32,6 +32,10 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // map from class names to their ordered fields (only those declared in that class)
     private Map<String, List<String>> classFields;
 
+    // map from class names to their ordered fields, including fields inherited from parent classes
+    // note that interfaces cannot declare fields, so the list starts from the first non-interface parent
+    private Map<String, List<String>> classAllFields;
+
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
     // a top-down tree representing the class hierarchy
@@ -46,6 +50,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
     // maps class names to the class' furthest parent (highest up in the hierarchy); can be the class itself
     private Map<String, String> furthestParents;
+
+    // maps class names to the class' closest interface parent (lowest in the hierarchy), if one exists
+    private Map<String, Maybe<String>> closestInterfaceParents;
 
     // ordered layouts of dispatch vectors for each class
     private Map<String, List<String>> dispatchVectorLayouts;
@@ -96,7 +103,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
             this.dispatchVectorLayouts = new HashMap<>();
             this.classMethodDefinitions = new HashMap<>();
+            this.classAllFields = new HashMap<>();
             this.furthestParents = new HashMap<>();
+            this.closestInterfaceParents = new HashMap<>();
             for (String className : classHierarchyTraversal) {
                 // skip the top parent node
                 if (className.equals(CLASS_SUPER_PARENT)) {
@@ -107,9 +116,12 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
                 List<String> dvLayout = new ArrayList<>();
                 Map<String, String> methodMap = new HashMap<>();
+                List<String> allFields = new ArrayList<>();
                 // build on the parent's dispatch vector and method map, if a parent exists
                 try {
+                    // get the parent class, if it exists
                     String parent = classHierarchy.get(className).get();
+
                     // inherit the parent's method map
                     methodMap.putAll(
                             this.classMethodDefinitions.get(parent)
@@ -120,31 +132,51 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                             this.dispatchVectorLayouts.get(parent)
                     );
 
-                    // the class has a parent, so its furthest parent is its parent's furthest parent
+                    // inherit the parent's known field layout
+                    allFields.addAll(
+                            this.classAllFields.get(parent)
+                    );
+
+                    // if the class is an interface, its closes interface parent is itself
+                    // otherwise, its closest interface parent is its parent's closest interface parent
+                    if (classes.get(className) instanceof ClassDecl) {
+                        this.closestInterfaceParents.put(className, Maybe.definitely(className));
+                    } else {
+                        this.closestInterfaceParents.put(className, this.closestInterfaceParents.get(parent));
+                    }
+
+                    // the furthest parent is the parent's furthest parent
                     this.furthestParents.put(className, this.furthestParents.get(parent));
                 } catch (Maybe.NoMaybeValueException e) {
-                    // class has no parent, so its furthest parent is itself
+                    // class has no parent, so its closest interface parent is None, and its furthest parent is itself
+                    this.closestInterfaceParents.put(className, Maybe.unknown());
                     this.furthestParents.put(className, className);
                 }
 
-                // add all methods that are defined in the class (not inherited/overridden)
+                // add all fields and methods that are defined in the class (not inherited/overridden)
                 ClassXi clazz = classes.get(className);
                 dvLayout.add(IMPL_DV_CELL_NAME + className);
                 for (FuncDecl methodDecl : clazz.getMethodDecls()) {
                     String methodName = methodDecl.getName();
 
                     // add to DV layout if new method is being defined in clazz
-                    if (!dvLayout.contains(methodName))
+                    if (!dvLayout.contains(methodName)) {
                         // This is linear, but the length of the list (dv
                         // layout) is not expected to be large
                         dvLayout.add(methodName);
+                    }
 
                     // add to method map (since this class defines the method)
                     methodMap.put(methodName, className);
                 }
 
+                for (StmtDecl field : clazz.getFields()) {
+                    allFields.addAll(field.varsOf());
+                }
+
                 this.dispatchVectorLayouts.put(className, dvLayout);
-                classMethodDefinitions.put(className, methodMap);
+                this.classMethodDefinitions.put(className, methodMap);
+                this.classAllFields.put(className, allFields);
             }
         }
     }
