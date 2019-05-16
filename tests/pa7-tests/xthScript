@@ -29,6 +29,7 @@
 # xth runs the commands in order of appearance.
 
 xic-ext ("Test -target linux") "-libpath $(testpath) -target linux" {
+    class_equality.xi;
     multi-decl.xi;
     simple_break.xi;
     simple_class.xi;
