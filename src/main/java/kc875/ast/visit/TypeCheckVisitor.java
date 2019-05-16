@@ -56,19 +56,49 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         for (Map.Entry<String, ClassXi> e : classNameToClassMap.entrySet()) {
             String c = e.getKey();
             ClassXi clazz = e.getValue();
-            List<FuncDecl> methods = interfaceClasses.containsKey(c)
-                    // If this class was defined in an interface, use that
-                    // ordering for methods
-                    ? interfaceClasses.get(c).getMethodDecls()
-                    // class not defined in any interfaces, use module's ordering
-                    : clazz.getMethodDecls();
-            classes.put(c, new ClassDecl(
-                    clazz.getName(),
-                    clazz.getSuperClass(),
-                    clazz.getFields(),
-                    methods,
-                    clazz.getLocation()
-            ));
+
+            ClassXi newClass;
+            if (interfaceClasses.containsKey(c)) {
+                // If this class was defined in an interface, use that
+                // ordering for methods
+                if (clazz instanceof ClassDefn) {
+                    // clazz is a definition, so return a ClassDefn but with
+                    // the order as per the interface
+                    List<FuncDefn> currDefns =
+                            ((ClassDefn) clazz).getMethodDefns();
+
+                    List<String> methTargetOrdering = interfaceClasses.get(c)
+                            .getMethodDecls().stream()
+                            .map(Func::getName).collect(Collectors.toList());
+                    List<String> methCurrentOrdering = currDefns
+                            .stream().map(Func::getName)
+                            .collect(Collectors.toList());
+
+                    List<FuncDefn> orderedDefns = new ArrayList<>();
+                    for (String meth : methTargetOrdering) {
+                        // TODO: this is highly inefficient but oh well (it's
+                        //  like selection sort)
+                        orderedDefns.add(currDefns.get(
+                                methCurrentOrdering.indexOf(meth)
+                        ));
+                    }
+                    newClass = new ClassDefn(
+                            clazz.getName(),
+                            clazz.getSuperClass(),
+                            clazz.getFields(),
+                            orderedDefns,
+                            clazz.getLocation()
+                    );
+                } else {
+                    // clazz is an interface, so retain this ordering
+                    newClass = clazz;
+                }
+            } else {
+                // clazz not defined in an interface, so use the module's
+                // ordering
+                newClass = clazz;
+            }
+            classes.put(c, newClass);
         }
         return classes;
     }
