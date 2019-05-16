@@ -9,7 +9,6 @@ import org.junit.Test;
 import polyglot.util.Pair;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -548,53 +547,6 @@ public class ASMTranslationVisitorTest {
                 ),
                 instrs.get(0)
         );
-    }
-
-    private String instrsToString(List<ASMInstr> a) {
-        String s = "";
-        for (ASMInstr instr : a) {
-            s += a.toString();
-        }
-        return s;
-    }
-
-    @Test
-    public void testFunctionCall_Simple() {
-        IRFuncDecl f = new IRFuncDecl("_If_iii", 0, 0, new IRSeq(
-                new IRMove(new IRTemp("_ARG0"), new IRTemp("x")),
-                new IRMove(new IRTemp("_ARG1"), new IRTemp("y")),
-                new IRReturn(
-                        new IRBinOp(OpType.ADD,
-                                new IRTemp("x"),
-                                new IRTemp("y")))));
-        IRCall fcall = new IRCall(new IRName("_If_iii"), 1,
-                Arrays.asList(new IRConst(4), new IRConst(5)));
-        List<ASMInstr> expected = new ArrayList<>(Arrays.asList(
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t0"), new ASMExprConst(4)),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t1"), new ASMExprConst(5)),
-                new ASMInstrComment("CALL_START"),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rdi"), new ASMExprTemp("_asm_t0")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rsi"), new ASMExprTemp("_asm_t1")),
-                new ASMInstr_1Arg(ASMOpCode.CALL, new ASMExprName("_If_iii")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_RET0"), new ASMExprReg("rax")),
-                new ASMInstrComment("CALL_END"),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("tmp"), new ASMExprTemp("_RET0")),
-                new ASMInstrLabel("_If_iii"),
-                new ASMInstr_2Arg(ASMOpCode.ENTER, new ASMExprConst(0), new ASMExprConst(0)),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG0"), new ASMExprReg("rdi")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG1"), new ASMExprReg("rsi")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG0"), new ASMExprTemp("x")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_ARG1"), new ASMExprTemp("y")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprTemp("_asm_t2"), new ASMExprTemp("x")),
-                new ASMInstr_2Arg(ASMOpCode.ADD, new ASMExprTemp("_asm_t2"), new ASMExprTemp("y")),
-                new ASMInstr_2Arg(ASMOpCode.MOV, new ASMExprReg("rax"), new ASMExprTemp("_asm_t2")),
-                new ASMInstr_0Arg(ASMOpCode.LEAVE),
-                new ASMInstr_0Arg(ASMOpCode.RET)
-        ));
-        List<ASMInstr> actual = visitor.visit(fcall, new ASMExprTemp("tmp"));
-        List<ASMInstr> b = visitor.visit(f);
-        actual.addAll(b);
-        assertEquals(instrsToString(expected), instrsToString(actual));
     }
 
     @Before

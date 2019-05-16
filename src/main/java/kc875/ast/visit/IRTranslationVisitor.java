@@ -39,7 +39,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     // map from class names to super class names (if a superclass exists)
     private Map<String, Maybe<String>> classHierarchy;
     // a top-down tree representing the class hierarchy
-    @SuppressWarnings ("UnstableApiUsage")
+    @SuppressWarnings("UnstableApiUsage")
     private Traverser<String> classTree;
 
     /* For each class, this contains a map from method names to the earliest
@@ -193,7 +193,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         }
     }
 
-    @SuppressWarnings ("UnstableApiUsage")
+    @SuppressWarnings("UnstableApiUsage")
     private <T> Traverser<T> invertHierarchy(Map<T, Maybe<T>> hierarchy, T superParent) {
         // first, build a graph from the hierarchy
         MutableGraph<T> graph = GraphBuilder.directed().build();
@@ -234,11 +234,11 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     private String dispatchVectorLoc(String className) {
-        return "_I_vt_"+ escapeName(className);
+        return "_I_vt_" + escapeName(className);
     }
 
     private String classSizeLoc(String className) {
-        return "_I_size_"+ escapeName(className);
+        return "_I_size_" + escapeName(className);
     }
 
     public String globalName(String name, TypeTTau signature) {
@@ -817,7 +817,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRExpr visit(ExprId node) {
         if (global_names.contains(node.getName())) {
-            String name = "_I_g_"+ escapeName(node.getName())+"_"+typeName(node.getTypeCheckType());
+            String name = "_I_g_" + escapeName(node.getName()) + "_" + typeName(node.getTypeCheckType());
             return new IRMem(new IRName(name));
         } else if (inClass && currentClass.getFieldNames().contains(node.getName())) {
             //treat like a field access for "this"
@@ -869,9 +869,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 new IRMove(
                         new IRTemp(t),
                         new IRMem(new IRBinOp(
-                            OpType.ADD,
-                            (IRExpr) node.getArray().accept(this),
-                            new IRConst(-WORD_NUM_BYTES))
+                                OpType.ADD,
+                                (IRExpr) node.getArray().accept(this),
+                                new IRConst(-WORD_NUM_BYTES))
                         )
                 ),
                 new IRTemp(t)
@@ -879,7 +879,9 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     }
 
     @Override
-    public IRExpr visit(ExprNull node) {return new IRMem(new IRConst(0)); }
+    public IRExpr visit(ExprNull node) {
+        return new IRMem(new IRConst(0));
+    }
 
     @Override
     public IRExpr visit(ExprNew node) {
@@ -903,45 +905,36 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
         stmts.add(baseAllocAddress);
         stmts.add(storeDV);
 
-        // Initialize the fields
+        // Initialize the fields when the fields are arrays
         for (StmtDecl field : this.classAllStmtDecls.get(className)) {
             String fieldName;
-            TypeTTau fieldType;
 
             if (field instanceof StmtDeclSingle) {
                 StmtDeclSingle s = (StmtDeclSingle) field;
-                fieldName = s.getName();
-                stmts.add(this.visit(s));
-                // Calculate offset for fieldName
-                IRMem fieldLoc = getFieldOffset(
-                        new IRTemp(objectBaseAddress), className, fieldName, stmts
-                );
-                stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
-            } else if (field instanceof StmtDeclAssign) {
-                StmtDeclAssign s = (StmtDeclAssign) field;
-                stmts.add(this.visit(s));
-                List<String> names = s.getNames();
-                for (int i = 0; i < names.size(); i++) {
-                    fieldName = names.get(i);
-                    TypeT t = s.getDecls().get(i).typeOf();
-                    if (t instanceof TypeTTau) {
-                        IRMem fieldLoc = getFieldOffset(
-                                new IRTemp(objectBaseAddress), className, fieldName, stmts
-                        );
-                        stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
-                    }
+                if (s.getDecl().getType() instanceof TypeTTauArray) {
+                    fieldName = s.getName();
+                    stmts.add(this.visit(s));
+                    // Calculate offset for fieldName
+                    IRMem fieldLoc = getFieldOffset(
+                            new IRTemp(objectBaseAddress), className, fieldName, stmts
+                    );
+                    stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
                 }
-            } else if (field instanceof StmtDeclMulti) {
+            } else if (field instanceof StmtDeclMulti
+                    && ((StmtDeclMulti) field).getType() instanceof TypeTTauArray) {
                 List<String> names = (field).varsOf();
                 for (String name : names) {
                     fieldName = name;
-                    fieldType = ((StmtDeclMulti) field).getType();
+                    TypeTTau fieldType = ((StmtDeclMulti) field).getType();
                     stmts.add(initDecl(fieldName, fieldType));
                     IRMem fieldLoc = getFieldOffset(
                             new IRTemp(objectBaseAddress), className, fieldName, stmts
                     );
                     stmts.add(new IRMove(fieldLoc, new IRTemp(fieldName)));
                 }
+            } else if (field instanceof StmtDeclAssign) {
+                throw new IllegalStateException("Fields should not be " +
+                        "initialized with a right hand side");
             }
         }
         return new IRESeq(new IRSeq(stmts), new IRTemp(objectBaseAddress));
@@ -1347,7 +1340,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
     @Override
     public IRSeq visit(StmtDeclMulti node) {
         List<IRStmt> s = new ArrayList<>();
-        for (String v:node.varsOf()) {
+        for (String v : node.varsOf()) {
             s.add(initDecl(v, node.getType()));
         }
         return new IRSeq(s);
@@ -1520,7 +1513,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
 
             String t = newTemp(); //size = superClassSize + n_fields
             body.add(new IRMove(
-                            new IRTemp(t),
+                    new IRTemp(t),
                     new IRMem(new IRName(superClassSize)))
             );
             body.add(new IRMove(
@@ -1545,7 +1538,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                     .collect(Collectors.toSet());
 
             // num of times sup method seen
-            for (int i = 0; i < dvLayout.size(); i++){
+            for (int i = 0; i < dvLayout.size(); i++) {
                 String methodName = dvLayout.get(i);
                 if (methodName.startsWith(IMPL_DV_CELL_NAME)) {
                     String dummyClassName = methodName.substring(
