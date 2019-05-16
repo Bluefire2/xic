@@ -1463,7 +1463,15 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             for (int i = 0; i < dvLayout.size(); i++){
                 String methodName = dvLayout.get(i);
                 if (methodName.startsWith(IMPL_DV_CELL_NAME)) {
-                    continue;
+                    String dummyClassName = methodName.substring(
+                            methodName.indexOf("_") + 1
+                    );
+                    if (c.getName().equals(dummyClassName))
+                        // our implementation for the dummy function is 0,
+                        // when we encounter the function being defined
+                        continue;
+                    // else this dummy needs to be copied from the outside
+                    // implementation
                 }
                 //only copy if method is not overridden
                 if (!defMethods.contains(methodName)) {
@@ -1481,7 +1489,7 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
                 } else {
                     //[classVT + offset] <- methodLabel
                     FuncDefn m = c.getMethodDefn(methodName);
-                    String mLabelName = methodName(m.getName(),
+                    String mLabelName = methodName(methodName,
                             new TypeTTauClass(c.getName()),
                             (TypeSymTableFunc) m.getSignature().part2());
                     body.add(new IRMove(
@@ -1500,18 +1508,24 @@ public class IRTranslationVisitor implements ASTVisitor<IRNode> {
             );
             String t = newTemp();
             body.add(new IRMove(new IRTemp(t), new IRName(classVt)));
-            for (int i = 0; i<c.getMethodDefns().size(); i++) {
-                FuncDefn m = c.getMethodDefns().get(i);
-                String mLabelName = methodName(
-                        m.getName(), new TypeTTauClass(c.getName()),
-                        (TypeSymTableFunc) m.getSignature().part2()
-                );
+
+            List<String> dvLayout = dispatchVectorLayouts.get(c.getName());
+            for (int i = 0; i < dvLayout.size(); i++) {
+                String methodName = dvLayout.get(i);
+                if (methodName.startsWith(IMPL_DV_CELL_NAME)) {
+                    continue;
+                }
+                // Actual method, add to dv
+                FuncDefn m = c.getMethodDefn(methodName);
+                String mLabelName = methodName(methodName,
+                        new TypeTTauClass(c.getName()),
+                        (TypeSymTableFunc) m.getSignature().part2());
                 //[classVT + offset] <- methodLabel
                 body.add(new IRMove(
                         new IRMem(
                                 new IRBinOp(OpType.ADD,
                                         new IRTemp(t),
-                                        new IRConst(i * 8 + 8))),
+                                        new IRConst(i * 8))),
                         new IRName(mLabelName)
                 ));
             }

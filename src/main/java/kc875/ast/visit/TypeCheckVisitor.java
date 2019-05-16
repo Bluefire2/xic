@@ -1043,8 +1043,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                                                 f.getOutput()
                                         )
                                 ));
-                System.out.println(declMeths);
-                System.out.println(cMeths);
                 if (!declMeths.equals(cMeths)) {
                     throw new SemanticError(
                             "Different methods in declaration and definition " +
