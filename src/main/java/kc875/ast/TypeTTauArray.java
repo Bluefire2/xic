@@ -3,8 +3,6 @@ package kc875.ast;
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 
 public class TypeTTauArray extends TypeTTau {
-    // TODO: The prospect of tau being null might result in
-    //  NullPointerExceptions from many functions in this class
     private TypeTTau typeTTau; //if null, then the list is empty and matches any type
     private Expr size = null;
 
@@ -48,21 +46,6 @@ public class TypeTTauArray extends TypeTTau {
             size.prettyPrint(w);
         }
         w.endList();
-    }
-
-    @Override
-    public boolean subtypeOf(TypeT t) {
-        if (t instanceof TypeTUnit) {
-            return true;
-        }
-        if (!(t instanceof TypeTTauArray)) {
-            return false;
-        }
-        TypeTTauArray ta = (TypeTTauArray) t;
-        if (ta.typeTTau == null || this.typeTTau == null){
-            return true;
-        }
-        return this.typeTTau.subtypeOf(ta.typeTTau);
     }
 
     @Override

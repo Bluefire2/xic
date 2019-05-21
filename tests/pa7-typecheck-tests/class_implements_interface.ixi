@@ -1,0 +1,8 @@
+class A {
+    fa(p: int): bool
+}
+
+class B extends A {
+    fb(p: int): int
+    fb_(p: bool)
+}

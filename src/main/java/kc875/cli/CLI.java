@@ -1,6 +1,7 @@
 package kc875.cli;
 
 import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
+import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRCompUnit;
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
 import edu.cornell.cs.cs4120.xic.ir.IRNodeFactory_c;
@@ -8,11 +9,9 @@ import edu.cornell.cs.cs4120.xic.ir.interpret.IRSimulator;
 import edu.cornell.cs.cs4120.xic.ir.visit.*;
 import java_cup.runtime.Symbol;
 import kc875.asm.ASMInstr;
-import kc875.asm.visit.ASMCopyPropagationVisitor;
-import kc875.asm.visit.ASMDeadCodeEliminationVisitor;
-import kc875.asm.visit.RegAllocationNaiveVisitor;
-import kc875.asm.visit.RegAllocationOptimVisitor;
+import kc875.asm.visit.*;
 import kc875.ast.ASTNode;
+import kc875.ast.FileProgram;
 import kc875.ast.Printable;
 import kc875.ast.visit.IRTranslationVisitor;
 import kc875.ast.visit.TypeCheckVisitor;
@@ -174,9 +173,16 @@ public class CLI implements Runnable {
     @Option(names = {"-O-no-dce"}, hidden = true)
     private boolean Onodce = false;
 
+    @Option(names = {"-noextension"}, hidden = true)
+    private boolean langExtension = false;
+
     @Parameters(arity = "0..*", paramLabel = "FILE",
             description = "File(s) to process.")
     private File[] optInputFiles;
+
+    private static TypeCheckVisitor typeCheckVisitor;
+    private Map<String, List<String>> dispatchVectorLayouts;
+    private FileProgram fileProgram;
 
     /**
      * Returns -1 if path not found, 0 otherwise.
@@ -364,14 +370,29 @@ public class CLI implements Runnable {
         }
     }
 
-    private ASTNode buildAST(FileReader fileReader) throws Exception {
+    private ASTNode buildAST(FileReader fileReader, String inputFilePath) throws Exception {
         XiTokenFactory xtf = new XiTokenFactory();
         XiLexer lexer = new XiLexer(fileReader, xtf);
-        XiParser parser = new XiParser(lexer, xtf);
+        java_cup.runtime.lr_parser parser;
+        if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
+            parser = new IxiParser(lexer, xtf);
+        } else {
+            parser = new XiParser(lexer, xtf);
+        }
         ASTNode root = (ASTNode) parser.parse().value;
-        root.accept(new TypeCheckVisitor(
-                new HashMapSymbolTable<>(), libPath.toString()
-        ));
+
+        CLI.typeCheckVisitor = new TypeCheckVisitor(
+                new HashMapSymbolTable<>(), inputFilePath, libPath.toString()
+        );
+        if (FilenameUtils.getExtension(inputFilePath).equals("ixi")) {
+            // Parser loses info about the file name. If an interface is
+            // being typechecked, need to add the interface's name to the
+            // set of visited ones
+            CLI.typeCheckVisitor.visitedInterfaces.add(
+                    FilenameUtils.getBaseName(inputFilePath)
+            );
+        }
+        root.accept(CLI.typeCheckVisitor);
         return root;
     }
 
@@ -385,7 +406,7 @@ public class CLI implements Runnable {
             try (FileReader fileReader = new FileReader(inputFilePath);
                  FileWriter fileWriter = new FileWriter(outputFilePath)) {
 
-                buildAST(fileReader);
+                buildAST(fileReader, inputFilePath);
                 fileWriter.write("Valid Xi Program");
             } catch (LexicalError | SyntaxError | SemanticError e) {
                 e.stdoutError(inputFilePath);
@@ -397,10 +418,19 @@ public class CLI implements Runnable {
     }
 
     private IRNode buildIR(File f, FileReader fileReader) throws Exception {
-        ASTNode root = buildAST(fileReader);
+        ASTNode root = buildAST(fileReader, f.getPath());
+
+        //need to use for ASM directives
+        if (!(root instanceof FileProgram))
+            throw new InternalCompilerError(
+                    "IR can only be built for a .xi file"
+            );
+        fileProgram = (FileProgram) root;
+
         String fPath = FilenameUtils.removeExtension(f.getName());
 
         IRNode ir;
+        IRTranslationVisitor tv;
         if (activeOptims.get(Optims.CF) && (
                 activeOptimIRPhases.get(OptimPhases.INITIAL)
                         || activeOptimCFGPhases.get(OptimPhases.INITIAL)
@@ -411,19 +441,29 @@ public class CLI implements Runnable {
             // phase by constructing the LIR with CF switched off. This means
             // we are doing repetitive work, but it's a work around to avoid
             // decoupling CF in IRTranslationVisitor.
-            ir = root.accept(new IRTranslationVisitor(
-                    false, fPath
-            ));
+            tv = new IRTranslationVisitor(
+                    false,
+                    fPath,
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
+            );
+            ir = root.accept(tv);
             ir = new LoweringVisitor(new IRNodeFactory_c()).visit(ir);
         } else {
             // Normal IR translation and lowering
-            IRNode mir = root.accept(new IRTranslationVisitor(
+            tv = new IRTranslationVisitor(
                     activeOptims.get(Optims.CF),
-                    FilenameUtils.removeExtension(f.getName())
-            ));
+                    FilenameUtils.removeExtension(f.getName()),
+                    CLI.typeCheckVisitor.getClassesMapOrdered(),
+                    CLI.typeCheckVisitor.getClassHierarchy()
+            );
+            IRNode mir = root.accept(tv);
             LoweringVisitor lv = new LoweringVisitor(new IRNodeFactory_c());
             ir = lv.visit(mir);
         }
+
+        //need to use for ASM directives
+        dispatchVectorLayouts = tv.getDispatchVectorLayouts();
 
         // CFG Phases
         // INITIAL IR and CFG
@@ -581,11 +621,10 @@ public class CLI implements Runnable {
      * @param fileWriter file writer.
      * @throws IOException when problems with fileWriter.
      */
-    private void asmFilePrologueWrite(FileWriter fileWriter) throws IOException {
-        fileWriter.write(INDENT_ASM + ".intel_syntax noprefix\n");
-        fileWriter.write(INDENT_ASM + ".text\n");
-        fileWriter.write(INDENT_ASM + ".globl" +
-                INDENT_ASM + "_Imain_paai\n");
+    private void asmFilePrologueWrite(FileWriter fileWriter, String file_name) throws IOException {
+        fileWriter.write(".file \""+file_name+"\"\n");
+        fileWriter.write(".intel_syntax noprefix\n");
+        fileWriter.write(".text\n\n");
     }
 
     private void asmGen() {
@@ -671,8 +710,14 @@ public class CLI implements Runnable {
                     }
                 }
 
+                //set up directives
+                ASMDirectivesVisitor dv = new ASMDirectivesVisitor(dispatchVectorLayouts);
+                List<ASMInstr> directives = dv.generateDirectives(fileProgram);
+                instrs.addAll(directives);
+
                 // Write ASM
-                asmFilePrologueWrite(fileWriter);
+                asmFilePrologueWrite(fileWriter,
+                        FilenameUtils.removeExtension(f.getName()) + ".xi");
                 for (ASMInstr i : instrs) {
                     fileWriter.write(i.toString() + "\n");
                 }

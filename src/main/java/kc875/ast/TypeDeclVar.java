@@ -13,6 +13,10 @@ public class TypeDeclVar extends TypeDecl {
         this.pair = pair;
     }
 
+    public TypeDeclVar(String s, TypeTTau t) {
+        this.pair = new Pair<>(s,t);
+    }
+
     @Override
     public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
@@ -35,5 +39,13 @@ public class TypeDeclVar extends TypeDecl {
 
     public Pair<String, TypeTTau> getPair() {
         return pair;
+    }
+
+    public String getName() {
+        return pair.part1();
+    }
+
+    public TypeTTau getType() {
+        return pair.part2();
     }
 }

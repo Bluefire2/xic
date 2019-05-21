@@ -1,5 +1,7 @@
 package kc875.symboltable;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -46,7 +48,7 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
             throw new IllegalStateException("Cannot add type: no scopes have been defined");
         }
 
-        scopes.peek().put(id, typeSymTable); // TODO: should we throw if this ID already exists in the current scope?
+        scopes.peek().put(id, typeSymTable);
     }
 
     @Override
@@ -57,6 +59,15 @@ public class HashMapSymbolTable<T> implements SymbolTable<T> {
     @Override
     public void exitScope() {
         scopes.pop();
+    }
+
+    @Override
+    public ImmutableMap<String, T> scopeView() {
+        if (scopes.empty()) {
+            throw new IllegalStateException("Cannot get view of current scope: no scopes have been defined");
+        }
+
+        return ImmutableMap.copyOf(scopes.peek());
     }
 
     @Override

@@ -5,6 +5,7 @@ import kc875.asm.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
+import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 /**
@@ -12,7 +13,7 @@ import polyglot.util.Pair;
  * sets x = y, with x and y being Temps/Regs; represented as a pair(x, y).
  */
 public class ASMAvailableCopiesDFA extends
-        DFAFramework<SetWithInf<Pair<ASMExprTemp, ASMExprTemp>>, ASMInstr> {
+        DFAFramework<SetWithInf<Pair<ASMExprRT, ASMExprRT>>, ASMInstr> {
 
     public ASMAvailableCopiesDFA(ASMGraph asmGraph) {
         super(
@@ -36,22 +37,21 @@ public class ASMAvailableCopiesDFA extends
         );
     }
 
-    private static SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> gen(
+    private static SetWithInf<Pair<ASMExprRT, ASMExprRT>> gen(
             Graph<ASMInstr>.Node node
     ) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstr_2Arg) {
-            if (instr.getOpCode() == ASMOpCode.MOV
-                    || instr.getOpCode() == ASMOpCode.MOVZX) {
+            if (instr.getOpCode() == ASMOpCode.MOV) {
                 ASMInstr_2Arg ins2 = (ASMInstr_2Arg) instr;
-                if (ins2.getDest() instanceof ASMExprTemp
-                        && ins2.getSrc() instanceof ASMExprTemp) {
+                if (ins2.getDest() instanceof ASMExprRT
+                        && ins2.getSrc() instanceof ASMExprRT) {
                     // x = y; gen (x, y)
-                    SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> s =
+                    SetWithInf<Pair<ASMExprRT, ASMExprRT>> s =
                             new SetWithInf<>();
                     s.add(new Pair<>(
-                            (ASMExprTemp) ins2.getDest(),
-                            (ASMExprTemp) ins2.getSrc()
+                            (ASMExprRT) ins2.getDest(),
+                            (ASMExprRT) ins2.getSrc()
                     ));
                     return s;
                 }
@@ -65,13 +65,13 @@ public class ASMAvailableCopiesDFA extends
      * Postconditions:
      * - The returned set is not infinite.
      */
-    private static SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> lDiffKill(
-            SetWithInf<Pair<ASMExprTemp, ASMExprTemp>> l,
+    private static SetWithInf<Pair<ASMExprRT, ASMExprRT>> lDiffKill(
+            SetWithInf<Pair<ASMExprRT, ASMExprRT>> l,
             Graph<ASMInstr>.Node node
     ) {
         ASMInstr instr = node.getT();
         if (instr instanceof ASMInstrLabel
-                && ((ASMInstrLabel) instr).isFunction()) {
+                && XiUtils.isFunction(((ASMInstrLabel) instr).getName())) {
             // this label is for a function ==> must be the top-level
             // function's label ==> start node; return empty set
             return new SetWithInf<>();
@@ -84,33 +84,43 @@ public class ASMAvailableCopiesDFA extends
             // Ask Anmol if more explanation needed
             return new SetWithInf<>();// kill everything
 
+        SetWithInf<Pair<ASMExprRT, ASMExprRT>> lAfterKill =
+                new SetWithInf<>(l.getSet());
+
+        // Remove (x, *) and (*, x) for all implicit registers x defined by
+        // this instruction
+        instr.implicitDefRegs().forEach(reg -> {
+            lAfterKill.removeIf(p -> p.part1().equals(reg));
+            lAfterKill.removeIf(p -> p.part2().equals(reg));
+        });
+
         if (instr.destHasNewDef()) {
             // dest gets defined (by 2Arg and 1Arg), kill the def
             if (instr instanceof ASMInstr_2Arg) {
                 ASMInstr_2Arg ins2 = (ASMInstr_2Arg) instr;
-                if (ins2.getDest() instanceof ASMExprTemp) {
+                if (ins2.getDest() instanceof ASMExprRT) {
                     // x = e; kill (x, z), (z, x) for any z
-                    ASMExprTemp x = (ASMExprTemp) ins2.getDest();
+                    ASMExprRT x = (ASMExprRT) ins2.getDest();
                     // Remove all elements from l with l.part1() = x
-                    l.removeIf(p -> p.part1().equals(x));
+                    lAfterKill.removeIf(p -> p.part1().equals(x));
                     // Remove all elements from l with l.part2() = x
-                    l.removeIf(p -> p.part2().equals(x));
-                    return l;
+                    lAfterKill.removeIf(p -> p.part2().equals(x));
+                    return lAfterKill;
                 }
             } else if (instr instanceof ASMInstr_1Arg) {
                 ASMInstr_1Arg ins1 = (ASMInstr_1Arg) instr;
-                if (ins1.getArg() instanceof ASMExprTemp) {
+                if (ins1.getArg() instanceof ASMExprRT) {
                     // x = e; kill (x, z), (z, x) for any z
-                    ASMExprTemp x = (ASMExprTemp) ins1.getArg();
+                    ASMExprRT x = (ASMExprRT) ins1.getArg();
                     // Remove all elements from l with l.part1() = x
-                    l.removeIf(p -> p.part1().equals(x));
+                    lAfterKill.removeIf(p -> p.part1().equals(x));
                     // Remove all elements from l with l.part2() = x
-                    l.removeIf(p -> p.part2().equals(x));
-                    return l;
+                    lAfterKill.removeIf(p -> p.part2().equals(x));
+                    return lAfterKill;
                 }
             }
         }
-        return l;// kill nothing
+        return lAfterKill;
     }
 
 }

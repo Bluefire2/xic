@@ -32,8 +32,6 @@ public class TypeTList extends TypeT {
 
     @Override
     public boolean equals(Object obj) {
-        // TODO: equals and subtypeOf have repetitive code: can we do
-        //  something about it?
         if (obj instanceof TypeTList){
             List<TypeTTau> otherTauList = ((TypeTList) obj).getTTauList();
 
@@ -49,29 +47,6 @@ public class TypeTList extends TypeT {
             }
 
             // All taus are equal
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean subtypeOf(TypeT t) {
-        if (t instanceof TypeTList) {
-            List<TypeTTau> otherTauList = ((TypeTList) t).getTTauList();
-
-            // Check the lengths are equal
-            int otherLen = otherTauList.size();
-            if (tTauList.size() != otherLen)
-                return false;
-
-            // Check each tau is subtype
-            for (int i = 0; i < otherLen; ++i) {
-                if (!tTauList.get(i).subtypeOf(otherTauList.get(i)))
-                    return false;
-            }
-
-            // All taus are subtypes of the other taus
             return true;
         } else {
             return false;

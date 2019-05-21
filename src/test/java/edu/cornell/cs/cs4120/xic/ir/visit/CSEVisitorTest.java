@@ -1,10 +1,12 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.*;
+import edu.cornell.cs.cs4120.xic.ir.dfa.IRGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,7 +42,7 @@ public class CSEVisitorTest {
     public void cseEndToEnd1() {
         HashMap<String, IRFuncDecl> funcMap = new LinkedHashMap<>();
         funcMap.put("f", new IRFuncDecl(
-                "f",
+                "f", 0, 0,
                 new IRSeq(
                         new IRMove(new IRTemp("x"),
                                 new IRBinOp(IRBinOp.OpType.ADD,
@@ -68,19 +70,19 @@ public class CSEVisitorTest {
                                 new IRMem(new IRTemp("_cse_t0"))),
                         new IRReturn(new IRTemp("_cse_t0"))
                 );
-        assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 4);
-//        try {
-//            IRGraph graph = new IRGraph(optimized.functions().get("f"));
-//            graph.show("CSETest1graph.dot");
-//        } catch (IOException e) {
-//        }
+       assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 4);
+        try {
+            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+            graph.show("CSETest1graph.dot");
+        } catch (IOException e) {
+        }
     }
 
     @Test
     public void cseEndToEnd2() {
         HashMap<String, IRFuncDecl> funcMap = new LinkedHashMap<>();
         funcMap.put("f", new IRFuncDecl(
-                "f",
+                "f", 0, 0,
                 new IRSeq(
                         new IRMove(new IRTemp("x"),
                                 new IRBinOp(IRBinOp.OpType.ADD,
@@ -119,11 +121,11 @@ public class CSEVisitorTest {
                         new IRReturn(new IRTemp("_cse_t0"))
                 );
         assert (((IRSeq) optimized.functions().get("f").body()).stmts().size() == 6);
-//        try {
-//            IRGraph graph = new IRGraph(optimized.functions().get("f"));
-//            graph.show("CSETest2graph.dot");
-//        } catch (IOException e) {
-//        }
+        try {
+            IRGraph graph = new IRGraph(optimized.functions().get("f"));
+            graph.show("CSETest2graph.dot");
+        } catch (IOException e) {
+        }
     }
 
 }

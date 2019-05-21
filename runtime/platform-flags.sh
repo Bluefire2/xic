@@ -5,6 +5,14 @@
 #
 # Override to force -m32 if autodetection fails
 ABI_FLAG=
+
+# Adds to the ABI flags -no-pie if gcc is >= 5.0.0
+currentver="$(gcc -dumpversion)"
+requiredver="5.0.0"
+if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
+    ABI_FLAG="$ABI_FLAG -fno-pie -no-pie"
+fi
+
 CPU=$(uname -m)
 OS=$(uname)
 # echo "OS = $OS"

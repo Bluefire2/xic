@@ -13,10 +13,14 @@ import java.util.List;
 public class IRFuncDecl extends IRNode_c {
     private String name;
     private IRStmt body;
+    private int numParams;
+    private int numRets;
 
-    public IRFuncDecl(String name, IRStmt body) {
+    public IRFuncDecl(String name, int numParams, int numRets, IRStmt body) {
         this.name = name;
         this.body = body;
+        this.numParams = numParams;
+        this.numRets = numRets;
     }
 
     public String name() {
@@ -25,6 +29,14 @@ public class IRFuncDecl extends IRNode_c {
 
     public IRStmt body() {
         return body;
+    }
+
+    public int getNumParams() {
+        return numParams;
+    }
+
+    public int getNumRets() {
+        return numRets;
     }
 
     @Override
@@ -36,7 +48,9 @@ public class IRFuncDecl extends IRNode_c {
     public IRNode visitChildren(IRVisitor v) {
         IRStmt stmt = (IRStmt) v.visit(this, body);
 
-        if (stmt != body) return v.nodeFactory().IRFuncDecl(name, stmt);
+        if (stmt != body) return v.nodeFactory().IRFuncDecl(
+                name, numParams, numRets, stmt
+        );
 
         return this;
     }

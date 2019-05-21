@@ -1,0 +1,7 @@
+use a
+
+class B extends A {
+    mb()
+}
+
+fb()

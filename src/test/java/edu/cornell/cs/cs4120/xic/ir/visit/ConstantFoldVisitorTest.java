@@ -5,7 +5,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class ConstantFoldVisitorTest {
     private ConstantFoldVisitor visitor;
@@ -49,6 +49,81 @@ public class ConstantFoldVisitorTest {
         );
         IRNode folded = visitor.visit(binOp);
         assertEquals(folded, new IRConst(39));
+    }
+
+    @Test
+    public void zeroBinOpTest() {
+        IRBinOp binOp = new IRBinOp(
+                IRBinOp.OpType.ADD,
+                new IRBinOp(
+                        IRBinOp.OpType.MUL,
+                        new IRBinOp(
+                                IRBinOp.OpType.DIV,
+                                new IRConst(0),
+                                new IRTemp("c")
+                        ),
+                        new IRTemp("b")
+                ),
+                new IRBinOp(
+                        IRBinOp.OpType.MUL,
+                        new IRTemp("a"),
+                        new IRConst(0)
+                )
+        );
+        IRNode folded = visitor.visit(binOp);
+        assertEquals(folded, new IRConst(0));
+    }
+
+    @Test
+    public void identityBinOpTest() {
+        IRBinOp binOp = new IRBinOp(
+                IRBinOp.OpType.ADD,
+                new IRBinOp(
+                        IRBinOp.OpType.ADD,
+                        new IRConst(0),
+                        new IRTemp("b")
+                ),
+                new IRBinOp(
+                        IRBinOp.OpType.MUL,
+                        new IRTemp("a"),
+                        new IRConst(1)
+                )
+        );
+        IRNode folded = visitor.visit(binOp);
+        IRBinOp expected = new IRBinOp(
+                IRBinOp.OpType.ADD,
+                new IRTemp("b"),
+                new IRTemp("a")
+        );
+        assertEquals(folded, expected);
+    }
+
+    @Test
+    public void identityBinOpTest2() {
+        IRBinOp binOp = new IRBinOp(
+                IRBinOp.OpType.OR,
+                new IRBinOp(
+                        IRBinOp.OpType.SUB,
+                        new IRConst(0),
+                        new IRTemp("b")
+                ),
+                new IRBinOp(
+                        IRBinOp.OpType.SUB,
+                        new IRTemp("a"),
+                        new IRConst(0)
+                )
+        );
+        IRNode folded = visitor.visit(binOp);
+        IRBinOp expected = new IRBinOp(
+                IRBinOp.OpType.OR,
+                new IRBinOp(
+                        IRBinOp.OpType.SUB,
+                        new IRConst(0),
+                        new IRTemp("b")
+                ),
+                new IRTemp("a")
+        );
+        assertEquals(folded, expected);
     }
 
     @Test

@@ -28,13 +28,6 @@ public class ASMInstrLabel extends ASMInstr {
         return v.visit(this);
     }
 
-    /**
-     * Returns true if this label is for a function, false otherwise.
-     */
-    public boolean isFunction() {
-        return name.startsWith("_I"); // based on the ABI spec
-    }
-
     @Override
     public Set<ASMExprReg> implicitDefRegs() {
         return new HashSet<>();

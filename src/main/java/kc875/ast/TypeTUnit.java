@@ -14,11 +14,6 @@ public class TypeTUnit extends TypeT {
     }
 
     @Override
-    public boolean subtypeOf(TypeT t) {
-        return t instanceof TypeTUnit;
-    }
-
-    @Override
     public boolean equals(Object obj) {
         return obj instanceof TypeTUnit;
     }

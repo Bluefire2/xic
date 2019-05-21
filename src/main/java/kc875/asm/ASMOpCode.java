@@ -19,15 +19,11 @@ public enum ASMOpCode {
     XOR,
     NOT,
 
-    //Shift and rotate
-    SHR,
-    SHL,
-    SAR,
-
     //Data transfer
     MOV,
     MOVABS,
     MOVZX,
+    CQO,
     PUSH,
     POP,
 
@@ -45,6 +41,7 @@ public enum ASMOpCode {
     JGE,
     JL,
     JLE,
+    JAE,
 
     SETE,
     SETNE,
@@ -57,11 +54,16 @@ public enum ASMOpCode {
     LEAVE,
 
     //comments
-    COMMENT;
+    COMMENT,
+
+    //. (for directives)
+    DOT,
+
+    LEA;
 
     @Override
     public String toString() {
-        return this.name().toLowerCase();
+        return this == DOT ? "." : this.name().toLowerCase();
     }
 
     /**
@@ -92,11 +94,9 @@ public enum ASMOpCode {
             case XOR:
                 return ASMOpCode.XOR;
             case LSHIFT:
-                return ASMOpCode.SHL;
             case RSHIFT:
-                return ASMOpCode.SHR;
             case ARSHIFT:
-                return ASMOpCode.SAR;
+                throw new InternalCompilerError(op + " not supported");
             default:
                 throw new InternalCompilerError("Cannot translate op type");
         }

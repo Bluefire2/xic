@@ -14,5 +14,5 @@ public enum Binop {
     GTEQ,
     LTEQ,
     AND,
-    OR
+    OR,
 }

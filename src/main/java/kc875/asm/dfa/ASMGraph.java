@@ -13,7 +13,7 @@ public class ASMGraph extends Graph<ASMInstr> {
     private BiMap<Graph<ASMInstr>.Node, ASMInstr> nodeInstrMap;
 
     private static Set<ASMOpCode> noFallthrough = new HashSet<>(
-            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET) // TODO
+            Arrays.asList(ASMOpCode.JMP, ASMOpCode.RET)
     );
 
     private static Set<ASMOpCode> jumps = new HashSet<>(
@@ -24,7 +24,8 @@ public class ASMGraph extends Graph<ASMInstr> {
                     ASMOpCode.JGE,
                     ASMOpCode.JL,
                     ASMOpCode.JLE,
-                    ASMOpCode.JNE
+                    ASMOpCode.JNE,
+                    ASMOpCode.JAE
             )
     );
 
@@ -77,7 +78,6 @@ public class ASMGraph extends Graph<ASMInstr> {
 
             // we need to add another edge to the jumped-to node!
             if (instr instanceof ASMInstr_1Arg) {
-                // TODO: change for A7 since we'll be able to jump to non-labels
                 ASMExprName arg = (ASMExprName) ((ASMInstr_1Arg) instr).getArg();
 
                 // If the arg is not for a function, then we can jump to it

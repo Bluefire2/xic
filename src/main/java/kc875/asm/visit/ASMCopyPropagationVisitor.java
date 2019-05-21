@@ -22,7 +22,7 @@ public class ASMCopyPropagationVisitor {
         ASMAvailableCopiesDFA dfa = new ASMAvailableCopiesDFA(graph);
         dfa.runWorklistAlgo();
 
-        Map<Graph<ASMInstr>.Node, SetWithInf<Pair<ASMExprTemp, ASMExprTemp>>>
+        Map<Graph<ASMInstr>.Node, SetWithInf<Pair<ASMExprRT, ASMExprRT>>>
                 nodeToCopies = dfa.getInMap();
 
         List<ASMInstr> optimFunc = new ArrayList<>();
@@ -40,9 +40,18 @@ public class ASMCopyPropagationVisitor {
 
     private ASMInstr replaceExprTempsWithCopiesInInstr(
             ASMInstr instr,
-            Map<ASMExprTemp, ASMExprTemp> copies
+            Map<ASMExprRT, ASMExprRT> copies
     ) {
-        if (instr instanceof ASMInstr_1Arg) {
+        if (instr instanceof ASMInstr_1ArgCall) {
+            ASMInstr_1ArgCall i = (ASMInstr_1ArgCall) instr;
+            return new ASMInstr_1ArgCall(
+                    !i.destHasNewDef()
+                            ? replaceExprTempsWithCopies(i.getArg(), copies)
+                            : i.getArg(),
+                    i.getNumParams(),
+                    i.getNumRets()
+            );
+        } else if (instr instanceof ASMInstr_1Arg) {
             return new ASMInstr_1Arg(
                     instr.getOpCode(),
                     // only replace arg with copy if no this instr is not def
@@ -72,10 +81,10 @@ public class ASMCopyPropagationVisitor {
 
     private ASMExpr replaceExprTempsWithCopies(
             ASMExpr e,
-            Map<ASMExprTemp, ASMExprTemp> copies
+            Map<ASMExprRT, ASMExprRT> copies
     ) {
-        if (e instanceof ASMExprTemp) {
-            return copies.getOrDefault(e, (ASMExprTemp) e);
+        if (e instanceof ASMExprRT) {
+            return copies.getOrDefault(e, (ASMExprRT) e);
         } else if (e instanceof ASMExprBinOpAdd) {
             return new ASMExprBinOpAdd(
                     replaceExprTempsWithCopies(

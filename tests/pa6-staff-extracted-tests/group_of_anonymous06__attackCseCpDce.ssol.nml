@@ -1,0 +1,4 @@
+x1 is : -1102160
+x7 is : -1102160
+Survived Common Sub-Expression Elimination
+... and possibly copy propagation and dead code removal

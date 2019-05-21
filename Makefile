@@ -3,13 +3,14 @@ XTH_BIN=./xth/xth
 XTH_BUILD_TEST_DIR=tests
 XTH_VERBOSITY_LEVEL=2
 
-SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-tests tests/pa3-staff-extracted-tests tests/pa4-tests tests/pa4-staff-extracted-tests tests/pa5-tests tests/pa5-staff-extracted-tests tests/pa6-tests
+SUBMIT_TEST_DIRS=tests/pa1-fix-tests tests/pa2-staff-extracted-tests tests/pa3-tests tests/pa3-staff-extracted-tests tests/pa4-tests tests/pa4-staff-extracted-tests tests/pa5-tests tests/pa5-staff-extracted-tests tests/pa6-tests tests/pa6-staff-extracted-tests tests/pa7-parse-tests tests/pa7-typecheck-tests tests/pa7-tests
 PA1_OTHER_TEST_DIRS=xth/tests/pa1
 PA2_OTHER_TEST_DIRS=xth/tests/pa2
 PA3_OTHER_TEST_DIRS=xth/tests/pa3 tests/pa3-staff-examples-tests
 PA4_OTHER_TEST_DIRS=xth/tests/pa4
 PA5_OTHER_TEST_DIRS=xth/tests/pa5
-XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS) $(PA4_OTHER_TEST_DIRS) $(PA5_OTHER_TEST_DIRS)
+PA7_OTHER_TEST_DIRS=xth/tests/pa7
+XTH_TEST_DIRS=$(SUBMIT_TEST_DIRS) $(PA1_OTHER_TEST_DIRS) $(PA2_OTHER_TEST_DIRS) $(PA3_OTHER_TEST_DIRS) $(PA4_OTHER_TEST_DIRS) $(PA5_OTHER_TEST_DIRS) $(PA7_OTHER_TEST_DIRS)
 
 GRADLE_SETUP_FILES=build.gradle settings.gradle gradlew make_jar_executable.sh gradle gradle_exec.sh
 
@@ -45,8 +46,7 @@ test-unit:	## Run unit tests in the project
 	./gradle_exec.sh --no-daemon test
 
 zip: clean	## Zip Xi Compiler source files into xic.zip
-	# netid of a random group member added to the zip file name
-	zip -r xic-kc875.zip $(GRADLE_SETUP_FILES) Makefile lib src runtime xic-build xic tests/xthScriptBuild $(SUBMIT_TEST_DIRS) -x *.results*
+	zip -r xic.zip $(GRADLE_SETUP_FILES) Makefile lib src xic-build xic tests/xthScriptBuild $(SUBMIT_TEST_DIRS) -x "*.results"
 
 clean:	## Clean temporary build files from the directory
 	rm -rf xic.zip build .gradle ~/bin/xic
@@ -59,5 +59,5 @@ clean:	## Clean temporary build files from the directory
 	find . -name "*.typed" -type f -delete
 	find . -name "*.ir.nml" -type f -delete
 	find . -name "*.ir" -type f -delete
-	find . -name "*.s" -type f -delete
+	find . -name "*.s" -not -path "./runtime/*" -not -path "./QtXi/*" -type f -delete
 	find . -name "*.dot" -type f -delete

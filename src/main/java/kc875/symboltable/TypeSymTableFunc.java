@@ -6,18 +6,18 @@ public class TypeSymTableFunc extends TypeSymTable {
     private TypeT input;
     private TypeT output;
     //if func can be declared again w/ same sig (true for all interface functions)
-    private boolean can_decl;
+    private boolean canDecl;
 
     public TypeSymTableFunc(TypeT input, TypeT output) {
         this.input = input;
         this.output = output;
-        this.can_decl = true;
+        this.canDecl = true;
     }
 
-    public TypeSymTableFunc(TypeT input, TypeT output, boolean can_decl) {
+    public TypeSymTableFunc(TypeT input, TypeT output, boolean canDecl) {
         this.input = input;
         this.output = output;
-        this.can_decl = can_decl;
+        this.canDecl = canDecl;
     }
 
     public TypeT getInput() {
@@ -28,11 +28,19 @@ public class TypeSymTableFunc extends TypeSymTable {
         return output;
     }
 
-    public void set_can_decl(boolean can_decl) {
-        this.can_decl = can_decl;
+    public void setCanDecl(boolean can_decl) {
+        this.canDecl = can_decl;
     }
 
-    public boolean can_decl() {
-        return can_decl;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TypeSymTableFunc that = (TypeSymTableFunc) o;
+        return input.equals(that.input) && output.equals(that.output);
+    }
+
+    public boolean canDecl() {
+        return canDecl;
     }
 }

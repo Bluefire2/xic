@@ -46,25 +46,58 @@ public class CommonSubexprElimVisitor {
 
         // Get the IR graph and run avail expr
         Map<IRExpr, String> tempExprMap = new HashMap<>();
+
+        Map<String, Integer> stmtWhereTempDefinedMap = new HashMap<>();
+
         List<IRStmt> listStmt = stmts.stmts();
         for (int i = 0; i < listStmt.size(); ++i) {
             // optimize each stmt in the body
             IRStmt stmt = listStmt.get(i);
             Graph<IRStmt>.Node n = irGraph.getNode(i);
             IRSeq seq = new IRSeq();
+            if (stmt instanceof IRMove) {
+                if (((IRMove) stmt).target() instanceof IRTemp) {
+                    String name = ((IRTemp) ((IRMove) stmt).target()).name();
+                        stmtWhereTempDefinedMap.put(name, i);
+                }
+            }
+
+            Map<Integer, IRStmt> insmap = new HashMap<>();
+
+            for (IRExpr e : dfa.exprsKilledBy(n, tempExprMap.keySet())) {
+                tempExprMap.remove(e);
+            }
+
             for (IRExpr e : dfa.exprsGeneratedBy(n)) {
                 if (e instanceof IRTemp
                         || e instanceof IRConst
                         || tempExprMap.containsKey(e)) {
                     continue;
-                } else if (dfa.nodesUsingExpr(e).size() > 1) {
+                } else if (dfa.nodesUsingExpr(e).size() > 1 ) {
                     String tmp = newTemp();
                     tempExprMap.put(e, tmp);
                     tempUsedMap.put(tmp, Boolean.FALSE);
+
+                    //Insert def temp = subexpression at beginning of node
+                    //And also hoist in case a node on another branch wants to use it
+                    int insert_index = 0;
+                    for (String s : getTemps(e)) {
+                        if(stmtWhereTempDefinedMap.containsKey(s)) {
+                                insert_index = Math.max(insert_index, stmtWhereTempDefinedMap.get(s));
+                        }
+                    }
                     seq.stmts().add(new IRMove(new IRTemp(tmp), e));
+                    if (insert_index < i-1) {
+                        insmap.put(insert_index, new IRMove(new IRTemp(tmp), e));
+                    }
                 }
             }
+
             seq.stmts().add(visit(stmt, tempExprMap, tempUsedMap));
+
+            for (Integer inte : insmap.keySet()) {
+                listStmt.set(inte, new IRSeq(listStmt.get(inte), insmap.get(inte)));
+            }
 
             // replace this stmt with the new one
             listStmt.set(i, seq);
@@ -97,8 +130,20 @@ public class CommonSubexprElimVisitor {
         }
 
         return new IRFuncDecl(
-                func.name(), removeNestedIRSeqs(new IRSeq(listStmt))
+                func.name(), func.getNumParams(), func.getNumRets(),
+                removeNestedIRSeqs(new IRSeq(listStmt))
         );
+    }
+
+    private ArrayList<String> getTemps(IRNode irnode) {
+        ListChildrenVisitor lcv = new ListChildrenVisitor();
+        ArrayList<String> temps = new ArrayList<>();
+        for (IRNode n : lcv.visit(irnode)) {
+            if (n instanceof IRTemp) {
+                temps.add(((IRTemp) n).name());
+            }
+        }
+        return temps;
     }
 
     private IRSeq removeNestedIRSeqs(IRSeq stmt) {
@@ -160,9 +205,14 @@ public class CommonSubexprElimVisitor {
         if (exprTempMap.containsKey(expr.target())) {
             String t = exprTempMap.get(expr.target());
             tempUsedMap.put(t, Boolean.TRUE);
-            return new IRCall(new IRTemp(t), newArgs);
+            return new IRCall(new IRTemp(t), expr.getNumRets(), newArgs);
+        } else {
+            return new IRCall(
+                    visit(expr.target(), exprTempMap, tempUsedMap),
+                    expr.getNumRets(),
+                    newArgs
+            );
         }
-        else return new IRCall(visit(expr.target(), exprTempMap, tempUsedMap), newArgs);
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRExpr, String> exprTempMap, HashMap<String, Boolean> tempUsedMap) {

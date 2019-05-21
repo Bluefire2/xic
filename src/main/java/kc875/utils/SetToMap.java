@@ -45,6 +45,9 @@ public class SetToMap {
      * Clearly, b can replace a, but its <b>final</b> copy is c, since c can
      * replace both a and b.
      *
+     * Note: all redundant copy pairs (pairs (A, B) where A equals B) are
+     * ignored during this conversion.
+     *
      * @param copies The set of copies, represented as pairs.
      * @param <T>    The type of the pair elements.
      * @return A map from elements to their final copies.
@@ -58,9 +61,13 @@ public class SetToMap {
             // both elements are values
             T fst = copy.part1();
             T snd = copy.part2();
-            temps.add(fst);
-            temps.add(snd);
-            pairs.add(new Pair<>(fst, snd));
+
+            // filter out self-pairs
+            if (!fst.equals(snd)) {
+                temps.add(fst);
+                temps.add(snd);
+                pairs.add(new Pair<>(fst, snd));
+            }
         }
 
         // mwahahahaha

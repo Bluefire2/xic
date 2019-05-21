@@ -50,7 +50,8 @@ public class LoweringVisitorTest {
 
     @Test
     public void testCall() {
-        IRCall call = new IRCall(new IRName("f"),
+        // num rets don't matter
+        IRCall call = new IRCall(new IRName("f"), 1,
                 new IRESeq(new IRMove(new IRTemp("x"),
                         new IRTemp("y")),
                         new IRConst(1)),
@@ -60,7 +61,7 @@ public class LoweringVisitorTest {
                          new IRMove(new IRTemp("_lir_t0"), new IRConst(1)),
                          new IRMove(new IRTemp("_lir_t1"), new IRConst(2)),
                          new IRMove(new IRTemp("_lir_t2"),
-                                new IRCall(new IRName("f"),
+                                new IRCall(new IRName("f"), 1,
                                         new IRTemp("_lir_t0"),
                                         new IRTemp("_lir_t1"))))
                         , new IRTemp("_lir_t2"));
@@ -268,7 +269,8 @@ public class LoweringVisitorTest {
                 ),
                 new IRJump(new IRName("L1")),
                 new IRLabel("L3"),
-                new IRExp(new IRCall(new IRName("f"), new IRTemp("x")))
+                // num rets don't matter
+                new IRExp(new IRCall(new IRName("f"), 1, new IRTemp("x")))
         );
         CheckCanonicalIRVisitor cv = new CheckCanonicalIRVisitor();
         assertEquals(cv.visit(original), false);

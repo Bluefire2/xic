@@ -1,36 +1,146 @@
 package kc875.ast.visit;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import kc875.ast.*;
 import kc875.lexer.XiLexer;
 import kc875.lexer.XiTokenFactory;
+import kc875.lexer.XiTokenLocation;
 import kc875.symboltable.*;
+import kc875.utils.Maybe;
 import kc875.xi_parser.IxiParser;
 import kc875.xic_error.*;
+import org.apache.commons.io.FilenameUtils;
 import polyglot.util.Pair;
 
 import java.io.FileReader;
+import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class TypeCheckVisitor implements ASTVisitor<Void> {
     private SymbolTable<TypeSymTable> symTable;
-    private String libpath;
-    private String RETURN_KEY = "__return__";
 
-    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable, String libpath){
+    // If a program implements a class that was declared in an interface, then
+    // classNameToClassMap will contain the implementation
+    private BiMap<String, ClassXi> classNameToClassMap;
+    // Classes defined in interfaces
+    private BiMap<String, ClassDecl> interfaceClasses;
+    // Interfaces that have been visited
+    public Set<String> visitedInterfaces;
+    // Mapping from subclasses to superclasses (if they exist)
+    private Map<String, Maybe<String>> classHierarchy;
+
+    private String inputFilePath;
+    private String libpath;
+    private String RETURN_KEY = "__rho__";
+    private String BREAK_KEY = "__beta__";
+    private String INCLASS_KEY = "__kappa__";
+
+    public TypeCheckVisitor(SymbolTable<TypeSymTable> symTable,
+                            String inputFilePath,
+                            String libpath) {
         this.symTable = symTable;
+        this.classNameToClassMap = HashBiMap.create();
+        this.visitedInterfaces = new HashSet<>();
+        this.interfaceClasses = HashBiMap.create();
+        this.classHierarchy = new HashMap<>();
+        this.inputFilePath = inputFilePath;
         this.libpath = libpath;
         symTable.enterScope();
     }
 
-    public SymbolTable getSymTable() {
-        return symTable;
+    public Map<String, ClassXi> getClassesMapOrdered() {
+        Map<String, ClassXi> classes = new HashMap<>();
+        for (Map.Entry<String, ClassXi> e : classNameToClassMap.entrySet()) {
+            String c = e.getKey();
+            ClassXi clazz = e.getValue();
+
+            ClassXi newClass;
+            if (interfaceClasses.containsKey(c)) {
+                // If this class was defined in an interface, use that
+                // ordering for methods
+                if (clazz instanceof ClassDefn) {
+                    // clazz is a definition, so return a ClassDefn but with
+                    // the order as per the interface
+                    List<FuncDefn> currDefns =
+                            ((ClassDefn) clazz).getMethodDefns();
+
+                    List<String> methTargetOrdering = interfaceClasses.get(c)
+                            .getMethodDecls().stream()
+                            .map(Func::getName).collect(Collectors.toList());
+                    List<String> methCurrentOrdering = currDefns
+                            .stream().map(Func::getName)
+                            .collect(Collectors.toList());
+
+                    List<FuncDefn> orderedDefns = new ArrayList<>();
+                    for (String meth : methTargetOrdering) {
+                        // TODO: this is highly inefficient but oh well (it's
+                        //  like selection sort)
+                        orderedDefns.add(currDefns.get(
+                                methCurrentOrdering.indexOf(meth)
+                        ));
+                    }
+                    newClass = new ClassDefn(
+                            clazz.getName(),
+                            clazz.getSuperClass(),
+                            clazz.getFields(),
+                            orderedDefns,
+                            clazz.getLocation()
+                    );
+                } else {
+                    // clazz is an interface, so retain this ordering
+                    newClass = clazz;
+                }
+            } else {
+                // clazz not defined in an interface, so use the module's
+                // ordering
+                newClass = clazz;
+            }
+            classes.put(c, newClass);
+        }
+        return classes;
+    }
+
+    public Map<String, Maybe<String>> getClassHierarchy() {
+        return classHierarchy;
+    }
+
+    /**
+     * Check if a given type is valid. This means that it is either:
+     * <p>
+     * - A primitive type
+     * - A class that has been defined
+     * - An array of valid types as defined above
+     *
+     * @param type The type to check.
+     * @throws SemanticError if the type is not valid.
+     */
+    private void checkTypeT(TypeT type, ASTNode node) {
+        if (type instanceof TypeTTau) {
+            if (type instanceof TypeTTauClass) {
+                String className = ((TypeTTauClass) type).getName();
+                if (!classHierarchy.containsKey(className)) {
+                    throw new SemanticUnresolvedNameError(
+                            className,
+                            node.getLocation()
+                    );
+                }
+            } else if (type instanceof TypeTTauArray) {
+                checkTypeT(((TypeTTauArray) type).getTypeTTau(), node);
+            }
+            // otherwise, it has to be bool or int, both of which are valid
+        } else if (type instanceof TypeTList) {
+            ((TypeTList) type).getTTauList().forEach(t -> checkTypeT(t, node));
+        }
+        // has to be a unit, which is valid
     }
 
     /**
      * Throws SemanticErrorException for binary op AST node. Helper function
      * to visit(BinopExpr node).
+     *
      * @param node that results in a type checking error.
      */
     private void throwSemanticErrorBinopVisit(ExprBinop node)
@@ -67,9 +177,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         boolean lTypeIsInt = lType instanceof TypeTTauInt;
         boolean lTypeIsBool = lType instanceof TypeTTauBool;
         boolean lTypeIsArray = lType instanceof TypeTTauArray;
+        boolean lTypeIsClass = lType instanceof TypeTTauClass;
         boolean rTypeIsInt = rType instanceof TypeTTauInt;
         boolean rTypeIsBool = rType instanceof TypeTTauBool;
         boolean rTypeIsArray = rType instanceof TypeTTauArray;
+        boolean rTypeIsClass = rType instanceof TypeTTauClass;
 
         switch (node.getOp()) {
             case PLUS:
@@ -109,6 +221,34 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                         break;
                     }
                 }
+                if (lTypeIsClass && rTypeIsClass) {
+                    TypeTTauClass lClass = (TypeTTauClass) lType;
+                    TypeTTauClass rClass = (TypeTTauClass) rType;
+                    checkTypeT(lClass, node.getLeftExpr());
+                    checkTypeT(rClass, node.getRightExpr());
+
+                    try {
+                        TypeTTauClass c = ((TypeSymTableInClass)
+                                symTable.lookup(INCLASS_KEY)).getTypeTTauClass();
+                        if (!(lClass.equals(c) || rClass.equals(c))) {
+                            // neither of left or right are objects of c
+                            throw new SemanticError(
+                                    "Neither operands of " + node.getOp() +
+                                            " are objects of class " + c,
+                                    node.getLocation()
+                            );
+                        }
+                        // either left or right are objects of c
+                        node.setTypeCheckType(new TypeTTauBool());
+                        break;
+                    } catch (NotFoundException e) {
+                        throw new SemanticError(
+                                node.getOp() + " can only be used inside a " +
+                                        "class definition",
+                                node.getLocation()
+                        );
+                    }
+                }
                 throwSemanticErrorBinopVisit(node);
             case GT:
             case LT:
@@ -139,6 +279,66 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         return null;
     }
 
+    private void checkFuncArgs(List<Expr> args,
+                               TypeT inTypes,
+                               XiTokenLocation funcLoc) {
+        // outTypes being equal to TypeTUnit or not doesn't make a
+        // difference in the resulting type of this function/procedure.
+        // Function types are exactly the same, procedures just have
+        // an extra context return
+        if (inTypes instanceof TypeTUnit) {
+            if (args.size() > 0) {
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            }
+        } else if (inTypes instanceof TypeTTau) {
+            if (args.size() != 1)
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            // function with 1 arg
+            Expr arg = args.get(0);
+            if (!subTypeOf(arg.getTypeCheckType(), inTypes))
+                throw new SemanticTypeCheckError(
+                        inTypes, arg.getTypeCheckType(), arg.getLocation()
+                );
+            // arg and expected param type are equal
+        } else if (inTypes instanceof TypeTList) {
+            // function with >= 2 args
+            List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
+            if (inTauList.size() != args.size())
+                // num arguments not equal
+                throw new SemanticError(
+                        "Mismatched number of arguments", funcLoc
+                );
+            // else
+            for (int i = 0; i < args.size(); ++i) {
+                Expr ei = args.get(i);
+                TypeTTau ti = inTauList.get(i);
+                if (!subTypeOf(ei.getTypeCheckType(), ti)) {
+                    // Gamma |- ei : tj and !(tj <= ti)
+                    throw new SemanticTypeCheckError(
+                            ti, ei.getTypeCheckType(), ei.getLocation()
+                    );
+                }
+            }
+            // func args and func sig match
+        }
+    }
+
+    private void checkFuncType(ExprFunctionCall func,
+                               TypeSymTableFunc targetSig) {
+        func.setSignature(targetSig);
+        if (targetSig.getOutput() instanceof TypeTUnit) {
+            throw new SemanticError(
+                    String.format("%s is not a function", func.getName()),
+                    func.getLocation()
+            );
+        }
+        checkFuncArgs(func.getArgs(), targetSig.getInput(), func.getLocation());
+    }
+
     @Override
     public Void visit(ExprFunctionCall node) {
         String name = node.getName();
@@ -152,60 +352,8 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             // else
             TypeSymTableFunc funcSig = (TypeSymTableFunc) t;
             node.setSignature(funcSig);
-            TypeT inTypes = funcSig.getInput();
-            TypeT outTypes = funcSig.getOutput();
-            if (outTypes instanceof TypeTUnit) {
-                throw new SemanticError(
-                        String.format("%s is not a function", name),
-                        node.getLocation()
-                );
-            }
-
-            List<Expr> args = node.getArgs();
-            // outTypes being equal to TypeTUnit or not doesn't make a
-            // difference in the resulting type of this function/procedure.
-            // Function types are exactly the same, procedures just have
-            // an extra context return
-            if (inTypes instanceof TypeTUnit) {
-                // function with no args
-                node.setTypeCheckType(outTypes);
-            } else if (inTypes instanceof TypeTTau) {
-                if (args.size() != 1)
-                    throw new SemanticError(
-                            "Mismatched number of arguments", node.getLocation());
-                // function with 1 arg
-                Expr arg = args.get(0);
-                if (!arg.getTypeCheckType().equals(inTypes))
-                    throw new SemanticTypeCheckError(
-                            inTypes,
-                            arg.getTypeCheckType(),
-                            arg.getLocation()
-                    );
-                // arg and expected param type are equal
-                node.setTypeCheckType(outTypes);
-            } else if (inTypes instanceof TypeTList) {
-                // function with >= 2 args
-                List<TypeTTau> inTauList = ((TypeTList) inTypes).getTTauList();
-                if (inTauList.size() != args.size())
-                    // num arguments not equal
-                    throw new SemanticError(
-                            "Mismatched number of arguments", node.getLocation());
-                // else
-                for (int i = 0; i < args.size(); ++i) {
-                    Expr ei = args.get(i);
-                    TypeTTau ti = inTauList.get(i);
-                    if (!ei.getTypeCheckType().equals(ti)) {
-                        // Gamma |- ei : tj and tj != ti
-                        throw new SemanticTypeCheckError(
-                                ti,
-                                ei.getTypeCheckType(),
-                                ei.getLocation()
-                        );
-                    }
-                }
-                // func args and func sig match
-                node.setTypeCheckType(outTypes);
-            }
+            checkFuncType(node, funcSig);
+            node.setTypeCheckType(funcSig.getOutput());
         } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
@@ -223,10 +371,32 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                         node.getLocation()
                 );
             // else
-            node.setTypeCheckType(((TypeSymTableVar) t).getTypeTTau());
-        } catch (NotFoundException e){
+            TypeTTau typeOfT = ((TypeSymTableVar) t).getTypeTTau();
+            checkTypeT(typeOfT, node);
+            node.setTypeCheckType(typeOfT);
+        } catch (NotFoundException e) {
             throw new SemanticUnresolvedNameError(name, node.getLocation());
         }
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprTernary node) {
+        Expr e1 = node.getCond();
+        Expr e2 = node.getTrueCase();
+        Expr e3 = node.getFalseCase();
+        if (! (e1.getTypeCheckType() instanceof TypeTTauBool)){
+            throw new SemanticError("Guard of ternary must be a " +
+                    "bool", node.getLocation());
+        }
+        if (!e2.getTypeCheckType().equals(e3.getTypeCheckType())) {
+            throw new SemanticError(
+                    String.format("Branches of ternary are not same type: %s, %s",
+                            e2.getTypeCheckType(),
+                            e3.getTypeCheckType()),
+                    node.getLocation());
+        }
+        node.setTypeCheckType(e2.getTypeCheckType());
         return null;
     }
 
@@ -315,12 +485,134 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(ExprNew node) {
+        String className = node.getName();
+        try {
+            TypeSymTable t = symTable.lookup(className);
+            if (!(t instanceof TypeSymTableClass))
+                // className not in context
+                throw new SemanticUnresolvedNameError(
+                        className, node.getLocation()
+                );
+            node.setTypeCheckType(((TypeSymTableClass) t).getType());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    className, node.getLocation()
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprNull node) {
+        try {
+            TypeSymTableInClass t =
+                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
+            node.setTypeCheckType(t.getTypeTTauClass());
+        } catch (NotFoundException e) {
+            throw new SemanticError(
+                    "null not allowed outside a class definition",
+                    node.getLocation()
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprThis node) {
+        try {
+            TypeSymTableInClass t =
+                    (TypeSymTableInClass) symTable.lookup(INCLASS_KEY);
+            node.setTypeCheckType(t.getTypeTTauClass());
+        } catch (NotFoundException e) {
+            throw new SemanticError(
+                    "this not allowed outside a class definition",
+                    node.getLocation()
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprFieldAccess node) {
+        // recursively traverse up the tree, type checking each field/method access as we go
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String fieldName = node.getField().getName();
+            Map<String, TypeSymTableVar> fieldsOfClass = clazz.getFields();
+            if (!fieldsOfClass.containsKey(fieldName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + fieldName, node.getLocation());
+            }
+
+            // the class does have the field!
+            node.setTypeCheckType(fieldsOfClass.get(fieldName).getTypeTTau());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visit(ExprMethodCall node) {
+        ExprFunctionCall call = node.getCall();
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String methodName = call.getName();
+            Map<String, TypeSymTableFunc> methodsOfClass = clazz.getMethods();
+            if (!methodsOfClass.containsKey(methodName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + methodName, node.getLocation());
+            }
+
+            // the class does have the method!
+            TypeSymTableFunc typeSignature = methodsOfClass.get(methodName);
+            // type check the function call's args
+            for (Expr arg : call.getArgs())
+                arg.accept(this);
+            call.setSignature(typeSignature);
+            checkFuncType(call, typeSignature);
+            node.setTypeCheckType(typeSignature.getOutput());
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
+        }
+
+        return null;
+    }
+
+    private TypeTTauClass getClassType(Expr obj) {
+        obj.accept(this);
+        TypeT objType = obj.getTypeCheckType();
+        if (!(objType instanceof TypeTTauClass)) {
+            throw new SemanticError("Expression is not an object", obj.getLocation());
+        }
+
+        return (TypeTTauClass) objType;
+    }
+
+    @Override
     public Void visit(AssignableIndex node) {
         return null;
     }
 
     @Override
     public Void visit(AssignableId node) {
+        return null;
+    }
+
+    @Override
+    public Void visit(AssignableFieldAccess node) {
         return null;
     }
 
@@ -345,7 +637,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                             node.getLocation());
                 }
                 TypeT givenReturnType = returnVals.get(0).getTypeCheckType();
-                if (!givenReturnType.subtypeOf(expectedReturnType)) {
+                if (!subTypeOf(givenReturnType, expectedReturnType)) {
                     throw new SemanticTypeCheckError(expectedReturnType,
                             givenReturnType, node.getLocation());
                 }
@@ -362,7 +654,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
                 while (exprIterator.hasNext() && typeTIterator.hasNext()) {
                     TypeT currentGivenType = exprIterator.next().getTypeCheckType();
                     TypeTTau currentExpectedType = typeTIterator.next();
-                    if (!currentGivenType.subtypeOf(currentExpectedType)) {
+                    if (!subTypeOf(currentGivenType, currentExpectedType)) {
                         throw new SemanticTypeCheckError(currentExpectedType,
                                 currentGivenType, node.getLocation());
                     }
@@ -391,27 +683,33 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             ExprIndex index = (ExprIndex) ai.getIndex();
             // type of LHS index is already pre-calculated
             expectedType = index.getTypeCheckType();
+        } else if (lhs instanceof AssignableFieldAccess) {
+            AssignableFieldAccess afa = (AssignableFieldAccess) lhs;
+            ExprFieldAccess access = afa.getAccess();
+            expectedType = access.getTypeCheckType();
         } else {
             throw new SemanticError(
                     "Expression can't be assigned to",
                     node.getLocation()
             );
         }
-        if (givenType instanceof TypeTList){
+        if (givenType instanceof TypeTList) {
             throw new SemanticError(
                     "Mismatched number of values",
                     node.getLocation()
             );
         }
-        if (!givenType.subtypeOf(expectedType)){
-            throw new SemanticTypeCheckError(expectedType, givenType, node.getLocation());
+        if (!subTypeOf(givenType, expectedType)) {
+            throw new SemanticTypeCheckError(
+                    expectedType, givenType, node.getLocation()
+            );
         }
         node.setTypeCheckType(TypeR.Unit);
         return null;
     }
 
     @Override
-    public Void visit(StmtDecl node) {
+    public Void visit(StmtDeclSingle node) {
         TypeDeclVar d = node.getDecl();
         TypeTTau t = (TypeTTau) d.typeOf();
         TypeSymTableVar dt = new TypeSymTableVar(t);
@@ -454,16 +752,18 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
      * Checks that decl and givenType are compatible, and adds the binding
      * [decl.vi -> decl.typeOf()] for all vi in decl.varsOf() if
      * compatibility test passed. Throws SemanticError if not compatible.
-     * @param node StmtDeclAssign node of the assignment.
-     * @param decl declaration.
+     *
+     * @param node      StmtDeclAssign node of the assignment.
+     * @param decl      declaration.
      * @param givenType type of the corresponding RHS function call.
      */
-    private void checkDeclaration(ASTNode node, TypeDecl decl,
-                                  TypeT givenType) {
+    private void checkDeclaration(ASTNode node, TypeDecl decl, TypeT givenType) {
         // check that the given type is compatible with the expected type
         TypeT varType = decl.typeOf();
-        if (!givenType.subtypeOf(varType)) {
-            throw new SemanticTypeCheckError(varType, givenType, node.getLocation());
+        if (!subTypeOf(givenType, varType)) {
+            throw new SemanticTypeCheckError(
+                    varType, givenType, node.getLocation()
+            );
         }
         // givenType is a subtype of varType == good
         // check that the var isn't already declared in the context
@@ -484,38 +784,54 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
+    public Void visit(StmtDeclMulti node) {
+        List<String> vars = node.varsOf();
+        TypeTTau type = node.getType();
+
+        for (String var : vars) {
+            if (symTable.contains(var))
+                throw new SemanticError(
+                        String.format("Duplicate variable %s", var),
+                        node.getLocation()
+                );
+            symTable.add(var, new TypeSymTableVar(type));
+        }
+        node.setTypeCheckType(TypeR.Unit);
+        return null;
+    }
+
+    @Override
     public Void visit(StmtDeclAssign node) {
         List<TypeDecl> decls = node.getDecls();
         Expr rhs = node.getRhs();
 
         if (decls.size() > 1) {
-            try {
-                // multi-assign with function that returns multiple things
-                ExprFunctionCall fnCall = (ExprFunctionCall) rhs;
-                TypeT output = fnCall.getTypeCheckType();
+            TypeT output;
+            if (rhs instanceof ExprFunctionCall) {
+                output = rhs.getTypeCheckType();
+            } else if (rhs instanceof ExprMethodCall) {
+                output = rhs.getTypeCheckType();
+            } else
+                throw new SemanticError(
+                        "Expected function call", node.getLocation()
+                );
+            // multi-assign with function that returns multiple things
+            if (output instanceof TypeTList) {
+                TypeTList outputList = (TypeTList) output;
+                List<TypeTTau> givenTypes = outputList.getTTauList();
 
-                if (output instanceof TypeTList) {
-                    TypeTList outputList = (TypeTList) output;
-                    List<TypeTTau> givenTypes = outputList.getTTauList();
-
-                    if (givenTypes.size() == decls.size()) {
-                        for (int i = 0; i < givenTypes.size(); i++)
-                            checkDeclaration(node, decls.get(i),
-                                    givenTypes.get(i));
-                    } else {
-                        throw new SemanticError(
-                                "Mismatched number of values",
-                                node.getLocation()
-                        );
-                    }
+                if (givenTypes.size() == decls.size()) {
+                    for (int i = 0; i < givenTypes.size(); i++)
+                        checkDeclaration(node, decls.get(i), givenTypes.get(i));
                 } else {
                     throw new SemanticError(
-                            "Mismatched number of values",
-                            node.getLocation()
+                            "Mismatched number of values", node.getLocation()
                     );
                 }
-            } catch (ClassCastException e) {
-                throw new SemanticError("Expected function call", node.getLocation());
+            } else {
+                throw new SemanticError(
+                        "Mismatched number of values", node.getLocation()
+                );
             }
         } else {
             // handle type compatibility for one decl
@@ -532,50 +848,11 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             if (prType instanceof TypeSymTableFunc) {
                 TypeSymTableFunc prFunc = (TypeSymTableFunc) prType;
                 node.setSignature(prFunc);
-                TypeT prInputs = prFunc.getInput();
-                TypeT prOutput = prFunc.getOutput();
-                List<Expr> args = node.getArgs();
-                if (!(prOutput instanceof TypeTUnit)) {
+                if (!(prFunc.getOutput() instanceof TypeTUnit)) {
                     throw new SemanticError(node.getName()
                             + " is not a procedure", node.getLocation());
                 }
-                if (prInputs instanceof TypeTUnit) {
-                    //no parameters
-                    if (args.size() > 0) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-                } else if (prInputs instanceof TypeTTau) {
-                    //one parameter
-                    if (!(args.size() == 1)) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-
-                    TypeT given = args.get(0).getTypeCheckType();
-                    if (!(given.equals(prInputs))) {
-                        throw new SemanticTypeCheckError(prInputs, given,
-                                node.getLocation());
-                    }
-                } else if (prInputs instanceof TypeTList) {
-                    //multiple parameters
-                    List<TypeTTau> inputList = ((TypeTList) prInputs).getTTauList();
-                    if (args.size() != inputList.size()) {
-                        throw new SemanticError(
-                                "Mismatched number of arguments", node.getLocation());
-                    }
-                    for (int i = 0; i < args.size(); i++) {
-                        Expr ei = args.get(i);
-                        TypeT expected = inputList.get(i);
-                        if (!ei.getTypeCheckType().equals(expected)) {
-                            throw new SemanticTypeCheckError(
-                                    expected,
-                                    ei.getTypeCheckType(),
-                                    ei.getLocation()
-                            );
-                        }
-                    }
-                }
+                checkFuncArgs(node.getArgs(), prFunc.getInput(), node.getLocation());
                 node.setTypeCheckType(TypeR.Unit);
             } else {
                 throw new SemanticError(node.getName()
@@ -617,8 +894,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             TypeR s2r = node.getElseStmt().getTypeCheckType();
             if (s1r != null && s2r != null) {
                 node.setTypeCheckType(lub(s1r, s2r));
-            }
-            else node.setTypeCheckType(TypeR.Unit);
+            } else node.setTypeCheckType(TypeR.Unit);
         } else {
             throw new SemanticError(
                     "Guard of if-else statement must be a bool",
@@ -632,6 +908,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         TypeT gt = node.getGuard().getTypeCheckType();
         if (gt instanceof TypeTTauBool) {
             symTable.enterScope();
+            symTable.add(BREAK_KEY, new TypeSymTableUnit());
             node.getDoStmt().accept(this);
             symTable.exitScope();
             node.setTypeCheckType(TypeR.Unit);
@@ -672,64 +949,389 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
     }
 
     @Override
-    public Void visit(FileProgram node) {
-        List<UseInterface> imports = node.getImports();
-        List<FuncDefn> defns = node.getFuncDefns();
-        for (UseInterface import_node : imports) {
-            import_node.accept(this);
+    public Void visit(StmtBreak node) {
+        if (symTable.contains(BREAK_KEY))
+            node.setTypeCheckType(TypeR.Void);
+        else
+            throw new SemanticError(
+                    "break not allowed outside a loop", node.getLocation()
+            );
+        return null;
+    }
+
+    @Override
+    public Void visit(StmtMethodCall node) {
+        ExprFunctionCall call = node.getCall();
+        Expr obj = node.getObj();
+        TypeTTauClass classType = getClassType(obj);
+
+        try {
+            TypeSymTableClass clazz = (TypeSymTableClass) symTable.lookup(classType.getName());
+            String methodName = call.getName();
+            Map<String, TypeSymTableFunc> methodsOfClass = clazz.getMethods();
+            if (!methodsOfClass.containsKey(methodName)) {
+                throw new SemanticUnresolvedNameError(classType.getName() + "." + methodName, node.getLocation());
+            }
+
+            // the class does have the method!
+            TypeSymTableFunc funcSig = methodsOfClass.get(methodName);
+            // type check the procedure's args
+            for (Expr arg : call.getArgs())
+                arg.accept(this);
+            call.setSignature(funcSig);
+            if (!(funcSig.getOutput() instanceof TypeTUnit)) {
+                throw new SemanticError(
+                        String.format("%s.%s is not a procedure", classType.getName(), methodName),
+                        node.getLocation()
+                );
+            }
+            checkFuncArgs(call.getArgs(), funcSig.getInput(), node.getLocation());
+            node.setTypeCheckType(TypeR.Unit);
+        } catch (NotFoundException e) {
+            throw new SemanticUnresolvedNameError(
+                    classType.getName(),
+                    obj.getLocation()
+            );
         }
-        for (FuncDefn defn : defns) {
-            Pair<String, TypeSymTable> signature = defn.getSignature();
-            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
-            try {
-                TypeSymTable existing = symTable.lookup(signature.part1());
-                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
-                //existing function has already been defined
-                if (!existingf.can_decl()) {
+
+        return null;
+    }
+
+    private void collectTauClass(ClassDecl c) {
+        String cName = c.getName();
+        if (classHierarchy.containsKey(cName)) {
+            // Can't redeclare a class (design decision). Interfaces are
+            // visited before the program file, and if classHierarchy
+            // contains cName, then an interface must have declared it (maybe
+            // the one containing c). So c is a redeclaration, throw an error
+            throw new SemanticError(
+                    "Cannot redeclare class " + cName,
+                    c.getLocation()
+            );
+        }
+        classHierarchy.put(cName, c.getSuperClass());
+        classNameToClassMap.put(cName, c);
+        interfaceClasses.put(cName, c);
+    }
+
+    private void collectTauClass(ClassDefn c) {
+        String cName = c.getName();
+        if (!classHierarchy.containsKey(cName)) {
+            // class hierarchy doesn't have c, so add it
+            classHierarchy.put(cName, c.getSuperClass());
+            classNameToClassMap.put(cName, c);
+        } else {
+            // class hierarchy has c
+            if (!interfaceClasses.containsKey(cName)) {
+                // c wasn't declared in an interface ==> was defined in this
+                // program file. Should not happen because collectTauClasses
+                // already checks for duplicate class names in a file
+                throw new IllegalStateException(
+                        "Already checked for duplicate classes, but class " +
+                                "hierarchy contains duplicate keys for the " +
+                                "same class"
+                );
+            } else {
+                // class hierarchy has c because c was declared in an interface
+                // Check that the inheritance for c and the interface
+                // declaration are the same, and that all methods
+                // are the same. Throw an error if not.
+                if (!Maybe.sameMaybe(
+                        classHierarchy.get(cName), c.getSuperClass()
+                )) {
+                    // super classes aren't the same
                     throw new SemanticError(
-                            String.format("Function with name %s has already been defined",signature.part1()),
-                            defn.getLocation());
+                            "Declaration and definition for class" +
+                                    cName + " don't inherit the same class",
+                            c.getLocation()
+                    );
                 }
-                //existing function has different signature
-                if (!(existingf.getInput().equals(func_sig.getInput()) &&
-                        existingf.getOutput().equals(func_sig.getOutput()))) {
+
+                ClassDecl decl = interfaceClasses.get(cName);
+                // Convert list of methods to a set since ordering doesn't
+                // matter for typechecking
+                // method name -> ([paramtype, ...], output)
+                Map<String, Pair<List<TypeTTau>, TypeT>> declMeths =
+                        decl.getMethodDecls().stream()
+                                .collect(Collectors.toMap(
+                                        Func::getName,
+                                        (Func f) -> new Pair<>(
+                                                f.getParams().stream()
+                                                        .map(Pair::part2)
+                                                        .collect(Collectors.toList()),
+                                                f.getOutput()
+                                        )
+                                ));
+                Map<String, Pair<List<TypeTTau>, TypeT>> cMeths =
+                        c.getMethodDecls().stream()
+                                .collect(Collectors.toMap(
+                                        Func::getName,
+                                        (Func f) -> new Pair<>(
+                                                f.getParams().stream()
+                                                        .map(Pair::part2)
+                                                        .collect(Collectors.toList()),
+                                                f.getOutput()
+                                        )
+                                ));
+                if (!declMeths.equals(cMeths)) {
                     throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", signature.part1()),
-                            defn.getLocation());
+                            "Different methods in declaration and definition " +
+                                    "of class " + cName,
+                            c.getLocation()
+                    );
                 }
-                existingf.set_can_decl(false);
-            } catch (NotFoundException e) {
-                //func_sig is already set to not re-declarable
-                symTable.add(signature.part1(), func_sig);
+                // Update classNameToClassMap with this defn
+                classNameToClassMap.put(cName, c);
             }
         }
+    }
+
+    private void collectTauClasses(List<? extends ClassXi> cs) {
+        // Initial pass for duplicate classes, fields and methods in this file
+        Set<String> classNames = new HashSet<>();
+        for (ClassXi c : cs) {
+            // Class can't inherit itself
+            c.getSuperClass().thenDo(sc -> {
+                if (sc.equals(c.getName()))
+                    throw new SemanticError(
+                            "Class can't inherit itself", c.getLocation()
+                    );
+            });
+            // Duplicate classes not allowed
+            String cName = c.getName();
+            if (classNames.contains(cName)) {
+                throw new SemanticError(
+                        "Class " + cName + " already defined",
+                        c.getLocation()
+                );
+            }
+            // Make sure fields and methods aren't duplicated
+            // Checking for fields is redundant for interfaces (ClassDecl) as
+            // interfaces can't have fields, but we avoid refactoring if we
+            // just check on fields for any ClassXi
+            checkDuplicateInStmtDecls(c.getFields());
+            checkDuplicateInFuncDecls(c.getMethodDecls());
+            classNames.add(cName);
+        }
+
+        // Check for fields
+        for (ClassXi c : cs) {
+            if (c instanceof ClassDecl) {
+                collectTauClass((ClassDecl) c);
+            } else if (c instanceof ClassDefn) {
+                collectTauClass((ClassDefn) c);
+            } else {
+                throw new IllegalStateException("Class neither a Decl or Defn");
+            }
+        }
+    }
+
+    private void collectFuncs(List<? extends Func> fs) {
+        for (Func f : fs) {
+            Pair<String, TypeSymTable> signature = f.getSignature();
+            String name = signature.part1();
+            TypeSymTableFunc funcSig = (TypeSymTableFunc) signature.part2();
+
+            // check that all the types in the signature are correct
+            // can be int, bool, C or T[] for any valid T
+            checkTypeT(funcSig.getInput(), f);
+            checkTypeT(funcSig.getOutput(), f);
+
+            try {
+                TypeSymTableFunc existingf =
+                        (TypeSymTableFunc) symTable.lookup(name);
+                // If f is a func def, then throw an error if it can't
+                // be declared again. This is because f is trying to shadow
+                // existing f but the former shouldn't be redeclared.
+                // Otherwise, f is a func decl, then existing f can be freely
+                // shadowed by f if same sig. In this case, don't do a check.
+                if (f instanceof FuncDefn) {
+                    if (!existingf.canDecl()) {
+                        throw new SemanticError(
+                                "Function " + name + " already defined",
+                                f.getLocation());
+                    }
+                    existingf.setCanDecl(false);
+                }
+
+                //existing function has different signature
+                if (!existingf.equals(funcSig)) {
+                    throw new SemanticError(
+                            "Existing function with name " + name +
+                                    " has different signature",
+                            f.getLocation());
+                }
+            } catch (NotFoundException e) {
+                // funcSig is already set to not re-declarable (funcSig is a
+                // funcDefn)
+                symTable.add(name, funcSig);
+            }
+        }
+
+    }
+
+    private void checkDuplicateInStmtDecls(List<StmtDecl> sds) {
+        // Check for duplicate fields; need to do a manual iter
+        // for throwing errors at the correct locations.
+        Set<String> vars = new HashSet<>();
+        for (StmtDecl sd : sds) {
+            for (String var : sd.varsOf()) {
+                if (vars.contains(var))
+                    throw new SemanticError(
+                            "Duplicate variable " + var, sd.getLocation()
+                    );
+                vars.add(var);
+            }
+        }
+    }
+
+    private void checkDuplicateInFuncDecls(List<FuncDecl> fds) {
+        // Check for duplicate methods; need to do a manual iter
+        // for throwing errors at the correct locations.
+        Set<String> funcNames = new HashSet<>();
+        for (FuncDecl fd : fds) {
+            if (funcNames.contains(fd.getName()))
+                throw new SemanticError(
+                        "Function " + fd.getName() + " already defined",
+                        fd.getLocation()
+                );
+            funcNames.add(fd.getName());
+        }
+    }
+
+    private void checkOverrideMethods(List<FuncDecl> subMethods,
+                                      Map<String, TypeSymTableFunc> superMethods) {
+        // Check that overriden methods of d and overrider methods
+        // of d have the same signatures.
+        for (FuncDecl subMethod : subMethods) {
+            String fName = subMethod.getName();
+            if (superMethods.containsKey(fName)
+                    && !superMethods.get(fName).equals(
+                    subMethod.getSignature().part2()
+            )) {
+                throw new SemanticError(
+                        "Mismatch signatures of " +
+                                "overriden function with name " + fName,
+                        subMethod.getLocation()
+                );
+            }
+        }
+    }
+
+    private void collectClassContents(List<? extends ClassXi> cs) {
+        for (ClassXi c : cs) {
+            if (!c.getSuperClass().isKnown()) {
+                // c doesn't extend anything, simply add it to sym table
+                symTable.add(c.getName(), new TypeSymTableClass(
+                                new TypeTTauClass(c.getName()), c
+                        )
+                );
+                continue;
+            }
+            // else
+            // c extends d --> collect d, check overrode fields and
+            // methods, then add c + d fields and methods to sym table
+            c.getSuperClass().thenDo(d -> {
+                if (!symTable.contains(d))
+                    // d hasn't been collected, i.e., added to sym table, so
+                    // do that first
+                    symTable.add(d, new TypeSymTableClass(
+                            new TypeTTauClass(d),
+                            classNameToClassMap.get(d)
+                    ));
+                try {
+                    // d exists in the sym table now
+                    TypeSymTableClass dClass =
+                            (TypeSymTableClass) symTable.lookup(d);
+                    checkOverrideMethods(c.getMethodDecls(), dClass.getMethods());
+
+                    // Now all fields and variables have the same types, c
+                    // can be collected. Also add the fields and methods of d
+                    Map<String, TypeSymTableVar> cFields =
+                            new HashMap<>(dClass.getFields());
+                    Map<String, TypeSymTableFunc> cMethods =
+                            new HashMap<>(dClass.getMethods());
+                    // for all fields of c, add (name, type) to cFields
+                    for (StmtDecl sd : c.getFields()) {
+                        sd.applyToAll((name, type) ->
+                                cFields.put(name, new TypeSymTableVar(type)));
+                    }
+                    for (FuncDecl fd : c.getMethodDecls()) {
+                        Pair<String, TypeSymTable> sig = fd.getSignature();
+                        cMethods.put(sig.part1(),
+                                (TypeSymTableFunc) sig.part2());
+                    }
+
+                    symTable.add(c.getName(), new TypeSymTableClass(
+                            new TypeTTauClass(c.getName()), cFields, cMethods
+                    ));
+
+                } catch (NotFoundException e) {
+                    throw new IllegalStateException(
+                            "Added " + d + " to sym table but couldn't look up"
+                    );
+                }
+            });
+        }
+    }
+
+    @Override
+    public Void visit(FileProgram node) {
+        // Implicitly import the interface for this program if not explicitly
+        // defined in imports
+        List<UseInterface> fileImports = node.getImports();
+        if (FilenameUtils.getExtension(inputFilePath).equals("xi")) {
+            // typechecking a xi file
+            String fileBaseName = FilenameUtils.getBaseName(inputFilePath);
+            if (fileImports.stream().map(UseInterface::getName)
+                    .noneMatch(expImport -> expImport.equals(fileBaseName))) {
+                // None of the explicit imports match the file name, add this
+                // file interface to the top (if it exists)
+                if (Files.exists(Paths.get(libpath, fileBaseName + ".ixi"))) {
+                    fileImports.add(0, new UseInterface(
+                            fileBaseName, new XiTokenLocation(0, 0)
+                    ));
+                }
+            }
+        }
+
+        fileImports.forEach(i -> i.accept(this));
+        collectTauClasses(node.getClassDefns());
+
+        // Make sure that every super class is defined as a class in the
+        // class hierarchy
+        for (Map.Entry<String, Maybe<String>> entry : classHierarchy.entrySet()) {
+            Maybe<String> superClassName = entry.getValue();
+            superClassName.thenDo(
+                    // c extends d
+                    d -> {
+                        if (!classHierarchy.containsKey(d))
+                            // d doesn't exist in the list of classes
+                            throw new SemanticUnresolvedNameError(
+                                    d, classNameToClassMap.get(d).getLocation()
+                            );
+                    }
+            );
+        }
+
+        collectFuncs(node.getFuncDefns());
+        collectClassContents(node.getClassDefns());
+
+        // check the insides of the program's defns. Do global vars first so
+        // that insides of func and class defns can type check
+        node.getGlobalVars().forEach(g -> g.accept(this));
+        node.getClassDefns().forEach(c -> c.accept(this));
+        node.getFuncDefns().forEach(f -> f.accept(this));
         return null;
     }
 
     @Override
     public Void visit(FileInterface node) {
-        //note: visitor will only visit program file or interface file
-        List<FuncDecl> decls = node.getFuncDecls();
-        for (FuncDecl decl : decls) {
-            Pair<String, TypeSymTable> signature = decl.getSignature();
-            TypeSymTableFunc func_sig = (TypeSymTableFunc) signature.part2();
-            try {
-                TypeSymTable existing = symTable.lookup(signature.part1());
-                TypeSymTableFunc existingf = (TypeSymTableFunc) existing;
-                //do not check if re-declarable bc imports come before defns
+        node.getImports().forEach(i -> i.accept(this));
+        collectTauClasses(node.getClassDecls());
 
-                //existing function has different signature
-                if (!(existingf.getInput().equals(func_sig.getInput()) &&
-                        existingf.getOutput().equals(func_sig.getOutput()))) {
-                    throw new SemanticError(
-                            String.format("Existing function with name %s has different signature", signature.part1()),
-                            decl.getLocation());
-                }
-                //do nothing because function sig already exists
-            } catch (NotFoundException e) {
-                symTable.add(signature.part1(), signature.part2());
-            }
-        }
+        collectFuncs(node.getFuncDecls());
+        collectClassContents(node.getClassDecls());
         return null;
     }
 
@@ -738,7 +1340,7 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
         // for TC function body only, signatures are checked at the top-level
         symTable.enterScope();
         symTable.add(RETURN_KEY, new TypeSymTableReturn(node.getOutput()));
-        for (Pair<String, TypeTTau> param : node.getParams()){
+        for (Pair<String, TypeTTau> param : node.getParams()) {
             if (symTable.contains(param.part1())) {
                 throw new SemanticError(
                         "No shadowing allowed in function params",
@@ -760,11 +1362,73 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
     @Override
     public Void visit(FuncDecl node) {
+        // do nothing
+        return null;
+    }
+
+    @Override
+    public Void visit(ClassDecl node) {
+        // do nothing
+        return null;
+    }
+
+    @Override
+    public Void visit(ClassDefn node) {
+        String className = node.getName();
+        symTable.enterScope();
+        symTable.add(INCLASS_KEY, new TypeSymTableInClass(
+                new TypeTTauClass(className)
+        ));
+        try {
+            TypeSymTableClass c = (TypeSymTableClass) symTable.lookup(className);
+            // Add super class' fields to sym table. Visiting c's
+            // fields after this will result in duplicate variable if
+            // c tries to override a field of d (design decision).
+            classHierarchy.get(c.getType().getName()).thenDo(dName -> {
+                // c extends d
+                try {
+                    TypeSymTableClass d =
+                            (TypeSymTableClass) symTable.lookup(dName);
+                    d.getFields().forEach(
+                            (field, type) -> symTable.add(field, type)
+                    );
+                } catch (NotFoundException e) {
+                    // Shouldn't happen since d should have been collected as
+                    // it is a super class of c
+                    throw new IllegalStateException(
+                            dName + " collected but not present in symtable"
+                    );
+                }
+            });
+            // Add methods of c to sym table so fields can use the methods
+            // for initialization
+            c.getMethods().forEach(
+                    (methName, methSig) -> symTable.add(methName, methSig)
+            );
+
+            // Now visit the fields and methods
+            node.getFields().forEach(f -> f.accept(this));
+            node.getMethodDefns().forEach(m -> m.accept(this));
+
+        } catch (NotFoundException e) {
+            // Shouldn't happen since the class should have been collected
+            // in the sym table before this visitor is called.
+            throw new IllegalStateException(
+                    className + " collected but not present in symtable"
+            );
+        }
+
+        symTable.exitScope();
         return null;
     }
 
     @Override
     public Void visit(UseInterface node) {
+        if (visitedInterfaces.contains(node.getName()))
+            // Already imported this interface, return
+            return null;
+        visitedInterfaces.add(node.getName());
+
         String filename = node.getName() + ".ixi";
         String inputFilePath = Paths.get(libpath, filename).toString();
         try (FileReader fileReader = new FileReader(inputFilePath)) {
@@ -785,9 +1449,103 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
             //this would get thrown the file existed but was parsed as
             // a program file for some reason
             throw new SemanticError(
-                    "Could not find interface "+node.getName(),
+                    "Could not find interface " + node.getName(),
                     node.getLocation());
         }
         return null;
     }
+
+    // sub typing rules
+    private boolean subTypeOf(TypeT fst, TypeT snd) {
+        if (fst instanceof TypeTList)
+            return subTypeOf((TypeTList) fst, snd);
+        if (fst instanceof TypeTTau)
+            return subTypeOf((TypeTTau) fst, snd);
+        if (fst instanceof TypeTUnit)
+            return subTypeOf((TypeTUnit) fst, snd);
+        throw new IllegalAccessError("Illegal use of subTypeOf");
+    }
+
+    private boolean subTypeOf(TypeTTau fst, TypeT snd) {
+        if (fst instanceof TypeTTauArray)
+            return subTypeOf((TypeTTauArray) fst, snd);
+        if (fst instanceof TypeTTauBool)
+            return subTypeOf((TypeTTauBool) fst, snd);
+        if (fst instanceof TypeTTauClass)
+            return subTypeOf((TypeTTauClass) fst, snd);
+        if (fst instanceof TypeTTauInt)
+            return subTypeOf((TypeTTauInt) fst, snd);
+        throw new IllegalAccessError("Illegal use of subTypeOf");
+    }
+
+    private boolean subTypeOf(TypeTTauArray fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            return true;
+        if (!(snd instanceof TypeTTauArray))
+            return false;
+        TypeTTauArray snd_ = (TypeTTauArray) snd;
+        if (fst.getTypeTTau() == null || snd_.getTypeTTau() == null)
+            return true;
+        // Invariant subtyping for arrays
+        return fst.getTypeTTau().equals(snd_.getTypeTTau());
+    }
+
+    private boolean subTypeOf(TypeTTauBool fst, TypeT snd) {
+        return snd instanceof TypeTTauBool || snd instanceof TypeTUnit;
+    }
+
+    private boolean subTypeOf(TypeTTauClass fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            // everything is a sub type of unit
+            return true;
+
+        if (!(snd instanceof TypeTTauClass))
+            // if t is not unit, it must be at least a class
+            return false;
+        TypeTTauClass snd_ = (TypeTTauClass) snd;
+
+        String fstName = fst.getName();
+        // fst <= snd if either is true
+        // - fst == snd
+        // - fst extends d and d is subtype of snd
+        // If fst doesn't extend anything and fst != snd, then false
+        // (otherwise becomes active)
+        // If fst extends d and d is not a subtype of snd, then false
+        // (Maybe<false> returned from to(), and otherwise on it takes the
+        // false out from the Maybe
+        return fstName.equals(snd_.getName())
+                || classHierarchy.get(fstName).to(
+                d -> subTypeOf(new TypeTTauClass(d), snd_)
+        ).otherwise(false);
+    }
+
+    private boolean subTypeOf(TypeTTauInt fst, TypeT snd) {
+        return snd instanceof TypeTTauInt || snd instanceof TypeTUnit;
+    }
+
+    private boolean subTypeOf(TypeTList fst, TypeT snd) {
+        if (snd instanceof TypeTUnit)
+            return true;
+        if (!(snd instanceof TypeTList))
+            return false;
+        List<TypeTTau> fstTauList = fst.getTTauList();
+        List<TypeTTau> sndTauList = ((TypeTList) snd).getTTauList();
+
+        // Check the lengths are equal
+        if (fstTauList.size() != sndTauList.size())
+            return false;
+
+        // Check each tau is subtype
+        for (int i = 0; i < sndTauList.size(); ++i) {
+            if (!subTypeOf(fstTauList.get(i), sndTauList.get(i)))
+                return false;
+        }
+        // All taus are subtypes of the other taus
+        return true;
+    }
+
+    private boolean subTypeOf(TypeTUnit fst, TypeT snd) {
+        return snd instanceof TypeTUnit;
+    }
+
 }

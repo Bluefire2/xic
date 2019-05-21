@@ -11,24 +11,15 @@ import polyglot.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 //funcDefns are for program files
-public class FuncDefn extends ASTNode implements Printable {
-    private String name;
-    private List<Pair<String, TypeTTau>> params;
+public class FuncDefn extends Func {
     private Stmt body;
-    private TypeT output;
-
-    private Pair<String, TypeSymTable> signature;
 
     public FuncDefn(String name, List<Pair<String, TypeTTau>> params,
                     TypeT output, Stmt body,
                     ComplexSymbolFactory.Location location) {
-        super(location);
-        this.name = name;
-        this.params = params;
-        this.output = output;
+        super(name, params, output, location);
         this.body = body;
 
         List<TypeTTau> param_types = new ArrayList<>();
@@ -37,9 +28,11 @@ public class FuncDefn extends ASTNode implements Printable {
         TypeSymTable sig;
         switch (param_types.size()) {
             case 0:
-                sig = new TypeSymTableFunc(new TypeTUnit(), output, false); break;
+                sig = new TypeSymTableFunc(new TypeTUnit(), output, false);
+                break;
             case 1:
-                sig = new TypeSymTableFunc(param_types.get(0), output, false); break;
+                sig = new TypeSymTableFunc(param_types.get(0), output, false);
+                break;
             default:
                 sig = new TypeSymTableFunc(new TypeTList(param_types), output, false);
         }
@@ -51,40 +44,11 @@ public class FuncDefn extends ASTNode implements Printable {
         this(name, params, new TypeTUnit(), body, location);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public List<Pair<String, TypeTTau>> getParams() {
-        return params;
-    }
-
-    public TypeTList getParamTypes() {
-        return new TypeTList(
-                params.stream().map(Pair::part2).collect(Collectors.toList())
-        );
-    }
-
     public Stmt getBody() {
         return body;
     }
 
-    public TypeT getOutput() {
-        return output;
-    }
-
-    private boolean isProcedure() {
-        return output instanceof TypeTUnit;
-    }
-
-    private void printPair(Pair<String, TypeTTau> p, CodeWriterSExpPrinter w){
-        w.startList();
-        w.printAtom(p.part1());
-        p.part2().prettyPrint(w);
-        w.endList();
-    }
-
-    public void prettyPrint(CodeWriterSExpPrinter w){
+    public void prettyPrint(CodeWriterSExpPrinter w) {
         w.startList();
         w.printAtom(name);
         w.startList();
@@ -110,11 +74,12 @@ public class FuncDefn extends ASTNode implements Printable {
         return visitor.visit(this);
     }
 
-    public Pair<String, TypeSymTable> getSignature() {
-        return signature;
-    }
-
-    public void setSignature(Pair<String, TypeSymTable> signature) {
-        this.signature = signature;
+    /**
+     * Create a corresponding function declaration for this definition.
+     *
+     * @return The declaration.
+     */
+    public FuncDecl toDecl() {
+        return new FuncDecl(name, params, output, getLocation());
     }
 }

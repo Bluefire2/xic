@@ -53,7 +53,8 @@ public class CopyPropagationVisitor {
             ));
         }
         return new IRFuncDecl(
-                func.name(), removeNestedIRSeqs(new IRSeq(optimStmts))
+                func.name(), func.getNumParams(), func.getNumRets(),
+                removeNestedIRSeqs(new IRSeq(optimStmts))
         );
     }
 
@@ -107,8 +108,10 @@ public class CopyPropagationVisitor {
                 .map(arg -> visit(arg, copyMap))
                 .collect(Collectors.toList());
         if (target instanceof IRTemp && copyMap.containsKey(target)) {
-            return new IRCall(copyMap.get(target), newArgs);
-        } else return new IRCall(visit(target, copyMap), newArgs);
+            return new IRCall(copyMap.get(target), expr.getNumRets(), newArgs);
+        } else {
+            return new IRCall(visit(target, copyMap), expr.getNumRets(), newArgs);
+        }
     }
 
     public IRStmt visit(IRCJump stmt, Map<IRTemp, IRTemp> copyMap) {
@@ -138,8 +141,7 @@ public class CopyPropagationVisitor {
     }
 
     public IRStmt visit(IRMove stmt, Map<IRTemp, IRTemp> copyMap) {
-        return new IRMove(visit(stmt.target(), copyMap),
-                visit(stmt.source(), copyMap));
+        return new IRMove(stmt.target(), visit(stmt.source(), copyMap));
     }
 
     public IRStmt visit(IRReturn stmt, Map<IRTemp, IRTemp> copyMap) {
