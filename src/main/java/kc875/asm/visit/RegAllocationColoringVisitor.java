@@ -424,7 +424,7 @@ public class RegAllocationColoringVisitor {
     }
 
     private void selectSpill() {
-        //TODO heuristic to choose nodes with large live-ranges
+        //select temp to spill onto stack arbitrarily
         Graph<ASMExprRT>.Node m = spillWorklist.iterator().next();
         spillWorklist.remove(m);
         simplifyWorklist.add(m);
