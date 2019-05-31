@@ -148,11 +148,8 @@ public class ConstantFoldVisitorTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         visitor = new ConstantFoldVisitor(new IRNodeFactory_c());
     }
 
-    @After
-    public void tearDown() throws Exception {
-    }
 }

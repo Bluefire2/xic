@@ -94,16 +94,8 @@ public class ASMGraph extends Graph<ASMInstr> {
         }
     }
 
-    public BiMap<Node, ASMInstr> getNodeInstrMap() {
-        return nodeInstrMap;
-    }
-
     public Node getNode(ASMInstr i) {
         return nodeInstrMap.inverse().get(i);
-    }
-
-    public ASMInstr getInstr(Node n) {
-        return nodeInstrMap.get(n);
     }
 
     /**

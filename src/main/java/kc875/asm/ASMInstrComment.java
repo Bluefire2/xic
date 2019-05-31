@@ -2,10 +2,7 @@ package kc875.asm;
 
 import kc875.asm.visit.ASMinstrBareVisitor;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ASMInstrComment extends ASMInstr {
     private String comment;
@@ -25,7 +22,7 @@ public class ASMInstrComment extends ASMInstr {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof ASMInstrComment &&
-                ((ASMInstrComment) obj).getComment() == this.comment;
+                Objects.equals(((ASMInstrComment) obj).getComment(), this.comment);
     }
 
     @Override

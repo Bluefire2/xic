@@ -41,7 +41,4 @@ public abstract class SymbolTableTest {
         table = createInstance();
     }
 
-    @After
-    public void tearDown() {
-    }
 }

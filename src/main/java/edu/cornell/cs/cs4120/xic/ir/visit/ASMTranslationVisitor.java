@@ -1050,17 +1050,6 @@ public class ASMTranslationVisitor implements IRBareVisitor<List<ASMInstr>> {
         return visitExpr(node.expr(), new ASMExprTemp(newTemp()));
     }
 
-    /**
-     * Remove all non-digit characters from a string, and return the integer
-     * value of the result.
-     *
-     * @param s string containing one or more digit
-     * @return number contained within the string
-     */
-    private static int numFromString(String s) {
-        return Integer.parseInt(s.replaceAll("\\D+", ""));
-    }
-
     public List<ASMInstr> visit(IRFuncDecl node) {
         List<ASMInstr> instrs = new ArrayList<>();
         int numParams = node.getNumParams();

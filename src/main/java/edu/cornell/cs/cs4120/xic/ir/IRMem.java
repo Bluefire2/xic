@@ -30,7 +30,7 @@ public class IRMem extends IRExpr_c {
             }
             throw new InternalCompilerError("Unknown mem type!");
         }
-    };
+    }
 
     private IRExpr expr;
     private MemType memType;

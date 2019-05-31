@@ -20,10 +20,6 @@ public class LivenessDFATest {
         livenessDFA = new LivenessDFA(graph);
     }
 
-    @After
-    public void tearDown() {
-    }
-
     private boolean twoListsEqual(List a, List b) {
         return (a.size() == b.size() &&
                 a.containsAll(b) && b.containsAll(a));

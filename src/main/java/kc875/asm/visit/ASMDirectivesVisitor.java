@@ -16,19 +16,6 @@ public class ASMDirectivesVisitor {
         dispatchVectorLayouts = dvs;
     }
 
-    private String returnTypeName(TypeT type) {
-        if (type instanceof TypeTList) {
-            TypeTList tuple = (TypeTList) type;
-            ArrayList<String> types = new ArrayList<>();
-            tuple.getTTauList().forEach((t) -> types.add(returnTypeName(t)));
-            return "t" + tuple.getLength() + String.join("", types);
-        } else if (type instanceof TypeTUnit) { //TypeTUnit
-            return "p";
-        } else {
-            return typeName(type);
-        }
-    }
-
     private String typeName(TypeT type) {
         if (type instanceof TypeTList) {
             TypeTList tuple = (TypeTList) type;

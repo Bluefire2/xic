@@ -661,27 +661,6 @@ public class RegAllocationColoringVisitor {
         //return i.destIsDefButNoUse();
     }
 
-    //GETTERS (for testing)
-    public ASMGraph getCfg() {
-        return cfg;
-    }
-
-    public InterferenceGraph getInterference() {
-        return interference;
-    }
-
-    public ASMLiveVariableDFA getLiveness() {
-        return liveness;
-    }
-
-    public List<ASMInstr> getInstrs() {
-        return instrs;
-    }
-
-    public int getK() {
-        return K;
-    }
-
     //FOR TESTING ONLY!
     //USED FOR TESTING ONLY - stops after build graph step so we can test for invariants
     public void buildInterferenceGraph(List<ASMInstr> instrs) {

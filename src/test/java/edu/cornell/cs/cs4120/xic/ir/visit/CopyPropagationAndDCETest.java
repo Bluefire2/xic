@@ -21,10 +21,6 @@ public class CopyPropagationAndDCETest {
         deadCodeElimVisitor = new DeadCodeElimVisitor();
     }
 
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void sanityCheck() {
         copyPropagationVisitor.run(
