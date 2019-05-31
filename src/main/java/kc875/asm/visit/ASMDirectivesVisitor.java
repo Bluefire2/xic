@@ -94,7 +94,7 @@ public class ASMDirectivesVisitor {
                         }
                     }
                 } else if (d instanceof StmtDeclMulti) {
-                    List<String> names = ((StmtDeclMulti) d).varsOf();
+                    List<String> names = d.varsOf();
                     for (String name : names) {
                         gname = name;
                         gtype = ((StmtDeclMulti) d).getType();
