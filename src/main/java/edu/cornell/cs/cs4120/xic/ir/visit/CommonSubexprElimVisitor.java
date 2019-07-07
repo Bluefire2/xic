@@ -72,7 +72,6 @@ public class CommonSubexprElimVisitor {
                 if (e instanceof IRTemp
                         || e instanceof IRConst
                         || tempExprMap.containsKey(e)) {
-                    continue;
                 } else if (dfa.nodesUsingExpr(e).size() > 1 ) {
                     String tmp = newTemp();
                     tempExprMap.put(e, tmp);

@@ -3,10 +3,8 @@ package kc875.asm.dfa;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import kc875.asm.ASMExprRT;
-import kc875.asm.ASMInstr;
 import kc875.cfg.Graph;
 
-import java.util.List;
 import java.util.HashSet;
 
 public class InterferenceGraph extends Graph<ASMExprRT> {

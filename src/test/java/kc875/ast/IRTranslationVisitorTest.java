@@ -27,10 +27,6 @@ public class IRTranslationVisitorTest {
         l = new XiTokenLocation(0,0);
     }
 
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testFuncName0() {
         TypeSymTableFunc t = new TypeSymTableFunc(

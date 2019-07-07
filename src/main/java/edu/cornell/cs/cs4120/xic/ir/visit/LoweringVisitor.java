@@ -113,8 +113,6 @@ public class LoweringVisitor extends IRVisitor {
                 currentBlock = new BasicBlock(l);
             } else if (currStmt instanceof IRJump){
                 IRJump j = (IRJump) currStmt;
-                // TODO: This needs to be changed later (pa7), currently we
-                //  always jump to named locs
                 currentBlock.jumpTo = ((IRName) j.target()).name();
                 //do not add to block, but record that it should jumpTo
                 lookup.put(currentBlock.label, currentBlock);

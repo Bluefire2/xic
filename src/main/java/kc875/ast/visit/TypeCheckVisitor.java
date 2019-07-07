@@ -76,8 +76,6 @@ public class TypeCheckVisitor implements ASTVisitor<Void> {
 
                     List<FuncDefn> orderedDefns = new ArrayList<>();
                     for (String meth : methTargetOrdering) {
-                        // TODO: this is highly inefficient but oh well (it's
-                        //  like selection sort)
                         orderedDefns.add(currDefns.get(
                                 methCurrentOrdering.indexOf(meth)
                         ));

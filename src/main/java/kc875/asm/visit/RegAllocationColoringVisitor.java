@@ -424,7 +424,7 @@ public class RegAllocationColoringVisitor {
     }
 
     private void selectSpill() {
-        //TODO heuristic to choose nodes with large live-ranges
+        //select temp to spill onto stack arbitrarily
         Graph<ASMExprRT>.Node m = spillWorklist.iterator().next();
         spillWorklist.remove(m);
         simplifyWorklist.add(m);
@@ -659,27 +659,6 @@ public class RegAllocationColoringVisitor {
     private boolean isMoveInstruction(ASMInstr i) {
         return isCopy(i);
         //return i.destIsDefButNoUse();
-    }
-
-    //GETTERS (for testing)
-    public ASMGraph getCfg() {
-        return cfg;
-    }
-
-    public InterferenceGraph getInterference() {
-        return interference;
-    }
-
-    public ASMLiveVariableDFA getLiveness() {
-        return liveness;
-    }
-
-    public List<ASMInstr> getInstrs() {
-        return instrs;
-    }
-
-    public int getK() {
-        return K;
     }
 
     //FOR TESTING ONLY!

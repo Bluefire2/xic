@@ -550,11 +550,8 @@ public class ASMTranslationVisitorTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         visitor = new ASMTranslationVisitor();
     }
 
-    @After
-    public void tearDown() throws Exception {
-    }
 }

@@ -3,12 +3,9 @@ package edu.cornell.cs.cs4120.xic.ir.interpret;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.ArrayList;
 
-import edu.cornell.cs.cs4120.util.CodeWriterSExpPrinter;
 import edu.cornell.cs.cs4120.util.InternalCompilerError;
 import edu.cornell.cs.cs4120.xic.ir.IRBinOp;
 import edu.cornell.cs.cs4120.xic.ir.IRCJump;
@@ -574,7 +571,7 @@ public class IRSimulator {
                 throw new Trap("No next instruction.  Forgot RETURN?");
             return insn;
         }
-    };
+    }
 
     /**
      * While traversing the IR tree, we require a stack in order to hold
@@ -626,7 +623,7 @@ public class IRSimulator {
 
     public static class StackItem {
         public enum Kind {
-            COMPUTED, MEM, TEMP, NAME;
+            COMPUTED, MEM, TEMP, NAME
         }
 
         public Kind type;
@@ -653,7 +650,7 @@ public class IRSimulator {
                 temp = string;
             else name = string;
         }
-    };
+    }
 
     public static class Trap extends RuntimeException {
         private static final long serialVersionUID =
@@ -662,7 +659,7 @@ public class IRSimulator {
         public Trap(String message) {
             super(message);
         }
-    };
+    }
 
     public static class OutOfBoundTrap extends Trap {
         private static final long serialVersionUID =
@@ -671,5 +668,5 @@ public class IRSimulator {
         public OutOfBoundTrap(String message) {
             super(message);
         }
-    };
+    }
 }

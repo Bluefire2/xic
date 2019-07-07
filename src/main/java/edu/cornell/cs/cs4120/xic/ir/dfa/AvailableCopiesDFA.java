@@ -5,7 +5,6 @@ import edu.cornell.cs.cs4120.xic.ir.*;
 import kc875.cfg.DFAFramework;
 import kc875.cfg.Graph;
 import kc875.utils.SetWithInf;
-import kc875.utils.XiUtils;
 import polyglot.util.Pair;
 
 public class AvailableCopiesDFA extends

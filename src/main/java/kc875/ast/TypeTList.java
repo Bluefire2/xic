@@ -23,9 +23,9 @@ public class TypeTList extends TypeT {
 
     @Override
     public String toString() {
-        String s = "(" + tTauList.get(0).toString();
+        StringBuilder s = new StringBuilder("(" + tTauList.get(0).toString());
         for (int i = 1; i < tTauList.size(); i++) {
-            s = s + "," + tTauList.get(i).toString();
+            s.append(",").append(tTauList.get(i).toString());
         }
         return s + ")";
     }

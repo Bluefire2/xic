@@ -22,10 +22,6 @@ public class CSEVisitorTest {
         cseVisitor = new CommonSubexprElimVisitor();
     }
 
-    @After
-    public void tearDown() {
-    }
-
     private boolean twoListsEqual(List a, List b) {
         return (a.size() == b.size() &&
                 a.containsAll(b) && b.containsAll(a));

@@ -1,7 +1,6 @@
 package edu.cornell.cs.cs4120.xic.ir.visit;
 
 import edu.cornell.cs.cs4120.xic.ir.IRNode;
-import edu.cornell.cs.cs4120.xic.ir.IRTemp;
 
 import java.util.ArrayList;
 import java.util.List;

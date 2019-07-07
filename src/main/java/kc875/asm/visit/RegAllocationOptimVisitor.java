@@ -40,10 +40,12 @@ public class RegAllocationOptimVisitor {
         return v.allocate(instrs);
     }
 
-    private void printInstrs(List<ASMInstr> instrs){
-        for (ASMInstr in : instrs) {
-            System.out.println(in);
-        }
-        System.out.println();
-    }
+// --Commented out by Inspection START (2019-05-30 23:39):
+//    private void printInstrs(List<ASMInstr> instrs){
+//        for (ASMInstr in : instrs) {
+//            System.out.println(in);
+//        }
+//        System.out.println();
+//    }
+// --Commented out by Inspection STOP (2019-05-30 23:39)
 }

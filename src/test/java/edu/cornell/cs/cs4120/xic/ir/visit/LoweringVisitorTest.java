@@ -281,11 +281,8 @@ public class LoweringVisitorTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         visitor = new LoweringVisitor(new IRNodeFactory_c());
     }
 
-    @After
-    public void tearDown() throws Exception {
-    }
 }

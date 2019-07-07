@@ -24,10 +24,6 @@ public class AvailableExprsDFATest {
         availableExprsDFA = new AvailableExprsDFA(graph);
     }
 
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testExprsContainingTemp() {
         IRTemp temp = new IRTemp("temp");
