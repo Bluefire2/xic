@@ -1,6 +1,6 @@
 # Xi Compiler (xic)
 
-A compiler for the [Xi language](https://www.cs.cornell.edu/courses/cs4120/2019sp/) built by [Anmol Kabra](https://github.com/anmolkabra), [Cassandra Scarpa](https://github.com/cassandrascarpa), [Danny Yang](https://github.com/yangdanny97), [Kyrylo Chernyshov](https://github.com/BlueFire2).
+A compiler for the [Xi language](https://www.cs.cornell.edu/courses/cs4120/2019sp/) and its object-oriented extension Xi++, built by [Anmol Kabra](https://github.com/anmolkabra), [Cassandra Scarpa](https://github.com/cassandrascarpa), [Danny Yang](https://github.com/yangdanny97), [Kyrylo Chernyshov](https://github.com/BlueFire2).
 
 ## Installation
 
@@ -72,3 +72,4 @@ xic --flags a/b.xi
 ## Acknowledgements
 - [CS 4120](https://www.cs.cornell.edu/courses/cs4120/)
 - [Xi Language Specification](https://www.cs.cornell.edu/courses/cs4120/2019sp/project/language.pdf)
+- [Xi++ Language Specification](http://www.cs.cornell.edu/courses/cs4120/2019sp/project/oolang.pdf)
